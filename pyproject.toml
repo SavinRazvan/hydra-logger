@@ -42,7 +42,6 @@ dev = [
     "bandit>=1.7.0",
     "safety>=2.3.0",
     "types-PyYAML>=6.0.0",
-    "types-tomli>=2.0.0",
 ]
 
 [project.urls]
