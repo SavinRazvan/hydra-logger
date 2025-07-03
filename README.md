@@ -31,7 +31,17 @@ pip install hydra-logger
 # Or install for development
 git clone https://github.com/SavinRazvan/hydra-logger.git
 cd hydra-logger
+
+# Option 1: Install with pip (recommended)
 pip install -e .
+
+# Option 2: Install with conda
+conda env create -f environment.yml
+conda activate hydra-logger
+
+# Option 3: Install with requirements files
+pip install -r requirements.txt          # Core dependencies only
+pip install -r requirements-dev.txt      # Development dependencies
 ```
 
 ### Basic Usage
@@ -312,11 +322,17 @@ python hydra_logger/examples/basic_usage.py
 git clone https://github.com/SavinRazvan/hydra-logger.git
 cd hydra-logger
 
-# Install in development mode
+# Option 1: Install with pip (recommended)
 pip install -e .
-
-# Install development dependencies
 pip install -r requirements-dev.txt
+
+# Option 2: Install with conda
+conda env create -f environment.yml
+conda activate hydra-logger
+
+# Option 3: Install with requirements files
+pip install -r requirements.txt          # Core dependencies only
+pip install -r requirements-dev.txt      # Development dependencies
 ```
 
 ### Running Tests
@@ -348,8 +364,8 @@ hydra-logger/
 ├── 📋 Project Files
 │   ├── README.md, LICENSE, pyproject.toml
 │   ├── setup.py, requirements.txt, requirements-dev.txt
-│   ├── pytest.ini, .gitignore
-│   ├── PACKAGING.md, DEVELOPMENT.md
+│   ├── environment.yml, .gitignore
+│   ├── pytest.ini, .github/ (CI/CD workflows)
 │   └── .github/ (CI/CD workflows)
 │
 ├── 🏗️  Core Package (hydra_logger/)
