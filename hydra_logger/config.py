@@ -60,7 +60,7 @@ class LogDestination(BaseModel):
         path (Optional[str]): File path, required for file destinations.
         max_size (Optional[str]): Maximum file size for rotation (e.g., '5MB', '1GB').
         backup_count (Optional[int]): Number of backup files to keep (default: 3).
-        format (str): Log format: 'text' or 'json' (default: 'text').
+        format (str): Log format: 'text', 'json', 'csv', 'syslog', or 'gelf' (default: 'text').
 
     The model includes comprehensive validation to ensure that file destinations
     have required paths and that log levels are valid.
@@ -75,7 +75,7 @@ class LogDestination(BaseModel):
         default="5MB", description="Max file size (e.g., '5MB', '1GB')"
     )
     backup_count: Optional[int] = Field(default=3, description="Number of backup files")
-    format: str = Field(default="text", description="Log format: 'text' or 'json'")
+    format: str = Field(default="text", description="Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'")
 
     @field_validator("path")
     @classmethod
@@ -141,6 +141,26 @@ class LogDestination(BaseModel):
         if v.upper() not in valid_levels:
             raise ValueError(f"Invalid level: {v}. Must be one of {valid_levels}")
         return v.upper()
+
+    @field_validator("format")
+    @classmethod
+    def validate_format(cls, v: str) -> str:
+        """
+        Validate that the log format is one of the supported formats.
+
+        Args:
+            v (str): The format value to validate.
+
+        Returns:
+            str: The normalized (lowercase) format.
+
+        Raises:
+            ValueError: If the format is not one of the valid options.
+        """
+        valid_formats = ["text", "json", "csv", "syslog", "gelf"]
+        if v.lower() not in valid_formats:
+            raise ValueError(f"Invalid format: {v}. Must be one of {valid_formats}")
+        return v.lower()
 
 
 class LogLayer(BaseModel):

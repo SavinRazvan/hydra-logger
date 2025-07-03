@@ -326,14 +326,71 @@ class HydraLogger:
             raise ValueError(f"Failed to create console handler: {e}") from e
 
     def _get_formatter(self, fmt: str = "text") -> logging.Formatter:
+        """
+        Get the appropriate formatter based on the specified format.
+
+        Args:
+            fmt (str): Format type ('text', 'json', 'csv', 'syslog', 'gelf').
+
+        Returns:
+            logging.Formatter: Configured logging formatter.
+
+        Raises:
+            ValueError: If the format is not supported or dependencies are missing.
+        """
+        fmt = fmt.lower()
+        
         if fmt == "json":
             try:
                 from pythonjsonlogger import jsonlogger
                 return jsonlogger.JsonFormatter()
             except ImportError:
                 self._log_warning("python-json-logger not installed, falling back to text format.")
-        # Default to text
-        return logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s - %(message)s")
+                return self._get_text_formatter()
+        
+        elif fmt == "csv":
+            return self._get_csv_formatter()
+        
+        elif fmt == "syslog":
+            return self._get_syslog_formatter()
+        
+        elif fmt == "gelf":
+            try:
+                import graypy
+                # GELF uses a special handler, but we can create a formatter for it
+                return self._get_gelf_formatter()
+            except ImportError:
+                self._log_warning("graypy not installed, falling back to text format.")
+                return self._get_text_formatter()
+        
+        else:  # text or unknown
+            return self._get_text_formatter()
+
+    def _get_text_formatter(self) -> logging.Formatter:
+        """Get the standard text formatter."""
+        return logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+
+    def _get_csv_formatter(self) -> logging.Formatter:
+        """Get CSV formatter for structured log output."""
+        return logging.Formatter(
+            "%(asctime)s,%(name)s,%(levelname)s,%(filename)s,%(lineno)d,%(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+
+    def _get_syslog_formatter(self) -> logging.Formatter:
+        """Get syslog-compatible formatter."""
+        return logging.Formatter(
+            "%(name)s[%(process)d]: %(levelname)s: %(message)s"
+        )
+
+    def _get_gelf_formatter(self) -> logging.Formatter:
+        """Get GELF-compatible formatter (basic structure)."""
+        return logging.Formatter(
+            "%(message)s"  # GELF handler will add the structure
+        )
 
     def _parse_size(self, size_str: str) -> int:
         """
