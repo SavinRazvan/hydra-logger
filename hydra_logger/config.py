@@ -31,7 +31,7 @@ except ImportError:
     import tomli as tomllib
 
 # Get TOMLDecodeError from the appropriate module
-TOMLDecodeError: Type[Exception] = getattr(tomllib, "TOMLDecodeError", Exception)
+TOMLDecodeError: Type[BaseException] = getattr(tomllib, "TOMLDecodeError", Exception)
 
 import yaml
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
