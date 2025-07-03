@@ -20,7 +20,7 @@ advanced capabilities of Hydra-Logger.
 import logging
 import os
 from logging.handlers import RotatingFileHandler
-from typing import Optional
+
 
 from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.logger import HydraLogger
@@ -51,18 +51,21 @@ def setup_logging(
         file_level (int): Logging level for the file handler (default: DEBUG).
         console_level (int): Logging level for the console handler (default: INFO).
         enable_file_logging (bool): Whether to enable file logging (default: True).
-        enable_console_logging (bool): Whether to enable console logging (default: True).
+        enable_console_logging (bool): Whether to enable console logging \
+            (default: True).
 
     Returns:
         None
 
     Side Effects:
-        - Creates the 'logs/' directory if it does not exist and file logging is enabled.
+        - Creates the 'logs/' directory if it does not exist and file logging is \
+            enabled.
         - Clears existing handlers on the root logger to prevent duplication.
         - Configures the root logger with the specified handlers and levels.
 
     Raises:
-        OSError: If the log directory cannot be created due to permission or disk issues.
+        OSError: If the log directory cannot be created due to permission or disk \
+            issues.
 
     Example:
         >>> setup_logging(
@@ -141,7 +144,8 @@ def create_hydra_config_from_legacy(
         file_level (int): Logging level for the file handler (default: DEBUG).
         console_level (int): Logging level for the console handler (default: INFO).
         enable_file_logging (bool): Whether to enable file logging (default: True).
-        enable_console_logging (bool): Whether to enable console logging (default: True).
+        enable_console_logging (bool): Whether to enable console logging \
+            (default: True).
         log_file_path (str): Custom path for the log file (default: "logs/app.log").
 
     Returns:
@@ -238,7 +242,8 @@ def migrate_to_hydra(
         file_level (int): Logging level for the file handler (default: DEBUG).
         console_level (int): Logging level for the console handler (default: INFO).
         enable_file_logging (bool): Whether to enable file logging (default: True).
-        enable_console_logging (bool): Whether to enable console logging (default: True).
+        enable_console_logging (bool): Whether to enable console logging \
+            (default: True).
         log_file_path (str): Custom path for the log file (default: "logs/app.log").
 
     Returns:

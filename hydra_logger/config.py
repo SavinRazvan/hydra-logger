@@ -34,9 +34,11 @@ TOMLDecodeError: Type[BaseException]
 
 try:
     import tomllib
+
     TOMLDecodeError = tomllib.TOMLDecodeError
 except ImportError:
     import tomli as tomllib
+
     TOMLDecodeError = tomllib.TOMLDecodeError
 except AttributeError:
     TOMLDecodeError = Exception
