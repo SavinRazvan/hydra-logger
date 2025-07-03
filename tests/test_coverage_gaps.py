@@ -8,7 +8,6 @@ error handling, and branches not covered by the main test suite.
 import os
 import sys
 import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest

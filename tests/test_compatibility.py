@@ -19,7 +19,6 @@ import os
 import shutil
 import tempfile
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -30,7 +29,7 @@ from hydra_logger.compatibility import (
     migrate_to_hydra,
     setup_logging,
 )
-from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
+from hydra_logger.config import LoggingConfig
 from hydra_logger.logger import HydraLogger
 
 

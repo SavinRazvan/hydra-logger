@@ -29,7 +29,6 @@ Example:
 """
 
 import logging
-import os
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -121,7 +120,7 @@ class HydraLogger:
         try:
             config = load_config(config_path)
             return cls(config)
-        except (FileNotFoundError, ValueError) as e:
+        except (FileNotFoundError, ValueError):
             # Re-raise FileNotFoundError and ValueError as-is
             raise
         except Exception as e:

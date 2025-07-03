@@ -19,7 +19,6 @@ modules can log to different destinations with custom folder structures,
 file rotation settings, and log level filtering.
 """
 
-import logging
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Type, Union
