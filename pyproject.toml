@@ -7,7 +7,7 @@ name = "hydra-logger"
 version = "0.1.0"
 description = "A multi-layered, configurable logging system with custom folder paths and event integration"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "Savin Ionut Razvan", email = "razvan.i.savin@gmail.com"}
 ]
