@@ -24,14 +24,19 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Type, Union
 
+if TYPE_CHECKING:
+    import tomllib as _tomllib
+    import tomli as _tomli
+
 # Handle tomllib import for Python < 3.11
+tomllib: Any
+TOMLDecodeError: Type[BaseException]
+
 try:
     import tomllib
+    TOMLDecodeError = tomllib.TOMLDecodeError
 except ImportError:
     import tomli as tomllib
-
-# Get TOMLDecodeError from the appropriate module
-try:
     TOMLDecodeError = tomllib.TOMLDecodeError
 except AttributeError:
     TOMLDecodeError = Exception
