@@ -342,8 +342,8 @@ class HydraLogger:
         
         if fmt == "json":
             try:
-                from pythonjsonlogger import jsonlogger
-                return jsonlogger.JsonFormatter()
+                from pythonjsonlogger.json import JsonFormatter
+                return JsonFormatter()
             except ImportError:
                 self._log_warning("python-json-logger not installed, falling back to text format.")
                 return self._get_text_formatter()
