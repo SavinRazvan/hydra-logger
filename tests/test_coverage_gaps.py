@@ -14,6 +14,7 @@ from unittest.mock import patch, MagicMock
 from hydra_logger.config import LogDestination, LogLayer, LoggingConfig, load_config
 from hydra_logger.logger import HydraLogger
 
+
 class TestConfigCoverageGaps:
     """Covers edge cases and error branches in hydra_logger.config."""
 
@@ -56,7 +57,9 @@ class TestConfigCoverageGaps:
             f.write(b"")
             f.flush()
         try:
-            with pytest.raises(ValueError, match="Configuration file is empty or invalid"):
+            with pytest.raises(
+                ValueError, match="Configuration file is empty or invalid"
+            ):
                 load_config(f.name)
         finally:
             os.unlink(f.name)
@@ -85,8 +88,10 @@ class TestConfigCoverageGaps:
 
     def test_load_config_general_exception(self):
         """Covers general exception during config loading."""
-        with patch('pathlib.Path.exists', return_value=True):
-            with patch('builtins.open', side_effect=PermissionError("Permission denied")):
+        with patch("pathlib.Path.exists", return_value=True):
+            with patch(
+                "builtins.open", side_effect=PermissionError("Permission denied")
+            ):
                 with pytest.raises(ValueError, match="Failed to load configuration"):
                     load_config("nonexistent.yaml")
 
@@ -98,6 +103,7 @@ class TestConfigCoverageGaps:
             LogDestination(type="file", path="")
         with pytest.raises(ValueError):
             LogDestination.model_validate({"type": "invalid", "path": "test.log"})
+
 
 class TestLoggerCoverageGaps:
     """Covers edge cases and error branches in hydra_logger.logger."""
@@ -113,7 +119,9 @@ class TestLoggerCoverageGaps:
 
     def test_console_handler_creation_failure(self):
         """Covers console handler creation failure."""
-        with patch('logging.StreamHandler', side_effect=Exception("Handler creation failed")):
+        with patch(
+            "logging.StreamHandler", side_effect=Exception("Handler creation failed")
+        ):
             with pytest.raises(ValueError, match="Failed to create console handler"):
                 destination = LogDestination(type="console", level="INFO")
                 logger = HydraLogger()
@@ -141,16 +149,14 @@ class TestLoggerCoverageGaps:
         """Covers warning when no valid handlers are created."""
         with tempfile.TemporaryDirectory() as temp_dir:
             invalid_file = os.path.join(temp_dir, "test.log")
-            with open(invalid_file, 'w') as f:
+            with open(invalid_file, "w") as f:
                 f.write("test")
             os.chmod(invalid_file, 0o444)
             config = LoggingConfig(
                 layers={
                     "TEST": LogLayer(
                         level="INFO",
-                        destinations=[
-                            LogDestination(type="file", path=invalid_file)
-                        ]
+                        destinations=[LogDestination(type="file", path=invalid_file)],
                     )
                 }
             )
@@ -160,28 +166,23 @@ class TestLoggerCoverageGaps:
         """Covers warning when no valid handlers are created (direct approach)."""
         logger = HydraLogger()
         layer_config = LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(type="console", level="INFO")
-            ]
+            level="INFO", destinations=[LogDestination(type="console", level="INFO")]
         )
-        with patch.object(logger, '_create_handler', return_value=None):
+        with patch.object(logger, "_create_handler", return_value=None):
             logger._setup_single_layer("TEST", layer_config)
 
     def test_file_handler_creation_failure_fallback(self):
         """Covers fallback to console handler when file handler fails."""
         with tempfile.TemporaryDirectory() as temp_dir:
             invalid_file = os.path.join(temp_dir, "test.log")
-            with open(invalid_file, 'w') as f:
+            with open(invalid_file, "w") as f:
                 f.write("test")
             os.chmod(invalid_file, 0o444)
             config = LoggingConfig(
                 layers={
                     "TEST": LogLayer(
                         level="INFO",
-                        destinations=[
-                            LogDestination(type="file", path=invalid_file)
-                        ]
+                        destinations=[LogDestination(type="file", path=invalid_file)],
                     )
                 }
             )
@@ -191,16 +192,14 @@ class TestLoggerCoverageGaps:
         """Covers OSError when creating file handler."""
         with tempfile.TemporaryDirectory() as temp_dir:
             invalid_file = os.path.join(temp_dir, "test.log")
-            with open(invalid_file, 'w') as f:
+            with open(invalid_file, "w") as f:
                 f.write("test")
             os.chmod(invalid_file, 0o444)
             config = LoggingConfig(
                 layers={
                     "TEST": LogLayer(
                         level="INFO",
-                        destinations=[
-                            LogDestination(type="file", path=invalid_file)
-                        ]
+                        destinations=[LogDestination(type="file", path=invalid_file)],
                     )
                 }
             )
@@ -214,7 +213,11 @@ class TestLoggerCoverageGaps:
         dest.type = "console"
         dest.level = "INFO"
         # Mock _create_console_handler to raise an exception, then fallback also fails
-        with patch.object(logger, '_create_console_handler', side_effect=Exception("console handler failed")):
+        with patch.object(
+            logger,
+            "_create_console_handler",
+            side_effect=Exception("console handler failed"),
+        ):
             handler = logger._create_handler(dest, "INFO")
             assert handler is None
 
@@ -235,6 +238,7 @@ class TestLoggerCoverageGaps:
         result = logger._create_handler(destination, "INFO")
         assert result is None
 
+
 class TestIntegrationCoverageGaps:
     """Integration tests for edge-case scenarios."""
 
@@ -243,7 +247,7 @@ class TestIntegrationCoverageGaps:
         with tempfile.TemporaryDirectory() as temp_dir:
             valid_path = os.path.join(temp_dir, "valid.log")
             invalid_file = os.path.join(temp_dir, "invalid.log")
-            with open(invalid_file, 'w') as f:
+            with open(invalid_file, "w") as f:
                 f.write("test")
             os.chmod(invalid_file, 0o444)
             config = LoggingConfig(
@@ -253,11 +257,11 @@ class TestIntegrationCoverageGaps:
                         destinations=[
                             LogDestination(type="file", path=valid_path),
                             LogDestination(type="file", path=invalid_file),
-                            LogDestination(type="console", level="INFO")
-                        ]
+                            LogDestination(type="console", level="INFO"),
+                        ],
                     )
                 }
             )
             logger = HydraLogger(config)
             logger.info("TEST", "Test message")
-            assert os.path.exists(valid_path) 
+            assert os.path.exists(valid_path)

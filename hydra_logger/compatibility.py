@@ -27,12 +27,12 @@ from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
 
 def setup_logging(
-        root_level: int = logging.DEBUG,
-        file_level: int = logging.DEBUG,
-        console_level: int = logging.INFO,
-        enable_file_logging: bool = True,
-        enable_console_logging: bool = True
-        ) -> None:
+    root_level: int = logging.DEBUG,
+    file_level: int = logging.DEBUG,
+    console_level: int = logging.INFO,
+    enable_file_logging: bool = True,
+    enable_console_logging: bool = True,
+) -> None:
     """
     Configure root, file, and console logging (backward compatibility).
 
@@ -84,7 +84,9 @@ def setup_logging(
         try:
             os.makedirs(log_directory, exist_ok=True)
         except OSError as e:
-            logging.debug(f"[setup_logging] Error creating log directory {log_directory}: {e}")
+            logging.debug(
+                f"[setup_logging] Error creating log directory {log_directory}: {e}"
+            )
             return
 
     # Get the root logger instance
@@ -104,9 +106,7 @@ def setup_logging(
 
         if enable_file_logging:
             file_handler = RotatingFileHandler(
-                log_file,
-                maxBytes=5 * 1024 * 1024,
-                backupCount=3
+                log_file, maxBytes=5 * 1024 * 1024, backupCount=3
             )
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
@@ -122,20 +122,20 @@ def setup_logging(
 
 
 def create_hydra_config_from_legacy(
-        root_level: int = logging.DEBUG,
-        file_level: int = logging.DEBUG,
-        console_level: int = logging.INFO,
-        enable_file_logging: bool = True,
-        enable_console_logging: bool = True,
-        log_file_path: str = "logs/app.log"
-        ) -> LoggingConfig:
+    root_level: int = logging.DEBUG,
+    file_level: int = logging.DEBUG,
+    console_level: int = logging.INFO,
+    enable_file_logging: bool = True,
+    enable_console_logging: bool = True,
+    log_file_path: str = "logs/app.log",
+) -> LoggingConfig:
     """
     Create a Hydra-Logger configuration from legacy setup_logging parameters.
-    
+
     This function helps migrate from the old setup_logging to the new Hydra-Logger
     by creating a compatible configuration object that preserves all the original
     settings while enabling the advanced features of Hydra-Logger.
-    
+
     Args:
         root_level (int): Logging level for the root logger (default: DEBUG).
         file_level (int): Logging level for the file handler (default: DEBUG).
@@ -143,11 +143,11 @@ def create_hydra_config_from_legacy(
         enable_file_logging (bool): Whether to enable file logging (default: True).
         enable_console_logging (bool): Whether to enable console logging (default: True).
         log_file_path (str): Custom path for the log file (default: "logs/app.log").
-        
+
     Returns:
         LoggingConfig: Configuration object compatible with Hydra-Logger that
         preserves the original logging behavior while enabling advanced features.
-        
+
     Example:
         >>> config = create_hydra_config_from_legacy(
         ...     root_level=logging.INFO,
@@ -156,49 +156,49 @@ def create_hydra_config_from_legacy(
         ... )
         >>> logger = HydraLogger(config)
     """
-    
+
     destinations = []
-    
+
     if enable_file_logging:
-        destinations.append(LogDestination(
-            type="file",
-            path=log_file_path,
-            level=_level_int_to_str(file_level),
-            max_size="5MB",
-            backup_count=3
-        ))
-    
+        destinations.append(
+            LogDestination(
+                type="file",
+                path=log_file_path,
+                level=_level_int_to_str(file_level),
+                max_size="5MB",
+                backup_count=3,
+            )
+        )
+
     if enable_console_logging:
-        destinations.append(LogDestination(
-            type="console",
-            level=_level_int_to_str(console_level)
-        ))
-    
+        destinations.append(
+            LogDestination(type="console", level=_level_int_to_str(console_level))
+        )
+
     return LoggingConfig(
         layers={
             "DEFAULT": LogLayer(
-                level=_level_int_to_str(root_level),
-                destinations=destinations
+                level=_level_int_to_str(root_level), destinations=destinations
             )
         },
-        default_level=_level_int_to_str(root_level)
+        default_level=_level_int_to_str(root_level),
     )
 
 
 def _level_int_to_str(level_int: int) -> str:
     """
     Convert logging level integer to string representation.
-    
+
     Args:
         level_int (int): Python logging level integer (e.g., logging.DEBUG).
-        
+
     Returns:
         str: String representation of the logging level (e.g., "DEBUG").
-        
+
     This utility function converts Python's integer logging levels to their
     string equivalents for use in Hydra-Logger configurations. It provides
     a fallback to "INFO" for unknown level values.
-        
+
     Example:
         >>> _level_int_to_str(logging.DEBUG)
         'DEBUG'
@@ -209,30 +209,30 @@ def _level_int_to_str(level_int: int) -> str:
     """
     level_map = {
         logging.DEBUG: "DEBUG",
-        logging.INFO: "INFO", 
+        logging.INFO: "INFO",
         logging.WARNING: "WARNING",
         logging.ERROR: "ERROR",
-        logging.CRITICAL: "CRITICAL"
+        logging.CRITICAL: "CRITICAL",
     }
     return level_map.get(level_int, "INFO")
 
 
 def migrate_to_hydra(
-        root_level: int = logging.DEBUG,
-        file_level: int = logging.DEBUG,
-        console_level: int = logging.INFO,
-        enable_file_logging: bool = True,
-        enable_console_logging: bool = True,
-        log_file_path: str = "logs/app.log"
-        ) -> HydraLogger:
+    root_level: int = logging.DEBUG,
+    file_level: int = logging.DEBUG,
+    console_level: int = logging.INFO,
+    enable_file_logging: bool = True,
+    enable_console_logging: bool = True,
+    log_file_path: str = "logs/app.log",
+) -> HydraLogger:
     """
     Migrate from legacy setup_logging to Hydra-Logger.
-    
+
     This function provides a smooth migration path from the old logging setup
     to the new Hydra-Logger system. It creates a fully configured HydraLogger
     instance that preserves the original logging behavior while enabling
     advanced features like multi-layered logging and custom folder paths.
-    
+
     Args:
         root_level (int): Logging level for the root logger (default: DEBUG).
         file_level (int): Logging level for the file handler (default: DEBUG).
@@ -240,13 +240,13 @@ def migrate_to_hydra(
         enable_file_logging (bool): Whether to enable file logging (default: True).
         enable_console_logging (bool): Whether to enable console logging (default: True).
         log_file_path (str): Custom path for the log file (default: "logs/app.log").
-        
+
     Returns:
         HydraLogger: Fully configured HydraLogger instance ready for use.
-        
+
     This function is the primary migration utility, combining configuration
     creation and logger instantiation in a single call for maximum convenience.
-        
+
     Example:
         >>> logger = migrate_to_hydra(
         ...     root_level=logging.INFO,
@@ -255,14 +255,14 @@ def migrate_to_hydra(
         ... )
         >>> logger.info("DEFAULT", "Application migrated successfully")
     """
-    
+
     config = create_hydra_config_from_legacy(
         root_level=root_level,
         file_level=file_level,
         console_level=console_level,
         enable_file_logging=enable_file_logging,
         enable_console_logging=enable_console_logging,
-        log_file_path=log_file_path
+        log_file_path=log_file_path,
     )
-    
-    return HydraLogger(config) 
+
+    return HydraLogger(config)

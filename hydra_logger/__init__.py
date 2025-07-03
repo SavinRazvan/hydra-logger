@@ -17,9 +17,9 @@ __author__ = "Hydra-Logger Team"
 
 __all__ = [
     "HydraLogger",
-    "LoggingConfig", 
+    "LoggingConfig",
     "LogLayer",
     "LogDestination",
     "setup_logging",
-    "migrate_to_hydra"
-] 
+    "migrate_to_hydra",
+]
