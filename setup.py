@@ -9,12 +9,13 @@ The setup configuration supports both basic installation and development
 environments with appropriate dependency management.
 """
 
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import find_packages, setup
 
 # Read the README file
 this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text(encoding='utf-8')
+long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="hydra-logger",
@@ -62,4 +63,4 @@ setup(
             "hydra-logger=hydra_logger.examples.basic_usage:main",
         ],
     },
-) 
+)

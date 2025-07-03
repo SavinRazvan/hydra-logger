@@ -27,11 +27,18 @@ from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 # Handle tomllib import for Python < 3.11
 try:
     import tomllib
+
     TOMLDecodeError = tomllib.TOMLDecodeError
 except ImportError:
     import tomli as _tomli
+
     tomllib = _tomli
-    TOMLDecodeError = getattr(tomllib, 'TOMLDecodeError', Exception)
+    if hasattr(tomllib, "TOMLDecodeError") and isinstance(
+        getattr(tomllib, "TOMLDecodeError"), type
+    ):
+        TOMLDecodeError = tomllib.TOMLDecodeError
+    else:
+        TOMLDecodeError = Exception
 
 import yaml
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
@@ -276,12 +283,7 @@ def load_config(config_path: Union[str, Path]) -> LoggingConfig:
     except yaml.YAMLError as e:
         raise ValueError(f"Failed to parse YAML configuration file: {e}") from e
     except Exception as e:
-        # Robust TOMLDecodeError handling
-        if (
-            'TOMLDecodeError' in globals()
-            and isinstance(TOMLDecodeError, type)
-            and isinstance(e, TOMLDecodeError)
-        ):
+        if isinstance(TOMLDecodeError, type) and isinstance(e, TOMLDecodeError):
             raise ValueError(f"Failed to parse TOML configuration file: {e}") from e
         raise ValueError(f"Failed to load configuration: {e}") from e
 
