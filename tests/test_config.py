@@ -125,12 +125,12 @@ class TestLogDestination:
         and normalizes them to lowercase.
         """
         valid_formats = ["text", "json", "csv", "syslog", "gelf"]
-        
+
         for fmt in valid_formats:
             # Test both lowercase and uppercase
             dest = LogDestination(type="console", format=fmt)
             assert dest.format == fmt
-            
+
             dest = LogDestination(type="console", format=fmt.upper())
             assert dest.format == fmt
 
@@ -152,7 +152,7 @@ class TestLogDestination:
         """
         with pytest.raises(ValueError, match="Invalid format: INVALID"):
             LogDestination(type="console", format="INVALID")
-        
+
         with pytest.raises(ValueError, match="Invalid format: xml"):
             LogDestination(type="console", format="xml")
 
@@ -168,9 +168,9 @@ class TestLogDestination:
             path="logs/app.json",
             format="json",
             level="DEBUG",
-            max_size="10MB"
+            max_size="10MB",
         )
-        
+
         assert dest.type == "file"
         assert dest.path == "logs/app.json"
         assert dest.format == "json"
@@ -184,12 +184,8 @@ class TestLogDestination:
         Verifies that format can be specified for console destinations
         and works correctly with console-specific settings.
         """
-        dest = LogDestination(
-            type="console",
-            format="json",
-            level="INFO"
-        )
-        
+        dest = LogDestination(type="console", format="json", level="INFO")
+
         assert dest.type == "console"
         assert dest.format == "json"
         assert dest.level == "INFO"

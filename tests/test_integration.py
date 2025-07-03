@@ -20,11 +20,10 @@ import logging
 import os
 import shutil
 import tempfile
-from pathlib import Path
 
 import pytest
 
-from hydra_logger import HydraLogger, setup_logging
+from hydra_logger import HydraLogger
 from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 
 
@@ -324,7 +323,7 @@ layers:
         backup_count: 3
       - type: console
         level: ERROR
-  
+
   EMAIL:
     level: DEBUG
     destinations:
@@ -332,7 +331,7 @@ layers:
         path: "{temp_dir}/logs/email/outgoing.log"
         max_size: "2MB"
         backup_count: 5
-  
+
   SYSTEM:
     level: WARNING
     destinations:
@@ -372,7 +371,7 @@ layers:
                 content = f.read()
                 assert len(content) > 0, f"Log file {log_file} is empty"
 
-        print(f"✅ Config file loading with custom paths works!")
+        print("✅ Config file loading with custom paths works!")
         print(f"📁 Created {len(expected_files)} log files from config")
 
     def test_log_level_filtering(self, temp_dir):

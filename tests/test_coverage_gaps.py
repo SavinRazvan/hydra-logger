@@ -13,7 +13,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hydra_logger.config import LogDestination, LoggingConfig, LogLayer, load_config
+from hydra_logger.config import (
+    load_config,
+    create_log_directories,
+    LoggingConfig,
+    LogLayer,
+    LogDestination,
+)
 from hydra_logger.logger import HydraLogger
 
 
@@ -209,7 +215,7 @@ class TestLoggerCoverageGaps:
                     )
                 }
             )
-            logger = HydraLogger(config)
+            _ = HydraLogger(config)
 
     def test_no_valid_handlers_warning_direct(self):
         """Covers warning when no valid handlers are created (direct approach)."""
@@ -235,7 +241,7 @@ class TestLoggerCoverageGaps:
                     )
                 }
             )
-            logger = HydraLogger(config)
+            _ = HydraLogger(config)
 
     def test_file_handler_oserror(self):
         """Covers OSError when creating file handler."""
@@ -252,7 +258,7 @@ class TestLoggerCoverageGaps:
                     )
                 }
             )
-            logger = HydraLogger(config)
+            _ = HydraLogger(config)
 
     def test_create_handler_final_return_none(self, monkeypatch):
         """Covers final return None in _create_handler (line 239 in logger.py)."""
@@ -312,12 +318,10 @@ class TestIntegrationCoverageGaps:
                         level="INFO",
                         destinations=[
                             LogDestination(
-                                type="file",
-                                path=os.path.join(temp_dir, "valid.log")
+                                type="file", path=os.path.join(temp_dir, "valid.log")
                             ),
                             LogDestination(
-                                type="file",
-                                path=os.path.join(temp_dir, "invalid.log")
+                                type="file", path=os.path.join(temp_dir, "invalid.log")
                             ),
                         ],
                     )
@@ -365,7 +369,7 @@ class TestIntegrationCoverageGaps:
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "missing_deps.log"),
-                            format="json"
+                            format="json",
                         ),
                     ],
                 )
@@ -429,7 +433,7 @@ class TestIntegrationCoverageGaps:
                             path=os.path.join(temp_dir, "rotation.json"),
                             format="json",
                             max_size="1KB",  # Small size to trigger rotation
-                            backup_count=2
+                            backup_count=2,
                         ),
                     ],
                 )
@@ -440,11 +444,14 @@ class TestIntegrationCoverageGaps:
 
         # Write enough data to trigger rotation
         for i in range(100):
-            logger.info("ROTATION", f"Test message {i} with some additional content to fill the file")
+            logger.info(
+                "ROTATION",
+                f"Test message {i} with some additional content to fill the file",
+            )
 
         # Check that files were created (main file + backups)
         base_file = os.path.join(temp_dir, "rotation.json")
-        backup_files = [
+        _ = [
             os.path.join(temp_dir, "rotation.json.1"),
             os.path.join(temp_dir, "rotation.json.2"),
         ]
@@ -476,12 +483,9 @@ class TestIntegrationCoverageGaps:
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "console_file.csv"),
-                            format="csv"
+                            format="csv",
                         ),
-                        LogDestination(
-                            type="console",
-                            format="text"
-                        ),
+                        LogDestination(type="console", format="text"),
                     ],
                 )
             }

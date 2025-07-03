@@ -29,10 +29,11 @@ Example:
 """
 
 import logging
+import os
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from hydra_logger.config import (
     LogDestination,
@@ -339,35 +340,44 @@ class HydraLogger:
             ValueError: If the format is not supported or dependencies are missing.
         """
         fmt = fmt.lower()
-        
+
         if fmt == "json":
             try:
                 from pythonjsonlogger.json import JsonFormatter
+
                 # Use the proper JsonFormatter from python-json-logger
                 return JsonFormatter(
-                    fmt='%(asctime)s %(levelname)s %(name)s %(message)s %(filename)s %(lineno)d',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    rename_fields={'asctime': 'timestamp', 'levelname': 'level', 'name': 'logger'}
+                    fmt="%(asctime)s %(levelname)s %(name)s %(message)s %(filename)s %(lineno)d",
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                    rename_fields={
+                        "asctime": "timestamp",
+                        "levelname": "level",
+                        "name": "logger",
+                    },
                 )
             except ImportError:
-                self._log_warning("python-json-logger not installed, falling back to text format.")
+                self._log_warning(
+                    "python-json-logger not installed, falling back to text format."
+                )
                 return self._get_text_formatter()
-        
+
         elif fmt == "csv":
             return self._get_csv_formatter()
-        
+
         elif fmt == "syslog":
             return self._get_syslog_formatter()
-        
+
         elif fmt == "gelf":
             try:
-                import graypy
+                # Import graypy to check if it's available
+                import graypy  # noqa: F401
+
                 # GELF uses a special handler, but we can create a formatter for it
                 return self._get_gelf_formatter()
             except ImportError:
                 self._log_warning("graypy not installed, falling back to text format.")
                 return self._get_text_formatter()
-        
+
         else:  # text or unknown
             return self._get_text_formatter()
 
@@ -381,7 +391,8 @@ class HydraLogger:
     def _get_text_formatter(self) -> logging.Formatter:
         """Get the standard text formatter."""
         return logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - "
+            "%(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
@@ -400,9 +411,7 @@ class HydraLogger:
 
     def _get_gelf_formatter(self) -> logging.Formatter:
         """Get GELF-compatible formatter (basic structure)."""
-        return logging.Formatter(
-            "%(message)s"  # GELF handler will add the structure
-        )
+        return logging.Formatter("%(message)s")  # GELF handler will add the structure
 
     def _parse_size(self, size_str: str) -> int:
         """

@@ -20,8 +20,7 @@ import shutil
 import tempfile
 import threading
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -287,7 +286,7 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "default.log"),
-                            format="text"
+                            format="text",
                         ),
                     ],
                 )
@@ -311,7 +310,7 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "app.log"),
-                            format="text"
+                            format="text",
                         ),
                     ],
                 )
@@ -331,7 +330,7 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "app.log"),
-                            format="text"
+                            format="text",
                         ),
                     ],
                 )
@@ -356,7 +355,7 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "app.log"),
-                            format="text"
+                            format="text",
                         ),
                     ],
                 )
@@ -1305,27 +1304,27 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "text.log"),
-                            format="text"
+                            format="text",
                         ),
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "json.log"),
-                            format="json"
+                            format="json",
                         ),
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "csv.log"),
-                            format="csv"
+                            format="csv",
                         ),
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "syslog.log"),
-                            format="syslog"
+                            format="syslog",
                         ),
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "gelf.log"),
-                            format="gelf"
+                            format="gelf",
                         ),
                     ],
                 )
@@ -1390,13 +1389,11 @@ default_level: INFO
             layers={
                 "TEST": LogLayer(
                     level="INFO",
-                    destinations=[
-                        LogDestination(type="console", format="json")
-                    ],
+                    destinations=[LogDestination(type="console", format="json")],
                 )
             }
         )
-        
+
         logger = HydraLogger(config)
         assert "TEST" in logger.loggers
 
@@ -1419,7 +1416,7 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "fallback.log"),
-                            format="json"  # This might fall back to text
+                            format="json",  # This might fall back to text
                         ),
                     ],
                 )
@@ -1448,7 +1445,7 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "structured.json"),
-                            format="json"
+                            format="json",
                         ),
                     ],
                 )
@@ -1466,6 +1463,7 @@ default_level: INFO
             content = f.read().strip()
             # Should be valid JSON with all required fields
             import json
+
             log_entry = json.loads(content)
             assert "timestamp" in log_entry
             assert "level" in log_entry
@@ -1476,7 +1474,7 @@ default_level: INFO
             assert log_entry["message"] == "Test structured JSON"
             assert log_entry["level"] == "INFO"
             assert log_entry["logger"] == "hydra.STRUCTURED_JSON"
-            
+
             # Verify field types and formats
             assert isinstance(log_entry["timestamp"], str)
             assert isinstance(log_entry["level"], str)
@@ -1484,15 +1482,18 @@ default_level: INFO
             assert isinstance(log_entry["message"], str)
             assert isinstance(log_entry["filename"], str)
             assert isinstance(log_entry["lineno"], int)
-            
+
             # Verify timestamp format (should be YYYY-MM-DD HH:MM:SS)
             import re
-            timestamp_pattern = r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
-            assert re.match(timestamp_pattern, log_entry["timestamp"]), f"Invalid timestamp format: {log_entry['timestamp']}"
-            
+
+            timestamp_pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"
+            assert re.match(
+                timestamp_pattern, log_entry["timestamp"]
+            ), f"Invalid timestamp format: {log_entry['timestamp']}"
+
             # Verify filename is not empty
             assert log_entry["filename"] != ""
-            
+
             # Verify line number is positive
             assert log_entry["lineno"] > 0
 
@@ -1506,7 +1507,7 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "json_lines.json"),
-                            format="json"
+                            format="json",
                         ),
                     ],
                 )
@@ -1514,7 +1515,7 @@ default_level: INFO
         )
 
         logger = HydraLogger(config)
-        
+
         # Log multiple messages
         logger.info("JSON_LINES", "First message")
         logger.warning("JSON_LINES", "Second message")
@@ -1526,20 +1527,21 @@ default_level: INFO
 
         with open(filepath, "r") as f:
             lines = f.readlines()
-            
+
         # Should have 3 lines (one per log entry)
         assert len(lines) == 3
-        
+
         # Each line should be valid JSON
         import json
+
         messages = []
         for i, line in enumerate(lines):
             line = line.strip()
             assert line, f"Line {i+1} should not be empty"
-            
+
             # Parse JSON
             log_entry = json.loads(line)
-            
+
             # Verify structure
             assert "timestamp" in log_entry
             assert "level" in log_entry
@@ -1547,15 +1549,15 @@ default_level: INFO
             assert "message" in log_entry
             assert "filename" in log_entry
             assert "lineno" in log_entry
-            
+
             # Collect messages for verification
             messages.append(log_entry["message"])
-            
+
         # Verify all messages are present
         assert "First message" in messages
         assert "Second message" in messages
         assert "Third message" in messages
-        
+
         # Verify levels are correct
         levels = [json.loads(line.strip())["level"] for line in lines]
         assert "INFO" in levels
@@ -1580,12 +1582,12 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "mixed_text.log"),
-                            format="text"
+                            format="text",
                         ),
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "mixed_csv.log"),
-                            format="csv"
+                            format="csv",
                         ),
                         LogDestination(type="console", format="text"),
                     ],
@@ -1603,7 +1605,7 @@ default_level: INFO
         # Verify different formats have different structures
         with open(os.path.join(temp_dir, "mixed_text.log"), "r") as f:
             text_content = f.read()
-        
+
         with open(os.path.join(temp_dir, "mixed_csv.log"), "r") as f:
             csv_content = f.read()
 
@@ -1653,7 +1655,7 @@ default_level: INFO
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "case_test.log"),
-                            format="JSON"  # Uppercase
+                            format="JSON",  # Uppercase
                         ),
                     ],
                 )
