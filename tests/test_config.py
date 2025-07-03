@@ -117,6 +117,84 @@ class TestLogDestination:
         with pytest.raises(ValueError, match="Path is required for file destinations"):
             LogDestination(type="file", path="")
 
+    def test_valid_formats(self):
+        """
+        Test all supported log formats.
+
+        Verifies that LogDestination accepts all valid format values
+        and normalizes them to lowercase.
+        """
+        valid_formats = ["text", "json", "csv", "syslog", "gelf"]
+        
+        for fmt in valid_formats:
+            # Test both lowercase and uppercase
+            dest = LogDestination(type="console", format=fmt)
+            assert dest.format == fmt
+            
+            dest = LogDestination(type="console", format=fmt.upper())
+            assert dest.format == fmt
+
+    def test_format_default_value(self):
+        """
+        Test that format defaults to 'text'.
+
+        Verifies that when no format is specified, it defaults to 'text'.
+        """
+        dest = LogDestination(type="console")
+        assert dest.format == "text"
+
+    def test_invalid_format(self):
+        """
+        Test validation of invalid log formats.
+
+        Verifies that LogDestination rejects invalid format values
+        and provides clear error messages.
+        """
+        with pytest.raises(ValueError, match="Invalid format: INVALID"):
+            LogDestination(type="console", format="INVALID")
+        
+        with pytest.raises(ValueError, match="Invalid format: xml"):
+            LogDestination(type="console", format="xml")
+
+    def test_format_with_file_destination(self):
+        """
+        Test format specification with file destinations.
+
+        Verifies that format can be specified for file destinations
+        and works correctly with other file-specific settings.
+        """
+        dest = LogDestination(
+            type="file",
+            path="logs/app.json",
+            format="json",
+            level="DEBUG",
+            max_size="10MB"
+        )
+        
+        assert dest.type == "file"
+        assert dest.path == "logs/app.json"
+        assert dest.format == "json"
+        assert dest.level == "DEBUG"
+        assert dest.max_size == "10MB"
+
+    def test_format_with_console_destination(self):
+        """
+        Test format specification with console destinations.
+
+        Verifies that format can be specified for console destinations
+        and works correctly with console-specific settings.
+        """
+        dest = LogDestination(
+            type="console",
+            format="json",
+            level="INFO"
+        )
+        
+        assert dest.type == "console"
+        assert dest.format == "json"
+        assert dest.level == "INFO"
+        assert dest.path is None
+
 
 class TestLogLayer:
     """
