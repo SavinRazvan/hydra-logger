@@ -242,8 +242,7 @@ class HydraLogger:
                     self._log_error(
                         f"Fallback console handler creation failed: {fallback_error}"
                     )
-                    return None
-            # For non-file destinations, we've already tried console handler above
+            # For any destination type that fails, return None
             return None
 
     def _create_file_handler(
