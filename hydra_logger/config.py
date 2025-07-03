@@ -27,10 +27,11 @@ from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 # Handle tomllib import for Python < 3.11
 try:
     import tomllib
+    TOMLDecodeError = tomllib.TOMLDecodeError
 except ImportError:
     import tomli as _tomli
-
     tomllib = _tomli
+    TOMLDecodeError = getattr(tomllib, 'TOMLDecodeError', Exception)
 
 import yaml
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
@@ -246,7 +247,7 @@ def load_config(config_path: Union[str, Path]) -> LoggingConfig:
         FileNotFoundError: If the configuration file doesn't exist.
         ValueError: If the file format is unsupported, empty, or invalid.
         yaml.YAMLError: If YAML parsing fails due to syntax errors.
-        tomllib.TOMLDecodeError: If TOML parsing fails due to syntax errors.
+        Exception: If TOML parsing fails due to syntax errors.
 
     The function automatically detects the file format based on the file extension
     and applies appropriate parsing. It validates the loaded configuration using
@@ -273,13 +274,15 @@ def load_config(config_path: Union[str, Path]) -> LoggingConfig:
             raise ValueError("Configuration file is empty or invalid")
         return LoggingConfig(**config_data)
     except yaml.YAMLError as e:
-        # Re-raise YAML parsing errors as ValueError
         raise ValueError(f"Failed to parse YAML configuration file: {e}") from e
-    except tomllib.TOMLDecodeError as e:
-        # Re-raise TOML parsing errors as ValueError
-        raise ValueError(f"Failed to parse TOML configuration file: {e}") from e
     except Exception as e:
-        # Re-raise other errors as ValueError
+        # Robust TOMLDecodeError handling
+        if (
+            'TOMLDecodeError' in globals()
+            and isinstance(TOMLDecodeError, type)
+            and isinstance(e, TOMLDecodeError)
+        ):
+            raise ValueError(f"Failed to parse TOML configuration file: {e}") from e
         raise ValueError(f"Failed to load configuration: {e}") from e
 
 

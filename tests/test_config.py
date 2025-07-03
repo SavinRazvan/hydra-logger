@@ -376,7 +376,7 @@ invalid_key: [unclosed_bracket
         with patch("pathlib.Path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=invalid_yaml)):
                 with pytest.raises(
-                    ValueError, match="Failed to parse configuration file"
+                    ValueError, match="Failed to parse YAML configuration file"
                 ):
                     load_config("invalid.yaml")
 
