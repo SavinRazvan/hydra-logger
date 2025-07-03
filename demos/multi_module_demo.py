@@ -21,7 +21,6 @@ with their own specialized logging requirements and folder structures.
 import os
 import random
 import time
-from pathlib import Path
 
 from hydra_logger import HydraLogger
 from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
@@ -45,6 +44,7 @@ def create_app_config(log_base_path):
     - DB: Database operation logs for debugging
     - PERF: Performance metrics and monitoring
     - EMAIL: Email service logs with error tracking
+    - MONITORING: Centralized monitoring with GELF format
     """
 
     return LoggingConfig(
@@ -58,8 +58,13 @@ def create_app_config(log_base_path):
                         path=os.path.join(log_base_path, "app", "main.log"),
                         max_size="5MB",
                         backup_count=3,
+                        format="text"  # Plain text for general application logs
                     ),
-                    LogDestination(type="console", level="WARNING"),
+                    LogDestination(
+                        type="console", 
+                        level="WARNING",
+                        format="json"  # JSON format for console warnings
+                    ),
                 ],
             ),
             # Authentication and security logs
@@ -71,12 +76,14 @@ def create_app_config(log_base_path):
                         path=os.path.join(log_base_path, "auth", "security.log"),
                         max_size="2MB",
                         backup_count=5,
+                        format="syslog"  # Syslog format for security integration
                     ),
                     LogDestination(
                         type="file",
-                        path=os.path.join(log_base_path, "auth", "errors.log"),
+                        path=os.path.join(log_base_path, "auth", "errors.json"),
                         max_size="1MB",
                         backup_count=10,
+                        format="json"  # JSON format for error analysis
                     ),
                 ],
             ),
@@ -86,15 +93,17 @@ def create_app_config(log_base_path):
                 destinations=[
                     LogDestination(
                         type="file",
-                        path=os.path.join(log_base_path, "api", "requests.log"),
+                        path=os.path.join(log_base_path, "api", "requests.json"),
                         max_size="10MB",
                         backup_count=3,
+                        format="json"  # JSON format for structured API logging
                     ),
                     LogDestination(
                         type="file",
                         path=os.path.join(log_base_path, "api", "errors.log"),
                         max_size="2MB",
                         backup_count=5,
+                        format="text"  # Plain text for error logs
                     ),
                 ],
             ),
@@ -107,6 +116,7 @@ def create_app_config(log_base_path):
                         path=os.path.join(log_base_path, "database", "queries.log"),
                         max_size="5MB",
                         backup_count=3,
+                        format="text"  # Plain text for database queries
                     )
                 ],
             ),
@@ -116,9 +126,10 @@ def create_app_config(log_base_path):
                 destinations=[
                     LogDestination(
                         type="file",
-                        path=os.path.join(log_base_path, "performance", "metrics.log"),
+                        path=os.path.join(log_base_path, "performance", "metrics.csv"),
                         max_size="3MB",
                         backup_count=2,
+                        format="csv"  # CSV format for performance analytics
                     )
                 ],
             ),
@@ -131,13 +142,28 @@ def create_app_config(log_base_path):
                         path=os.path.join(log_base_path, "email", "outgoing.log"),
                         max_size="2MB",
                         backup_count=5,
+                        format="text"  # Plain text for email logs
                     ),
                     LogDestination(
                         type="file",
-                        path=os.path.join(log_base_path, "email", "errors.log"),
+                        path=os.path.join(log_base_path, "email", "errors.json"),
                         max_size="1MB",
                         backup_count=3,
+                        format="json"  # JSON format for error analysis
                     ),
+                ],
+            ),
+            # Monitoring and alerting logs
+            "MONITORING": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path=os.path.join(log_base_path, "monitoring", "alerts.gelf"),
+                        max_size="2MB",
+                        backup_count=3,
+                        format="gelf"  # GELF format for centralized logging
+                    )
                 ],
             ),
         }
@@ -402,11 +428,11 @@ def main():
     This function orchestrates the complete multi-module demo,
     creating the logging configuration, initializing all modules,
     and simulating realistic application activity to demonstrate
-    how Hydra-Logger handles complex logging scenarios.
+    how Hydra-Logger handles complex logging scenarios with different formats.
 
     The demo creates a comprehensive log structure with separate
     folders for each module and demonstrates various logging
-    patterns and error handling scenarios.
+    patterns, error handling scenarios, and different log formats.
     """
 
     # Create logs directory
@@ -415,6 +441,12 @@ def main():
 
     print("🚀 Starting Multi-Module Hydra-Logger Demo")
     print(f"📁 Logs will be saved to: {os.path.abspath(log_base_path)}")
+    print("📊 Different log formats will be used:")
+    print("   - text: Plain text logs for general application logs")
+    print("   - json: Structured JSON for API requests and errors")
+    print("   - csv: Comma-separated values for performance metrics")
+    print("   - syslog: Syslog format for security logs")
+    print("   - gelf: GELF format for centralized monitoring")
     print()
 
     # Create logger with configuration
@@ -471,6 +503,12 @@ def main():
     auth.security_alert("Multiple failed login attempts detected from IP 192.168.1.200")
 
     print()
+    print("=== Simulating Monitoring Events ===")
+    logger.info("MONITORING", "System health check completed")
+    logger.warning("MONITORING", "High memory usage detected: 85%")
+    logger.error("MONITORING", "Database connection timeout")
+
+    print()
     print("=== Application Shutdown ===")
     app.shutdown()
 
@@ -489,7 +527,18 @@ def main():
         for file in files:
             file_path = os.path.join(root, file)
             file_size = os.path.getsize(file_path)
-            print(f"{subindent}📄 {file} ({file_size} bytes)")
+            # Determine format based on file extension
+            if file.endswith('.json'):
+                format_info = " (JSON format)"
+            elif file.endswith('.csv'):
+                format_info = " (CSV format)"
+            elif file.endswith('.gelf'):
+                format_info = " (GELF format)"
+            elif 'security' in file:
+                format_info = " (Syslog format)"
+            else:
+                format_info = " (Text format)"
+            print(f"{subindent}📄 {file} ({file_size} bytes){format_info}")
 
 
 if __name__ == "__main__":

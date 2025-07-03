@@ -3,8 +3,8 @@ Basic usage examples for Hydra-Logger.
 
 Demonstrates different ways to use the logging system:
 1. Simple backward-compatible usage
-2. Advanced multi-layered logging
-3. Configuration file usage
+2. Advanced multi-layered logging with different formats
+3. Configuration file usage with format examples
 """
 
 import logging
@@ -43,10 +43,10 @@ def example_2_migration_path():
 
 
 def example_3_multi_layered():
-    """Example 3: Multi-layered logging with different destinations."""
-    print("\n=== Example 3: Multi-layered Logging ===")
+    """Example 3: Multi-layered logging with different destinations and formats."""
+    print("\n=== Example 3: Multi-layered Logging with Formats ===")
 
-    # Create a Hydra-Logger with multiple layers
+    # Create a Hydra-Logger with multiple layers and different formats
     from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 
     config = LoggingConfig(
@@ -59,8 +59,13 @@ def example_3_multi_layered():
                         path="logs/config/app.log",  # Custom folder!
                         max_size="5MB",
                         backup_count=3,
+                        format="text"  # Plain text format
                     ),
-                    LogDestination(type="console", level="WARNING"),
+                    LogDestination(
+                        type="console", 
+                        level="WARNING",
+                        format="json"  # JSON format for console
+                    ),
                 ],
             ),
             "EVENTS": LogLayer(
@@ -68,8 +73,9 @@ def example_3_multi_layered():
                 destinations=[
                     LogDestination(
                         type="file",
-                        path="logs/events/stream.log",  # Different folder!
+                        path="logs/events/stream.json",  # Different folder!
                         max_size="10MB",
+                        format="json"  # JSON format for structured logging
                     )
                 ],
             ),
@@ -80,6 +86,27 @@ def example_3_multi_layered():
                         type="file",
                         path="logs/security/auth.log",  # Security folder!
                         max_size="1MB",
+                        format="syslog"  # Syslog format for security
+                    )
+                ],
+            ),
+            "ANALYTICS": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/analytics/metrics.csv",  # Analytics folder!
+                        format="csv"  # CSV format for data analysis
+                    )
+                ],
+            ),
+            "MONITORING": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/monitoring/alerts.gelf",  # Monitoring folder!
+                        format="gelf"  # GELF format for centralized logging
                     )
                 ],
             ),
@@ -88,9 +115,9 @@ def example_3_multi_layered():
 
     logger = HydraLogger(config)
 
-    # Log to different layers
+    # Log to different layers with different formats
     logger.info("CONFIG", "Configuration loaded successfully")
-    logger.warning("CONFIG", "This warning goes to console too")
+    logger.warning("CONFIG", "This warning goes to console in JSON format")
 
     logger.debug("EVENTS", "Event stream started")
     logger.info("EVENTS", "Event processed")
@@ -98,10 +125,13 @@ def example_3_multi_layered():
     logger.error("SECURITY", "Authentication failed")
     logger.critical("SECURITY", "Security breach detected!")
 
+    logger.info("ANALYTICS", "Performance metric recorded")
+    logger.info("MONITORING", "System health check completed")
+
 
 def example_4_config_file():
-    """Example 4: Using configuration file."""
-    print("\n=== Example 4: Configuration File Usage ===")
+    """Example 4: Using configuration file with format examples."""
+    print("\n=== Example 4: Configuration File Usage with Formats ===")
 
     # This would use a YAML file like config_examples/advanced.yaml
     try:
@@ -117,6 +147,57 @@ def example_4_config_file():
         print("Config file not found - skipping this example")
 
 
+def example_5_format_demonstration():
+    """Example 5: Demonstrating different log formats."""
+    print("\n=== Example 5: Log Format Demonstration ===")
+
+    from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
+
+    config = LoggingConfig(
+        layers={
+            "FORMATS": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/formats/text.log",
+                        format="text"
+                    ),
+                    LogDestination(
+                        type="file",
+                        path="logs/formats/json.log",
+                        format="json"
+                    ),
+                    LogDestination(
+                        type="file",
+                        path="logs/formats/csv.log",
+                        format="csv"
+                    ),
+                    LogDestination(
+                        type="file",
+                        path="logs/formats/syslog.log",
+                        format="syslog"
+                    ),
+                    LogDestination(
+                        type="file",
+                        path="logs/formats/gelf.log",
+                        format="gelf"
+                    ),
+                ],
+            )
+        }
+    )
+
+    logger = HydraLogger(config)
+
+    # Log the same message to see different formats
+    logger.info("FORMATS", "This message will appear in different formats")
+    logger.warning("FORMATS", "Warning message in multiple formats")
+    logger.error("FORMATS", "Error message demonstrating format differences")
+
+    print("Check the logs/formats/ directory to see the different output formats!")
+
+
 if __name__ == "__main__":
     print("Hydra-Logger Basic Usage Examples")
     print("=" * 50)
@@ -126,6 +207,8 @@ if __name__ == "__main__":
     example_2_migration_path()
     example_3_multi_layered()
     example_4_config_file()
+    example_5_format_demonstration()
 
     print("\n" + "=" * 50)
     print("Examples completed! Check the logs/ directory for output files.")
+    print("Different formats will be visible in their respective log files.")

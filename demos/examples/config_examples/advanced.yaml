@@ -1,5 +1,5 @@
 # Advanced Hydra-Logger Configuration
-# This example shows complex multi-layered logging with different folder structures
+# This example shows complex multi-layered logging with different folder structures and formats
 
 default_level: INFO
 
@@ -12,8 +12,10 @@ layers:
         path: "logs/app.log"
         max_size: "5MB"
         backup_count: 3
+        format: text  # Plain text for general logs
       - type: console
         level: INFO
+        format: text  # Plain text for console
   
   # Configuration and setup logs
   CONFIG:
@@ -23,21 +25,25 @@ layers:
         path: "logs/config/app.log"      # Config-specific folder
         max_size: "2MB"
         backup_count: 2
+        format: text  # Plain text for configuration logs
       - type: console
         level: WARNING
+        format: json  # JSON format for console warnings
   
   # Event streaming and real-time logs
   EVENTS:
     level: DEBUG
     destinations:
       - type: file
-        path: "logs/events/stream.log"   # Events folder
+        path: "logs/events/stream.json"   # Events folder
         max_size: "10MB"
         backup_count: 5
+        format: json  # JSON format for structured event logging
       - type: file
-        path: "logs/events/archive.log"  # Archive for old events
+        path: "logs/events/archive.csv"  # Archive for old events
         max_size: "50MB"
         backup_count: 1
+        format: csv  # CSV format for analytics
   
   # Security and authentication logs
   SECURITY:
@@ -47,6 +53,7 @@ layers:
         path: "logs/security/auth.log"   # Security folder
         max_size: "1MB"
         backup_count: 10
+        format: syslog  # Syslog format for security integration
   
   # Database and data access logs
   DATABASE:
@@ -56,27 +63,42 @@ layers:
         path: "logs/database/queries.log" # Database folder
         max_size: "5MB"
         backup_count: 3
+        format: text  # Plain text for database queries
       - type: console
         level: ERROR
+        format: json  # JSON format for console errors
   
   # API and external service logs
   API:
     level: INFO
     destinations:
       - type: file
-        path: "logs/api/requests.log"    # API folder
+        path: "logs/api/requests.json"    # API folder
         max_size: "10MB"
         backup_count: 5
+        format: json  # JSON format for structured API logging
       - type: file
         path: "logs/api/errors.log"      # API errors in separate file
         max_size: "2MB"
         backup_count: 3
+        format: text  # Plain text for error logs
   
   # Performance and monitoring logs
   PERFORMANCE:
     level: INFO
     destinations:
       - type: file
-        path: "logs/performance/metrics.log" # Performance folder
+        path: "logs/performance/metrics.csv" # Performance folder
         max_size: "5MB"
-        backup_count: 3 
+        backup_count: 3
+        format: csv  # CSV format for performance analytics
+  
+  # Monitoring and alerting logs
+  MONITORING:
+    level: INFO
+    destinations:
+      - type: file
+        path: "logs/monitoring/alerts.gelf" # Monitoring folder
+        max_size: "3MB"
+        backup_count: 2
+        format: gelf  # GELF format for centralized logging 

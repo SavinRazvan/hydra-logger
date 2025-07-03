@@ -5,7 +5,6 @@ Common utility functions used across the application.
 """
 
 import hashlib
-import json
 import time
 from typing import Any, Dict, Optional
 
@@ -64,7 +63,7 @@ class Utils:
             self.logger.error("UTILS", f"Error formatting user data: {str(e)}")
             raise
 
-    def create_audit_log(self, action: str, user_id: int, details: Dict = None) -> Dict:
+    def create_audit_log(self, action: str, user_id: int, details: Optional[Dict] = None) -> Dict:
         self.logger.info(
             "UTILS", f"Creating audit log for action: {action}, user ID: {user_id}"
         )

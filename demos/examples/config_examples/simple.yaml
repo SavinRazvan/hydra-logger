@@ -1,5 +1,5 @@
 # Simple Hydra-Logger Configuration
-# This example shows basic multi-layered logging with custom folder paths
+# This example shows basic multi-layered logging with custom folder paths and formats
 
 default_level: INFO
 
@@ -11,8 +11,10 @@ layers:
         path: "logs/app.log"
         max_size: "5MB"
         backup_count: 3
+        format: text  # Plain text format
       - type: console
         level: INFO
+        format: text  # Plain text for console
   
   CONFIG:
     level: INFO
@@ -21,13 +23,16 @@ layers:
         path: "logs/config/app.log"      # Custom folder for config logs
         max_size: "5MB"
         backup_count: 3
+        format: text  # Plain text for configuration logs
       - type: console
         level: WARNING
+        format: json  # JSON format for console warnings
   
   EVENTS:
     level: DEBUG
     destinations:
       - type: file
-        path: "logs/events/stream.log"   # Custom folder for event logs
+        path: "logs/events/stream.json"   # Custom folder for event logs
         max_size: "10MB"
-        backup_count: 5 
+        backup_count: 5
+        format: json  # JSON format for structured event logging 

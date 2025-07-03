@@ -6,7 +6,7 @@ Handles external API interactions and data fetching.
 
 import random
 import time
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import requests
 

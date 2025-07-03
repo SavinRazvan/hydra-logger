@@ -2,16 +2,18 @@
 """
 Multi-File Workflow Demo for Hydra-Logger
 
-This example demonstrates how to set up logging across multiple Python files
-and classes in a real-world application scenario.
+This comprehensive example demonstrates how to set up logging across multiple Python files
+and classes in a real-world application scenario with support for multiple log formats.
 
 Features demonstrated:
-1. Distributed logging - each module logs to its own file
+1. Distributed logging - each module logs to its own file with different formats
 2. Centralized logging - all modules log to a single master file
 3. Class-based logging with proper context
 4. Cross-module logging with consistent formatting
 5. Different log levels for different components
 6. Error tracking across the entire application
+7. Multiple log formats (text, JSON, CSV, syslog, GELF)
+8. Performance monitoring and analytics
 
 Project Structure:
 ├── main.py                    # Application entry point
@@ -29,182 +31,264 @@ Project Structure:
     └── centralized_config.yaml # Centralized logging config
 """
 
-import os
-import random
 import sys
-import time
+import os
 from pathlib import Path
+import time
 
 # Add the project root to the path for imports
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from hydra_logger import HydraLogger, setup_logging
-from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
 
 def create_logging_configs():
     """Create the logging configuration files for the demo."""
 
-    # Distributed logging configuration
+    # Distributed logging configuration with multiple formats
     distributed_config = """
-# Distributed Logging Configuration
+# Distributed Logging Configuration with Multiple Formats
 # Each module logs to its own file + centralized master log
 
 default_level: INFO
 
 layers:
-  # Centralized master log - captures everything
+  # Centralized master log - captures everything in JSON format
   MASTER:
     level: DEBUG
     destinations:
       - type: file
         path: "workflow_logs/master/app.log"
+        format: text
+        max_size: "20MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/master/app.json"
+        format: json
         max_size: "20MB"
         backup_count: 5
       - type: console
         level: INFO
+        format: json
   
-  # User management module
+  # User management module - text and JSON formats
   USER_MANAGER:
     level: INFO
     destinations:
       - type: file
         path: "workflow_logs/modules/user_manager.log"
+        format: text
+        max_size: "10MB"
+        backup_count: 3
+      - type: file
+        path: "workflow_logs/modules/user_manager.json"
+        format: json
         max_size: "10MB"
         backup_count: 3
       - type: file
         path: "workflow_logs/master/app.log"
         level: INFO
+        format: text
   
-  # Database operations
+  # Database operations - text and CSV for analytics
   DATABASE:
     level: INFO
     destinations:
       - type: file
         path: "workflow_logs/modules/database.log"
+        format: text
+        max_size: "15MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/modules/database_analytics.csv"
+        format: csv
         max_size: "15MB"
         backup_count: 5
       - type: file
         path: "workflow_logs/master/app.log"
         level: INFO
+        format: text
   
-  # API interactions
+  # API interactions - JSON for structured data
   API:
     level: INFO
     destinations:
       - type: file
         path: "workflow_logs/modules/api.log"
+        format: text
+        max_size: "10MB"
+        backup_count: 3
+      - type: file
+        path: "workflow_logs/modules/api.json"
+        format: json
         max_size: "10MB"
         backup_count: 3
       - type: file
         path: "workflow_logs/master/app.log"
         level: INFO
+        format: text
   
-  # Notification service
+  # Notification service - syslog format for system integration
   NOTIFICATIONS:
     level: INFO
     destinations:
       - type: file
         path: "workflow_logs/modules/notifications.log"
+        format: syslog
         max_size: "5MB"
         backup_count: 3
       - type: file
         path: "workflow_logs/master/app.log"
         level: INFO
+        format: text
   
-  # Utility functions
+  # Utility functions - debug level with text format
   UTILS:
     level: DEBUG
     destinations:
       - type: file
         path: "workflow_logs/modules/utils.log"
+        format: text
         max_size: "5MB"
         backup_count: 2
       - type: file
         path: "workflow_logs/master/app.log"
         level: DEBUG
+        format: text
   
-  # Errors and critical issues
+  # Performance monitoring - CSV format for analytics
+  PERFORMANCE:
+    level: INFO
+    destinations:
+      - type: file
+        path: "workflow_logs/performance/metrics.csv"
+        format: csv
+        max_size: "10MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/performance/monitoring.json"
+        format: json
+        max_size: "10MB"
+        backup_count: 5
+  
+  # Errors and critical issues - syslog and GELF formats
   ERRORS:
     level: ERROR
     destinations:
       - type: file
         path: "workflow_logs/errors/critical.log"
+        format: syslog
+        max_size: "5MB"
+        backup_count: 10
+      - type: file
+        path: "workflow_logs/errors/critical.gelf"
+        format: gelf
         max_size: "5MB"
         backup_count: 10
       - type: file
         path: "workflow_logs/master/app.log"
         level: ERROR
+        format: text
       - type: console
         level: ERROR
+        format: json
 """
 
-    # Centralized logging configuration
+    # Centralized logging configuration with multiple formats
     centralized_config = """
-# Centralized Logging Configuration
-# All modules log to a single master file with different levels
+# Centralized Logging Configuration with Multiple Formats
+# All modules log to a single master file with different levels and formats
 
 default_level: INFO
 
 layers:
-  # Main application log - everything goes here
+  # Main application log - everything goes here in multiple formats
   APP:
     level: DEBUG
     destinations:
       - type: file
         path: "workflow_logs/centralized/app.log"
+        format: text
+        max_size: "50MB"
+        backup_count: 10
+      - type: file
+        path: "workflow_logs/centralized/app.json"
+        format: json
+        max_size: "50MB"
+        backup_count: 10
+      - type: file
+        path: "workflow_logs/centralized/app.csv"
+        format: csv
         max_size: "50MB"
         backup_count: 10
       - type: console
         level: INFO
+        format: json
   
-  # Critical errors only
+  # Critical errors only - syslog and GELF formats
   CRITICAL:
     level: ERROR
     destinations:
       - type: file
         path: "workflow_logs/centralized/errors.log"
+        format: syslog
+        max_size: "10MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/centralized/errors.gelf"
+        format: gelf
         max_size: "10MB"
         backup_count: 5
       - type: console
         level: ERROR
+        format: json
 """
 
     # Create config directory
     config_dir = Path("demos/examples/config_examples")
-    config_dir.mkdir(exist_ok=True)
+    config_dir.mkdir(parents=True, exist_ok=True)
 
     # Write configuration files
-    with open(config_dir / "logging_config.yaml", "w") as f:
+    with open(config_dir / "workflow_distributed_config.yaml", "w") as f:
         f.write(distributed_config.strip())
 
-    with open(config_dir / "centralized_config.yaml", "w") as f:
+    with open(config_dir / "workflow_centralized_config.yaml", "w") as f:
         f.write(centralized_config.strip())
 
     print("✅ Created logging configuration files:")
-    print(f"   📄 {config_dir / 'logging_config.yaml'}")
-    print(f"   📄 {config_dir / 'centralized_config.yaml'}")
+    print(f"   📄 {config_dir / 'workflow_distributed_config.yaml'}")
+    print(f"   📄 {config_dir / 'workflow_centralized_config.yaml'}")
 
 
 def run_distributed_logging_demo():
-    """Run the distributed logging demo."""
+    """Run the distributed logging demo with multiple formats."""
     print("\n" + "=" * 60)
-    print("🚀 DISTRIBUTED LOGGING DEMO")
+    print("🚀 DISTRIBUTED LOGGING DEMO (Multi-Format)")
     print("=" * 60)
     print("Each module logs to its own file + centralized master log")
+    print("Formats: text, JSON, CSV, syslog, GELF")
 
     # Load distributed logging configuration
-    logger = HydraLogger.from_config(
-        "demos/examples/config_examples/logging_config.yaml"
-    )
+    config_path = "demos/examples/config_examples/workflow_distributed_config.yaml"
+    if not os.path.exists(config_path):
+        print(f"❌ Configuration file not found: {config_path}")
+        return
+
+    logger = HydraLogger.from_config(config_path)
 
     # Import modules
-    from demos.demo_modules.api_client import APIClient
-    from demos.demo_modules.database_handler import DatabaseHandler
-    from demos.demo_modules.helpers import Utils
-    from demos.demo_modules.notification_service import NotificationService
-    from demos.demo_modules.user_manager import UserManager
+    try:
+        from demos.demo_modules.api_client import APIClient
+        from demos.demo_modules.database_handler import DatabaseHandler
+        from demos.demo_modules.helpers import Utils
+        from demos.demo_modules.notification_service import NotificationService
+        from demos.demo_modules.user_manager import UserManager
+    except ImportError as e:
+        print(f"❌ Failed to import demo modules: {e}")
+        print("Make sure all demo modules are available")
+        return
 
     # Initialize components
     user_mgr = UserManager(logger)
@@ -215,6 +299,7 @@ def run_distributed_logging_demo():
 
     # Simulate application workflow
     logger.info("MASTER", "Starting distributed logging demo workflow")
+    start_time = time.time()
 
     try:
         # Step 1: Database connection
@@ -256,7 +341,12 @@ def run_distributed_logging_demo():
         audit_entry = utils.create_audit_log("profile_update", user_data["id"])
         logger.info("MASTER", "Audit log created")
 
-        # Step 10: Disconnect database
+        # Step 10: Log performance metrics
+        end_time = time.time()
+        duration = end_time - start_time
+        logger.info("PERFORMANCE", f"Workflow completed in {duration:.3f} seconds")
+
+        # Step 11: Disconnect database
         db_handler.disconnect()
         logger.info("MASTER", "Database disconnected")
 
@@ -268,23 +358,32 @@ def run_distributed_logging_demo():
 
 
 def run_centralized_logging_demo():
-    """Run the centralized logging demo."""
+    """Run the centralized logging demo with multiple formats."""
     print("\n" + "=" * 60)
-    print("🎯 CENTRALIZED LOGGING DEMO")
+    print("🎯 CENTRALIZED LOGGING DEMO (Multi-Format)")
     print("=" * 60)
-    print("All modules log to a single master file")
+    print("All modules log to a single master file in multiple formats")
+    print("Formats: text, JSON, CSV, syslog, GELF")
 
     # Load centralized logging configuration
-    logger = HydraLogger.from_config(
-        "demos/examples/config_examples/centralized_config.yaml"
-    )
+    config_path = "demos/examples/config_examples/workflow_centralized_config.yaml"
+    if not os.path.exists(config_path):
+        print(f"❌ Configuration file not found: {config_path}")
+        return
+
+    logger = HydraLogger.from_config(config_path)
 
     # Import modules
-    from demos.demo_modules.api_client import APIClient
-    from demos.demo_modules.database_handler import DatabaseHandler
-    from demos.demo_modules.helpers import Utils
-    from demos.demo_modules.notification_service import NotificationService
-    from demos.demo_modules.user_manager import UserManager
+    try:
+        from demos.demo_modules.api_client import APIClient
+        from demos.demo_modules.database_handler import DatabaseHandler
+        from demos.demo_modules.helpers import Utils
+        from demos.demo_modules.notification_service import NotificationService
+        from demos.demo_modules.user_manager import UserManager
+    except ImportError as e:
+        print(f"❌ Failed to import demo modules: {e}")
+        print("Make sure all demo modules are available")
+        return
 
     # Initialize components
     user_mgr = UserManager(logger)
@@ -295,6 +394,7 @@ def run_centralized_logging_demo():
 
     # Simulate application workflow
     logger.info("APP", "Starting centralized logging demo workflow")
+    start_time = time.time()
 
     try:
         # Step 1: Database connection
@@ -338,7 +438,12 @@ def run_centralized_logging_demo():
         except:
             logger.warning("APP", "API error (expected)")
 
-        # Step 5: Cleanup
+        # Step 5: Log performance metrics
+        end_time = time.time()
+        duration = end_time - start_time
+        logger.info("APP", f"Workflow completed in {duration:.3f} seconds")
+
+        # Step 6: Cleanup
         db_handler.disconnect()
         logger.info("APP", "Database disconnected")
 
@@ -350,13 +455,14 @@ def run_centralized_logging_demo():
 
 
 def show_log_structure():
-    """Show the generated log structure."""
+    """Show the generated log structure with format information."""
     print("\n" + "=" * 60)
-    print("📁 GENERATED LOG STRUCTURE")
+    print("📁 GENERATED LOG STRUCTURE (Multi-Format)")
     print("=" * 60)
 
     # Find all log files
-    log_files = list(Path(".").rglob("workflow_logs/**/*.log"))
+    log_files = list(Path(".").rglob("workflow_logs/**/*.*"))
+    log_files = [f for f in log_files if f.suffix in ['.log', '.json', '.csv', '.gelf']]
 
     if not log_files:
         print("❌ No log files found. Run the demos first!")
@@ -371,32 +477,64 @@ def show_log_structure():
         if directory not in log_structure:
             log_structure[directory] = []
 
-        log_structure[directory].append(relative_path.name)
+        file_info = {
+            "name": relative_path.name,
+            "size": log_file.stat().st_size if log_file.exists() else 0,
+            "format": log_file.suffix[1:] if log_file.suffix else "unknown"
+        }
+        log_structure[directory].append(file_info)
 
     # Display structure
     for directory, files in log_structure.items():
         print(f"\n📂 {directory}/")
-        for file in files:
-            file_path = Path(directory) / file
-            size = file_path.stat().st_size if file_path.exists() else 0
-            print(f"   📄 {file} ({size} bytes)")
+        for file_info in files:
+            size_str = f"{file_info['size']} bytes" if file_info['size'] > 0 else "empty"
+            format_emoji = {
+                "log": "📄",
+                "json": "📊",
+                "csv": "📈",
+                "gelf": "📋"
+            }.get(file_info['format'], "📄")
+            print(f"   {format_emoji} {file_info['name']} ({size_str}) [{file_info['format'].upper()}]")
 
-    # Show sample content
-    print(f"\n📋 Sample log content from master log:")
+    # Show sample content from different formats
+    print(f"\n📋 Sample log content:")
+    
+    # Text format sample
     master_log = Path("workflow_logs/master/app.log")
     if master_log.exists():
+        print(f"\n📄 Text format sample ({master_log}):")
         with open(master_log, "r") as f:
             lines = f.readlines()
-            for line in lines[-5:]:  # Last 5 lines
+            for line in lines[-3:]:  # Last 3 lines
+                print(f"   {line.strip()}")
+    
+    # JSON format sample
+    master_json = Path("workflow_logs/master/app.json")
+    if master_json.exists():
+        print(f"\n📊 JSON format sample ({master_json}):")
+        with open(master_json, "r") as f:
+            lines = f.readlines()
+            for line in lines[-2:]:  # Last 2 lines
+                print(f"   {line.strip()}")
+    
+    # CSV format sample
+    db_csv = Path("workflow_logs/modules/database_analytics.csv")
+    if db_csv.exists():
+        print(f"\n📈 CSV format sample ({db_csv}):")
+        with open(db_csv, "r") as f:
+            lines = f.readlines()
+            for line in lines[-2:]:  # Last 2 lines
                 print(f"   {line.strip()}")
 
 
 def main():
     """Main function to run the multi-file workflow demo."""
-    print("🚀 Multi-File Workflow Demo for Hydra-Logger")
+    print("🚀 Multi-File Workflow Demo for Hydra-Logger (Multi-Format)")
     print("=" * 60)
     print("This demo shows how to set up logging across multiple Python files")
     print("and classes with both distributed and centralized approaches.")
+    print("Supports multiple log formats: text, JSON, CSV, syslog, GELF")
 
     # Create necessary files and directories
     create_logging_configs()
@@ -419,12 +557,22 @@ def main():
         print("   • Class-based logging with proper context")
         print("   • Cross-module logging with consistent formatting")
         print("   • Error tracking across the entire application")
+        print("   • Multiple log formats (text, JSON, CSV, syslog, GELF)")
+        print("   • Performance monitoring and analytics")
 
         print("\n📁 Check the generated logs:")
         print("   • Distributed: workflow_logs/modules/ (individual files)")
         print("   • Centralized: workflow_logs/centralized/ (single file)")
         print("   • Master log: workflow_logs/master/ (everything)")
         print("   • Errors: workflow_logs/errors/ (critical issues)")
+        print("   • Performance: workflow_logs/performance/ (metrics)")
+
+        print("\n🎯 Format examples:")
+        print("   • Text (.log): Human-readable logs")
+        print("   • JSON (.json): Structured data for analysis")
+        print("   • CSV (.csv): Analytics and reporting")
+        print("   • Syslog (.log): System integration")
+        print("   • GELF (.gelf): Graylog integration")
 
     except Exception as e:
         print(f"\n❌ Demo failed: {str(e)}")

@@ -6,7 +6,7 @@ Manages database connections and operations.
 
 import random
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class DatabaseHandler:
@@ -36,7 +36,7 @@ class DatabaseHandler:
             self.connected = False
             self.logger.info("DATABASE", "Database connection closed")
 
-    def execute_query(self, query: str, params: Dict = None) -> List[Dict]:
+    def execute_query(self, query: str, params: Optional[Dict] = None) -> List[Dict]:
         """Execute a database query."""
         self.logger.info("DATABASE", f"Executing query: {query[:50]}...")
         try:

@@ -6,7 +6,7 @@ Handles email and SMS notifications.
 
 import random
 import time
-from typing import Dict, List, Optional
+from typing import Dict
 
 
 class NotificationService:
@@ -67,17 +67,27 @@ class NotificationService:
             f"Sending welcome notification to user: {user_data.get('username')}",
         )
         try:
+            email = user_data.get("email")
+            if not email:
+                self.logger.warning(
+                    "NOTIFICATIONS",
+                    f"No email found for user: {user_data.get('username')}",
+                )
+                return False
+            
             email_sent = self.send_email(
-                user_data.get("email"),
+                email,
                 "Welcome to Our Platform!",
                 f"Hi {user_data.get('username')}, welcome to our platform!",
             )
             sms_sent = True
             if user_data.get("phone"):
-                sms_sent = self.send_sms(
-                    user_data.get("phone"),
-                    f"Welcome {user_data.get('username')}! Your account is ready.",
-                )
+                phone_number = user_data.get("phone")
+                if phone_number:
+                    sms_sent = self.send_sms(
+                        phone_number,
+                        f"Welcome {user_data.get('username')}! Your account is ready.",
+                    )
             if email_sent and sms_sent:
                 self.logger.info(
                     "NOTIFICATIONS",
