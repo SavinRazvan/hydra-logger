@@ -122,7 +122,8 @@ class HydraLogger:
             config = load_config(config_path)
             return cls(config)
         except (FileNotFoundError, ValueError) as e:
-            raise e
+            # Re-raise FileNotFoundError and ValueError as-is
+            raise
         except Exception as e:
             raise HydraLoggerError(
                 f"Failed to create HydraLogger from config: {e}"

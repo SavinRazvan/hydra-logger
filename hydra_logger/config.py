@@ -272,9 +272,14 @@ def load_config(config_path: Union[str, Path]) -> LoggingConfig:
         if config_data is None:
             raise ValueError("Configuration file is empty or invalid")
         return LoggingConfig(**config_data)
-    except (yaml.YAMLError, tomllib.TOMLDecodeError) as e:
-        raise ValueError(f"Failed to parse configuration file: {e}") from e
+    except yaml.YAMLError as e:
+        # Re-raise YAML parsing errors as ValueError
+        raise ValueError(f"Failed to parse YAML configuration file: {e}") from e
+    except tomllib.TOMLDecodeError as e:
+        # Re-raise TOML parsing errors as ValueError
+        raise ValueError(f"Failed to parse TOML configuration file: {e}") from e
     except Exception as e:
+        # Re-raise other errors as ValueError
         raise ValueError(f"Failed to load configuration: {e}") from e
 
 

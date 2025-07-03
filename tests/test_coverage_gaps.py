@@ -92,7 +92,7 @@ class TestConfigCoverageGaps:
             f.write(b"invalid: yaml: content: [")
             f.flush()
         try:
-            with pytest.raises(ValueError, match="Failed to parse configuration file"):
+            with pytest.raises(ValueError, match="Failed to parse YAML configuration file"):
                 load_config(f.name)
         finally:
             os.unlink(f.name)
@@ -103,7 +103,7 @@ class TestConfigCoverageGaps:
             f.write(b"invalid = toml = content")
             f.flush()
         try:
-            with pytest.raises(ValueError, match="Failed to parse configuration file"):
+            with pytest.raises(ValueError, match="Failed to parse TOML configuration file"):
                 load_config(f.name)
         finally:
             os.unlink(f.name)
