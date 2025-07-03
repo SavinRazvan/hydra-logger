@@ -56,9 +56,11 @@ class LogDestination(BaseModel):
         type (Literal["file", "console"]): Type of destination (file or console).
         level (str): Logging level for this destination (default: "INFO").
         path (Optional[str]): File path, required for file destinations.
-        max_size (Optional[str]): Maximum file size for rotation (e.g., '5MB', '1GB').
+        max_size (Optional[str]): Maximum file size for rotation (e.g., '5MB',
+            '1GB').
         backup_count (Optional[int]): Number of backup files to keep (default: 3).
-        format (str): Log format: 'text', 'json', 'csv', 'syslog', or 'gelf' (default: 'text').
+        format (str): Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'
+            (default: 'text').
 
     The model includes comprehensive validation to ensure that file destinations
     have required paths and that log levels are valid.
@@ -71,17 +73,12 @@ class LogDestination(BaseModel):
     )
     max_size: Optional[str] = Field(
         default="5MB",
-        description=(
-            "Max file size for rotation. "
-            "E.g. '5MB', '1GB'."
-        ),
+        description=("Max file size for rotation. " "E.g. '5MB', '1GB'."),
     )
     backup_count: Optional[int] = Field(default=3, description="Number of backup files")
     format: str = Field(
         default="text",
-        description=(
-            "Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'"
-        ),
+        description=("Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'"),
     )
 
     @field_validator("path")

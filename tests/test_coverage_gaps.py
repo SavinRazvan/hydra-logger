@@ -262,7 +262,8 @@ class TestLoggerCoverageGaps:
     def test_create_handler_final_return_none(self, monkeypatch):
         """Covers final return None in _create_handler (line 239 in logger.py)."""
         logger = HydraLogger()
-        # Create a mock destination with console type but make _create_console_handler fail
+        # Create a mock destination with console type but make
+        # _create_console_handler fail
         dest = MagicMock()
         dest.type = "console"
         dest.level = "INFO"
@@ -443,9 +444,7 @@ class TestIntegrationCoverageGaps:
 
         # Write enough data to trigger rotation
         for i in range(100):
-            msg = (
-                f"Test message {i} with extra content to fill file"
-            )
+            msg = f"Test message {i} with extra content to fill file"
             logger.info(
                 "ROTATION",
                 msg,

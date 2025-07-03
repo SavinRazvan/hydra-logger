@@ -72,7 +72,8 @@ class HydraLogger:
 
     Attributes:
         config (LoggingConfig): The logging configuration for this instance.
-        loggers (Dict[str, logging.Logger]): Dictionary of configured loggers by layer name.
+        loggers (Dict[str, logging.Logger]): Dictionary of configured loggers by
+            layer name.
     """
 
     def __init__(self, config: Optional[LoggingConfig] = None):
@@ -80,9 +81,7 @@ class HydraLogger:
         Initialize HydraLogger with configuration.
 
         Args:
-            config (Optional[LoggingConfig]):
-                LoggingConfig object.
-                If None,
+            config (Optional[LoggingConfig]): LoggingConfig object. If None,
                 uses default config.
 
         Raises:
