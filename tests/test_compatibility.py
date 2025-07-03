@@ -14,22 +14,23 @@ Test Coverage:
 - Backward compatibility preservation
 """
 
-import os
-import tempfile
-import shutil
-import pytest
 import logging
+import os
+import shutil
+import tempfile
 from logging.handlers import RotatingFileHandler
-from unittest.mock import patch, MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from hydra_logger.compatibility import (
-    setup_logging,
+    _level_int_to_str,
     create_hydra_config_from_legacy,
     migrate_to_hydra,
-    _level_int_to_str,
+    setup_logging,
 )
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.logger import HydraLogger
 
 

@@ -5,13 +5,14 @@ This module contains targeted tests to ensure 100% code coverage, focusing on ed
 error handling, and branches not covered by the main test suite.
 """
 
-import pytest
-import tempfile
 import os
+import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from hydra_logger.config import LogDestination, LogLayer, LoggingConfig, load_config
+import pytest
+
+from hydra_logger.config import LogDestination, LoggingConfig, LogLayer, load_config
 from hydra_logger.logger import HydraLogger
 
 

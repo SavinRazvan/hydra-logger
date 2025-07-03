@@ -14,18 +14,19 @@ The tests verify that:
 - Thread safety is maintained during concurrent logging
 """
 
-import os
-import tempfile
-import shutil
-import pytest
 import logging
+import os
+import shutil
+import tempfile
 import threading
-from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
+import pytest
+
+from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.logger import HydraLogger, HydraLoggerError
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
 
 class TestHydraLogger:

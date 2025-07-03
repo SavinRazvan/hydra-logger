@@ -19,13 +19,14 @@ modules can log to different destinations with custom folder structures,
 file rotation settings, and log level filtering.
 """
 
-import os
 import logging
-from typing import List, Optional, Union, Literal, Dict, Any
-from pydantic import BaseModel, Field, field_validator, ValidationInfo
-import yaml
+import os
 import tomllib
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Union
+
+import yaml
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 class LogDestination(BaseModel):

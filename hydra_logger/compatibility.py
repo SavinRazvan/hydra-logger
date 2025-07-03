@@ -17,13 +17,13 @@ without modification while providing clear migration paths to leverage the
 advanced capabilities of Hydra-Logger.
 """
 
-import os
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
+from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.logger import HydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
 
 def setup_logging(

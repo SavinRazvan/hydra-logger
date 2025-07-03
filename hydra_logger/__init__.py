@@ -8,9 +8,9 @@ A standalone, reusable logging module that supports:
 - Backward compatibility with simple setup_logging()
 """
 
+from hydra_logger.compatibility import migrate_to_hydra, setup_logging
+from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.logger import HydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-from hydra_logger.compatibility import setup_logging, migrate_to_hydra
 
 __version__ = "0.1.0"
 __author__ = "Hydra-Logger Team"

@@ -28,20 +28,20 @@ Example:
     >>> logger.debug("EVENTS", "Event stream started")
 """
 
-import os
 import logging
+import os
 import sys
 from logging.handlers import RotatingFileHandler
-from typing import Optional, Union, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 from hydra_logger.config import (
+    LogDestination,
     LoggingConfig,
     LogLayer,
-    LogDestination,
-    load_config,
-    get_default_config,
     create_log_directories,
+    get_default_config,
+    load_config,
 )
 
 

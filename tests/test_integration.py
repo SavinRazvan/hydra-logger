@@ -16,15 +16,16 @@ These tests verify that Hydra-Logger works correctly in realistic
 application environments with complex logging requirements.
 """
 
-import os
-import tempfile
-import shutil
-import pytest
 import logging
+import os
+import shutil
+import tempfile
 from pathlib import Path
 
+import pytest
+
 from hydra_logger import HydraLogger, setup_logging
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 
 
 class TestIntegration:
