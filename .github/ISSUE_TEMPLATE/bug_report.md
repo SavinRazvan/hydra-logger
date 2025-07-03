@@ -28,7 +28,7 @@ A clear and concise description of what actually happened.
 ## 📋 Environment
 
 - **OS**: [e.g. Ubuntu 20.04, Windows 10, macOS 12.0]
-- **Python Version**: [e.g. 3.8.10, 3.9.7, 3.10.0]
+- **Python Version**: [e.g. 3.8.10, 3.9.7, 3.11.0]
 - **Hydra-Logger Version**: [e.g. 0.1.0]
 - **Other Dependencies**: [e.g. pydantic==2.0.0]
 
