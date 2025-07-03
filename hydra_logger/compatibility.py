@@ -21,7 +21,6 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-
 from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.logger import HydraLogger
 

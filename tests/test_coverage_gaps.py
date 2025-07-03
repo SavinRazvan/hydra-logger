@@ -6,19 +6,19 @@ error handling, and branches not covered by the main test suite.
 """
 
 import os
+import shutil
 import sys
 import tempfile
-import shutil
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from hydra_logger.config import (
-    load_config,
-    create_log_directories,
+    LogDestination,
     LoggingConfig,
     LogLayer,
-    LogDestination,
+    create_log_directories,
+    load_config,
 )
 from hydra_logger.logger import HydraLogger
 

@@ -405,9 +405,7 @@ class HydraLogger:
 
     def _get_syslog_formatter(self) -> logging.Formatter:
         """Get syslog-compatible formatter."""
-        return logging.Formatter(
-            "%(name)s[%(process)d]: %(levelname)s: %(message)s"
-        )
+        return logging.Formatter("%(name)s[%(process)d]: %(levelname)s: %(message)s")
 
     def _get_gelf_formatter(self) -> logging.Formatter:
         """Get GELF-compatible formatter (basic structure)."""

@@ -1,11 +1,13 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from hydra_logger.config import (
-    load_config,
-    create_log_directories,
+    LogDestination,
     LoggingConfig,
     LogLayer,
-    LogDestination,
+    create_log_directories,
+    load_config,
 )
 
 
@@ -97,6 +99,7 @@ def test_attribute_error_handling():
         # Remove TOMLDecodeError attribute
         del mock_tomllib.TOMLDecodeError
         import importlib
+
         import hydra_logger.config as config_mod
 
         importlib.reload(config_mod)

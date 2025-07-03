@@ -71,15 +71,12 @@ class LogDestination(BaseModel):
         default=None, description="File path (required for file type)"
     )
     max_size: Optional[str] = Field(
-        default="5MB", 
-        description="Max file size (e.g., '5MB', '1GB')"
+        default="5MB", description="Max file size (e.g., '5MB', '1GB')"
     )
     backup_count: Optional[int] = Field(default=3, description="Number of backup files")
     format: str = Field(
         default="text",
-        description=(
-            "Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'"
-        ),
+        description=("Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'"),
     )
 
     @field_validator("path")
@@ -394,20 +391,3 @@ def create_log_directories(config: LoggingConfig) -> None:
                         raise OSError(
                             f"Failed to create log directory '{log_dir}' for layer '{layer_name}': {e}"
                         ) from e
-
-    config = LoggingConfig(
-        layers={
-            "ROTATION": LogLayer(
-                level="INFO",
-                destinations=[
-                    LogDestination(
-                        type="file",
-                        path=os.path.join(temp_dir, "rotation.json"),
-                        format="json",
-                        max_size="1KB",  # Small size to trigger rotation
-                        backup_count=2,
-                    ),
-                ],
-            )
-        }
-    )
