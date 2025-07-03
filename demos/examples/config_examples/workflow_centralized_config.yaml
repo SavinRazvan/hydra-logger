@@ -1,0 +1,46 @@
+# Centralized Logging Configuration with Multiple Formats
+# All modules log to a single master file with different levels and formats
+
+default_level: INFO
+
+layers:
+  # Main application log - everything goes here in multiple formats
+  APP:
+    level: DEBUG
+    destinations:
+      - type: file
+        path: "workflow_logs/centralized/app.log"
+        format: text
+        max_size: "50MB"
+        backup_count: 10
+      - type: file
+        path: "workflow_logs/centralized/app.json"
+        format: json
+        max_size: "50MB"
+        backup_count: 10
+      - type: file
+        path: "workflow_logs/centralized/app.csv"
+        format: csv
+        max_size: "50MB"
+        backup_count: 10
+      - type: console
+        level: INFO
+        format: json
+  
+  # Critical errors only - syslog and GELF formats
+  CRITICAL:
+    level: ERROR
+    destinations:
+      - type: file
+        path: "workflow_logs/centralized/errors.log"
+        format: syslog
+        max_size: "10MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/centralized/errors.gelf"
+        format: gelf
+        max_size: "10MB"
+        backup_count: 5
+      - type: console
+        level: ERROR
+        format: json

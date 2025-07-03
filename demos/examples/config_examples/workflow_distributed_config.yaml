@@ -1,0 +1,145 @@
+# Distributed Logging Configuration with Multiple Formats
+# Each module logs to its own file + centralized master log
+
+default_level: INFO
+
+layers:
+  # Centralized master log - captures everything in JSON format
+  MASTER:
+    level: DEBUG
+    destinations:
+      - type: file
+        path: "workflow_logs/master/app.log"
+        format: text
+        max_size: "20MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/master/app.json"
+        format: json
+        max_size: "20MB"
+        backup_count: 5
+      - type: console
+        level: INFO
+        format: json
+  
+  # User management module - text and JSON formats
+  USER_MANAGER:
+    level: INFO
+    destinations:
+      - type: file
+        path: "workflow_logs/modules/user_manager.log"
+        format: text
+        max_size: "10MB"
+        backup_count: 3
+      - type: file
+        path: "workflow_logs/modules/user_manager.json"
+        format: json
+        max_size: "10MB"
+        backup_count: 3
+      - type: file
+        path: "workflow_logs/master/app.log"
+        level: INFO
+        format: text
+  
+  # Database operations - text and CSV for analytics
+  DATABASE:
+    level: INFO
+    destinations:
+      - type: file
+        path: "workflow_logs/modules/database.log"
+        format: text
+        max_size: "15MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/modules/database_analytics.csv"
+        format: csv
+        max_size: "15MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/master/app.log"
+        level: INFO
+        format: text
+  
+  # API interactions - JSON for structured data
+  API:
+    level: INFO
+    destinations:
+      - type: file
+        path: "workflow_logs/modules/api.log"
+        format: text
+        max_size: "10MB"
+        backup_count: 3
+      - type: file
+        path: "workflow_logs/modules/api.json"
+        format: json
+        max_size: "10MB"
+        backup_count: 3
+      - type: file
+        path: "workflow_logs/master/app.log"
+        level: INFO
+        format: text
+  
+  # Notification service - syslog format for system integration
+  NOTIFICATIONS:
+    level: INFO
+    destinations:
+      - type: file
+        path: "workflow_logs/modules/notifications.log"
+        format: syslog
+        max_size: "5MB"
+        backup_count: 3
+      - type: file
+        path: "workflow_logs/master/app.log"
+        level: INFO
+        format: text
+  
+  # Utility functions - debug level with text format
+  UTILS:
+    level: DEBUG
+    destinations:
+      - type: file
+        path: "workflow_logs/modules/utils.log"
+        format: text
+        max_size: "5MB"
+        backup_count: 2
+      - type: file
+        path: "workflow_logs/master/app.log"
+        level: DEBUG
+        format: text
+  
+  # Performance monitoring - CSV format for analytics
+  PERFORMANCE:
+    level: INFO
+    destinations:
+      - type: file
+        path: "workflow_logs/performance/metrics.csv"
+        format: csv
+        max_size: "10MB"
+        backup_count: 5
+      - type: file
+        path: "workflow_logs/performance/monitoring.json"
+        format: json
+        max_size: "10MB"
+        backup_count: 5
+  
+  # Errors and critical issues - syslog and GELF formats
+  ERRORS:
+    level: ERROR
+    destinations:
+      - type: file
+        path: "workflow_logs/errors/critical.log"
+        format: syslog
+        max_size: "5MB"
+        backup_count: 10
+      - type: file
+        path: "workflow_logs/errors/critical.gelf"
+        format: gelf
+        max_size: "5MB"
+        backup_count: 10
+      - type: file
+        path: "workflow_logs/master/app.log"
+        level: ERROR
+        format: text
+      - type: console
+        level: ERROR
+        format: json
