@@ -1,10 +1,10 @@
 # 🐉 Hydra-Logger
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-50%20passed-brightgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
-[![Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
-[![PyPI](https://img.shields.io/badge/PyPI-hydra--logger-blue.svg)](https://pypi.org/project/hydra-logger/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-white.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/tests-113%20passed-darkgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
+[![Coverage](https://img.shields.io/badge/coverage-99%25-darkgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
+[![PyPI](https://img.shields.io/badge/PyPI-hydra--logger-darkblue.svg)](https://pypi.org/project/hydra-logger/)
 
 A **dynamic, multi-headed logging system** for Python applications that supports custom folder paths, multi-layered logging, and configuration via YAML/TOML files. Perfect for organizing logs by module, purpose, or severity level.
 
@@ -434,4 +434,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with ❤️ by [Savin Ionut Razvan](https://github.com/SavinRazvan) for better logging organization**
-# Force new workflow run - Python 3.1 should be removed
