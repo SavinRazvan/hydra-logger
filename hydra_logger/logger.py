@@ -220,27 +220,30 @@ class HydraLogger:
         """
         try:
             if destination.type == "file":
-                return self._create_file_handler(destination, layer_level)
+                handler = self._create_file_handler(destination, layer_level)
             elif destination.type == "console":
-                return self._create_console_handler(destination)
-            # Note: destination.type is Literal["file", "console"], so no else needed
-
+                handler = self._create_console_handler(destination)
+            else:
+                return None
+            # Set formatter based on destination.format
+            fmt = getattr(destination, "format", "text")
+            handler.setFormatter(self._get_formatter(fmt))
+            return handler
         except ValueError as e:
-            # Handle validation errors (e.g., missing path for file destinations)
             self._log_warning(f"Invalid destination configuration: {e}")
             return None
         except Exception as e:
-            # Fallback to console logging if file handler creation fails
             self._log_warning(f"Failed to create {destination.type} handler: {e}")
             if destination.type == "file":
-                # Try to create a console handler as fallback
                 try:
-                    return self._create_console_handler(destination)
+                    handler = self._create_console_handler(destination)
+                    fmt = getattr(destination, "format", "text")
+                    handler.setFormatter(self._get_formatter(fmt))
+                    return handler
                 except Exception as fallback_error:
                     self._log_error(
                         f"Fallback console handler creation failed: {fallback_error}"
                     )
-            # For any destination type that fails, return None
             return None
 
     def _create_file_handler(
@@ -322,25 +325,15 @@ class HydraLogger:
         except Exception as e:
             raise ValueError(f"Failed to create console handler: {e}") from e
 
-    def _get_formatter(self) -> logging.Formatter:
-        """
-        Get the standard formatter for all handlers.
-
-        Returns:
-            logging.Formatter: Configured logging formatter with timestamp, logger name,
-            level, filename, line number, and message.
-
-        The formatter provides a consistent, detailed log format that includes:
-        - Timestamp with date and time
-        - Logger name (hydra.layer_name)
-        - Log level
-        - Source filename and line number
-        - Log message
-        """
-        return logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
+    def _get_formatter(self, fmt: str = "text") -> logging.Formatter:
+        if fmt == "json":
+            try:
+                from pythonjsonlogger import jsonlogger
+                return jsonlogger.JsonFormatter()
+            except ImportError:
+                self._log_warning("python-json-logger not installed, falling back to text format.")
+        # Default to text
+        return logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s - %(message)s")
 
     def _parse_size(self, size_str: str) -> int:
         """
