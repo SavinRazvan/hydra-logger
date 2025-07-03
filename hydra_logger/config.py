@@ -297,8 +297,11 @@ def load_config(config_path: Union[str, Path]) -> LoggingConfig:
             with open(config_path, "r", encoding="utf-8") as f:
                 config_data = yaml.safe_load(f)
         elif config_path.suffix.lower() == ".toml":
-            with open(config_path, "rb") as f:
-                config_data = tomllib.load(f)
+            try:
+                with open(config_path, "rb") as f:
+                    config_data = tomllib.load(f)
+            except Exception as e:
+                raise ValueError(f"Failed to parse TOML configuration file: {e}") from e
         else:
             raise ValueError(f"Unsupported config file format: {config_path.suffix}")
         if config_data is None:
@@ -307,8 +310,6 @@ def load_config(config_path: Union[str, Path]) -> LoggingConfig:
     except yaml.YAMLError as e:
         raise ValueError(f"Failed to parse YAML configuration file: {e}") from e
     except Exception as e:
-        if isinstance(TOMLDecodeError, type) and isinstance(e, TOMLDecodeError):
-            raise ValueError(f"Failed to parse TOML configuration file: {e}") from e
         raise ValueError(f"Failed to load configuration: {e}") from e
 
 

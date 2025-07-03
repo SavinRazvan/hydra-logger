@@ -1,10 +1,21 @@
-# Examples
+# Examples Guide
 
-This document provides comprehensive examples of how to use Hydra-Logger in various scenarios.
+This comprehensive guide provides detailed examples of how to use Hydra-Logger in various real-world scenarios, demonstrating different configurations, log formats, and use cases.
+
+## Table of Contents
+
+- [Basic Examples](#basic-examples)
+- [Web Application Examples](#web-application-examples)
+- [Microservices Examples](#microservices-examples)
+- [Database Application Examples](#database-application-examples)
+- [Security and Monitoring Examples](#security-and-monitoring-examples)
+- [Analytics and Reporting Examples](#analytics-and-reporting-examples)
+- [Enterprise Integration Examples](#enterprise-integration-examples)
+- [Performance Optimization Examples](#performance-optimization-examples)
 
 ## Basic Examples
 
-### Simple Logging
+### Simple Logging with Default Configuration
 
 ```python
 from hydra_logger import HydraLogger
@@ -13,21 +24,22 @@ from hydra_logger import HydraLogger
 logger = HydraLogger()
 
 # Log messages to different levels
-logger.info("DEFAULT", "Application started")
-logger.debug("DEFAULT", "Debug information")
-logger.warning("DEFAULT", "Warning message")
-logger.error("DEFAULT", "Error occurred")
-logger.critical("DEFAULT", "Critical error!")
+logger.info("DEFAULT", "Application started successfully")
+logger.debug("DEFAULT", "Debug information for development")
+logger.warning("DEFAULT", "Configuration file not found, using defaults")
+logger.error("DEFAULT", "Database connection failed")
+logger.critical("DEFAULT", "System shutdown initiated")
 ```
 
-### Custom Configuration
+### Custom Configuration with Multiple Formats
 
 ```python
 from hydra_logger import HydraLogger
 from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-# Create custom configuration
+# Create custom configuration with different formats
 config = LoggingConfig(
+    default_level="INFO",
     layers={
         "APP": LogLayer(
             level="INFO",
@@ -35,12 +47,24 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/app.log",
+                    format="text",
                     max_size="10MB",
                     backup_count=5
                 ),
                 LogDestination(
                     type="console",
-                    level="WARNING"
+                    level="WARNING",
+                    format="json"
+                )
+            ]
+        ),
+        "DEBUG": LogLayer(
+            level="DEBUG",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/debug.log",
+                    format="text"
                 )
             ]
         )
@@ -51,20 +75,111 @@ config = LoggingConfig(
 logger = HydraLogger(config)
 
 # Use the logger
-logger.info("APP", "Application started")
-logger.warning("APP", "Warning message")
+logger.info("APP", "Application started with custom configuration")
+logger.debug("DEBUG", "Detailed debug information")
+logger.warning("APP", "This warning appears in both file and console")
+```
+
+### Configuration File Usage
+
+```python
+from hydra_logger import HydraLogger
+
+# Load configuration from YAML file
+logger = HydraLogger.from_config("config/logging.yaml")
+
+# Use the logger
+logger.info("APP", "Application loaded from configuration file")
+logger.debug("API", "API endpoint called")
+logger.error("SECURITY", "Authentication failed")
 ```
 
 ## Web Application Examples
 
-### Flask Application
+### Flask Application with Multi-Format Logging
 
 ```python
 from flask import Flask, request, jsonify
 from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+import time
 
+# Create Flask app
 app = Flask(__name__)
-logger = HydraLogger()
+
+# Configure logging for web application
+config = LoggingConfig(
+    layers={
+        "APP": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/app/main.log",
+                    format="text"
+                ),
+                LogDestination(
+                    type="console",
+                    format="json"
+                )
+            ]
+        ),
+        "API": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/api/requests.json",
+                    format="json"
+                ),
+                LogDestination(
+                    type="file",
+                    path="logs/api/errors.log",
+                    format="text"
+                )
+            ]
+        ),
+        "SECURITY": LogLayer(
+            level="WARNING",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/security/auth.log",
+                    format="syslog"
+                )
+            ]
+        ),
+        "PERFORMANCE": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/performance/metrics.csv",
+                    format="csv"
+                )
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+
+@app.before_request
+def log_request():
+    """Log incoming requests for monitoring."""
+    start_time = time.time()
+    request.start_time = start_time
+    
+    logger.info("API", f"Request: {request.method} {request.path} from {request.remote_addr}")
+
+@app.after_request
+def log_response(response):
+    """Log response times and status codes."""
+    if hasattr(request, 'start_time'):
+        duration = time.time() - request.start_time
+        logger.info("PERFORMANCE", f"Response time: {duration:.3f}s, Status: {response.status_code}")
+    
+    return response
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
@@ -73,7 +188,7 @@ def get_users():
     try:
         # Simulate database query
         users = [{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]
-        logger.debug("DB", f"Retrieved {len(users)} users from database")
+        logger.debug("APP", f"Retrieved {len(users)} users from database")
         
         return jsonify(users)
     except Exception as e:
@@ -86,25 +201,81 @@ def create_user():
     
     try:
         user_data = request.get_json()
-        logger.info("AUTH", f"Creating user: {user_data.get('name', 'Unknown')}")
+        logger.info("SECURITY", f"Creating user: {user_data.get('name', 'Unknown')}")
         
         # Simulate user creation
         new_user = {"id": 3, "name": user_data.get('name')}
-        logger.info("DB", f"User created with ID: {new_user['id']}")
+        logger.info("APP", f"User created with ID: {new_user['id']}")
         
         return jsonify(new_user), 201
     except Exception as e:
         logger.error("API", f"Error creating user: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    logger.info("API", f"POST /api/auth/login - IP: {request.remote_addr}")
+    
+    try:
+        auth_data = request.get_json()
+        username = auth_data.get('username')
+        
+        # Simulate authentication
+        if username == "admin":
+            logger.warning("SECURITY", f"Failed login attempt for user: {username}")
+            return jsonify({"error": "Invalid credentials"}), 401
+        else:
+            logger.info("SECURITY", f"Successful login for user: {username}")
+            return jsonify({"message": "Login successful"})
+    except Exception as e:
+        logger.error("SECURITY", f"Authentication error: {str(e)}")
+        return jsonify({"error": "Authentication failed"}), 500
+
 if __name__ == '__main__':
-    logger.info("APP", "Flask application starting")
+    logger.info("APP", "Flask application starting on port 5000")
     app.run(debug=True)
 ```
 
-### Django Application
+### Django Application with Structured Logging
 
 ```python
+# settings.py
+LOGGING_CONFIG = {
+    'default_level': 'INFO',
+    'layers': {
+        'APP': {
+            'level': 'INFO',
+            'destinations': [
+                {
+                    'type': 'file',
+                    'path': 'logs/django/app.log',
+                    'format': 'text'
+                }
+            ]
+        },
+        'API': {
+            'level': 'INFO',
+            'destinations': [
+                {
+                    'type': 'file',
+                    'path': 'logs/django/api.json',
+                    'format': 'json'
+                }
+            ]
+        },
+        'SECURITY': {
+            'level': 'WARNING',
+            'destinations': [
+                {
+                    'type': 'file',
+                    'path': 'logs/django/security.log',
+                    'format': 'syslog'
+                }
+            ]
+        }
+    }
+}
+
 # views.py
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -112,7 +283,7 @@ from django.views.decorators.http import require_http_methods
 import json
 from hydra_logger import HydraLogger
 
-logger = HydraLogger()
+logger = HydraLogger.from_config("config/django_logging.yaml")
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -122,7 +293,7 @@ def get_users(request):
     try:
         # Simulate database query
         users = [{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]
-        logger.debug("DB", f"Retrieved {len(users)} users from database")
+        logger.debug("APP", f"Retrieved {len(users)} users from database")
         
         return JsonResponse(users, safe=False)
     except Exception as e:
@@ -136,11 +307,11 @@ def create_user(request):
     
     try:
         user_data = json.loads(request.body)
-        logger.info("AUTH", f"Creating user: {user_data.get('name', 'Unknown')}")
+        logger.info("SECURITY", f"Creating user: {user_data.get('name', 'Unknown')}")
         
         # Simulate user creation
         new_user = {"id": 3, "name": user_data.get('name')}
-        logger.info("DB", f"User created with ID: {new_user['id']}")
+        logger.info("APP", f"User created with ID: {new_user['id']}")
         
         return JsonResponse(new_user, status=201)
     except Exception as e:
@@ -148,18 +319,182 @@ def create_user(request):
         return JsonResponse({"error": "Internal server error"}, status=500)
 ```
 
-## Database Application Examples
+## Microservices Examples
 
-### SQLAlchemy Integration
+### API Service with JSON Logging
 
 ```python
-from sqlalchemy import create_engine, Column, Integer, String
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+import time
+
+# Create FastAPI app
+app = FastAPI()
+
+# Configure logging for microservice
+config = LoggingConfig(
+    layers={
+        "SERVICE": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/service/service.log",
+                    format="text"
+                ),
+                LogDestination(
+                    type="console",
+                    format="json"
+                )
+            ]
+        ),
+        "API": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/service/api.json",
+                    format="json"
+                )
+            ]
+        ),
+        "EXTERNAL": LogLayer(
+            level="DEBUG",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/service/external.json",
+                    format="json"
+                )
+            ]
+        ),
+        "MONITORING": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/service/monitoring.gelf",
+                    format="gelf"
+                )
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+
+class UserCreate(BaseModel):
+    name: str
+    email: str
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("SERVICE", "User service starting up")
+    logger.info("MONITORING", "Service health check initiated")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("SERVICE", "User service shutting down")
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    start_time = time.time()
+    
+    logger.info("API", f"Request: {request.method} {request.url.path}")
+    
+    response = await call_next(request)
+    
+    duration = time.time() - start_time
+    logger.info("API", f"Response: {response.status_code} in {duration:.3f}s")
+    
+    return response
+
+@app.get("/api/users")
+async def get_users():
+    logger.info("API", "GET /api/users endpoint called")
+    
+    try:
+        # Simulate external API call
+        logger.debug("EXTERNAL", "Calling user database service")
+        
+        users = [{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]
+        logger.info("API", f"Retrieved {len(users)} users")
+        
+        return {"users": users}
+    except Exception as e:
+        logger.error("API", f"Error retrieving users: {str(e)}")
+        logger.warning("MONITORING", "Service degradation detected")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/users")
+async def create_user(user: UserCreate):
+    logger.info("API", f"POST /api/users - Creating user: {user.name}")
+    
+    try:
+        # Simulate user creation
+        new_user = {"id": 3, "name": user.name, "email": user.email}
+        logger.info("API", f"User created successfully: {new_user}")
+        
+        return new_user
+    except Exception as e:
+        logger.error("API", f"Error creating user: {str(e)}")
+        logger.error("MONITORING", "Service failure detected")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/health")
+async def health_check():
+    logger.info("MONITORING", "Health check requested")
+    return {"status": "healthy"}
+```
+
+## Database Application Examples
+
+### SQLAlchemy Integration with Multi-Format Logging
+
+```python
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+from datetime import datetime
 
 Base = declarative_base()
-logger = HydraLogger()
+
+# Configure logging for database operations
+config = LoggingConfig(
+    layers={
+        "DB": LogLayer(
+            level="DEBUG",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/database/queries.log",
+                    format="text"
+                ),
+                LogDestination(
+                    type="file",
+                    path="logs/database/performance.csv",
+                    format="csv"
+                )
+            ]
+        ),
+        "APP": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/app/main.log",
+                    format="text"
+                )
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
 
 class User(Base):
     __tablename__ = 'users'
@@ -167,16 +502,18 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(50))
     email = Column(String(100))
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-# Database operations with logging
 class UserService:
     def __init__(self, db_url):
         self.engine = create_engine(db_url)
         Base.metadata.create_all(self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
+        logger.info("DB", f"Database connection established: {db_url}")
     
     def create_user(self, name, email):
+        start_time = datetime.utcnow()
         logger.info("DB", f"Creating user: {name} ({email})")
         
         try:
@@ -184,7 +521,10 @@ class UserService:
             self.session.add(user)
             self.session.commit()
             
+            duration = (datetime.utcnow() - start_time).total_seconds()
             logger.info("DB", f"User created successfully with ID: {user.id}")
+            logger.info("DB", f"Query execution time: {duration:.3f}s")
+            
             return user
         except Exception as e:
             logger.error("DB", f"Error creating user: {str(e)}")
@@ -192,498 +532,558 @@ class UserService:
             raise
     
     def get_user(self, user_id):
+        start_time = datetime.utcnow()
         logger.debug("DB", f"Retrieving user with ID: {user_id}")
         
         try:
             user = self.session.query(User).filter(User.id == user_id).first()
+            
+            duration = (datetime.utcnow() - start_time).total_seconds()
             if user:
                 logger.debug("DB", f"User found: {user.name}")
+                logger.info("DB", f"Query execution time: {duration:.3f}s")
             else:
-                logger.warning("DB", f"User not found with ID: {user_id}")
+                logger.warning("DB", f"User not found: {user_id}")
+            
             return user
         except Exception as e:
             logger.error("DB", f"Error retrieving user: {str(e)}")
             raise
 
-# Usage
-user_service = UserService('sqlite:///users.db')
-user = user_service.create_user("John Doe", "john@example.com")
-retrieved_user = user_service.get_user(user.id)
-```
-
-## API Client Examples
-
-### REST API Client
-
-```python
-import requests
-from hydra_logger import HydraLogger
-
-logger = HydraLogger()
-
-class APIClient:
-    def __init__(self, base_url, api_key=None):
-        self.base_url = base_url
-        self.api_key = api_key
-        self.session = requests.Session()
-        
-        if api_key:
-            self.session.headers.update({'Authorization': f'Bearer {api_key}'})
-        
-        logger.info("API_CLIENT", f"Initialized API client for {base_url}")
-    
-    def get(self, endpoint, params=None):
-        url = f"{self.base_url}{endpoint}"
-        logger.debug("API_CLIENT", f"GET {url}")
+    def get_all_users(self):
+        start_time = datetime.utcnow()
+        logger.debug("DB", "Retrieving all users")
         
         try:
-            response = self.session.get(url, params=params)
-            logger.info("API_CLIENT", f"GET {url} - Status: {response.status_code}")
+            users = self.session.query(User).all()
             
-            if response.status_code >= 400:
-                logger.error("API_CLIENT", f"API error: {response.status_code} - {response.text}")
+            duration = (datetime.utcnow() - start_time).total_seconds()
+            logger.info("DB", f"Retrieved {len(users)} users")
+            logger.info("DB", f"Query execution time: {duration:.3f}s")
             
-            return response
-        except requests.exceptions.RequestException as e:
-            logger.error("API_CLIENT", f"Request failed: {str(e)}")
+            return users
+        except Exception as e:
+            logger.error("DB", f"Error retrieving users: {str(e)}")
             raise
     
-    def post(self, endpoint, data=None, json=None):
-        url = f"{self.base_url}{endpoint}"
-        logger.debug("API_CLIENT", f"POST {url}")
+    def update_user(self, user_id, **kwargs):
+        start_time = datetime.utcnow()
+        logger.info("DB", f"Updating user {user_id} with: {kwargs}")
         
         try:
-            response = self.session.post(url, data=data, json=json)
-            logger.info("API_CLIENT", f"POST {url} - Status: {response.status_code}")
+            user = self.session.query(User).filter(User.id == user_id).first()
+            if user:
+                for key, value in kwargs.items():
+                    if hasattr(user, key):
+                        setattr(user, key, value)
+                
+                self.session.commit()
+                
+                duration = (datetime.utcnow() - start_time).total_seconds()
+                logger.info("DB", f"User {user_id} updated successfully")
+                logger.info("DB", f"Query execution time: {duration:.3f}s")
+            else:
+                logger.warning("DB", f"User not found for update: {user_id}")
             
-            if response.status_code >= 400:
-                logger.error("API_CLIENT", f"API error: {response.status_code} - {response.text}")
+            return user
+    except Exception as e:
+            logger.error("DB", f"Error updating user: {str(e)}")
+            self.session.rollback()
+        raise
+
+    def delete_user(self, user_id):
+        start_time = datetime.utcnow()
+        logger.info("DB", f"Deleting user {user_id}")
+        
+        try:
+            user = self.session.query(User).filter(User.id == user_id).first()
+            if user:
+                self.session.delete(user)
+                self.session.commit()
+                
+                duration = (datetime.utcnow() - start_time).total_seconds()
+                logger.info("DB", f"User {user_id} deleted successfully")
+                logger.info("DB", f"Query execution time: {duration:.3f}s")
+            else:
+                logger.warning("DB", f"User not found for deletion: {user_id}")
             
-            return response
-        except requests.exceptions.RequestException as e:
-            logger.error("API_CLIENT", f"Request failed: {str(e)}")
-            raise
-
-# Usage
-api_client = APIClient("https://api.example.com", api_key="your-api-key")
-
-# Get users
-response = api_client.get("/users")
-if response.status_code == 200:
-    users = response.json()
-    logger.info("APP", f"Retrieved {len(users)} users")
-
-# Create user
-user_data = {"name": "John Doe", "email": "john@example.com"}
-response = api_client.post("/users", json=user_data)
-if response.status_code == 201:
-    new_user = response.json()
-    logger.info("APP", f"Created user with ID: {new_user['id']}")
-```
-
-## Background Task Examples
-
-### Celery Task
-
-```python
-from celery import Celery
-from hydra_logger import HydraLogger
-
-app = Celery('tasks')
-logger = HydraLogger()
-
-@app.task
-def process_user_data(user_id, data):
-    logger.info("CELERY", f"Starting processing for user {user_id}")
-    
-    try:
-        # Simulate processing
-        logger.debug("CELERY", f"Processing data: {data}")
-        
-        # Simulate some work
-        import time
-        time.sleep(2)
-        
-        result = {"user_id": user_id, "processed": True, "data": data}
-        logger.info("CELERY", f"Successfully processed user {user_id}")
-        
-        return result
+            return user
     except Exception as e:
-        logger.error("CELERY", f"Error processing user {user_id}: {str(e)}")
+            logger.error("DB", f"Error deleting user: {str(e)}")
+            self.session.rollback()
         raise
 
-@app.task
-def send_email_notification(user_id, email_type):
-    logger.info("EMAIL", f"Sending {email_type} email to user {user_id}")
+# Usage example
+if __name__ == "__main__":
+    # Initialize service
+    service = UserService("sqlite:///users.db")
     
-    try:
-        # Simulate email sending
-        logger.debug("EMAIL", f"Preparing email content for {email_type}")
-        
-        # Simulate some work
-        import time
-        time.sleep(1)
-        
-        logger.info("EMAIL", f"Successfully sent {email_type} email to user {user_id}")
-        return {"user_id": user_id, "email_sent": True, "type": email_type}
-    except Exception as e:
-        logger.error("EMAIL", f"Error sending email to user {user_id}: {str(e)}")
-        raise
-
-# Usage
-def trigger_user_processing(user_id, data):
-    logger.info("APP", f"Triggering processing for user {user_id}")
+    # Create users
+    user1 = service.create_user("John Doe", "john@example.com")
+    user2 = service.create_user("Jane Smith", "jane@example.com")
     
-    # Start processing task
-    process_task = process_user_data.delay(user_id, data)
+    # Retrieve users
+    all_users = service.get_all_users()
+    user = service.get_user(1)
     
-    # Start email notification task
-    email_task = send_email_notification.delay(user_id, "welcome")
+    # Update user
+    service.update_user(1, name="John Updated")
     
-    logger.info("APP", f"Tasks queued for user {user_id}")
-    return process_task.id, email_task.id
+    # Delete user
+    service.delete_user(2)
+    
+    logger.info("APP", "Database operations completed successfully")
 ```
 
-## Configuration File Examples
+## Security and Monitoring Examples
 
-### YAML Configuration
-
-```yaml
-# hydra_logging.yaml
-layers:
-  APP:
-    level: INFO
-    destinations:
-      - type: file
-        path: logs/app.log
-        max_size: 10MB
-        backup_count: 5
-      - type: console
-        level: WARNING
-  
-  API:
-    level: INFO
-    destinations:
-      - type: file
-        path: logs/api/requests.log
-        max_size: 10MB
-        backup_count: 5
-      - type: file
-        path: logs/api/errors.log
-        max_size: 2MB
-        backup_count: 3
-      - type: console
-        level: ERROR
-  
-  DB:
-    level: DEBUG
-    destinations:
-      - type: file
-        path: logs/database/queries.log
-        max_size: 5MB
-        backup_count: 3
-  
-  SECURITY:
-    level: ERROR
-    destinations:
-      - type: file
-        path: logs/security/auth.log
-        max_size: 1MB
-        backup_count: 10
-      - type: console
-        level: CRITICAL
-  
-  EMAIL:
-    level: INFO
-    destinations:
-      - type: file
-        path: logs/email/notifications.log
-        max_size: 2MB
-        backup_count: 5
-```
-
-### TOML Configuration
-
-```toml
-# hydra_logging.toml
-[layers.APP]
-level = "INFO"
-
-[[layers.APP.destinations]]
-type = "file"
-path = "logs/app.log"
-max_size = "10MB"
-backup_count = 5
-
-[[layers.APP.destinations]]
-type = "console"
-level = "WARNING"
-
-[layers.API]
-level = "INFO"
-
-[[layers.API.destinations]]
-type = "file"
-path = "logs/api/requests.log"
-max_size = "10MB"
-backup_count = 5
-
-[[layers.API.destinations]]
-type = "file"
-path = "logs/api/errors.log"
-max_size = "2MB"
-backup_count = 3
-
-[[layers.API.destinations]]
-type = "console"
-level = "ERROR"
-
-[layers.DB]
-level = "DEBUG"
-
-[[layers.DB.destinations]]
-type = "file"
-path = "logs/database/queries.log"
-max_size = "5MB"
-backup_count = 3
-
-[layers.SECURITY]
-level = "ERROR"
-
-[[layers.SECURITY.destinations]]
-type = "file"
-path = "logs/security/auth.log"
-max_size = "1MB"
-backup_count = 10
-
-[[layers.SECURITY.destinations]]
-type = "console"
-level = "CRITICAL"
-```
-
-## Advanced Examples
-
-### Custom Logger with Context
+### Security Event Logging
 
 ```python
 from hydra_logger import HydraLogger
-from contextvars import ContextVar
-from typing import Optional
-
-# Context variables for request tracking
-request_id: ContextVar[Optional[str]] = ContextVar('request_id', default=None)
-user_id: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
-
-class ContextualHydraLogger(HydraLogger):
-    """Hydra-Logger with request context support."""
-    
-    def _format_message(self, layer: str, message: str) -> str:
-        """Format message with context information."""
-        context_parts = []
-        
-        if request_id.get():
-            context_parts.append(f"req_id={request_id.get()}")
-        
-        if user_id.get():
-            context_parts.append(f"user_id={user_id.get()}")
-        
-        if context_parts:
-            context_str = " | ".join(context_parts)
-            return f"[{context_str}] {message}"
-        
-        return message
-    
-    def info(self, layer: str, message: str, *args, **kwargs):
-        formatted_message = self._format_message(layer, message)
-        super().info(layer, formatted_message, *args, **kwargs)
-    
-    def error(self, layer: str, message: str, *args, **kwargs):
-        formatted_message = self._format_message(layer, message)
-        super().error(layer, formatted_message, *args, **kwargs)
-
-# Usage
-logger = ContextualHydraLogger()
-
-def handle_request(req_id: str, user_id_str: str):
-    """Handle a request with context."""
-    # Set context
-    request_id.set(req_id)
-    user_id.set(user_id_str)
-    
-    logger.info("REQUEST", "Request started")
-    
-    try:
-        # Process request
-        logger.info("APP", "Processing request")
-        
-        # Simulate some work
-        result = {"status": "success", "data": "processed"}
-        
-        logger.info("REQUEST", "Request completed successfully")
-        return result
-    except Exception as e:
-        logger.error("REQUEST", f"Request failed: {str(e)}")
-        raise
-    finally:
-        # Clear context
-        request_id.set(None)
-        user_id.set(None)
-
-# Example usage
-handle_request("req-123", "user-456")
-```
-
-### Structured Logging
-
-```python
-from hydra_logger import HydraLogger
-import json
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+import time
 from datetime import datetime
-from typing import Any, Dict
 
-class StructuredHydraLogger(HydraLogger):
-    """Hydra-Logger with structured logging support."""
+# Configure security-focused logging
+config = LoggingConfig(
+    layers={
+        "SECURITY": LogLayer(
+            level="WARNING",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/security/events.log",
+                    format="syslog"
+                ),
+                LogDestination(
+                    type="file",
+                    path="logs/security/alerts.json",
+                    format="json"
+                )
+            ]
+        ),
+        "AUTH": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/security/auth.log",
+                    format="syslog"
+                )
+            ]
+        ),
+        "MONITORING": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/monitoring/alerts.gelf",
+                    format="gelf"
+                )
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+
+class SecurityMonitor:
+    def __init__(self):
+        self.failed_attempts = {}
+        self.blocked_ips = set()
     
-    def _log_structured(self, level: str, layer: str, event: str, **kwargs):
-        """Log structured data as JSON."""
-        log_data = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "level": level,
-            "layer": layer,
-            "event": event,
-            **kwargs
-        }
-        
-        message = json.dumps(log_data)
-        
-        if level == "INFO":
-            super().info(layer, message)
-        elif level == "ERROR":
-            super().error(layer, message)
-        elif level == "DEBUG":
-            super().debug(layer, message)
-        elif level == "WARNING":
-            super().warning(layer, message)
-        elif level == "CRITICAL":
-            super().critical(layer, message)
+    def log_login_attempt(self, username, ip_address, success=True):
+        """Log authentication attempts."""
+        if success:
+            logger.info("AUTH", f"Successful login: {username} from {ip_address}")
+        else:
+            logger.warning("AUTH", f"Failed login attempt: {username} from {ip_address}")
+            
+            # Track failed attempts
+            if ip_address not in self.failed_attempts:
+                self.failed_attempts[ip_address] = 0
+            self.failed_attempts[ip_address] += 1
+            
+            # Block IP after 5 failed attempts
+            if self.failed_attempts[ip_address] >= 5:
+                self.block_ip(ip_address)
     
-    def log_event(self, layer: str, event: str, **kwargs):
-        """Log an event with structured data."""
-        self._log_structured("INFO", layer, event, **kwargs)
+    def block_ip(self, ip_address):
+        """Block an IP address due to suspicious activity."""
+        if ip_address not in self.blocked_ips:
+            self.blocked_ips.add(ip_address)
+            logger.error("SECURITY", f"IP address blocked: {ip_address} - Multiple failed login attempts")
+            logger.warning("MONITORING", f"Security alert: IP {ip_address} blocked")
     
-    def log_error(self, layer: str, event: str, error: Exception, **kwargs):
-        """Log an error with structured data."""
-        error_data = {
-            "error_type": type(error).__name__,
-            "error_message": str(error),
-            **kwargs
-        }
-        self._log_structured("ERROR", layer, event, **error_data)
+    def log_suspicious_activity(self, activity_type, details):
+        """Log suspicious activities."""
+        logger.warning("SECURITY", f"Suspicious activity detected: {activity_type} - {details}")
+        logger.warning("MONITORING", f"Security alert: {activity_type}")
+    
+    def log_data_access(self, user, resource, action):
+        """Log data access events."""
+        logger.info("SECURITY", f"Data access: {user} {action} {resource}")
+    
+    def log_configuration_change(self, user, change_details):
+        """Log configuration changes."""
+        logger.warning("SECURITY", f"Configuration change by {user}: {change_details}")
 
-# Usage
-logger = StructuredHydraLogger()
+# Usage example
+security_monitor = SecurityMonitor()
 
-# Log structured events
-logger.log_event("USER", "user_login", user_id=123, ip_address="192.168.1.1")
-logger.log_event("DB", "query_executed", query="SELECT * FROM users", duration_ms=45)
+# Simulate security events
+security_monitor.log_login_attempt("admin", "192.168.1.100", success=False)
+security_monitor.log_login_attempt("admin", "192.168.1.100", success=False)
+security_monitor.log_login_attempt("admin", "192.168.1.100", success=False)
+security_monitor.log_login_attempt("admin", "192.168.1.100", success=False)
+security_monitor.log_login_attempt("admin", "192.168.1.100", success=False)
 
-# Log structured errors
-try:
-    # Simulate an error
-    raise ValueError("Invalid user data")
-except Exception as e:
-    logger.log_error("AUTH", "login_failed", error=e, user_id=123, ip_address="192.168.1.1")
+security_monitor.log_suspicious_activity("SQL Injection Attempt", "query: SELECT * FROM users WHERE id = 1 OR 1=1")
+security_monitor.log_data_access("john.doe", "user_profiles", "read")
+security_monitor.log_configuration_change("admin", "Changed password policy")
 ```
 
-## Testing Examples
+## Analytics and Reporting Examples
 
-### Unit Testing with Hydra-Logger
+### Performance Metrics Collection
 
 ```python
-import pytest
-import tempfile
-import os
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+import time
+import psutil
+import threading
+
+# Configure analytics-focused logging
+config = LoggingConfig(
+    layers={
+        "PERFORMANCE": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/analytics/performance.csv",
+                    format="csv"
+                )
+            ]
+        ),
+        "METRICS": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/analytics/metrics.json",
+                    format="json"
+                )
+            ]
+        ),
+        "MONITORING": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/monitoring/system.gelf",
+                    format="gelf"
+                )
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+
+class PerformanceMonitor:
+    def __init__(self):
+        self.monitoring = False
+        self.monitor_thread = None
+    
+    def start_monitoring(self):
+        """Start continuous performance monitoring."""
+        self.monitoring = True
+        self.monitor_thread = threading.Thread(target=self._monitor_loop)
+        self.monitor_thread.daemon = True
+        self.monitor_thread.start()
+        logger.info("MONITORING", "Performance monitoring started")
+    
+    def stop_monitoring(self):
+        """Stop performance monitoring."""
+        self.monitoring = False
+        if self.monitor_thread:
+            self.monitor_thread.join()
+        logger.info("MONITORING", "Performance monitoring stopped")
+    
+    def _monitor_loop(self):
+        """Continuous monitoring loop."""
+        while self.monitoring:
+            self.collect_system_metrics()
+            time.sleep(60)  # Collect metrics every minute
+    
+    def collect_system_metrics(self):
+        """Collect system performance metrics."""
+        try:
+            # CPU metrics
+            cpu_percent = psutil.cpu_percent(interval=1)
+            cpu_count = psutil.cpu_count()
+            
+            # Memory metrics
+            memory = psutil.virtual_memory()
+            memory_percent = memory.percent
+            memory_used = memory.used / (1024**3)  # GB
+            memory_total = memory.total / (1024**3)  # GB
+            
+            # Disk metrics
+            disk = psutil.disk_usage('/')
+            disk_percent = disk.percent
+            disk_used = disk.used / (1024**3)  # GB
+            disk_total = disk.total / (1024**3)  # GB
+            
+            # Network metrics
+            network = psutil.net_io_counters()
+            bytes_sent = network.bytes_sent
+            bytes_recv = network.bytes_recv
+            
+            # Log performance metrics
+            logger.info("PERFORMANCE", f"CPU Usage: {cpu_percent}%")
+            logger.info("PERFORMANCE", f"Memory Usage: {memory_percent}%")
+            logger.info("PERFORMANCE", f"Disk Usage: {disk_percent}%")
+            
+            # Log detailed metrics as JSON
+            metrics = {
+                "timestamp": time.time(),
+                "cpu": {
+                    "percent": cpu_percent,
+                    "count": cpu_count
+                },
+                "memory": {
+                    "percent": memory_percent,
+                    "used_gb": round(memory_used, 2),
+                    "total_gb": round(memory_total, 2)
+                },
+                "disk": {
+                    "percent": disk_percent,
+                    "used_gb": round(disk_used, 2),
+                    "total_gb": round(disk_total, 2)
+                },
+                "network": {
+                    "bytes_sent": bytes_sent,
+                    "bytes_recv": bytes_recv
+                }
+            }
+            
+            logger.info("METRICS", f"System metrics: {metrics}")
+            
+            # Alert on high usage
+            if cpu_percent > 80:
+                logger.warning("MONITORING", f"High CPU usage detected: {cpu_percent}%")
+            
+            if memory_percent > 85:
+                logger.warning("MONITORING", f"High memory usage detected: {memory_percent}%")
+            
+            if disk_percent > 90:
+                logger.warning("MONITORING", f"High disk usage detected: {disk_percent}%")
+                
+    except Exception as e:
+            logger.error("MONITORING", f"Error collecting metrics: {str(e)}")
+    
+    def log_api_performance(self, endpoint, method, duration, status_code):
+        """Log API performance metrics."""
+        logger.info("PERFORMANCE", f"API {method} {endpoint}: {duration:.3f}s, Status: {status_code}")
+        
+        # Log detailed API metrics
+        api_metrics = {
+            "endpoint": endpoint,
+            "method": method,
+            "duration": duration,
+            "status_code": status_code,
+            "timestamp": time.time()
+        }
+        
+        logger.info("METRICS", f"API performance: {api_metrics}")
+    
+    def log_database_performance(self, query, duration, rows_affected):
+        """Log database performance metrics."""
+        logger.info("PERFORMANCE", f"Database query: {duration:.3f}s, Rows: {rows_affected}")
+        
+        # Log detailed database metrics
+        db_metrics = {
+            "query": query,
+            "duration": duration,
+            "rows_affected": rows_affected,
+            "timestamp": time.time()
+        }
+        
+        logger.info("METRICS", f"Database performance: {db_metrics}")
+
+# Usage example
+performance_monitor = PerformanceMonitor()
+
+# Start monitoring
+performance_monitor.start_monitoring()
+
+# Simulate API calls
+performance_monitor.log_api_performance("/api/users", "GET", 0.150, 200)
+performance_monitor.log_api_performance("/api/users", "POST", 0.250, 201)
+performance_monitor.log_api_performance("/api/users/1", "GET", 0.075, 200)
+
+# Simulate database operations
+performance_monitor.log_database_performance("SELECT * FROM users", 0.050, 100)
+performance_monitor.log_database_performance("INSERT INTO users", 0.100, 1)
+
+# Stop monitoring after some time
+time.sleep(120)  # Monitor for 2 minutes
+performance_monitor.stop_monitoring()
+```
+
+## Enterprise Integration Examples
+
+### Graylog Integration
+
+```python
 from hydra_logger import HydraLogger
 from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-class TestHydraLogger:
-    @pytest.fixture
-    def temp_log_dir(self):
-        """Create a temporary directory for log files."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            yield temp_dir
-    
-    @pytest.fixture
-    def logger(self, temp_log_dir):
-        """Create a logger with temporary log files."""
+# Configure logging for Graylog integration
         config = LoggingConfig(
             layers={
-                "TEST": LogLayer(
-                    level="DEBUG",
+        "APPLICATION": LogLayer(
+            level="INFO",
                     destinations=[
                         LogDestination(
                             type="file",
-                            path=os.path.join(temp_log_dir, "test.log")
+                    path="logs/app/main.log",
+                    format="text"
+                ),
+                LogDestination(
+                    type="file",
+                    path="logs/graylog/app.gelf",
+                    format="gelf"
+                )
+            ]
+        ),
+        "SECURITY": LogLayer(
+            level="WARNING",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/security/events.log",
+                    format="syslog"
+                ),
+                LogDestination(
+                    type="file",
+                    path="logs/graylog/security.gelf",
+                    format="gelf"
+                )
+            ]
+        ),
+        "MONITORING": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/graylog/monitoring.gelf",
+                    format="gelf"
                         )
                     ]
                 )
             }
         )
-        return HydraLogger(config)
-    
-    def test_info_logging(self, logger, temp_log_dir):
-        """Test info level logging."""
-        logger.info("TEST", "Test info message")
-        
-        log_file = os.path.join(temp_log_dir, "test.log")
-        assert os.path.exists(log_file)
-        
-        with open(log_file, 'r') as f:
-            content = f.read()
-            assert "Test info message" in content
-            assert "INFO" in content
-    
-    def test_error_logging(self, logger, temp_log_dir):
-        """Test error level logging."""
-        logger.error("TEST", "Test error message")
-        
-        log_file = os.path.join(temp_log_dir, "test.log")
-        with open(log_file, 'r') as f:
-            content = f.read()
-            assert "Test error message" in content
-            assert "ERROR" in content
-    
-    def test_debug_logging(self, logger, temp_log_dir):
-        """Test debug level logging."""
-        logger.debug("TEST", "Test debug message")
-        
-        log_file = os.path.join(temp_log_dir, "test.log")
-        with open(log_file, 'r') as f:
-            content = f.read()
-            assert "Test debug message" in content
-            assert "DEBUG" in content
 
-# Integration test
-def test_multi_layer_logging():
-    """Test logging to multiple layers."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+logger = HydraLogger(config)
+
+class EnterpriseApplication:
+    def __init__(self):
+        logger.info("APPLICATION", "Enterprise application initialized")
+    
+    def process_business_logic(self, data):
+        """Process business logic with comprehensive logging."""
+        logger.info("APPLICATION", f"Processing business logic: {data}")
+        
+        try:
+            # Simulate business processing
+            result = self._validate_data(data)
+            if result:
+                processed_data = self._transform_data(data)
+                logger.info("APPLICATION", f"Business logic completed successfully")
+                return processed_data
+            else:
+                logger.warning("APPLICATION", "Data validation failed")
+                return None
+        except Exception as e:
+            logger.error("APPLICATION", f"Business logic error: {str(e)}")
+            raise
+    
+    def _validate_data(self, data):
+        """Validate input data."""
+        logger.debug("APPLICATION", f"Validating data: {data}")
+        return True  # Simulate validation
+    
+    def _transform_data(self, data):
+        """Transform data according to business rules."""
+        logger.debug("APPLICATION", f"Transforming data: {data}")
+        return f"processed_{data}"
+    
+    def handle_security_event(self, event_type, details):
+        """Handle security events with enterprise logging."""
+        logger.warning("SECURITY", f"Security event: {event_type} - {details}")
+        logger.warning("MONITORING", f"Security alert raised: {event_type}")
+    
+    def log_system_health(self, component, status, metrics):
+        """Log system health information."""
+        logger.info("MONITORING", f"System health check: {component} - {status}")
+        logger.info("MONITORING", f"Health metrics: {metrics}")
+
+# Usage example
+app = EnterpriseApplication()
+
+# Process business logic
+result = app.process_business_logic("sample_data")
+
+# Handle security events
+app.handle_security_event("Unauthorized Access", "User attempted to access restricted resource")
+
+# Log system health
+app.log_system_health("Database", "Healthy", {"response_time": "0.05s", "connections": 10})
+app.log_system_health("API", "Degraded", {"response_time": "2.5s", "error_rate": "5%"})
+```
+
+## Performance Optimization Examples
+
+### High-Throughput Logging
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+import threading
+import time
+import queue
+
+# Configure high-performance logging
         config = LoggingConfig(
             layers={
-                "APP": LogLayer(
+        "HIGH_VOLUME": LogLayer(
                     level="INFO",
                     destinations=[
                         LogDestination(
                             type="file",
-                            path=os.path.join(temp_dir, "app.log")
+                    path="logs/high_volume/events.csv",
+                    format="csv",
+                    max_size="100MB",
+                    backup_count=2
                         )
                     ]
                 ),
-                "ERROR": LogLayer(
+        "CRITICAL": LogLayer(
                     level="ERROR",
                     destinations=[
                         LogDestination(
                             type="file",
-                            path=os.path.join(temp_dir, "error.log")
+                    path="logs/critical/errors.log",
+                    format="text"
+                ),
+                LogDestination(
+                    type="console",
+                    format="json"
                         )
                     ]
                 )
@@ -692,21 +1092,86 @@ def test_multi_layer_logging():
         
         logger = HydraLogger(config)
         
-        # Log to different layers
-        logger.info("APP", "Application message")
-        logger.error("ERROR", "Error message")
+class HighThroughputLogger:
+    def __init__(self, max_queue_size=10000):
+        self.log_queue = queue.Queue(maxsize=max_queue_size)
+        self.running = False
+        self.worker_thread = None
+    
+    def start(self):
+        """Start the high-throughput logging worker."""
+        self.running = True
+        self.worker_thread = threading.Thread(target=self._worker_loop)
+        self.worker_thread.daemon = True
+        self.worker_thread.start()
+        logger.info("HIGH_VOLUME", "High-throughput logging started")
+    
+    def stop(self):
+        """Stop the high-throughput logging worker."""
+        self.running = False
+        if self.worker_thread:
+            self.worker_thread.join()
+        logger.info("HIGH_VOLUME", "High-throughput logging stopped")
+    
+    def _worker_loop(self):
+        """Worker loop for processing log messages."""
+        batch = []
+        batch_size = 100
+        last_flush = time.time()
         
-        # Check app log
-        with open(os.path.join(temp_dir, "app.log"), 'r') as f:
-            app_content = f.read()
-            assert "Application message" in app_content
-            assert "Error message" not in app_content
-        
-        # Check error log
-        with open(os.path.join(temp_dir, "error.log"), 'r') as f:
-            error_content = f.read()
-            assert "Error message" in error_content
-            assert "Application message" not in error_content
+        while self.running:
+            try:
+                # Get message from queue with timeout
+                message = self.log_queue.get(timeout=1)
+                batch.append(message)
+                
+                # Flush batch if it's full or enough time has passed
+                current_time = time.time()
+                if len(batch) >= batch_size or (current_time - last_flush) >= 5:
+                    self._flush_batch(batch)
+                    batch = []
+                    last_flush = current_time
+                    
+            except queue.Empty:
+                # Flush any remaining messages
+                if batch:
+                    self._flush_batch(batch)
+                    batch = []
+    
+    def _flush_batch(self, batch):
+        """Flush a batch of log messages."""
+        for message in batch:
+            logger.info("HIGH_VOLUME", message)
+    
+    def log_event(self, event_type, data):
+        """Log an event to the high-throughput queue."""
+        try:
+            message = f"Event: {event_type}, Data: {data}"
+            self.log_queue.put_nowait(message)
+        except queue.Full:
+            # If queue is full, log critical error
+            logger.error("CRITICAL", "High-throughput log queue is full")
+    
+    def log_metrics(self, metric_name, value):
+        """Log metrics to the high-throughput queue."""
+        try:
+            message = f"Metric: {metric_name}, Value: {value}"
+            self.log_queue.put_nowait(message)
+        except queue.Full:
+            logger.error("CRITICAL", "High-throughput log queue is full")
+
+# Usage example
+high_throughput_logger = HighThroughputLogger()
+high_throughput_logger.start()
+
+# Simulate high-volume logging
+for i in range(1000):
+    high_throughput_logger.log_event("user_action", f"action_{i}")
+    high_throughput_logger.log_metrics("response_time", i * 0.001)
+    time.sleep(0.001)  # Simulate high frequency
+
+# Stop logging
+high_throughput_logger.stop()
 ```
 
-These examples demonstrate various use cases and patterns for using Hydra-Logger in different types of applications. Each example can be adapted and extended based on your specific requirements. 
+This comprehensive examples guide demonstrates how to use Hydra-Logger in various real-world scenarios, from simple applications to complex enterprise systems, showing the flexibility and power of the multi-format logging system. 
