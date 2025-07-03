@@ -223,9 +223,7 @@ class HydraLogger:
                 return self._create_file_handler(destination, layer_level)
             elif destination.type == "console":
                 return self._create_console_handler(destination)
-            else:
-                self._log_warning(f"Unknown destination type: {destination.type}")
-                return None
+            # Note: destination.type is Literal["file", "console"], so no else needed
 
         except ValueError as e:
             # Handle validation errors (e.g., missing path for file destinations)

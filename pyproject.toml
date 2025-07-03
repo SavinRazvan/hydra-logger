@@ -42,6 +42,7 @@ dev = [
     "bandit>=1.7.0",
     "safety>=2.3.0",
     "types-PyYAML>=6.0.0",
+    "types-tomli>=2.0.0",
 ]
 
 [project.urls]
@@ -98,6 +99,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

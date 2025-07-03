@@ -21,9 +21,15 @@ file rotation settings, and log level filtering.
 
 import logging
 import os
-import tomllib
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, TYPE_CHECKING
+
+# Handle tomllib import for Python < 3.11
+try:
+    import tomllib
+except ImportError:
+    import tomli as _tomli
+    tomllib = _tomli
 
 import yaml
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
