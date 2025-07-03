@@ -434,4 +434,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with ❤️ by [Savin Ionut Razvan](https://github.com/SavinRazvan) for better logging organization**
-# Trigger new CI run with fixed workflow
+# Force new workflow run - Python 3.1 should be removed
