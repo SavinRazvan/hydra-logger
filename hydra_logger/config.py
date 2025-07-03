@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 # Handle tomllib import for Python < 3.11
 tomllib: Any
 TOMLDecodeError: Type[BaseException]
-
 try:
     import tomllib
 
@@ -71,12 +70,18 @@ class LogDestination(BaseModel):
         default=None, description="File path (required for file type)"
     )
     max_size: Optional[str] = Field(
-        default="5MB", description="Max file size (e.g., '5MB', '1GB')"
+        default="5MB",
+        description=(
+            "Max file size for rotation. "
+            "E.g. '5MB', '1GB'."
+        ),
     )
     backup_count: Optional[int] = Field(default=3, description="Number of backup files")
     format: str = Field(
         default="text",
-        description=("Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'"),
+        description=(
+            "Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'"
+        ),
     )
 
     @field_validator("path")
@@ -389,5 +394,6 @@ def create_log_directories(config: LoggingConfig) -> None:
                         os.makedirs(log_dir, exist_ok=True)
                     except OSError as e:
                         raise OSError(
-                            f"Failed to create log directory '{log_dir}' for layer '{layer_name}': {e}"
+                            f"Failed to create log directory '{log_dir}' "
+                            f"for layer '{layer_name}': {e}"
                         ) from e

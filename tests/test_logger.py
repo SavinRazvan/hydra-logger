@@ -797,7 +797,8 @@ default_level: INFO
                     destinations=[
                         LogDestination(
                             type="file",
-                            path="/root/invalid.log",  # Path that will cause permission error
+                            path="/root/invalid.log",
+                            # Path that will cause permission error
                         )
                     ]
                 )
@@ -821,7 +822,8 @@ default_level: INFO
                     destinations=[
                         LogDestination(
                             type="file",
-                            path="/root/invalid.log",  # Path that will cause permission error
+                            path="/root/invalid.log",
+                            # Path that will cause permission error
                         )
                     ]
                 )
@@ -869,7 +871,9 @@ default_level: INFO
                 "TEST": LogLayer(
                     destinations=[
                         LogDestination(
-                            type="file", path="logs/test.log"  # Valid path for config
+                            type="file",
+                            path="/root/test.log",
+                            # Path that will cause permission error
                         )
                     ]
                 )
@@ -900,7 +904,8 @@ default_level: INFO
                     destinations=[
                         LogDestination(
                             type="file",
-                            path="/root/test.log",  # Path that will cause permission error
+                            path="/root/test.log",
+                            # Path that will cause permission error
                         )
                     ]
                 )
@@ -924,7 +929,9 @@ default_level: INFO
                 "TEST": LogLayer(
                     destinations=[
                         LogDestination(
-                            type="console", level="INFO"  # Valid level for config
+                            type="console",
+                            level="INFO",
+                            # Valid level for config
                         )
                     ]
                 )
@@ -1143,7 +1150,8 @@ default_level: INFO
 
         destination = LogDestination(type="file", path="logs/test.log")
 
-        # Mock _create_file_handler to raise exception, _create_console_handler to succeed
+        # Mock _create_file_handler to raise exception, _create_console_handler to
+        # succeed
         with patch.object(
             logger, "_create_file_handler", side_effect=Exception("File error")
         ):
@@ -1498,7 +1506,8 @@ default_level: INFO
             assert log_entry["lineno"] > 0
 
     def test_json_lines_format(self, temp_dir):
-        """Test that JSON format produces valid JSON Lines (one JSON object per line)."""
+        """Test that JSON format produces valid JSON Lines (one JSON object per
+        line)."""
         config = LoggingConfig(
             layers={
                 "JSON_LINES": LogLayer(

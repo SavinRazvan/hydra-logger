@@ -3,8 +3,9 @@ Main HydraLogger class for multi-layered, multi-destination logging.
 
 This module provides a sophisticated, dynamic logging system that can route different
 types of logs across multiple destinations (files, console) with custom folder paths.
-The system supports multi-layered logging where each layer can have its own configuration,
-destinations, and log levels, enabling complex logging scenarios for enterprise applications.
+The system supports multi-layered logging where each layer can have its own
+configuration, destinations, and log levels, enabling complex logging scenarios for
+enterprise applications.
 
 Key Features:
 - Multi-layered logging with custom folder paths for each layer
@@ -29,11 +30,10 @@ Example:
 """
 
 import logging
-import os
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 from hydra_logger.config import (
     LogDestination,
@@ -80,7 +80,10 @@ class HydraLogger:
         Initialize HydraLogger with configuration.
 
         Args:
-            config (Optional[LoggingConfig]): LoggingConfig object. If None, uses default configuration.
+            config (Optional[LoggingConfig]):
+                LoggingConfig object.
+                If None,
+                uses default config.
 
         Raises:
             HydraLoggerError: If logger setup fails due to configuration issues.
@@ -104,7 +107,8 @@ class HydraLogger:
         Create HydraLogger from configuration file.
 
         Args:
-            config_path (Union[str, Path]): Path to YAML or TOML configuration file.
+            config_path (Union[str, Path]): Path to YAML or TOML configuration
+                file.
 
         Returns:
             HydraLogger: Instance configured from file.
@@ -213,7 +217,8 @@ class HydraLogger:
             layer_level (str): The level of the layer this handler belongs to.
 
         Returns:
-            Optional[logging.Handler]: Configured logging handler or None if creation fails.
+            Optional[logging.Handler]: Configured logging handler or None if
+                creation fails.
 
         This method creates the appropriate handler type based on the destination
         configuration. It includes comprehensive error handling and fallback
@@ -221,15 +226,15 @@ class HydraLogger:
         """
         try:
             if destination.type == "file":
-                handler = self._create_file_handler(destination, layer_level)
+                file_handler = self._create_file_handler(destination, layer_level)
+                fmt = getattr(destination, "format", "text")
+                file_handler.setFormatter(self._get_formatter(fmt))
+                return file_handler
             elif destination.type == "console":
-                handler = self._create_console_handler(destination)
-            else:
-                return None
-            # Set formatter based on destination.format
-            fmt = getattr(destination, "format", "text")
-            handler.setFormatter(self._get_formatter(fmt))
-            return handler
+                console_handler = self._create_console_handler(destination)
+                fmt = getattr(destination, "format", "text")
+                console_handler.setFormatter(self._get_formatter(fmt))
+                return console_handler
         except ValueError as e:
             self._log_warning(f"Invalid destination configuration: {e}")
             return None
@@ -237,10 +242,10 @@ class HydraLogger:
             self._log_warning(f"Failed to create {destination.type} handler: {e}")
             if destination.type == "file":
                 try:
-                    handler = self._create_console_handler(destination)
+                    fallback_handler = self._create_console_handler(destination)
                     fmt = getattr(destination, "format", "text")
-                    handler.setFormatter(self._get_formatter(fmt))
-                    return handler
+                    fallback_handler.setFormatter(self._get_formatter(fmt))
+                    return fallback_handler
                 except Exception as fallback_error:
                     self._log_error(
                         f"Fallback console handler creation failed: {fallback_error}"
@@ -347,7 +352,8 @@ class HydraLogger:
 
                 # Use the proper JsonFormatter from python-json-logger
                 return JsonFormatter(
-                    fmt="%(asctime)s %(levelname)s %(name)s %(message)s %(filename)s %(lineno)d",
+                    fmt="%(asctime)s %(levelname)s %(name)s %(message)s "
+                    "%(filename)s %(lineno)d",
                     datefmt="%Y-%m-%d %H:%M:%S",
                     rename_fields={
                         "asctime": "timestamp",
@@ -384,7 +390,9 @@ class HydraLogger:
     def _get_structured_json_formatter(self) -> logging.Formatter:
         """Get a structured JSON formatter that creates valid JSON output."""
         return logging.Formatter(
-            '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "file": "%(filename)s", "line": %(lineno)d}',
+            '{"timestamp": "%(asctime)s", "level": "%(levelname)s", '
+            '"logger": "%(name)s", "message": "%(message)s", '
+            '"file": "%(filename)s", "line": %(lineno)d}',
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 

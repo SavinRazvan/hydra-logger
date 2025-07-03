@@ -1,8 +1,8 @@
 """
 Test coverage gaps for Hydra-Logger
 
-This module contains targeted tests to ensure 100% code coverage, focusing on edge cases,
-error handling, and branches not covered by the main test suite.
+This module contains targeted tests to ensure 100% code coverage, focusing on edge
+cases, error handling, and branches not covered by the main test suite.
 """
 
 import os
@@ -17,7 +17,6 @@ from hydra_logger.config import (
     LogDestination,
     LoggingConfig,
     LogLayer,
-    create_log_directories,
     load_config,
 )
 from hydra_logger.logger import HydraLogger
@@ -444,9 +443,12 @@ class TestIntegrationCoverageGaps:
 
         # Write enough data to trigger rotation
         for i in range(100):
+            msg = (
+                f"Test message {i} with extra content to fill file"
+            )
             logger.info(
                 "ROTATION",
-                f"Test message {i} with some additional content to fill the file",
+                msg,
             )
 
         # Check that files were created (main file + backups)
