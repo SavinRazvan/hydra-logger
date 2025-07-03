@@ -19,6 +19,26 @@ from hydra_logger.logger import HydraLogger
 class TestConfigCoverageGaps:
     """Covers edge cases and error branches in hydra_logger.config."""
 
+    def test_tomli_import_fallback(self):
+        """Covers the tomli import fallback for Python < 3.11."""
+        # Mock tomli module
+        mock_tomli = MagicMock()
+        
+        # Test that the fallback import works when tomllib is not available
+        with patch.dict('sys.modules', {'tomllib': None, 'tomli': mock_tomli}):
+            # Import the module again to trigger the fallback
+            import importlib
+            import hydra_logger.config
+            importlib.reload(hydra_logger.config)
+            
+            # Verify that tomllib is now the tomli module
+            assert hasattr(hydra_logger.config, 'tomllib')
+            assert hydra_logger.config.tomllib == mock_tomli
+            # The import should work without errors
+            from hydra_logger.config import LoggingConfig
+            config = LoggingConfig()
+            assert config is not None
+
     def test_log_destination_file_without_path_validation(self):
         """Covers model_post_init path check (line 93 in config.py)."""
         dest = LogDestination(type="file", path="somefile.log")

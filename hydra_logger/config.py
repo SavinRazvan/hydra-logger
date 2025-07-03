@@ -22,7 +22,7 @@ file rotation settings, and log level filtering.
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 # Handle tomllib import for Python < 3.11
 try:
