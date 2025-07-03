@@ -27,21 +27,18 @@ import yaml
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 if TYPE_CHECKING:
-    pass
-
-# Handle tomllib import for Python < 3.11
-tomllib: Any
-TOMLDecodeError: Type[BaseException]
-try:
-    import tomllib
-
-    TOMLDecodeError = tomllib.TOMLDecodeError
-except ImportError:
-    import tomli as tomllib
-
-    TOMLDecodeError = tomllib.TOMLDecodeError
-except AttributeError:
-    TOMLDecodeError = Exception
+    import types
+    tomllib: Any
+    TOMLDecodeError: Type[BaseException]
+else:
+    try:
+        import tomllib  # type: ignore
+        TOMLDecodeError = tomllib.TOMLDecodeError  # type: ignore
+    except ImportError:
+        import tomli as tomllib  # type: ignore
+        TOMLDecodeError = tomllib.TOMLDecodeError  # type: ignore
+    except AttributeError:
+        TOMLDecodeError = Exception
 
 
 class LogDestination(BaseModel):
