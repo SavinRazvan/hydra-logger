@@ -28,14 +28,17 @@ from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 if TYPE_CHECKING:
     import types
+
     tomllib: Any
     TOMLDecodeError: Type[BaseException]
 else:
     try:
         import tomllib  # type: ignore
+
         TOMLDecodeError = tomllib.TOMLDecodeError  # type: ignore
     except ImportError:
         import tomli as tomllib  # type: ignore
+
         TOMLDecodeError = tomllib.TOMLDecodeError  # type: ignore
     except AttributeError:
         TOMLDecodeError = Exception
