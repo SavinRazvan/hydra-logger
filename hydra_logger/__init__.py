@@ -13,7 +13,7 @@ from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.logger import HydraLogger
 
 __version__ = "0.1.0"
-__author__ = "Hydra-Logger Team"
+__author__ = "Savin Ionut Razvan"
 
 __all__ = [
     "HydraLogger",
