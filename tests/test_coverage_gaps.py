@@ -28,6 +28,7 @@ class TestConfigCoverageGaps:
         with patch.dict('sys.modules', {'tomllib': None, 'tomli': mock_tomli}):
             # Import the module again to trigger the fallback
             import importlib
+
             import hydra_logger.config
             importlib.reload(hydra_logger.config)
             
