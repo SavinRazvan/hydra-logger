@@ -22,23 +22,16 @@ file rotation settings, and log level filtering.
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union, Type
 
 # Handle tomllib import for Python < 3.11
 try:
     import tomllib
-
-    TOMLDecodeError = tomllib.TOMLDecodeError
 except ImportError:
-    import tomli as _tomli
+    import tomli as tomllib
 
-    tomllib = _tomli
-    if hasattr(tomllib, "TOMLDecodeError") and isinstance(
-        getattr(tomllib, "TOMLDecodeError"), type
-    ):
-        TOMLDecodeError = tomllib.TOMLDecodeError
-    else:
-        TOMLDecodeError = Exception
+# Get TOMLDecodeError from the appropriate module
+TOMLDecodeError: Type[Exception] = getattr(tomllib, "TOMLDecodeError", Exception)
 
 import yaml
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
