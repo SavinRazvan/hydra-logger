@@ -2,23 +2,25 @@
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-white.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-113%20passed-darkgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
-[![Coverage](https://img.shields.io/badge/coverage-99%25-darkgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
+[![Tests](https://img.shields.io/badge/tests-146%20passed-darkgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
+[![Coverage](https://img.shields.io/badge/coverage-97%25-darkgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
 [![PyPI](https://img.shields.io/badge/PyPI-hydra--logger-darkblue.svg)](https://pypi.org/project/hydra-logger/)
 
-A **dynamic, multi-headed logging system** for Python applications that supports custom folder paths, multi-layered logging, and configuration via YAML/TOML files. Perfect for organizing logs by module, purpose, or severity level.
+A **dynamic, multi-headed logging system** for Python applications that supports custom folder paths, multi-layered logging, multiple log formats, and configuration via YAML/TOML files. Perfect for organizing logs by module, purpose, or severity level with structured output formats.
 
 ## ✨ Features
 
 - 🎯 **Multi-layered Logging**: Route different types of logs to different destinations
 - 📁 **Custom Folder Paths**: Specify custom folders for each log file (e.g., `logs/config/`, `logs/security/`)
 - 🔄 **Multiple Destinations**: File and console output per layer with different log levels
+- 📊 **Multiple Log Formats**: Support for text, structured JSON, CSV, Syslog, and GELF formats
 - ⚙️ **Configuration Files**: YAML/TOML configuration support for easy deployment
 - 🔄 **Backward Compatibility**: Works with existing `setup_logging()` code
 - 📦 **File Rotation**: Configurable file sizes and backup counts
 - 🚀 **Standalone Package**: Reusable across multiple projects
 - 🧵 **Thread-Safe**: Safe for concurrent logging operations
 - 🛡️ **Error Handling**: Graceful fallbacks and error recovery
+- 📈 **Structured Logging**: JSON Lines format for log aggregation and analysis
 
 ## 🚀 Quick Start
 
@@ -53,7 +55,7 @@ from hydra_logger import HydraLogger
 logger = HydraLogger()
 logger.info("DEFAULT", "Hello, Hydra-Logger!")
 
-# Advanced usage with custom configuration
+# Advanced usage with custom configuration and multiple formats
 from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
 config = LoggingConfig(
@@ -65,11 +67,13 @@ config = LoggingConfig(
                     type="file",
                     path="logs/config/app.log",  # Custom folder!
                     max_size="5MB",
-                    backup_count=3
+                    backup_count=3,
+                    format="text"  # Plain text format
                 ),
                 LogDestination(
                     type="console",
-                    level="WARNING"
+                    level="WARNING",
+                    format="json"  # Structured JSON format for console
                 )
             ]
         ),
@@ -78,8 +82,19 @@ config = LoggingConfig(
             destinations=[
                 LogDestination(
                     type="file",
-                    path="logs/events/stream.log",  # Different folder!
-                    max_size="10MB"
+                    path="logs/events/stream.json",  # Different folder!
+                    max_size="10MB",
+                    format="json"  # Structured JSON format for log aggregation
+                )
+            ]
+        ),
+        "ANALYTICS": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/analytics/metrics.csv",
+                    format="csv"  # CSV format for data analysis
                 )
             ]
         )
@@ -89,6 +104,42 @@ config = LoggingConfig(
 logger = HydraLogger(config)
 logger.info("CONFIG", "Configuration loaded")
 logger.debug("EVENTS", "Event processed")
+logger.info("ANALYTICS", "Performance metric recorded")
+```
+
+## 📊 Supported Log Formats
+
+Hydra-Logger supports multiple log formats for different use cases:
+
+### **Text Format** (Default)
+Traditional plain text logging with timestamps and log levels.
+```
+2025-07-03 14:30:15 INFO [hydra.CONFIG] Configuration loaded (logger.py:483)
+```
+
+### **JSON Format** 
+Structured JSON format for log aggregation and analysis. Each log entry is a valid JSON object.
+```json
+{"timestamp": "2025-07-03 14:30:15", "level": "INFO", "logger": "hydra.CONFIG", "message": "Configuration loaded", "filename": "logger.py", "lineno": 483}
+```
+
+### **CSV Format**
+Comma-separated values for analytics and data processing.
+```csv
+timestamp,level,logger,message,filename,lineno
+2025-07-03 14:30:15,INFO,hydra.CONFIG,Configuration loaded,logger.py,483
+```
+
+### **Syslog Format**
+Standard syslog format for system integration.
+```
+<134>2025-07-03T14:30:15.123Z hostname hydra.CONFIG: Configuration loaded
+```
+
+### **GELF Format**
+Graylog Extended Log Format for centralized logging systems.
+```json
+{"version": "1.1", "host": "hostname", "short_message": "Configuration loaded", "level": 6, "_logger": "hydra.CONFIG"}
 ```
 
 ## 📋 Configuration File Usage
@@ -104,15 +155,18 @@ layers:
         path: "logs/config/app.log"
         max_size: "5MB"
         backup_count: 3
+        format: text
       - type: console
         level: WARNING
+        format: json
   
   EVENTS:
     level: DEBUG
     destinations:
       - type: file
-        path: "logs/events/stream.log"
+        path: "logs/events/stream.json"
         max_size: "10MB"
+        format: json
   
   SECURITY:
     level: ERROR
@@ -121,6 +175,14 @@ layers:
         path: "logs/security/auth.log"
         max_size: "1MB"
         backup_count: 10
+        format: syslog
+  
+  ANALYTICS:
+    level: INFO
+    destinations:
+      - type: file
+        path: "logs/analytics/metrics.csv"
+        format: csv
 ```
 
 Use the configuration:
@@ -155,7 +217,7 @@ logger = migrate_to_hydra(
 
 ## 🏗️ Advanced Configuration
 
-### Multiple Destinations per Layer
+### Multiple Destinations per Layer with Different Formats
 
 ```yaml
 layers:
@@ -163,15 +225,18 @@ layers:
     level: INFO
     destinations:
       - type: file
-        path: "logs/api/requests.log"
+        path: "logs/api/requests.json"
         max_size: "10MB"
         backup_count: 5
+        format: json  # Structured logging for requests
       - type: file
         path: "logs/api/errors.log"
         max_size: "2MB"
         backup_count: 3
+        format: text  # Plain text for errors
       - type: console
         level: ERROR
+        format: gelf  # GELF format for console
 ```
 
 ### Different Log Levels per Layer
@@ -183,51 +248,59 @@ layers:
     destinations:
       - type: file
         path: "logs/debug/detailed.log"
+        format: text  # Plain text for debugging
   
   ERROR_LAYER:
     level: ERROR
     destinations:
       - type: file
-        path: "logs/errors/critical.log"
+        path: "logs/errors/critical.json"
+        format: json  # JSON for error analysis
 ```
 
 ### Real-World Application Example
 
 ```python
-# Web application with multiple modules
+# Web application with multiple modules and formats
 config = LoggingConfig(
     layers={
         "APP": LogLayer(
             level="INFO",
             destinations=[
-                LogDestination(type="file", path="logs/app/main.log"),
-                LogDestination(type="console", level="WARNING")
+                LogDestination(type="file", path="logs/app/main.log", format="text"),
+                LogDestination(type="console", level="WARNING", format="json")
             ]
         ),
         "AUTH": LogLayer(
             level="DEBUG",
             destinations=[
-                LogDestination(type="file", path="logs/auth/security.log"),
-                LogDestination(type="file", path="logs/auth/errors.log")
+                LogDestination(type="file", path="logs/auth/security.log", format="syslog"),
+                LogDestination(type="file", path="logs/auth/errors.json", format="json")
             ]
         ),
         "API": LogLayer(
             level="INFO",
             destinations=[
-                LogDestination(type="file", path="logs/api/requests.log"),
-                LogDestination(type="file", path="logs/api/errors.log")
+                LogDestination(type="file", path="logs/api/requests.json", format="json"),
+                LogDestination(type="file", path="logs/api/errors.log", format="text")
             ]
         ),
         "DB": LogLayer(
             level="DEBUG",
             destinations=[
-                LogDestination(type="file", path="logs/database/queries.log")
+                LogDestination(type="file", path="logs/database/queries.log", format="text")
             ]
         ),
         "PERF": LogLayer(
             level="INFO",
             destinations=[
-                LogDestination(type="file", path="logs/performance/metrics.log")
+                LogDestination(type="file", path="logs/performance/metrics.csv", format="csv")
+            ]
+        ),
+        "MONITORING": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/monitoring/alerts.gelf", format="gelf")
             ]
         )
     }
@@ -241,6 +314,7 @@ logger.debug("AUTH", "User login attempt: user123")
 logger.info("API", "API request: GET /api/users")
 logger.debug("DB", "SQL Query: SELECT * FROM users")
 logger.info("PERF", "Response time: 150ms")
+logger.info("MONITORING", "System health check completed")
 ```
 
 ## 📁 File Structure
@@ -253,16 +327,16 @@ logs/
 ├── config/
 │   └── app.log               # Configuration logs
 ├── events/
-│   └── stream.log            # Event logs
+│   └── stream.json           # Event logs (JSON format)
 ├── security/
-│   └── auth.log              # Security logs
+│   └── auth.log              # Security logs (Syslog format)
 ├── api/
-│   ├── requests.log          # API request logs
-│   └── errors.log            # API error logs
+│   ├── requests.json         # API request logs (JSON format)
+│   └── errors.log            # API error logs (Text format)
 ├── database/
-│   └── queries.log           # Database query logs
+│   └── queries.log           # Database query logs (Text format)
 └── performance/
-    └── metrics.log           # Performance logs
+    └── metrics.csv           # Performance logs (CSV format)
 ```
 
 ## 📚 API Reference
@@ -296,21 +370,28 @@ Main logging class for multi-layered logging.
 
 ## 🧪 Examples
 
-See the `examples/` directory for comprehensive examples:
+See the `demos/` directory for comprehensive examples:
 
-- `examples/multi_module_demo.py`: Real-world multi-module application demo
-- `hydra_logger/examples/basic_usage.py`: Different usage patterns
-- `hydra_logger/examples/config_examples/simple.yaml`: Basic configuration
-- `hydra_logger/examples/config_examples/advanced.yaml`: Advanced configuration
+- `demos/examples/basic_usage.py`: Different usage patterns and migration examples
+- `demos/examples/log_formats_demo.py`: Demonstration of all supported formats
+- `demos/multi_module_demo.py`: Real-world multi-module application demo
+- `demos/multi_file_workflow_demo.py`: Complex workflow with multiple modules
+- `demos/examples/config_examples/`: Various configuration examples
 
 ### Running Examples
 
 ```bash
-# Run the multi-module demo
-python examples/multi_module_demo.py
+# Run the basic usage examples
+python demos/examples/basic_usage.py
 
-# Run basic usage examples
-python hydra_logger/examples/basic_usage.py
+# Run the log formats demonstration
+python demos/examples/log_formats_demo.py
+
+# Run the multi-module demo
+python demos/multi_module_demo.py
+
+# Run the multi-file workflow demo
+python demos/multi_file_workflow_demo.py
 ```
 
 ## 🛠️ Development
@@ -353,9 +434,10 @@ pytest --cov=hydra_logger --cov-report=html
 
 ### Test Coverage
 
-- **50 tests** covering all major functionality
-- **96% code coverage** (204 lines, only 8 missing)
-- **Comprehensive edge case testing** including thread safety, error handling, and integration tests
+- **146 tests** covering all major functionality
+- **97% code coverage** with comprehensive edge case testing
+- **Thread safety, error handling, and integration tests** included
+- **Format-specific tests** for all supported log formats
 
 ## 📦 Package Structure
 
@@ -386,8 +468,11 @@ hydra-logger/
 │   ├── test_compatibility.py # Backward compatibility tests
 │   └── test_integration.py  # Integration & real-world tests
 │
-└── 📚 Examples
-    └── multi_module_demo.py # Real-world multi-module demo
+└── 📚 Demos (demos/)
+    ├── examples/            # Basic examples and configurations
+    ├── demo_modules/        # Module examples
+    ├── multi_module_demo.py # Real-world multi-module demo
+    └── multi_file_workflow_demo.py # Complex workflow demo
 ```
 
 ## 🤝 Contributing
@@ -409,9 +494,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
-- [ ] JSON configuration support
-- [ ] Remote logging destinations (syslog, etc.)
-- [ ] Structured logging with JSON output
+- [x] Multi-format logging support (text, JSON, CSV, syslog, GELF)
+- [x] Structured JSON logging with all fields
+- [x] Configuration file support (YAML/TOML)
+- [x] Backward compatibility layer
+- [x] Comprehensive test suite
+- [ ] Remote logging destinations (syslog server, etc.)
 - [ ] Log aggregation and analysis tools
 - [ ] Performance monitoring integration
 - [ ] Docker and Kubernetes deployment examples
@@ -424,10 +512,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Initial release
 - Multi-layered logging support
 - Custom folder paths
+- Multiple log formats (text, JSON, CSV, syslog, GELF)
 - YAML/TOML configuration
 - Backward compatibility
 - Thread-safe logging
-- Comprehensive test suite (96% coverage)
+- Comprehensive test suite (97% coverage)
 - Real-world examples and documentation
 - Professional packaging and distribution
 

@@ -1,6 +1,47 @@
 # Testing Guide
 
-This guide covers how to test Hydra-Logger, generate coverage reports, and interpret the results.
+This document provides comprehensive information about testing Hydra-Logger, including test structure, coverage requirements, and how to run tests effectively.
+
+## Table of Contents
+
+- [Test Structure](#test-structure)
+- [Running Tests](#running-tests)
+- [Test Coverage](#test-coverage)
+- [Format-Specific Tests](#format-specific-tests)
+- [Integration Tests](#integration-tests)
+- [Performance Tests](#performance-tests)
+- [Best Practices](#best-practices)
+
+## Test Structure
+
+The test suite is organized into several modules, each focusing on specific aspects of the Hydra-Logger functionality:
+
+```
+tests/
+├── test_config.py           # Configuration model tests
+├── test_logger.py           # Core logger functionality tests
+├── test_compatibility.py    # Backward compatibility tests
+└── test_integration.py      # Integration and real-world tests
+```
+
+### Test Categories
+
+#### **Unit Tests** (`test_config.py`, `test_logger.py`)
+- Configuration model validation
+- Logger initialization and configuration
+- Individual method functionality
+- Error handling and edge cases
+
+#### **Compatibility Tests** (`test_compatibility.py`)
+- Backward compatibility with `setup_logging()`
+- Migration function testing
+- Legacy interface validation
+
+#### **Integration Tests** (`test_integration.py`)
+- End-to-end logging scenarios
+- Multi-layer configuration testing
+- Real-world usage patterns
+- File system operations
 
 ## Running Tests
 
@@ -8,290 +49,523 @@ This guide covers how to test Hydra-Logger, generate coverage reports, and inter
 
 ```bash
 # Run all tests
-python -m pytest
+pytest
 
-# Run tests with verbose output
-python -m pytest -v
+# Run with verbose output
+pytest -v
 
-# Run tests with short traceback
-python -m pytest --tb=short
+# Run with short traceback
+pytest --tb=short
 
 # Run specific test file
-python -m pytest tests/test_logger.py
+pytest tests/test_logger.py
 
-# Run specific test function
-python -m pytest tests/test_logger.py::test_hydra_logger_basic
+# Run specific test class
+pytest tests/test_logger.py::TestHydraLogger
+
+# Run specific test method
+pytest tests/test_logger.py::TestHydraLogger::test_basic_logging
 ```
 
-### Test Configuration
-
-The project uses `pyproject.toml` for pytest configuration:
-
-```toml
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "--cov=hydra_logger",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-]
-```
-
-## Coverage Reporting
-
-### Generating Coverage Reports
+### Coverage Analysis
 
 ```bash
-# Generate coverage with terminal output
-python -m pytest --cov=hydra_logger
+# Run tests with coverage report
+pytest --cov=hydra_logger --cov-report=term-missing
 
 # Generate HTML coverage report
-python -m pytest --cov=hydra_logger --cov-report=html
+pytest --cov=hydra_logger --cov-report=html
 
-# Generate XML coverage report (for CI/CD)
-python -m pytest --cov=hydra_logger --cov-report=xml
+# Generate XML coverage report for CI
+pytest --cov=hydra_logger --cov-report=xml
 
-# Generate all coverage formats
-python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-report=html --cov-report=xml
+# Run with coverage and fail if below threshold
+pytest --cov=hydra_logger --cov-fail-under=97
 ```
 
-### Understanding Coverage Output
-
-#### Terminal Output
-```
-Name                    Stmts   Miss  Cover   Missing
------------------------------------------------------
-hydra_logger/__init__.py     10      0   100%
-hydra_logger/compatibility.py     45      0   100%
-hydra_logger/config.py     85      0   100%
-hydra_logger/logger.py    120      1    99%   245
------------------------------------------------------
-TOTAL                       260      1    99%
-```
-
-#### HTML Coverage Report
-
-When you run `--cov-report=html`, it creates an `htmlcov/` directory with:
-
-- `index.html` - Main coverage report
-- Individual HTML files for each module
-- CSS and JavaScript for interactive features
-
-**To view the HTML report:**
-```bash
-# On macOS
-open htmlcov/index.html
-
-# On Linux
-xdg-open htmlcov/index.html
-
-# On Windows
-start htmlcov/index.html
-```
-
-### Coverage Configuration
-
-The coverage settings are configured in `pyproject.toml`:
-
-```toml
-[tool.coverage.run]
-source = ["hydra_logger"]
-omit = [
-    "*/tests/*",
-    "*/test_*",
-    "*/__pycache__/*",
-    "*/migrations/*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
-]
-```
-
-## Test Categories
-
-### Unit Tests
+### Test Filtering
 
 ```bash
-# Run only unit tests (exclude integration tests)
-python -m pytest -m "not integration"
+# Run only fast tests (exclude slow integration tests)
+pytest -m "not slow"
 
-# Run specific unit test categories
-python -m pytest tests/test_logger.py      # Core logger functionality
-python -m pytest tests/test_config.py      # Configuration handling
-python -m pytest tests/test_compatibility.py  # Backward compatibility
+# Run only integration tests
+pytest -m "integration"
+
+# Run tests matching a pattern
+pytest -k "json"
+
+# Run tests excluding a pattern
+pytest -k "not file"
 ```
 
-### Integration Tests
+## Test Coverage
 
-```bash
-# Run integration tests
-python -m pytest -m "integration"
+### Current Coverage Status
 
-# Run specific integration test
-python -m pytest tests/test_integration.py
-```
+- **Total Tests**: 146 tests
+- **Coverage**: 97%
+- **Coverage Target**: 97% minimum
 
-### Slow Tests
+### Coverage Breakdown
 
-```bash
-# Skip slow tests
-python -m pytest -m "not slow"
+#### **Core Modules**
+- `hydra_logger/__init__.py`: 100%
+- `hydra_logger/config.py`: 97%
+- `hydra_logger/logger.py`: 97%
+- `hydra_logger/compatibility.py`: 100%
 
-# Run only slow tests
-python -m pytest -m "slow"
-```
+#### **Coverage Gaps**
+The remaining 3% consists of:
+- Import fallback scenarios (tomllib/tomli)
+- Rare error conditions
+- Edge cases in format handling
 
-## Test Development
+### Coverage Requirements
 
-### Writing New Tests
+#### **Minimum Requirements**
+- **97% overall coverage** for all code
+- **100% coverage** for critical paths
+- **95% coverage** for error handling code
 
-#### Test File Structure
-```python
-import pytest
-from hydra_logger import HydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+#### **Coverage Exclusions**
+- Import statements for optional dependencies
+- Debug/development code paths
+- Platform-specific code
 
-class TestNewFeature:
-    """Test class for new feature."""
-    
-    def test_basic_functionality(self):
-        """Test basic functionality of new feature."""
-        # Arrange
-        logger = HydraLogger()
-        
-        # Act
-        result = logger.some_new_method("test")
-        
-        # Assert
-        assert result is not None
-    
-    def test_edge_case(self):
-        """Test edge case handling."""
-        # Test implementation
-        pass
-    
-    @pytest.mark.integration
-    def test_integration_scenario(self):
-        """Test integration with other components."""
-        # Integration test implementation
-        pass
-```
+## Format-Specific Tests
 
-#### Test Markers
+### JSON Format Tests
 
 ```python
-import pytest
+def test_structured_json_formatter(self, temp_dir):
+    """Test the structured JSON formatter output."""
+    config = LoggingConfig(
+        layers={
+            "STRUCTURED_JSON": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path=os.path.join(temp_dir, "structured.json"),
+                        format="json"
+                    ),
+                ],
+            )
+        }
+    )
 
-@pytest.mark.slow
-def test_slow_operation():
-    """This test takes a long time to run."""
-    pass
+    logger = HydraLogger(config)
+    logger.info("STRUCTURED_JSON", "Test structured JSON")
 
-@pytest.mark.integration
-def test_with_database():
-    """This test requires a database connection."""
-    pass
+    # Verify file was created
+    filepath = os.path.join(temp_dir, "structured.json")
+    assert os.path.exists(filepath)
 
-@pytest.mark.parametrize("input_value,expected", [
-    ("test1", "result1"),
-    ("test2", "result2"),
-])
-def test_parameterized(input_value, expected):
-    """Test with multiple input values."""
-    assert process(input_value) == expected
+    with open(filepath, "r") as f:
+        content = f.read().strip()
+        log_entry = json.loads(content)
+        
+        # Verify all required fields are present
+        assert "timestamp" in log_entry
+        assert "level" in log_entry
+        assert "logger" in log_entry
+        assert "message" in log_entry
+        assert "filename" in log_entry
+        assert "lineno" in log_entry
+        
+        # Verify data types and values
+        assert log_entry["level"] == "INFO"
+        assert log_entry["message"] == "Test structured JSON"
+        assert log_entry["logger"] == "hydra.STRUCTURED_JSON"
+        assert log_entry["lineno"] > 0
 ```
 
-### Test Utilities
-
-#### Temporary Files and Directories
+### JSON Lines Format Tests
 
 ```python
-import pytest
-import tempfile
-import os
-from pathlib import Path
+def test_json_lines_format(self, temp_dir):
+    """Test that JSON format produces valid JSON Lines (one JSON object per line)."""
+    config = LoggingConfig(
+        layers={
+            "JSON_LINES": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path=os.path.join(temp_dir, "json_lines.json"),
+                        format="json"
+                    ),
+                ],
+            )
+        }
+    )
 
-class TestWithFiles:
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory for test files."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            yield temp_dir
+    logger = HydraLogger(config)
     
-    def test_file_creation(self, temp_dir):
-        """Test creating files in temporary directory."""
-        log_file = os.path.join(temp_dir, "test.log")
+    # Log multiple messages
+    logger.info("JSON_LINES", "First message")
+    logger.warning("JSON_LINES", "Second message")
+    logger.error("JSON_LINES", "Third message")
+
+    # Verify file was created
+    filepath = os.path.join(temp_dir, "json_lines.json")
+    assert os.path.exists(filepath)
+
+    with open(filepath, "r") as f:
+        lines = f.readlines()
         
-        # Test file creation
-        with open(log_file, 'w') as f:
-            f.write("test log content")
+        # Verify we have exactly 3 lines
+        assert len(lines) == 3
         
-        assert os.path.exists(log_file)
-        assert os.path.getsize(log_file) > 0
+        # Verify each line is valid JSON
+        for i, line in enumerate(lines):
+            log_entry = json.loads(line.strip())
+            assert "message" in log_entry
+            assert "level" in log_entry
+            assert "timestamp" in log_entry
 ```
 
-#### Mocking
+### CSV Format Tests
 
 ```python
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+def test_csv_format(self, temp_dir):
+    """Test CSV format output."""
+    config = LoggingConfig(
+        layers={
+            "CSV_TEST": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path=os.path.join(temp_dir, "test.csv"),
+                        format="csv"
+                    ),
+                ],
+            )
+        }
+    )
 
-class TestWithMocks:
-    def test_with_mocked_file_system(self):
-        """Test with mocked file system operations."""
-        with patch('os.makedirs') as mock_makedirs:
-            with patch('builtins.open', mock_open()) as mock_file:
-                logger = HydraLogger()
-                logger.info("TEST", "test message")
-                
-                # Verify makedirs was called
-                mock_makedirs.assert_called()
-                
-                # Verify file was opened
-                mock_file.assert_called()
-    
-    def test_with_mocked_logging(self):
-        """Test with mocked logging module."""
-        with patch('logging.getLogger') as mock_get_logger:
-            mock_logger = Mock()
-            mock_get_logger.return_value = mock_logger
-            
-            logger = HydraLogger()
-            logger.info("TEST", "test message")
-            
-            # Verify logging was called
-            mock_logger.info.assert_called()
+    logger = HydraLogger(config)
+    logger.info("CSV_TEST", "Test CSV message")
+
+    filepath = os.path.join(temp_dir, "test.csv")
+    assert os.path.exists(filepath)
+
+    with open(filepath, "r") as f:
+        lines = f.readlines()
+        
+        # Verify header
+        assert "timestamp,level,logger,message,filename,lineno" in lines[0]
+        
+        # Verify data line
+        data_line = lines[1].strip()
+        assert "INFO" in data_line
+        assert "hydra.CSV_TEST" in data_line
+        assert "Test CSV message" in data_line
 ```
 
-## Continuous Integration
+### Syslog Format Tests
 
-### GitHub Actions
+```python
+def test_syslog_format(self, temp_dir):
+    """Test syslog format output."""
+    config = LoggingConfig(
+        layers={
+            "SYSLOG_TEST": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path=os.path.join(temp_dir, "test.log"),
+                        format="syslog"
+                    ),
+                ],
+            )
+        }
+    )
 
-The project includes a CI workflow in `.github/workflows/ci.yml`:
+    logger = HydraLogger(config)
+    logger.info("SYSLOG_TEST", "Test syslog message")
+
+    filepath = os.path.join(temp_dir, "test.log")
+    assert os.path.exists(filepath)
+
+    with open(filepath, "r") as f:
+        content = f.read().strip()
+        
+        # Verify syslog format
+        assert content.startswith("<")
+        assert "hydra.SYSLOG_TEST" in content
+        assert "Test syslog message" in content
+```
+
+### GELF Format Tests
+
+```python
+def test_gelf_format(self, temp_dir):
+    """Test GELF format output."""
+    config = LoggingConfig(
+        layers={
+            "GELF_TEST": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path=os.path.join(temp_dir, "test.gelf"),
+                        format="gelf"
+                    ),
+                ],
+            )
+        }
+    )
+
+    logger = HydraLogger(config)
+    logger.info("GELF_TEST", "Test GELF message")
+
+    filepath = os.path.join(temp_dir, "test.gelf")
+    assert os.path.exists(filepath)
+
+    with open(filepath, "r") as f:
+        content = f.read().strip()
+        log_entry = json.loads(content)
+        
+        # Verify GELF format
+        assert log_entry["version"] == "1.1"
+        assert "host" in log_entry
+        assert log_entry["short_message"] == "Test GELF message"
+        assert log_entry["level"] == 6  # INFO level
+        assert log_entry["_logger"] == "hydra.GELF_TEST"
+```
+
+## Integration Tests
+
+### Multi-Layer Configuration Tests
+
+```python
+def test_multi_layer_configuration(self, temp_dir):
+    """Test complex multi-layer configuration."""
+    config = LoggingConfig(
+        layers={
+            "APP": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(type="file", path=os.path.join(temp_dir, "app.log"), format="text"),
+                    LogDestination(type="console", format="json")
+                ]
+            ),
+            "API": LogLayer(
+                level="DEBUG",
+                destinations=[
+                    LogDestination(type="file", path=os.path.join(temp_dir, "api.json"), format="json")
+                ]
+            ),
+            "ERRORS": LogLayer(
+                level="ERROR",
+                destinations=[
+                    LogDestination(type="file", path=os.path.join(temp_dir, "errors.log"), format="text")
+                ]
+            )
+        }
+    )
+
+    logger = HydraLogger(config)
+    
+    # Test all layers
+    logger.info("APP", "Application started")
+    logger.debug("API", "API request received")
+    logger.error("ERRORS", "Database error occurred")
+    
+    # Verify all files were created
+    assert os.path.exists(os.path.join(temp_dir, "app.log"))
+    assert os.path.exists(os.path.join(temp_dir, "api.json"))
+    assert os.path.exists(os.path.join(temp_dir, "errors.log"))
+```
+
+### Configuration File Tests
+
+```python
+def test_yaml_configuration(self, temp_dir):
+    """Test loading configuration from YAML file."""
+    config_content = """
+layers:
+  TEST:
+    level: INFO
+    destinations:
+      - type: file
+        path: test.log
+        format: json
+    """
+    
+    config_file = os.path.join(temp_dir, "test.yaml")
+    with open(config_file, "w") as f:
+        f.write(config_content)
+    
+    logger = HydraLogger.from_config(config_file)
+    logger.info("TEST", "Test message")
+    
+    # Verify log file was created
+    log_file = os.path.join(temp_dir, "test.log")
+    assert os.path.exists(log_file)
+```
+
+### Error Handling Tests
+
+```python
+def test_invalid_configuration(self):
+    """Test handling of invalid configuration."""
+    with pytest.raises(ValidationError):
+        LoggingConfig(
+            layers={
+                "INVALID": LogLayer(
+                    level="INVALID_LEVEL",  # Invalid log level
+                    destinations=[]
+                )
+            }
+        )
+
+def test_missing_file_path(self):
+    """Test handling of missing file path for file destination."""
+    with pytest.raises(ValidationError):
+        LogDestination(type="file", format="json")  # Missing path
+
+def test_invalid_format(self):
+    """Test handling of invalid log format."""
+    with pytest.raises(ValueError):
+        LogDestination(type="file", path="test.log", format="invalid_format")
+```
+
+## Performance Tests
+
+### Concurrent Logging Tests
+
+```python
+def test_concurrent_logging(self, temp_dir):
+    """Test thread-safe concurrent logging."""
+    import threading
+    import time
+    
+    config = LoggingConfig(
+        layers={
+            "CONCURRENT": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path=os.path.join(temp_dir, "concurrent.log"),
+                        format="text"
+                    )
+                ]
+            )
+        }
+    )
+    
+    logger = HydraLogger(config)
+    
+    def log_messages(thread_id):
+        for i in range(100):
+            logger.info("CONCURRENT", f"Thread {thread_id} message {i}")
+            time.sleep(0.001)
+    
+    # Start multiple threads
+    threads = []
+    for i in range(5):
+        thread = threading.Thread(target=log_messages, args=(i,))
+        threads.append(thread)
+        thread.start()
+    
+    # Wait for all threads to complete
+    for thread in threads:
+        thread.join()
+    
+    # Verify all messages were logged
+    log_file = os.path.join(temp_dir, "concurrent.log")
+    with open(log_file, "r") as f:
+        lines = f.readlines()
+        assert len(lines) == 500  # 5 threads * 100 messages each
+```
+
+### File Rotation Tests
+
+```python
+def test_file_rotation(self, temp_dir):
+    """Test file rotation functionality."""
+    config = LoggingConfig(
+        layers={
+            "ROTATION": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path=os.path.join(temp_dir, "rotation.log"),
+                        max_size="1KB",
+                        backup_count=3,
+                        format="text"
+                    )
+                ]
+            )
+        }
+    )
+    
+    logger = HydraLogger(config)
+    
+    # Generate enough logs to trigger rotation
+    large_message = "X" * 100  # 100 character message
+    for i in range(50):
+        logger.info("ROTATION", f"Message {i}: {large_message}")
+    
+    # Verify rotation files were created
+    base_path = os.path.join(temp_dir, "rotation.log")
+    assert os.path.exists(base_path)
+    
+    # Check for backup files
+    backup_files = [f for f in os.listdir(temp_dir) if f.startswith("rotation.log.")]
+    assert len(backup_files) > 0
+```
+
+## Best Practices
+
+### Test Organization
+
+1. **Use descriptive test names** that clearly indicate what is being tested
+2. **Group related tests** in test classes
+3. **Use fixtures** for common setup and teardown
+4. **Keep tests independent** - each test should be able to run in isolation
+
+### Test Data Management
+
+1. **Use temporary directories** for file-based tests
+2. **Clean up test files** after each test
+3. **Use unique file names** to avoid conflicts
+4. **Mock external dependencies** when appropriate
+
+### Coverage Strategy
+
+1. **Test all public methods** and their variations
+2. **Test error conditions** and edge cases
+3. **Test configuration validation** thoroughly
+4. **Test format-specific functionality** for each supported format
+
+### Performance Considerations
+
+1. **Use appropriate timeouts** for performance tests
+2. **Test with realistic data sizes**
+3. **Monitor memory usage** during concurrent tests
+4. **Test file rotation** with various file sizes
+
+### Continuous Integration
+
+1. **Run tests on multiple Python versions**
+2. **Include coverage reporting** in CI pipeline
+3. **Fail builds** if coverage drops below threshold
+4. **Run format-specific tests** for all supported formats
+
+## Running Tests in CI/CD
+
+### GitHub Actions Example
 
 ```yaml
-name: CI
+name: Tests
 
 on: [push, pull_request]
 
@@ -300,192 +574,29 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.11, 3.12, 3.13]
+        python-version: [3.8, 3.9, 3.10, 3.11]
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
+    
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+        pip install -r requirements-dev.txt
     
     - name: Run tests with coverage
       run: |
-        python -m pytest --cov=hydra_logger --cov-report=xml
+        pytest --cov=hydra_logger --cov-report=xml --cov-fail-under=97
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v1
       with:
         file: ./coverage.xml
 ```
 
-### Local CI Simulation
-
-```bash
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Run linting
-black --check .
-flake8 .
-mypy hydra_logger/
-
-# Run tests with coverage
-python -m pytest --cov=hydra_logger --cov-report=xml
-
-# Run security checks
-bandit -r hydra_logger/
-safety check
-```
-
-## Coverage Analysis
-
-### Understanding Coverage Metrics
-
-#### Line Coverage
-- **100%** - Every line of code is executed during tests
-- **95-99%** - Excellent coverage, minor gaps
-- **80-94%** - Good coverage, some areas need attention
-- **<80%** - Poor coverage, significant gaps
-
-#### Branch Coverage
-- Tests both true and false branches of conditional statements
-- More comprehensive than line coverage
-- Identifies untested code paths
-
-### Improving Coverage
-
-#### Identify Gaps
-```bash
-# Generate detailed coverage report
-python -m pytest --cov=hydra_logger --cov-report=term-missing
-
-# Look for "Missing" column to see uncovered lines
-```
-
-#### Add Tests for Missing Coverage
-
-```python
-# Example: Adding test for error handling
-def test_file_permission_error():
-    """Test handling of file permission errors."""
-    with patch('builtins.open', side_effect=PermissionError):
-        logger = HydraLogger()
-        # Should handle permission error gracefully
-        logger.info("TEST", "test message")
-        # Verify no exception is raised
-```
-
-#### Exclude Unreachable Code
-
-```python
-# In your code, mark unreachable lines
-if False:  # pragma: no cover
-    # This code is never reached
-    unreachable_function()
-
-# Or use coverage comments
-def some_function():
-    if condition:
-        return True
-    # pragma: no cover
-    return False  # This line is never reached
-```
-
-## Best Practices
-
-### Test Organization
-
-1. **Group related tests** in test classes
-2. **Use descriptive test names** that explain what is being tested
-3. **Follow AAA pattern**: Arrange, Act, Assert
-4. **Keep tests independent** - no shared state between tests
-5. **Use fixtures** for common setup and teardown
-
-### Coverage Goals
-
-- **Aim for 90%+ line coverage** for production code
-- **Focus on critical paths** and error handling
-- **Don't chase 100%** if it means testing unreachable code
-- **Use integration tests** to cover complex scenarios
-
-### Performance
-
-```bash
-# Run tests in parallel (if pytest-xdist is installed)
-python -m pytest -n auto
-
-# Profile slow tests
-python -m pytest --durations=10
-
-# Run only fast tests during development
-python -m pytest -m "not slow"
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Coverage Not Working
-```bash
-# Ensure pytest-cov is installed
-pip install pytest-cov
-
-# Check coverage configuration
-python -m pytest --cov=hydra_logger --cov-report=term
-```
-
-#### HTML Report Not Generated
-```bash
-# Check if htmlcov directory exists
-ls -la htmlcov/
-
-# Regenerate HTML report
-python -m pytest --cov=hydra_logger --cov-report=html --cov-report=term
-```
-
-#### Tests Failing
-```bash
-# Run with verbose output
-python -m pytest -v
-
-# Run with full traceback
-python -m pytest --tb=long
-
-# Run specific failing test
-python -m pytest tests/test_specific.py::test_function -v
-```
-
-### Debugging Tests
-
-```python
-import pytest
-import logging
-
-# Enable debug logging during tests
-logging.basicConfig(level=logging.DEBUG)
-
-def test_with_debug():
-    """Test with debug information."""
-    logger = logging.getLogger(__name__)
-    logger.debug("Debug information")
-    
-    # Your test code here
-    assert True
-```
-
-## Summary
-
-- **Run tests**: `python -m pytest`
-- **Generate coverage**: `python -m pytest --cov=hydra_logger --cov-report=html`
-- **View HTML report**: Open `htmlcov/index.html` in browser
-- **Don't commit htmlcov**: It's in `.gitignore` for good reason
-- **Aim for 90%+ coverage**: Focus on critical paths and error handling
-- **Use CI/CD**: Automated testing and coverage reporting
-
-The `htmlcov` directory is a valuable tool for understanding test coverage but should never be committed to version control. Generate it locally when you need to analyze coverage gaps or share coverage reports with your team. 
+This comprehensive testing approach ensures that Hydra-Logger is robust, reliable, and maintains high quality across all supported features and formats. 
