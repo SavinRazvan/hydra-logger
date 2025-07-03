@@ -139,4 +139,4 @@ jobs:
         name: security-reports
         path: |
           bandit-report.json
-          safety-report.json 
+          safety-report.json # Force fresh workflow run - clear GitHub cache
