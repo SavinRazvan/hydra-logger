@@ -343,7 +343,12 @@ class HydraLogger:
         if fmt == "json":
             try:
                 from pythonjsonlogger.json import JsonFormatter
-                return JsonFormatter()
+                # Use the proper JsonFormatter from python-json-logger
+                return JsonFormatter(
+                    fmt='%(asctime)s %(levelname)s %(name)s %(message)s %(filename)s %(lineno)d',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    rename_fields={'asctime': 'timestamp', 'levelname': 'level', 'name': 'logger'}
+                )
             except ImportError:
                 self._log_warning("python-json-logger not installed, falling back to text format.")
                 return self._get_text_formatter()
@@ -365,6 +370,13 @@ class HydraLogger:
         
         else:  # text or unknown
             return self._get_text_formatter()
+
+    def _get_structured_json_formatter(self) -> logging.Formatter:
+        """Get a structured JSON formatter that creates valid JSON output."""
+        return logging.Formatter(
+            '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "file": "%(filename)s", "line": %(lineno)d}',
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
 
     def _get_text_formatter(self) -> logging.Formatter:
         """Get the standard text formatter."""

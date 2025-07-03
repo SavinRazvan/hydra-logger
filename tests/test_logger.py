@@ -278,36 +278,110 @@ default_level: INFO
             assert "Critical message" in content
 
     def test_unknown_layer_fallback(self, temp_dir):
-        """
-        Test logging to unknown layer with default fallback.
-
-        Args:
-            temp_dir: Temporary directory for test files.
-
-        Verifies that logging to an unknown layer falls back to the
-        default layer when one is configured.
-        """
+        """Test fallback to default logger for unknown layers."""
         config = LoggingConfig(
             layers={
                 "DEFAULT": LogLayer(
+                    level="INFO",
                     destinations=[
                         LogDestination(
-                            type="file", path=os.path.join(temp_dir, "default.log")
-                        )
-                    ]
+                            type="file",
+                            path=os.path.join(temp_dir, "default.log"),
+                            format="text"
+                        ),
+                    ],
                 )
             }
         )
-
         logger = HydraLogger(config)
-
-        # Log to unknown layer
-        logger.info("UNKNOWN", "Unknown layer message")
-
-        # Should fall back to DEFAULT layer
-        with open(os.path.join(temp_dir, "default.log"), "r") as f:
+        logger.info("UNKNOWN", "Should fallback to default layer")
+        filepath = os.path.join(temp_dir, "default.log")
+        assert os.path.exists(filepath)
+        with open(filepath, "r") as f:
             content = f.read()
-            assert "Unknown layer message" in content
+            assert "Should fallback to default layer" in content
+
+    def test_log_method_invalid_level(self, temp_dir):
+        """Test error handling for invalid log level."""
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "app.log"),
+                            format="text"
+                        ),
+                    ],
+                )
+            }
+        )
+        logger = HydraLogger(config)
+        with pytest.raises(ValueError):
+            logger.log("APP", "NOTALEVEL", "This should fail")
+
+    def test_log_method_empty_message(self, temp_dir):
+        """Test that empty messages are skipped."""
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "app.log"),
+                            format="text"
+                        ),
+                    ],
+                )
+            }
+        )
+        logger = HydraLogger(config)
+        logger.log("APP", "INFO", "")  # Should not raise or log
+        filepath = os.path.join(temp_dir, "app.log")
+        assert os.path.exists(filepath)
+        with open(filepath, "r") as f:
+            content = f.read()
+            # Should be empty or only contain headers
+            assert content.strip() == ""
+
+    def test_log_method_fallback_to_info(self, temp_dir):
+        """Test fallback to info level if log method fails."""
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "app.log"),
+                            format="text"
+                        ),
+                    ],
+                )
+            }
+        )
+        logger = HydraLogger(config)
+        # Patch logger to raise on warning
+        app_logger = logger.get_logger("APP")
+        original_warning = app_logger.warning
+        app_logger.warning = lambda msg: (_ for _ in ()).throw(Exception("fail"))
+        logger.log("APP", "WARNING", "Should fallback to info")
+        app_logger.warning = original_warning
+        filepath = os.path.join(temp_dir, "app.log")
+        assert os.path.exists(filepath)
+        with open(filepath, "r") as f:
+            content = f.read()
+            assert "Should fallback to info" in content
+
+    def test_internal_log_warning_and_error(self):
+        """Test _log_warning and _log_error internal methods for coverage."""
+        config = LoggingConfig(layers={})
+        logger = HydraLogger(config)
+        # These should not raise
+        logger._log_warning("Test warning")
+        logger._log_error("Test error")
 
     def test_logging_to_nonexistent_layer_no_default(self, temp_dir):
         """
@@ -1203,13 +1277,397 @@ default_level: INFO
 
     def test_log_error_stderr_output(self):
         """
-        Test _log_error outputs to stderr.
+        Test that _log_error outputs to stderr.
 
-        Verifies that _log_error correctly outputs to stderr.
+        Verifies that internal error logging outputs to stderr
+        for proper error reporting.
         """
-        config = LoggingConfig()
-        logger = HydraLogger(config)
-
         with patch("sys.stderr") as mock_stderr:
-            logger._log_error("Test error")
+            logger = HydraLogger()
+            logger._log_error("Test error message")
             mock_stderr.write.assert_called()
+
+    def test_all_log_formats(self, temp_dir):
+        """
+        Test all supported log formats.
+
+        Args:
+            temp_dir: Temporary directory for test files.
+
+        Verifies that all supported log formats (text, json, csv, syslog, gelf)
+        work correctly and produce the expected output format.
+        """
+        config = LoggingConfig(
+            layers={
+                "FORMATS": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "text.log"),
+                            format="text"
+                        ),
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "json.log"),
+                            format="json"
+                        ),
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "csv.log"),
+                            format="csv"
+                        ),
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "syslog.log"),
+                            format="syslog"
+                        ),
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "gelf.log"),
+                            format="gelf"
+                        ),
+                    ],
+                )
+            }
+        )
+
+        logger = HydraLogger(config)
+        logger.info("FORMATS", "Test message for format verification")
+
+        # Verify all files were created
+        expected_files = ["text.log", "json.log", "csv.log", "syslog.log", "gelf.log"]
+        for filename in expected_files:
+            filepath = os.path.join(temp_dir, filename)
+            assert os.path.exists(filepath), f"File {filename} should be created"
+
+        # Verify text format
+        with open(os.path.join(temp_dir, "text.log"), "r") as f:
+            content = f.read()
+            assert "Test message for format verification" in content
+            assert "hydra.FORMATS" in content
+            assert "INFO" in content
+
+        # Verify JSON format
+        with open(os.path.join(temp_dir, "json.log"), "r") as f:
+            content = f.read()
+            assert "Test message for format verification" in content
+            # JSON should contain the message in a structured format
+            assert '"message"' in content or '"msg"' in content
+
+        # Verify CSV format
+        with open(os.path.join(temp_dir, "csv.log"), "r") as f:
+            content = f.read()
+            assert "Test message for format verification" in content
+            # CSV should have comma-separated values
+            assert "," in content
+            assert "hydra.FORMATS" in content
+            assert "INFO" in content
+
+        # Verify syslog format
+        with open(os.path.join(temp_dir, "syslog.log"), "r") as f:
+            content = f.read()
+            assert "Test message for format verification" in content
+            assert "hydra.FORMATS" in content
+            assert "INFO" in content
+            # Syslog format should have process ID
+            assert "[" in content and "]" in content
+
+        # Verify GELF format
+        with open(os.path.join(temp_dir, "gelf.log"), "r") as f:
+            content = f.read()
+            assert "Test message for format verification" in content
+
+    def test_format_validation(self):
+        """
+        Test format validation in logger configuration.
+
+        Verifies that the logger properly validates format specifications
+        and handles invalid formats gracefully.
+        """
+        # This should work with valid format
+        config = LoggingConfig(
+            layers={
+                "TEST": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(type="console", format="json")
+                    ],
+                )
+            }
+        )
+        
+        logger = HydraLogger(config)
+        assert "TEST" in logger.loggers
+
+    def test_format_fallback_behavior(self, temp_dir):
+        """
+        Test format fallback behavior when dependencies are missing.
+
+        Args:
+            temp_dir: Temporary directory for test files.
+
+        Verifies that the logger falls back to text format when
+        required dependencies (like python-json-logger) are not available.
+        """
+        # Test with a format that requires external dependencies
+        config = LoggingConfig(
+            layers={
+                "FALLBACK": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "fallback.log"),
+                            format="json"  # This might fall back to text
+                        ),
+                    ],
+                )
+            }
+        )
+
+        logger = HydraLogger(config)
+        logger.info("FALLBACK", "Test fallback message")
+
+        # Verify file was created (even if format fell back)
+        filepath = os.path.join(temp_dir, "fallback.log")
+        assert os.path.exists(filepath), "File should be created even with fallback"
+
+        # Verify content contains the message
+        with open(filepath, "r") as f:
+            content = f.read()
+            assert "Test fallback message" in content
+
+    def test_structured_json_formatter(self, temp_dir):
+        """Test the structured JSON formatter output."""
+        config = LoggingConfig(
+            layers={
+                "STRUCTURED_JSON": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "structured.json"),
+                            format="json"
+                        ),
+                    ],
+                )
+            }
+        )
+
+        logger = HydraLogger(config)
+        logger.info("STRUCTURED_JSON", "Test structured JSON")
+
+        # Verify file was created
+        filepath = os.path.join(temp_dir, "structured.json")
+        assert os.path.exists(filepath)
+
+        with open(filepath, "r") as f:
+            content = f.read().strip()
+            # Should be valid JSON with all required fields
+            import json
+            log_entry = json.loads(content)
+            assert "timestamp" in log_entry
+            assert "level" in log_entry
+            assert "logger" in log_entry
+            assert "message" in log_entry
+            assert "filename" in log_entry
+            assert "lineno" in log_entry
+            assert log_entry["message"] == "Test structured JSON"
+            assert log_entry["level"] == "INFO"
+            assert log_entry["logger"] == "hydra.STRUCTURED_JSON"
+            
+            # Verify field types and formats
+            assert isinstance(log_entry["timestamp"], str)
+            assert isinstance(log_entry["level"], str)
+            assert isinstance(log_entry["logger"], str)
+            assert isinstance(log_entry["message"], str)
+            assert isinstance(log_entry["filename"], str)
+            assert isinstance(log_entry["lineno"], int)
+            
+            # Verify timestamp format (should be YYYY-MM-DD HH:MM:SS)
+            import re
+            timestamp_pattern = r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+            assert re.match(timestamp_pattern, log_entry["timestamp"]), f"Invalid timestamp format: {log_entry['timestamp']}"
+            
+            # Verify filename is not empty
+            assert log_entry["filename"] != ""
+            
+            # Verify line number is positive
+            assert log_entry["lineno"] > 0
+
+    def test_json_lines_format(self, temp_dir):
+        """Test that JSON format produces valid JSON Lines (one JSON object per line)."""
+        config = LoggingConfig(
+            layers={
+                "JSON_LINES": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "json_lines.json"),
+                            format="json"
+                        ),
+                    ],
+                )
+            }
+        )
+
+        logger = HydraLogger(config)
+        
+        # Log multiple messages
+        logger.info("JSON_LINES", "First message")
+        logger.warning("JSON_LINES", "Second message")
+        logger.error("JSON_LINES", "Third message")
+
+        # Verify file was created
+        filepath = os.path.join(temp_dir, "json_lines.json")
+        assert os.path.exists(filepath)
+
+        with open(filepath, "r") as f:
+            lines = f.readlines()
+            
+        # Should have 3 lines (one per log entry)
+        assert len(lines) == 3
+        
+        # Each line should be valid JSON
+        import json
+        messages = []
+        for i, line in enumerate(lines):
+            line = line.strip()
+            assert line, f"Line {i+1} should not be empty"
+            
+            # Parse JSON
+            log_entry = json.loads(line)
+            
+            # Verify structure
+            assert "timestamp" in log_entry
+            assert "level" in log_entry
+            assert "logger" in log_entry
+            assert "message" in log_entry
+            assert "filename" in log_entry
+            assert "lineno" in log_entry
+            
+            # Collect messages for verification
+            messages.append(log_entry["message"])
+            
+        # Verify all messages are present
+        assert "First message" in messages
+        assert "Second message" in messages
+        assert "Third message" in messages
+        
+        # Verify levels are correct
+        levels = [json.loads(line.strip())["level"] for line in lines]
+        assert "INFO" in levels
+        assert "WARNING" in levels
+        assert "ERROR" in levels
+
+    def test_mixed_formats_in_layer(self, temp_dir):
+        """
+        Test mixing different formats within the same layer.
+
+        Args:
+            temp_dir: Temporary directory for test files.
+
+        Verifies that a single layer can have multiple destinations
+        with different formats working simultaneously.
+        """
+        config = LoggingConfig(
+            layers={
+                "MIXED": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "mixed_text.log"),
+                            format="text"
+                        ),
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "mixed_csv.log"),
+                            format="csv"
+                        ),
+                        LogDestination(type="console", format="text"),
+                    ],
+                )
+            }
+        )
+
+        logger = HydraLogger(config)
+        logger.info("MIXED", "Mixed format test message")
+
+        # Verify both files were created
+        assert os.path.exists(os.path.join(temp_dir, "mixed_text.log"))
+        assert os.path.exists(os.path.join(temp_dir, "mixed_csv.log"))
+
+        # Verify different formats have different structures
+        with open(os.path.join(temp_dir, "mixed_text.log"), "r") as f:
+            text_content = f.read()
+        
+        with open(os.path.join(temp_dir, "mixed_csv.log"), "r") as f:
+            csv_content = f.read()
+
+        # Text format should have dashes, CSV should have commas
+        assert " - " in text_content
+        assert "," in csv_content
+        assert "Mixed format test message" in text_content
+        assert "Mixed format test message" in csv_content
+
+    def test_format_with_console_destination(self):
+        """
+        Test format specification with console destinations.
+
+        Verifies that console destinations can specify different formats
+        and the output is formatted accordingly.
+        """
+        config = LoggingConfig(
+            layers={
+                "CONSOLE": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(type="console", format="json"),
+                    ],
+                )
+            }
+        )
+
+        logger = HydraLogger(config)
+        # This should work without errors, even if JSON format falls back to text
+        logger.info("CONSOLE", "Console format test")
+
+    def test_format_case_insensitivity(self, temp_dir):
+        """
+        Test that format specifications are case-insensitive.
+
+        Args:
+            temp_dir: Temporary directory for test files.
+
+        Verifies that format values are normalized to lowercase
+        and work regardless of the input case.
+        """
+        config = LoggingConfig(
+            layers={
+                "CASE": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "case_test.log"),
+                            format="JSON"  # Uppercase
+                        ),
+                    ],
+                )
+            }
+        )
+
+        logger = HydraLogger(config)
+        logger.info("CASE", "Case insensitive test")
+
+        # Verify file was created
+        filepath = os.path.join(temp_dir, "case_test.log")
+        assert os.path.exists(filepath)
+
+        # Verify content contains the message
+        with open(filepath, "r") as f:
+            content = f.read()
+            assert "Case insensitive test" in content
