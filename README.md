@@ -3,7 +3,7 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-white.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-146%20passed-darkgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
-[![Coverage](https://img.shields.io/badge/coverage-97%25-darkgreen.svg)](https://github.com/SavinRazvan/hydra-logger)
+[![Codecov](https://img.shields.io/codecov/c/github/SavinRazvan/hydra-logger?logo=codecov)](https://codecov.io/gh/SavinRazvan/hydra-logger)
 [![PyPI](https://img.shields.io/badge/PyPI-hydra--logger-darkblue.svg)](https://pypi.org/project/hydra-logger/)
 
 A **dynamic, multi-headed logging system** for Python applications that supports custom folder paths, multi-layered logging, multiple log formats, and configuration via YAML/TOML files. Perfect for organizing logs by module, purpose, or severity level with structured output formats.
