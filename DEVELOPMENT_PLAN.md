@@ -22,7 +22,8 @@
 ### **Success Metrics**
 - [ ] Zero-config works for 90% of use cases
 - [ ] Performance within 10% of Loguru
-- [ ] Framework integrations for FastAPI, Django, Flask
+- [ ] Framework magic for FastAPI, Django, Flask
+- [ ] Custom magic config system for extensibility
 - [ ] Security features for enterprise compliance
 - [ ] Cloud provider auto-detection
 
@@ -39,13 +40,12 @@
 | 2 | Performance Optimization | 🔴 Critical | ⏳ Pending | TBD |
 | 3 | Security Features | 🟡 High | ⏳ Pending | TBD |
 
-### **Phase 2: Framework Integration (Weeks 4-5)**
-**Theme**: "Framework Native"
+### **Phase 2: Framework Magic & Custom Configs (Week 4)**
+**Theme**: "Framework Native & Extensible"
 
 | Week | Feature | Priority | Status | Assignee |
 |------|---------|----------|--------|----------|
-| 4 | FastAPI Integration | 🟡 High | ⏳ Pending | TBD |
-| 5 | Django/Flask Integration | 🟡 High | ⏳ Pending | TBD |
+| 4 | Framework Magic & Custom Configs | 🟡 High | ⏳ Pending | TBD |
 
 ### **Phase 3: Advanced Features (Weeks 6-8)**
 **Theme**: "Enterprise Ready"
@@ -160,42 +160,57 @@ logger.info("AUTH", "User login", email="user@example.com", password="secret")
 - `docs/security.md` - Security documentation
 - `tests/test_security.py` - Security tests
 
-### **4. Framework Integrations (Weeks 4-5)**
+### **4. Framework Magic & Custom Configs (Week 4)**
 
 #### **Requirements**
 - [ ] One-line setup for FastAPI
 - [ ] One-line setup for Django
 - [ ] One-line setup for Flask
-- [ ] Framework detection
-- [ ] Auto-configuration
+- [ ] Custom magic config system
+- [ ] Framework-specific optimizations
+- [ ] Magic config marketplace
 
 #### **Implementation Tasks**
 - [ ] Create framework detection logic
-- [ ] Implement FastAPI integration
-- [ ] Implement Django integration
-- [ ] Implement Flask integration
+- [ ] Implement FastAPI integration with middleware
+- [ ] Implement Django integration with settings
+- [ ] Implement Flask integration with extensions
+- [ ] Create custom magic config system
 - [ ] Add framework-specific examples
+- [ ] Build magic config marketplace
 
 #### **Acceptance Criteria**
 ```python
-# Framework integrations
+# Framework magic
 from hydra_logger import HydraLogger
 
-# FastAPI
-logger = HydraLogger.for_fastapi()
+# Built-in framework magic
+logger = HydraLogger.for_fastapi()  # Auto-configures for FastAPI
+logger = HydraLogger.for_django()   # Auto-configures for Django
+logger = HydraLogger.for_flask()    # Auto-configures for Flask
 
-# Django
-logger = HydraLogger.for_django()
+# Custom magic configs
+@HydraLogger.register_magic("my_app")
+def my_app_config():
+    return LoggingConfig(layers={"APP": LogLayer(...)})
 
-# Flask
-logger = HydraLogger.for_flask()
+logger = HydraLogger.for_my_app()  # Uses custom config
+
+# Common magic configs
+logger = HydraLogger.for_web_app()      # Web application
+logger = HydraLogger.for_microservice() # Microservice
+logger = HydraLogger.for_data_science() # Data science
+logger = HydraLogger.for_cli_tool()     # CLI tool
 ```
 
 #### **Files to Modify**
 - `hydra_logger/frameworks/` - New frameworks directory
+- `hydra_logger/magic_configs.py` - Magic config system
 - `hydra_logger/logger.py` - Framework methods
 - `docs/frameworks.md` - Framework documentation
+- `docs/magic_configs.md` - Magic config guide
 - `tests/test_frameworks.py` - Framework tests
+- `tests/test_magic_configs.py` - Magic config tests
 
 ### **5. Async Support (Week 6)**
 
@@ -300,6 +315,7 @@ logger = HydraLogger()  # Auto-detects Docker, Kubernetes, Cloud providers
 - `tests/test_performance.py`
 - `tests/test_security.py`
 - `tests/test_frameworks.py`
+- `tests/test_magic_configs.py`
 - `tests/test_async.py`
 - `tests/test_plugins.py`
 - `tests/test_cloud.py`
@@ -313,6 +329,8 @@ logger = HydraLogger()  # Auto-detects Docker, Kubernetes, Cloud providers
 - [ ] `docs/performance.md` - Performance benchmarks
 - [ ] `docs/security.md` - Security features
 - `docs/frameworks.md` - Framework integrations
+- `docs/magic_configs.md` - Magic config guide
+- `docs/magic_configs_marketplace.md` - Magic config marketplace
 - `docs/async.md` - Async logging guide
 - `docs/plugins.md` - Plugin development
 - `docs/cloud.md` - Cloud integrations
@@ -352,12 +370,14 @@ logger = HydraLogger()  # Auto-detects Docker, Kubernetes, Cloud providers
 - [ ] Zero-config works for 90% of use cases
 - [ ] Performance within 10% of Loguru
 - [ ] Security features pass compliance review
-- [ ] Framework integrations work seamlessly
+- [ ] Framework magic works seamlessly
+- [ ] Custom magic configs are extensible
 - [ ] Cloud detection works accurately
 
 ### **User Experience Success**
 - [ ] "It just works" - Zero configuration needed
-- [ ] "Framework native" - One-line setup
+- [ ] "Framework magic" - One-line setup for frameworks
+- [ ] "Extensible magic" - Custom magic configs
 - [ ] "Security ready" - Built-in PII protection
 - [ ] "Performance proven" - Benchmarks available
 - [ ] "Cloud ready" - Auto-detection works

@@ -238,6 +238,79 @@ os.environ["AWS_EXECUTION_ENV"] = "AWS_Lambda_python3.8"
 logger = HydraLogger()  # Cloud-optimized config
 ```
 
+### **Day 8: Framework Magic & Custom Configs**
+**Goal**: Add framework-specific magic methods and custom magic configs
+
+#### **Tasks**
+- [ ] **Task 8.1**: Implement framework magic methods
+  - **File**: `hydra_logger/logger.py`
+  - **Description**: Add `.for_fastapi()`, `.for_django()`, `.for_flask()` methods
+  - **Acceptance**: One-line setup for popular frameworks
+
+- [ ] **Task 8.2**: Create custom magic config system
+  - **File**: `hydra_logger/magic_configs.py`
+  - **Description**: Allow users to register custom magic configs
+  - **Acceptance**: Users can add their own magic methods
+
+- [ ] **Task 8.3**: Add framework-specific optimizations
+  - **File**: `hydra_logger/frameworks/`
+  - **Description**: Framework-specific middleware, decorators, etc.
+  - **Acceptance**: Framework-specific features work seamlessly
+
+- [ ] **Task 8.4**: Create magic config documentation
+  - **File**: `docs/magic_configs.md`
+  - **Description**: Guide for creating custom magic configs
+  - **Acceptance**: Clear documentation for users
+
+#### **Acceptance Criteria**
+```python
+# Framework magic should work
+from hydra_logger import HydraLogger
+
+# Built-in framework magic
+logger = HydraLogger.for_fastapi()  # Auto-configures for FastAPI
+logger = HydraLogger.for_django()   # Auto-configures for Django
+logger = HydraLogger.for_flask()    # Auto-configures for Flask
+
+# Custom magic configs
+@HydraLogger.register_magic("my_app")
+def my_app_config():
+    return LoggingConfig(layers={"APP": LogLayer(...)})
+
+logger = HydraLogger.for_my_app()  # Uses custom config
+```
+
+### **Day 9: Magic Config Ecosystem**
+**Goal**: Build a rich ecosystem of magic configs
+
+#### **Tasks**
+- [ ] **Task 9.1**: Create common magic configs
+  - **File**: `hydra_logger/magic_configs/`
+  - **Description**: Pre-built configs for common scenarios
+  - **Acceptance**: Ready-to-use magic configs
+
+- [ ] **Task 9.2**: Add magic config discovery
+  - **File**: `hydra_logger/magic_configs/`
+  - **Description**: Auto-discover magic configs in packages
+  - **Acceptance**: Magic configs work automatically
+
+- [ ] **Task 9.3**: Create magic config marketplace
+  - **File**: `docs/magic_configs_marketplace.md`
+  - **Description**: Directory of community magic configs
+  - **Acceptance**: Users can find and share magic configs
+
+#### **Acceptance Criteria**
+```python
+# Common magic configs should work
+logger = HydraLogger.for_web_app()      # Web application
+logger = HydraLogger.for_microservice() # Microservice
+logger = HydraLogger.for_data_science() # Data science
+logger = HydraLogger.for_cli_tool()     # CLI tool
+
+# Community magic configs
+logger = HydraLogger.for_my_custom_app()  # From community
+```
+
 ---
 
 ## 🧪 Testing Strategy
