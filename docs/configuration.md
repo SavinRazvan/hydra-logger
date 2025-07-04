@@ -198,94 +198,111 @@ config = LoggingConfig(
 
 logger = HydraLogger(config)
 
-# Same message in 5 different formats!
-logger.info("TEXT", "Hello World!")
-logger.info("JSON", "Hello World!")
-logger.info("CSV", "Hello World!")
-logger.info("SYSLOG", "Hello World!")
-logger.info("GELF", "Hello World!")
+# Test all formats
+logger.info("TEXT", "This goes to text format")
+logger.info("JSON", "This goes to JSON format")
+logger.info("CSV", "This goes to CSV format")
+logger.info("SYSLOG", "This goes to syslog format")
+logger.info("GELF", "This goes to GELF format")
 ```
 
-### 🔧 Advanced Features
+## Application Type Adaptations
 
+Hydra-Logger works with **any Python application**. Here's how to adapt configurations for different use cases:
+
+### **Web Applications** (Django, Flask, FastAPI)
 ```python
-from hydra_logger import HydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-
-# Enterprise-ready configuration
+# Web app configuration
 config = LoggingConfig(
     layers={
-        "APP": LogLayer(
+        "WEB": LogLayer(
             level="INFO",
             destinations=[
-                # Main application logs
-                LogDestination(
-                    type="file",
-                    path="logs/app/main.log",
-                    format="text",
-                    max_size="10MB",
-                    backup_count=5
-                ),
-                # Structured logs for analysis
-                LogDestination(
-                    type="file",
-                    path="logs/app/structured.json",
-                    format="json"
-                ),
-                # Console output for monitoring
-                LogDestination(
-                    type="console",
-                    level="WARNING",
-                    format="json"
-                )
+                LogDestination(type="file", path="logs/web/requests.log", format="json"),
+                LogDestination(type="console", level="ERROR", format="text")
             ]
         ),
-        "SECURITY": LogLayer(
+        "AUTH": LogLayer(
             level="WARNING",
             destinations=[
-                # Security events
-                LogDestination(
-                    type="file",
-                    path="logs/security/events.log",
-                    format="syslog",
-                    max_size="1MB",
-                    backup_count=20
-                )
-            ]
-        ),
-        "PERFORMANCE": LogLayer(
-            level="INFO",
-            destinations=[
-                # Performance metrics
-                LogDestination(
-                    type="file",
-                    path="logs/performance/metrics.csv",
-                    format="csv"
-                )
-            ]
-        ),
-        "MONITORING": LogLayer(
-            level="INFO",
-            destinations=[
-                # Centralized monitoring
-                LogDestination(
-                    type="file",
-                    path="logs/monitoring/alerts.gelf",
-                    format="gelf"
-                )
+                LogDestination(type="file", path="logs/web/auth.log", format="syslog")
             ]
         )
     }
 )
-
-logger = HydraLogger(config)
-
-# Different types of logs go to different destinations
-logger.info("APP", "User logged in")
-logger.warning("SECURITY", "Failed login attempt")
-logger.info("PERFORMANCE", "API response time: 150ms")
-logger.info("MONITORING", "System health check completed")
 ```
+
+### **CLI Tools & Scripts**
+```python
+# Command-line tool configuration
+config = LoggingConfig(
+    layers={
+        "CLI": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="console", format="text"),
+                LogDestination(type="file", path="logs/cli.log", format="text")
+            ]
+        )
+    }
+)
+```
+
+### **Data Science & ML**
+```python
+# Data science configuration
+config = LoggingConfig(
+    layers={
+        "MODEL": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/ml/training.json", format="json"),
+                LogDestination(type="file", path="logs/ml/metrics.csv", format="csv")
+            ]
+        ),
+        "DATA": LogLayer(
+            level="DEBUG",
+            destinations=[
+                LogDestination(type="file", path="logs/ml/data_processing.log", format="text")
+            ]
+        )
+    }
+)
+```
+
+### **Microservices**
+```python
+# Microservice configuration
+config = LoggingConfig(
+    layers={
+        "SERVICE": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/service/app.log", format="json"),
+                LogDestination(type="file", path="logs/service/gelf.log", format="gelf")
+            ]
+        )
+    }
+)
+```
+
+### **Desktop Applications**
+```python
+# Desktop app configuration
+config = LoggingConfig(
+    layers={
+        "UI": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/ui/events.log", format="text"),
+                LogDestination(type="console", level="ERROR", format="text")
+            ]
+        )
+    }
+)
+```
+
+**The same configuration principles apply to any application type - just adapt the layer names and destinations to match your specific needs.**
 
 ## Configuration Methods
 

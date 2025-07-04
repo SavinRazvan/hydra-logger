@@ -1,6 +1,6 @@
 # Examples Guide
 
-This comprehensive guide provides detailed examples of how to use Hydra-Logger in various real-world scenarios, demonstrating different configurations, log formats, and use cases.
+This comprehensive guide provides detailed examples of how to use Hydra-Logger in various real-world scenarios, demonstrating different configurations, log formats, and use cases. **Hydra-Logger works with any type of Python application** - from simple scripts to complex distributed systems.
 
 ## Table of Contents
 
@@ -14,6 +14,21 @@ This comprehensive guide provides detailed examples of how to use Hydra-Logger i
 - [Enterprise Integration Examples](#enterprise-integration-examples)
 - [Performance Optimization Examples](#performance-optimization-examples)
 - [Dynamic Configuration Examples](#dynamic-configuration-examples)
+
+## Application Types Supported
+
+Hydra-Logger is designed to work with **any Python application**:
+
+- **Web Applications**: Django, Flask, FastAPI, REST APIs, GraphQL services
+- **Desktop Applications**: GUI apps, CLI tools, system utilities
+- **Data Science**: ML models, data analysis, ETL pipelines
+- **Microservices**: Containerized apps, message queues, background workers
+- **Enterprise Systems**: Business logic, financial systems, healthcare apps
+- **IoT & Embedded**: Sensor data, device monitoring, edge computing
+- **Games & Entertainment**: Game engines, media processing, streaming
+- **DevOps & Infrastructure**: Automation, monitoring, deployment tools
+
+**The examples below show specific use cases, but the same principles apply to any application type.**
 
 ## Basic Examples
 
