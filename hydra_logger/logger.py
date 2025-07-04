@@ -683,6 +683,12 @@ class HydraLogger:
         is_ci = bool(os.getenv('CI') or os.getenv('GITHUB_ACTIONS') or 
                      os.getenv('GITLAB_CI') or os.getenv('TRAVIS'))
         
+        # Detect cloud environments
+        is_aws = bool(os.getenv('AWS_REGION') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'))
+        is_gcp = bool(os.getenv('GOOGLE_CLOUD_PROJECT') or os.getenv('K_SERVICE'))
+        is_azure = bool(os.getenv('AZURE_FUNCTIONS_ENVIRONMENT') or os.getenv('WEBSITE_SITE_NAME'))
+        is_cloud = is_aws or is_gcp or is_azure
+        
         # Create base configuration
         config = LoggingConfig(
             layers={}
@@ -706,11 +712,16 @@ class HydraLogger:
                 )
             }
         elif env == 'production':
-            app_destinations = [
-                LogDestination(type="file", path="app.log", format="json")
-            ]
-            if not is_container:
-                app_destinations.append(LogDestination(type="file", path="app.log", format="gelf"))
+            # Production configuration with cloud awareness
+            app_destinations = []
+            
+            # In cloud environments, prefer console output for better log aggregation
+            if is_cloud:
+                app_destinations.append(LogDestination(type="console", format="json"))
+            else:
+                app_destinations.append(LogDestination(type="file", path="app.log", format="json"))
+                if not is_container:
+                    app_destinations.append(LogDestination(type="file", path="app.log", format="gelf"))
             
             config.layers = {
                 "DEFAULT": LogLayer(
@@ -720,13 +731,17 @@ class HydraLogger:
                 "error": LogLayer(
                     level="ERROR",
                     destinations=[
-                        LogDestination(type="file", path="error.log", format="json")
+                        LogDestination(type="console" if is_cloud else "file", 
+                                     path="error.log" if not is_cloud else None, 
+                                     format="json")
                     ]
                 ),
                 "security": LogLayer(
                     level="WARNING",
                     destinations=[
-                        LogDestination(type="file", path="security.log", format="json")
+                        LogDestination(type="console" if is_cloud else "file", 
+                                     path="security.log" if not is_cloud else None, 
+                                     format="json")
                     ]
                 )
             }
