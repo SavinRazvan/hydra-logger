@@ -28,7 +28,7 @@ Hydra-Logger is designed to work with **any Python application**:
 - **Games & Entertainment**: Game engines, media processing, streaming
 - **DevOps & Infrastructure**: Automation, monitoring, deployment tools
 
-**The examples below show specific use cases, but the same principles apply to any application type.**
+**The examples below demonstrate specific use cases, with configuration principles that apply to all application types.**
 
 ## Basic Examples
 

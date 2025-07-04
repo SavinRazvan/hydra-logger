@@ -24,10 +24,10 @@ from hydra_logger import HydraLogger
 
 # Works out of the box - no configuration needed!
 logger = HydraLogger()
-logger.info("DEFAULT", "Hello, Hydra-Logger!")
+logger.info("DEFAULT", "Application initialized successfully")
 ```
 
-**What you get:**
+**Default Configuration:**
 - File logging to `logs/app.log`
 - Console output
 - Text format
@@ -54,7 +54,7 @@ config = LoggingConfig(
 )
 
 logger = HydraLogger(config)
-logger.info("APP", "Application started!")
+logger.info("APP", "Application started successfully!")
 ```
 
 ### 📁 Configuration File (1 minute)
@@ -302,7 +302,7 @@ config = LoggingConfig(
 )
 ```
 
-**The same configuration principles apply to any application type - just adapt the layer names and destinations to match your specific needs.**
+**The same configuration principles apply to all application types - adapt layer names and destinations according to your specific requirements.**
 
 ## Configuration Methods
 
