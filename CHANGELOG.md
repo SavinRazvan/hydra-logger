@@ -5,13 +5,17 @@ All notable changes to Hydra-Logger will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2025-07-04
 
 ### Added
 - Enhanced JSON formatter with proper structured logging fields
 - Comprehensive format-specific tests for all supported formats
 - Professional documentation updates across all .md files
 - Improved test coverage with format validation tests
+- Universal application support documentation
+- Professional tone improvements throughout documentation
+- Enhanced examples for all application types
+- Comprehensive troubleshooting guides
 
 ### Fixed
 - JSON formatter now produces complete structured output with all fields
@@ -24,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced API documentation with detailed format examples
 - Improved testing documentation with format-specific test examples
 - Updated test count from 145 to 146 tests
+- Professional language improvements throughout documentation
+- Enhanced universal application support messaging
+- Improved configuration examples for different application types
 
 ## [0.1.0] - 2025-07-03
 
