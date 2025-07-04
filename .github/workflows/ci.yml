@@ -163,23 +163,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[dev,all]"
     
-    - name: Get test count and coverage
+    - name: Get coverage percentage
       id: stats
       run: |
-        # Get test count
-        TEST_COUNT=$(python -m pytest --collect-only -q | tail -1 | grep -o '[0-9]*' | head -1)
-        echo "test_count=$TEST_COUNT" >> $GITHUB_OUTPUT
-        
         # Get coverage percentage
         COVERAGE_PCT=$(python -m pytest --cov=hydra_logger --cov-report=term-missing -q | grep 'TOTAL' | grep -o '[0-9]*%' | head -1 | sed 's/%//')
         echo "coverage_pct=$COVERAGE_PCT" >> $GITHUB_OUTPUT
         
-        echo "📊 Stats: $TEST_COUNT tests, ${COVERAGE_PCT}% coverage"
+        echo "📊 Coverage: ${COVERAGE_PCT}%"
     
     - name: Update README badges
       run: |
         python scripts/update_badges.py \
-          --test-count ${{ steps.stats.outputs.test_count }} \
           --coverage-percentage ${{ steps.stats.outputs.coverage_pct }}
     
     - name: Commit and push changes
@@ -194,7 +189,7 @@ jobs:
           exit 0
         fi
         
-        git commit -m "🤖 Auto-update badges: ${{ steps.stats.outputs.test_count }} tests, ${{ steps.stats.outputs.coverage_pct }}% coverage"
+        git commit -m "🤖 Auto-update coverage badge: ${{ steps.stats.outputs.coverage_pct }}% coverage"
         
         # Try to push, but don't fail the job if permission denied
         git push || {
