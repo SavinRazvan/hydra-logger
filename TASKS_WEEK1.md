@@ -51,27 +51,32 @@ logger.info("DEFAULT", "Test message")  # Shows 'DEFAULT' not 'hydra.DEFAULT'
 **Goal**: Create intelligent default configurations
 
 #### **Tasks**
-- [ ] **Task 2.1**: Create development configuration
-  - **File**: `hydra_logger/config.py`
+- [x] **Task 2.1**: Create development configuration
+  - **File**: `hydra_logger/logger.py`
   - **Description**: Debug level, console + file, text format
   - **Acceptance**: Works for development scenarios
 
-- [ ] **Task 2.2**: Create production configuration
-  - **File**: `hydra_logger/config.py`
+- [x] **Task 2.2**: Create production configuration
+  - **File**: `hydra_logger/logger.py`
   - **Description**: Info level, JSON format, file rotation
   - **Acceptance**: Works for production scenarios
 
-- [ ] **Task 2.3**: Create cloud configuration
-  - **File**: `hydra_logger/config.py`
-  - **Description**: Cloud-optimized settings
+- [x] **Task 2.3**: Create cloud configuration
+  - **File**: `hydra_logger/logger.py`
+  - **Description**: Cloud-optimized settings with AWS/GCP/Azure detection
   - **Acceptance**: Works for cloud environments
 
 #### **Acceptance Criteria**
 ```python
 # Should work with zero configuration
 from hydra_logger import HydraLogger
-logger = HydraLogger()  # Auto-detects and configures
-logger.info("APP", "Application started")
+logger = HydraLogger(auto_detect=True)  # Auto-detects and configures
+logger.info("DEFAULT", "Application started")
+
+# Should detect cloud environments
+import os
+os.environ['AWS_REGION'] = 'us-east-1'
+logger = HydraLogger(auto_detect=True)  # Uses console output for cloud
 ```
 
 ### **Day 3: Auto-Creation & Directory Management**
