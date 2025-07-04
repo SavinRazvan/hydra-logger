@@ -44,6 +44,8 @@ setup(
     install_requires=[
         "pydantic>=2.0.0",
         "pyyaml>=6.0",
+        "python-json-logger>=2.0.0",
+        "graypy>=2.1.0",
     ],
     extras_require={
         "dev": [
