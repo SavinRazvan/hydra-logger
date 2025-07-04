@@ -162,15 +162,16 @@ default_level: INFO
         with pytest.raises(ValueError):
             HydraLogger.from_config(config_file)
 
-    def test_from_config_file_initialization_error(self, temp_dir):
+    def test_from_config_file_initialization_error(self, temp_dir, capsys):
         """
         Test HydraLogger creation when config loading succeeds but initialization fails.
 
         Args:
             temp_dir: Temporary directory for test files.
+            capsys: Pytest fixture for capturing stdout/stderr.
 
         Verifies that HydraLogger.from_config handles initialization errors
-        after successful config loading.
+        gracefully by falling back to console logging.
         """
         config_content = """
 layers:
@@ -186,10 +187,18 @@ default_level: INFO
         with open(config_file, "w") as f:
             f.write(config_content)
 
-        with pytest.raises(
-            HydraLoggerError, match="Failed to create HydraLogger from config"
-        ):
-            HydraLogger.from_config(config_file)
+        # Should not raise an exception, but should fallback to console
+        logger = HydraLogger.from_config(config_file)
+        
+        # Verify that a warning was logged about the fallback
+        captured = capsys.readouterr()
+        assert "Directory creation failed" in captured.err
+        assert "Falling back to console logging" in captured.err
+        
+        # Verify that logging still works (to console)
+        logger.info("APP", "Test message")
+        captured = capsys.readouterr()
+        assert "Test message" in captured.out
 
     def test_custom_folder_paths(self, temp_dir):
         """
