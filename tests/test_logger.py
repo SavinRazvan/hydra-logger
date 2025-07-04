@@ -554,7 +554,7 @@ default_level: INFO
         # Get logger for existing layer
         app_logger = logger.get_logger("APP")
         assert isinstance(app_logger, logging.Logger)
-        assert app_logger.name == "hydra.APP"
+        assert app_logger.name == "APP"
 
         # Get logger for non-existent layer (should return a new logger)
         non_existent_logger = logger.get_logger("NONEXISTENT")
@@ -1352,7 +1352,7 @@ default_level: INFO
         with open(os.path.join(temp_dir, "text.log"), "r") as f:
             content = f.read()
             assert "Test message for format verification" in content
-            assert "hydra.FORMATS" in content
+            assert "FORMATS" in content
             assert "INFO" in content
 
         # Verify JSON format
@@ -1368,14 +1368,14 @@ default_level: INFO
             assert "Test message for format verification" in content
             # CSV should have comma-separated values
             assert "," in content
-            assert "hydra.FORMATS" in content
+            assert "FORMATS" in content
             assert "INFO" in content
 
         # Verify syslog format
         with open(os.path.join(temp_dir, "syslog.log"), "r") as f:
             content = f.read()
             assert "Test message for format verification" in content
-            assert "hydra.FORMATS" in content
+            assert "FORMATS" in content
             assert "INFO" in content
             # Syslog format should have process ID
             assert "[" in content and "]" in content
@@ -1481,7 +1481,7 @@ default_level: INFO
             assert "lineno" in log_entry
             assert log_entry["message"] == "Test structured JSON"
             assert log_entry["level"] == "INFO"
-            assert log_entry["logger"] == "hydra.STRUCTURED_JSON"
+            assert log_entry["logger"] == "STRUCTURED_JSON"
 
             # Verify field types and formats
             assert isinstance(log_entry["timestamp"], str)
@@ -1682,3 +1682,51 @@ default_level: INFO
         with open(filepath, "r") as f:
             content = f.read()
             assert "Case insensitive test" in content
+
+    def test_directory_creation_fallback_to_console(self, capsys):
+        """
+        Test that if directory creation fails, logger falls back to console logging for all layers and issues a warning.
+        """
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    destinations=[LogDestination(type="file", path="/forbidden/app.log")]
+                ),
+                "SECURITY": LogLayer(
+                    destinations=[LogDestination(type="file", path="/forbidden/security.log")]
+                )
+            }
+        )
+        # Patch create_log_directories to raise OSError
+        with patch("hydra_logger.logger.create_log_directories", side_effect=OSError("Permission denied")):
+            logger = HydraLogger(config)
+            # Should fallback to console for all layers
+            for layer in config.layers.values():
+                assert all(d.type == "console" for d in layer.destinations)
+            # Should print a warning
+            captured = capsys.readouterr()
+            assert "Directory creation failed" in captured.err
+
+    def test_invalid_path_handling(self, capsys):
+        """
+        Test that logger handles invalid paths gracefully and falls back to console logging.
+        """
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    destinations=[LogDestination(type="file", path="/invalid/path/app.log")]
+                ),
+                "SECURITY": LogLayer(
+                    destinations=[LogDestination(type="file", path="/invalid/path/security.log")]
+                )
+            }
+        )
+        # Mock create_log_directories to raise OSError for invalid paths
+        with patch("hydra_logger.logger.create_log_directories", side_effect=OSError("No such file or directory")):
+            logger = HydraLogger(config)
+            # Should fallback to console for all layers
+            for layer in config.layers.values():
+                assert all(d.type == "console" for d in layer.destinations)
+            # Should print a warning
+            captured = capsys.readouterr()
+            assert "Directory creation failed" in captured.err

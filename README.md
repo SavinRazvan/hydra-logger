@@ -599,6 +599,56 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Real-world examples and documentation
 - Professional packaging and distribution
 
+## 🎨 Color Customization
+
+Hydra-Logger supports beautiful colored output with easy customization:
+
+### **Default Professional Colors**
+- **DEBUG**: Cyan
+- **INFO**: Green  
+- **WARNING**: Yellow
+- **ERROR**: Red
+- **CRITICAL**: Bright Red
+- **Layer Names**: Magenta
+
+### **Easy Color Customization**
+
+#### **Using Named Colors (Recommended)**
+```bash
+# Change ERROR to red and layer names to cyan
+export HYDRA_LOG_COLOR_ERROR=red
+export HYDRA_LOG_LAYER_COLOR=cyan
+
+# Or use bright colors
+export HYDRA_LOG_COLOR_CRITICAL=bright_red
+export HYDRA_LOG_COLOR_DEBUG=bright_cyan
+```
+
+#### **Using ANSI Codes (Advanced)**
+```bash
+# Custom ANSI codes
+export HYDRA_LOG_COLOR_ERROR='\033[31m'
+export HYDRA_LOG_LAYER_COLOR='\033[36m'
+```
+
+#### **Available Named Colors**
+- `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`
+- `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`
+
+#### **Disable Colors**
+```bash
+export HYDRA_LOG_NO_COLOR=1
+```
+
+### **Example**
+```python
+from hydra_logger import HydraLogger
+
+logger = HydraLogger()
+logger.info("CONFIG", "Configuration loaded")  # Green INFO, Magenta CONFIG
+logger.error("SECURITY", "Authentication failed")  # Red ERROR, Magenta SECURITY
+```
+
 ---
 
 **Made with ❤️ by [Savin Ionut Razvan](https://github.com/SavinRazvan) for better logging organization**

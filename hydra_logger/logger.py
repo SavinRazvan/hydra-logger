@@ -30,6 +30,7 @@ Example:
 """
 
 import logging
+import os
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -44,6 +45,127 @@ from hydra_logger.config import (
     load_config,
 )
 
+# Color codes for terminal output
+class Colors:
+    """ANSI color codes for terminal output."""
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
+    
+    # Bright colors
+    BRIGHT_RED = "\033[91m"
+    BRIGHT_GREEN = "\033[92m"
+    BRIGHT_YELLOW = "\033[93m"
+    BRIGHT_BLUE = "\033[94m"
+    BRIGHT_MAGENTA = "\033[95m"
+    BRIGHT_CYAN = "\033[96m"
+
+# Named color presets for easier customization
+NAMED_COLORS = {
+    "red": Colors.RED,
+    "green": Colors.GREEN,
+    "yellow": Colors.YELLOW,
+    "blue": Colors.BLUE,
+    "magenta": Colors.MAGENTA,
+    "cyan": Colors.CYAN,
+    "white": Colors.WHITE,
+    "bright_red": Colors.BRIGHT_RED,
+    "bright_green": Colors.BRIGHT_GREEN,
+    "bright_yellow": Colors.BRIGHT_YELLOW,
+    "bright_blue": Colors.BRIGHT_BLUE,
+    "bright_magenta": Colors.BRIGHT_MAGENTA,
+    "bright_cyan": Colors.BRIGHT_CYAN,
+}
+
+# Default color mapping for log levels (professional standard)
+DEFAULT_COLORS = {
+    "DEBUG": Colors.CYAN,
+    "INFO": Colors.GREEN,
+    "WARNING": Colors.YELLOW,
+    "ERROR": Colors.RED,
+    "CRITICAL": Colors.BRIGHT_RED,
+}
+
+def get_color_config() -> Dict[str, str]:
+    """
+    Get color configuration from environment variables.
+    
+    Supports both ANSI codes and named colors:
+    - ANSI codes: HYDRA_LOG_COLOR_ERROR='\033[31m'
+    - Named colors: HYDRA_LOG_COLOR_ERROR='red'
+    
+    Returns:
+        Dict[str, str]: Color mapping for log levels.
+    """
+    colors = DEFAULT_COLORS.copy()
+    
+    # Allow user to override colors via environment variables
+    env_colors = {
+        "DEBUG": os.getenv("HYDRA_LOG_COLOR_DEBUG"),
+        "INFO": os.getenv("HYDRA_LOG_COLOR_INFO"),
+        "WARNING": os.getenv("HYDRA_LOG_COLOR_WARNING"),
+        "ERROR": os.getenv("HYDRA_LOG_COLOR_ERROR"),
+        "CRITICAL": os.getenv("HYDRA_LOG_COLOR_CRITICAL"),
+    }
+    
+    # Update with user-defined colors
+    for level, color in env_colors.items():
+        if color:
+            # Support named colors (e.g., 'red', 'bright_cyan')
+            if color in NAMED_COLORS:
+                colors[level] = NAMED_COLORS[color]
+            else:
+                # Assume it's an ANSI code
+                colors[level] = color
+    
+    return colors
+
+def get_layer_color() -> str:
+    """
+    Get the color for layer names.
+    
+    Supports both ANSI codes and named colors:
+    - ANSI codes: HYDRA_LOG_LAYER_COLOR='\033[35m'
+    - Named colors: HYDRA_LOG_LAYER_COLOR='magenta'
+    
+    Returns:
+        str: ANSI color code for layer names.
+    """
+    layer_color = os.getenv("HYDRA_LOG_LAYER_COLOR", "magenta")
+    
+    # Support named colors
+    if layer_color in NAMED_COLORS:
+        return NAMED_COLORS[layer_color]
+    
+    # Assume it's an ANSI code
+    return layer_color
+
+def should_use_colors() -> bool:
+    """
+    Determine if colors should be used based on environment.
+    
+    Returns:
+        bool: True if colors should be used, False otherwise.
+    """
+    # Check if colors are explicitly disabled
+    if os.getenv("HYDRA_LOG_NO_COLOR", "").lower() in ("1", "true", "yes"):
+        return False
+    
+    # Check if we're in a TTY (terminal)
+    if not sys.stdout.isatty():
+        return False
+    
+    # Check if we're in a CI environment (usually no colors)
+    if os.getenv("CI") or os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI"):
+        return False
+    
+    return True
 
 class HydraLoggerError(Exception):
     """
@@ -56,6 +178,39 @@ class HydraLoggerError(Exception):
 
     pass
 
+class ColoredTextFormatter(logging.Formatter):
+    """
+    Custom formatter that adds colors to log output.
+    
+    This formatter adds ANSI color codes to log levels for better readability
+    in terminal environments. Colors can be configured via environment variables.
+    """
+    
+    def __init__(self):
+        super().__init__(
+            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        self.colors = get_color_config()
+        self.layer_color = get_layer_color()
+    
+    def format(self, record):
+        # Get the original formatted message
+        formatted = super().format(record)
+        
+        # Add color to the level name
+        level_name = record.levelname
+        if level_name in self.colors:
+            # Find the level name in the formatted string and color it
+            colored_level = f"{self.colors[level_name]}{level_name}{Colors.RESET}"
+            formatted = formatted.replace(level_name, colored_level)
+        
+        # Add color to the layer name (configurable color)
+        layer_name = record.name
+        colored_layer = f"{self.layer_color}{layer_name}{Colors.RESET}"
+        formatted = formatted.replace(layer_name, colored_layer)
+        
+        return formatted
 
 class HydraLogger:
     """
@@ -171,8 +326,17 @@ class HydraLogger:
                 the logger from functioning properly.
         """
         try:
-            # Create log directories first
-            create_log_directories(self.config)
+            try:
+                # Create log directories first
+                create_log_directories(self.config)
+            except OSError as dir_err:
+                self._log_warning(f"Directory creation failed: {dir_err}. Falling back to console logging for all layers.")
+                # Fallback: replace all file destinations with console destinations
+                for layer in self.config.layers.values():
+                    layer.destinations = [
+                        d if d.type == "console" else LogDestination(type="console", level=d.level, format=getattr(d, "format", "text"))
+                        for d in layer.destinations
+                    ]
 
             # Set up each layer
             for layer_name, layer_config in self.config.layers.items():
@@ -343,7 +507,9 @@ class HydraLogger:
         try:
             handler = logging.StreamHandler(sys.stdout)
             handler.setLevel(getattr(logging, destination.level))
-            handler.setFormatter(self._get_formatter())
+            # Use colored formatter for console output
+            fmt = getattr(destination, "format", "text")
+            handler.setFormatter(self._get_formatter(fmt))
 
             return handler
 
@@ -417,11 +583,14 @@ class HydraLogger:
 
     def _get_text_formatter(self) -> logging.Formatter:
         """Get the standard text formatter."""
-        return logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - "
-            "%(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
+        if should_use_colors():
+            return ColoredTextFormatter()
+        else:
+            return logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - "
+                "%(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
 
     def _get_csv_formatter(self) -> logging.Formatter:
         """Get CSV formatter for structured log output."""
@@ -659,7 +828,6 @@ class HydraLogger:
         This method detects the current environment (development, production, 
         testing) and creates an appropriate configuration with sensible defaults.
         """
-        import os
         import platform
         
         # Detect environment
