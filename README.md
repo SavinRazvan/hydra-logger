@@ -23,24 +23,42 @@ A **dynamic, multi-headed logging system** for Python applications that supports
 
 ## 🚀 Quick Start
 
-### Installation
+### 📦 Installation
+
+#### 🎯 **For Users** (Quick Installation)
+If you just want to use Hydra-Logger in your projects:
 
 ```bash
-# Install from PyPI
 pip install hydra-logger
+```
 
-# Or install for development
+That's it! You're ready to use Hydra-Logger in your Python applications.
+
+#### 🛠️ **For Developers** (Development Installation)
+If you want to contribute, modify, or develop Hydra-Logger:
+
+**Step 1: Clone the repository**
+```bash
 git clone https://github.com/SavinRazvan/hydra-logger.git
 cd hydra-logger
+```
 
-# Option 1: Install with pip (recommended)
+**Step 2: Choose your preferred installation method**
+
+**Option A: Pip with editable install (Recommended)**
+```bash
 pip install -e .
+pip install -r requirements-dev.txt
+```
 
-# Option 2: Install with conda
+**Option B: Conda environment**
+```bash
 conda env create -f environment.yml
 conda activate hydra-logger
+```
 
-# Option 3: Install with requirements files
+**Option C: Requirements files**
+```bash
 pip install -r requirements.txt          # Core dependencies only
 pip install -r requirements-dev.txt      # Development dependencies
 ```
@@ -322,29 +340,36 @@ After running the examples, you'll see logs organized in different folders:
 
 ```
 logs/
-├── app.log                    # Default logs
+├── app.log                     # Default logs
 ├── config/
-│   └── app.log               # Configuration logs
+│   └── app.log                 # Configuration logs
 ├── events/
-│   └── stream.json           # Event logs (JSON format)
+│   └── stream.json             # Event logs (JSON format)
 ├── security/
-│   └── auth.log              # Security logs (Syslog format)
+│   └── auth.log                # Security logs (Syslog format)
 ├── api/
-│   ├── requests.json         # API request logs (JSON format)
-│   └── errors.log            # API error logs (Text format)
+│   ├── requests.json           # API request logs (JSON format)
+│   └── errors.log              # API error logs (Text format)
 ├── database/
-│   └── queries.log           # Database query logs (Text format)
+│   └── queries.log             # Database query logs (Text format)
 └── performance/
-    └── metrics.csv           # Performance logs (CSV format)
+    └── metrics.csv             # Performance logs (CSV format)
 ```
 
-## 📚 API Reference
+## 📚 Documentation
 
-### HydraLogger
+For comprehensive documentation, see our [Documentation Hub](docs/README.md):
 
-Main logging class for multi-layered logging.
+- **[API Reference](docs/api.md)** - Complete API documentation with examples
+- **[Configuration Guide](docs/configuration.md)** - Detailed configuration options and formats
+- **[Examples Guide](docs/examples.md)** - Comprehensive code examples and use cases
+- **[Migration Guide](docs/migration.md)** - How to migrate from existing logging systems
+- **[Security Guide](docs/security.md)** - Security best practices and considerations
+- **[Testing Guide](docs/testing.md)** - How to run tests and generate coverage reports
 
-#### Methods
+### Quick API Reference
+
+#### HydraLogger Methods
 
 - `__init__(config=None)`: Initialize with optional configuration
 - `from_config(config_path)`: Create from configuration file
@@ -356,64 +381,58 @@ Main logging class for multi-layered logging.
 - `critical(layer, message)`: Log critical message
 - `get_logger(layer)`: Get underlying logging.Logger
 
-### Configuration Models
+#### Configuration Models
 
 - `LoggingConfig`: Main configuration container
 - `LogLayer`: Configuration for a single layer
 - `LogDestination`: Configuration for a single destination
 
-### Compatibility Functions
+#### Compatibility Functions
 
 - `setup_logging()`: Original flexiai setup_logging function
 - `migrate_to_hydra()`: Migration helper function
 
 ## 🧪 Examples
 
-See the `demos/` directory for comprehensive examples:
+### Quick Examples
 
-- `demos/examples/basic_usage.py`: Different usage patterns and migration examples
-- `demos/examples/log_formats_demo.py`: Demonstration of all supported formats
-- `demos/multi_module_demo.py`: Real-world multi-module application demo
-- `demos/multi_file_workflow_demo.py`: Complex workflow with multiple modules
-- `demos/examples/config_examples/`: Various configuration examples
+For comprehensive examples and use cases, see our [Examples Guide](docs/examples.md).
 
-### Running Examples
-
+**Basic Usage:**
 ```bash
-# Run the basic usage examples
+# Run basic examples
 python demos/examples/basic_usage.py
 
-# Run the log formats demonstration
+# Run format demonstrations
 python demos/examples/log_formats_demo.py
+```
 
-# Run the multi-module demo
+**Advanced Examples:**
+```bash
+# Run multi-module demo
 python demos/multi_module_demo.py
 
-# Run the multi-file workflow demo
+# Run complex workflow demo
 python demos/multi_file_workflow_demo.py
+```
+
+### Example Structure
+
+```
+demos/
+├── examples/                    # Basic examples and configurations
+│   ├── basic_usage.py           # Different usage patterns
+│   ├── log_formats_demo.py      # All supported formats
+│   └── config_examples/         # Various configuration examples
+├── multi_module_demo.py         # Real-world multi-module demo
+└── multi_file_workflow_demo.py  # Complex workflow demo
 ```
 
 ## 🛠️ Development
 
-### Installation for Development
+### 🧪 Testing & Development Tools
 
-```bash
-# Clone the repository
-git clone https://github.com/SavinRazvan/hydra-logger.git
-cd hydra-logger
-
-# Option 1: Install with pip (recommended)
-pip install -e .
-pip install -r requirements-dev.txt
-
-# Option 2: Install with conda
-conda env create -f environment.yml
-conda activate hydra-logger
-
-# Option 3: Install with requirements files
-pip install -r requirements.txt          # Core dependencies only
-pip install -r requirements-dev.txt      # Development dependencies
-```
+Once you have the development environment set up (see installation above), you can:
 
 ### Running Tests
 
@@ -450,11 +469,11 @@ hydra-logger/
 │   └── .github/ (CI/CD workflows)
 │
 ├── 🏗️  Core Package (hydra_logger/)
-│   ├── __init__.py          # Main package exports
-│   ├── config.py            # Pydantic models & config loading
-│   ├── logger.py            # Main HydraLogger class
-│   ├── compatibility.py     # Backward compatibility layer
-│   └── examples/            # Example configurations & usage
+│   ├── __init__.py               # Main package exports
+│   ├── config.py                 # Pydantic models & config loading
+│   ├── logger.py                 # Main HydraLogger class
+│   ├── compatibility.py          # Backward compatibility layer
+│   └── examples/                 # Example configurations & usage
 │       ├── basic_usage.py
 │       ├── README.md
 │       └── config_examples/
@@ -462,21 +481,28 @@ hydra-logger/
 │           └── advanced.yaml
 │
 ├── 🧪 Tests (tests/)
-│   ├── test_config.py       # Config model tests
-│   ├── test_logger.py       # Core logger tests
-│   ├── test_compatibility.py # Backward compatibility tests
-│   └── test_integration.py  # Integration & real-world tests
+│   ├── test_config.py            # Config model tests
+│   ├── test_logger.py            # Core logger tests
+│   ├── test_compatibility.py     # Backward compatibility tests
+│   └── test_integration.py       # Integration & real-world tests
 │
 └── 📚 Demos (demos/)
-    ├── examples/            # Basic examples and configurations
-    ├── demo_modules/        # Module examples
-    ├── multi_module_demo.py # Real-world multi-module demo
+    ├── examples/                   # Basic examples and configurations
+    ├── demo_modules/               # Module examples
+    ├── multi_module_demo.py        # Real-world multi-module demo
     └── multi_file_workflow_demo.py # Complex workflow demo
 ```
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](DEVELOPMENT.md#contributing) for details.
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### 📋 Project Documentation
+
+- **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards and guidelines
+- **[Security Policy](SECURITY.md)** - Security reporting and best practices
+- **[Changelog](CHANGELOG.md)** - Version history and release notes
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
