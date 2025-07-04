@@ -60,7 +60,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
-[INSERT CONTACT METHOD].
+razvan.i.savin@gmail.com.
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
@@ -134,7 +134,6 @@ For questions or concerns about this Code of Conduct, please contact:
 
 - **Email**: razvan.i.savin@gmail.com
 - **GitHub Issues**: Use the "Code of Conduct" label
-- **Community Leaders**: [List of community leaders]
 
 ## Reporting Guidelines
 
