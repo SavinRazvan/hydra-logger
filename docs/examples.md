@@ -5,6 +5,7 @@ This comprehensive guide provides detailed examples of how to use Hydra-Logger i
 ## Table of Contents
 
 - [Basic Examples](#basic-examples)
+- [Environment-Specific Configurations](#environment-specific-configurations)
 - [Web Application Examples](#web-application-examples)
 - [Microservices Examples](#microservices-examples)
 - [Database Application Examples](#database-application-examples)
@@ -12,6 +13,7 @@ This comprehensive guide provides detailed examples of how to use Hydra-Logger i
 - [Analytics and Reporting Examples](#analytics-and-reporting-examples)
 - [Enterprise Integration Examples](#enterprise-integration-examples)
 - [Performance Optimization Examples](#performance-optimization-examples)
+- [Dynamic Configuration Examples](#dynamic-configuration-examples)
 
 ## Basic Examples
 
@@ -92,6 +94,252 @@ logger = HydraLogger.from_config("config/logging.yaml")
 logger.info("APP", "Application loaded from configuration file")
 logger.debug("API", "API endpoint called")
 logger.error("SECURITY", "Authentication failed")
+```
+
+## Environment-Specific Configurations
+
+### Development Environment
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+import os
+
+def get_dev_config():
+    """Development configuration with detailed logging."""
+    return LoggingConfig(
+        layers={
+            "APP": LogLayer(
+                level="DEBUG",  # More verbose for development
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/dev/app.log",
+                        format="text",
+                        max_size="5MB",
+                        backup_count=2
+                    ),
+                    LogDestination(
+                        type="console",
+                        level="DEBUG",  # Show all logs in console
+                        format="text"  # Human-readable for development
+                    )
+                ]
+            ),
+            "DEBUG": LogLayer(
+                level="DEBUG",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/dev/debug.log",
+                        format="text"
+                    )
+                ]
+            ),
+            "SQL": LogLayer(
+                level="DEBUG",  # Log all SQL queries
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/dev/sql.log",
+                        format="text"
+                    )
+                ]
+            )
+        }
+    )
+
+# Usage in development
+if os.getenv("ENVIRONMENT") == "development":
+    logger = HydraLogger(get_dev_config())
+    logger.debug("DEBUG", "Development mode - detailed logging enabled")
+```
+
+### Production Environment
+
+```python
+def get_prod_config():
+    """Production configuration with optimized logging."""
+    return LoggingConfig(
+        layers={
+            "APP": LogLayer(
+                level="INFO",  # Less verbose for production
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/prod/app.log",
+                        format="json",  # Structured for log aggregation
+                        max_size="100MB",
+                        backup_count=10
+                    ),
+                    LogDestination(
+                        type="console",
+                        level="ERROR",  # Only errors in console
+                        format="json"
+                    )
+                ]
+            ),
+            "ERRORS": LogLayer(
+                level="ERROR",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/prod/errors.log",
+                        format="json",
+                        max_size="50MB",
+                        backup_count=20
+                    ),
+                    LogDestination(
+                        type="file",
+                        path="logs/prod/alerts.gelf",
+                        format="gelf"  # For centralized monitoring
+                    )
+                ]
+            ),
+            "PERFORMANCE": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/prod/performance.csv",
+                        format="csv"  # For analytics
+                    )
+                ]
+            )
+        }
+    )
+
+# Usage in production
+if os.getenv("ENVIRONMENT") == "production":
+    logger = HydraLogger(get_prod_config())
+    logger.info("APP", "Production mode - optimized logging enabled")
+```
+
+### Staging Environment
+
+```python
+def get_staging_config():
+    """Staging configuration with balanced logging."""
+    return LoggingConfig(
+        layers={
+            "APP": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/staging/app.log",
+                        format="text",
+                        max_size="20MB",
+                        backup_count=5
+                    ),
+                    LogDestination(
+                        type="console",
+                        level="WARNING",
+                        format="json"
+                    )
+                ]
+            ),
+            "TESTING": LogLayer(
+                level="DEBUG",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/staging/test.log",
+                        format="json"
+                    )
+                ]
+            )
+        }
+    )
+
+# Environment-based configuration loading
+def get_logger_for_environment():
+    """Get appropriate logger based on environment."""
+    env = os.getenv("ENVIRONMENT", "development")
+    
+    configs = {
+        "development": get_dev_config(),
+        "staging": get_staging_config(),
+        "production": get_prod_config()
+    }
+    
+    return HydraLogger(configs.get(env, get_dev_config()))
+
+# Usage
+logger = get_logger_for_environment()
+logger.info("APP", f"Application started in {os.getenv('ENVIRONMENT', 'development')} mode")
+```
+
+### Environment-Specific Configuration Files
+
+**Development (`config/logging-dev.yaml`):**
+```yaml
+default_level: DEBUG
+
+layers:
+  APP:
+    level: DEBUG
+    destinations:
+      - type: file
+        path: logs/dev/app.log
+        format: text
+        max_size: 5MB
+        backup_count: 2
+      - type: console
+        level: DEBUG
+        format: text
+  
+  DEBUG:
+    level: DEBUG
+    destinations:
+      - type: file
+        path: logs/dev/debug.log
+        format: text
+```
+
+**Production (`config/logging-prod.yaml`):**
+```yaml
+default_level: INFO
+
+layers:
+  APP:
+    level: INFO
+    destinations:
+      - type: file
+        path: logs/prod/app.log
+        format: json
+        max_size: 100MB
+        backup_count: 10
+      - type: console
+        level: ERROR
+        format: json
+  
+  ERRORS:
+    level: ERROR
+    destinations:
+      - type: file
+        path: logs/prod/errors.log
+        format: json
+        max_size: 50MB
+        backup_count: 20
+      - type: file
+        path: logs/prod/alerts.gelf
+        format: gelf
+```
+
+**Usage with environment detection:**
+```python
+import os
+from hydra_logger import HydraLogger
+
+def get_config_file():
+    """Get configuration file based on environment."""
+    env = os.getenv("ENVIRONMENT", "development")
+    return f"config/logging-{env}.yaml"
+
+# Load environment-specific configuration
+logger = HydraLogger.from_config(get_config_file())
+logger.info("APP", f"Loaded configuration for {os.getenv('ENVIRONMENT', 'development')} environment")
 ```
 
 ## Web Application Examples
@@ -1173,5 +1421,481 @@ for i in range(1000):
 # Stop logging
 high_throughput_logger.stop()
 ```
+
+# Dynamic Configuration Examples
+
+### Runtime Configuration Changes
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+import threading
+import time
+
+class DynamicLogger:
+    """Logger that can change configuration at runtime."""
+    
+    def __init__(self):
+        self.logger = None
+        self.config = None
+        self._lock = threading.Lock()
+        self._setup_initial_config()
+    
+    def _setup_initial_config(self):
+        """Setup initial configuration."""
+        self.config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="logs/dynamic/app.log",
+                            format="text"
+                        ),
+                        LogDestination(
+                            type="console",
+                            format="json"
+                        )
+                    ]
+                )
+            }
+        )
+        self.logger = HydraLogger(self.config)
+    
+    def update_config(self, new_config):
+        """Update logger configuration at runtime."""
+        with self._lock:
+            self.config = new_config
+            self.logger = HydraLogger(new_config)
+            self.logger.info("APP", "Configuration updated at runtime")
+    
+    def add_layer(self, layer_name, layer_config):
+        """Add a new layer to the configuration."""
+        with self._lock:
+            self.config.layers[layer_name] = layer_config
+            self.logger = HydraLogger(self.config)
+            self.logger.info("APP", f"Added new layer: {layer_name}")
+    
+    def set_log_level(self, layer_name, level):
+        """Change log level for a specific layer."""
+        with self._lock:
+            if layer_name in self.config.layers:
+                self.config.layers[layer_name].level = level
+                self.logger = HydraLogger(self.config)
+                self.logger.info("APP", f"Changed log level for {layer_name} to {level}")
+    
+    def log(self, layer, level, message):
+        """Thread-safe logging."""
+        with self._lock:
+            if hasattr(self.logger, level.lower()):
+                getattr(self.logger, level.lower())(layer, message)
+
+# Usage example
+dynamic_logger = DynamicLogger()
+
+# Initial logging
+dynamic_logger.log("APP", "INFO", "Application started")
+
+# Update configuration based on load
+def monitor_and_update_config():
+    """Monitor system load and update logging configuration."""
+    while True:
+        # Simulate load monitoring
+        load = get_system_load()  # Your load monitoring function
+        
+        if load > 80:  # High load
+            # Switch to minimal logging
+            minimal_config = LoggingConfig(
+                layers={
+                    "APP": LogLayer(
+                        level="ERROR",  # Only errors
+                        destinations=[
+                            LogDestination(
+                                type="file",
+                                path="logs/dynamic/app.log",
+                                format="text"
+                            )
+                        ]
+                    )
+                }
+            )
+            dynamic_logger.update_config(minimal_config)
+            dynamic_logger.log("APP", "INFO", "Switched to minimal logging due to high load")
+        
+        elif load < 20:  # Low load
+            # Switch to detailed logging
+            detailed_config = LoggingConfig(
+                layers={
+                    "APP": LogLayer(
+                        level="DEBUG",  # Detailed logging
+                        destinations=[
+                            LogDestination(
+                                type="file",
+                                path="logs/dynamic/app.log",
+                                format="text"
+                            ),
+                            LogDestination(
+                                type="file",
+                                path="logs/dynamic/debug.log",
+                                format="json"
+                            )
+                        ]
+                    )
+                }
+            )
+            dynamic_logger.update_config(detailed_config)
+            dynamic_logger.log("APP", "INFO", "Switched to detailed logging due to low load")
+        
+        time.sleep(60)  # Check every minute
+
+# Start monitoring in background
+monitor_thread = threading.Thread(target=monitor_and_update_config, daemon=True)
+monitor_thread.start()
+```
+
+### Conditional Logging Based on Feature Flags
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+import os
+
+class FeatureFlagLogger:
+    """Logger that adapts based on feature flags."""
+    
+    def __init__(self):
+        self.logger = self._create_logger()
+        self.feature_flags = self._load_feature_flags()
+    
+    def _load_feature_flags(self):
+        """Load feature flags from environment or config."""
+        return {
+            "detailed_logging": os.getenv("DETAILED_LOGGING", "false").lower() == "true",
+            "performance_monitoring": os.getenv("PERFORMANCE_MONITORING", "false").lower() == "true",
+            "security_logging": os.getenv("SECURITY_LOGGING", "true").lower() == "true",
+            "debug_mode": os.getenv("DEBUG_MODE", "false").lower() == "true"
+        }
+    
+    def _create_logger(self):
+        """Create logger with base configuration."""
+        base_config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="logs/feature_flags/app.log",
+                            format="text"
+                        )
+                    ]
+                )
+            }
+        )
+        return HydraLogger(base_config)
+    
+    def _update_config_for_features(self):
+        """Update configuration based on feature flags."""
+        layers = {
+            "APP": LogLayer(
+                level="DEBUG" if self.feature_flags["debug_mode"] else "INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/feature_flags/app.log",
+                        format="text"
+                    )
+                ]
+            )
+        }
+        
+        # Add performance monitoring if enabled
+        if self.feature_flags["performance_monitoring"]:
+            layers["PERFORMANCE"] = LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/feature_flags/performance.csv",
+                        format="csv"
+                    )
+                ]
+            )
+        
+        # Add security logging if enabled
+        if self.feature_flags["security_logging"]:
+            layers["SECURITY"] = LogLayer(
+                level="WARNING",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/feature_flags/security.log",
+                        format="syslog"
+                    )
+                ]
+            )
+        
+        # Add detailed logging if enabled
+        if self.feature_flags["detailed_logging"]:
+            layers["DETAILED"] = LogLayer(
+                level="DEBUG",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="logs/feature_flags/detailed.json",
+                        format="json"
+                    )
+                ]
+            )
+        
+        config = LoggingConfig(layers=layers)
+        self.logger = HydraLogger(config)
+    
+    def update_feature_flags(self, new_flags):
+        """Update feature flags and reconfigure logger."""
+        self.feature_flags.update(new_flags)
+        self._update_config_for_features()
+        self.logger.info("APP", f"Feature flags updated: {new_flags}")
+    
+    def log_with_context(self, layer, level, message, context=None):
+        """Log with optional context information."""
+        if context and self.feature_flags["detailed_logging"]:
+            # Add context to detailed logging
+            detailed_message = f"{message} | Context: {context}"
+            self.logger.log(layer, level, detailed_message)
+        else:
+            self.logger.log(layer, level, message)
+
+# Usage example
+feature_logger = FeatureFlagLogger()
+
+# Log with different feature flag combinations
+feature_logger.log_with_context("APP", "INFO", "User login", {"user_id": 123, "ip": "192.168.1.1"})
+
+# Enable performance monitoring
+feature_logger.update_feature_flags({"performance_monitoring": True})
+feature_logger.log("PERFORMANCE", "INFO", "API response time: 150ms")
+
+# Enable detailed logging
+feature_logger.update_feature_flags({"detailed_logging": True})
+feature_logger.log_with_context("DETAILED", "DEBUG", "Database query", {"query": "SELECT * FROM users"})
+```
+
+### Configuration Hot-Reloading
+
+```python
+import yaml
+import os
+import time
+import threading
+from pathlib import Path
+from hydra_logger import HydraLogger
+from hydra_logger.config import load_config
+
+class HotReloadLogger:
+    """Logger that automatically reloads configuration when files change."""
+    
+    def __init__(self, config_path):
+        self.config_path = Path(config_path)
+        self.logger = None
+        self.last_modified = 0
+        self._setup_logger()
+        self._start_monitoring()
+    
+    def _setup_logger(self):
+        """Setup logger from configuration file."""
+        try:
+            self.logger = HydraLogger.from_config(self.config_path)
+            self.last_modified = self.config_path.stat().st_mtime
+            self.logger.info("APP", f"Configuration loaded from {self.config_path}")
+        except Exception as e:
+            # Fallback to default configuration
+            self.logger = HydraLogger()
+            self.logger.error("APP", f"Failed to load configuration: {e}")
+    
+    def _start_monitoring(self):
+        """Start monitoring configuration file for changes."""
+        def monitor_config():
+            while True:
+                try:
+                    if self.config_path.exists():
+                        current_modified = self.config_path.stat().st_mtime
+                        if current_modified > self.last_modified:
+                            self.logger.info("APP", "Configuration file changed, reloading...")
+                            self._setup_logger()
+                    time.sleep(5)  # Check every 5 seconds
+                except Exception as e:
+                    if self.logger:
+                        self.logger.error("APP", f"Error monitoring config: {e}")
+                    time.sleep(10)  # Wait longer on error
+        
+        monitor_thread = threading.Thread(target=monitor_config, daemon=True)
+        monitor_thread.start()
+    
+    def log(self, layer, level, message):
+        """Log message with current configuration."""
+        if self.logger:
+            self.logger.log(layer, level, message)
+
+# Usage example
+hot_reload_logger = HotReloadLogger("config/logging.yaml")
+
+# Log messages (configuration will auto-reload if file changes)
+hot_reload_logger.log("APP", "INFO", "Application started with hot-reload logging")
+
+# You can modify config/logging.yaml while the application is running
+# and the logger will automatically pick up the changes
+```
+
+### Adaptive Logging Based on System Resources
+
+```python
+import psutil
+import threading
+import time
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+class AdaptiveLogger:
+    """Logger that adapts configuration based on system resources."""
+    
+    def __init__(self):
+        self.logger = None
+        self.current_mode = "normal"
+        self._setup_normal_config()
+        self._start_resource_monitoring()
+    
+    def _setup_normal_config(self):
+        """Setup normal logging configuration."""
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="logs/adaptive/app.log",
+                            format="text"
+                        ),
+                        LogDestination(
+                            type="console",
+                            format="json"
+                        )
+                    ]
+                )
+            }
+        )
+        self.logger = HydraLogger(config)
+        self.current_mode = "normal"
+    
+    def _setup_conservative_config(self):
+        """Setup conservative logging for low resources."""
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="ERROR",  # Only errors
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="logs/adaptive/app.log",
+                            format="text",
+                            max_size="1MB",  # Smaller files
+                            backup_count=1
+                        )
+                    ]
+                )
+            }
+        )
+        self.logger = HydraLogger(config)
+        self.current_mode = "conservative"
+    
+    def _setup_detailed_config(self):
+        """Setup detailed logging for high resources."""
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="DEBUG",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="logs/adaptive/app.log",
+                            format="text"
+                        ),
+                        LogDestination(
+                            type="file",
+                            path="logs/adaptive/detailed.json",
+                            format="json"
+                        ),
+                        LogDestination(
+                            type="console",
+                            format="text"
+                        )
+                    ]
+                )
+            }
+        )
+        self.logger = HydraLogger(config)
+        self.current_mode = "detailed"
+    
+    def _check_resources(self):
+        """Check system resources and adapt logging."""
+        try:
+            cpu_percent = psutil.cpu_percent()
+            memory_percent = psutil.virtual_memory().percent
+            disk_percent = psutil.disk_usage('/').percent
+            
+            # Conservative mode if resources are low
+            if cpu_percent > 80 or memory_percent > 85 or disk_percent > 90:
+                if self.current_mode != "conservative":
+                    self._setup_conservative_config()
+                    self.logger.info("APP", f"Switched to conservative logging - CPU: {cpu_percent}%, Memory: {memory_percent}%, Disk: {disk_percent}%")
+            
+            # Detailed mode if resources are abundant
+            elif cpu_percent < 30 and memory_percent < 50 and disk_percent < 70:
+                if self.current_mode != "detailed":
+                    self._setup_detailed_config()
+                    self.logger.info("APP", f"Switched to detailed logging - CPU: {cpu_percent}%, Memory: {memory_percent}%, Disk: {disk_percent}%")
+            
+            # Normal mode for balanced resources
+            elif self.current_mode != "normal":
+                self._setup_normal_config()
+                self.logger.info("APP", f"Switched to normal logging - CPU: {cpu_percent}%, Memory: {memory_percent}%, Disk: {disk_percent}%")
+                
+        except Exception as e:
+            # Fallback to conservative mode on error
+            if self.current_mode != "conservative":
+                self._setup_conservative_config()
+                self.logger.error("APP", f"Resource monitoring error, switched to conservative mode: {e}")
+    
+    def _start_resource_monitoring(self):
+        """Start monitoring system resources."""
+        def monitor_resources():
+            while True:
+                self._check_resources()
+                time.sleep(30)  # Check every 30 seconds
+        
+        monitor_thread = threading.Thread(target=monitor_resources, daemon=True)
+        monitor_thread.start()
+    
+    def log(self, layer, level, message):
+        """Log message with current adaptive configuration."""
+        if self.logger:
+            self.logger.log(layer, level, message)
+
+# Usage example
+adaptive_logger = AdaptiveLogger()
+
+# Log messages (configuration will adapt based on system resources)
+adaptive_logger.log("APP", "INFO", "Application started with adaptive logging")
+
+# The logger will automatically switch between modes based on:
+# - CPU usage
+# - Memory usage  
+# - Disk space
+# - System load
+```
+
+These dynamic configuration examples demonstrate how Hydra-Logger can adapt to different runtime conditions, making it suitable for complex, production environments where logging needs change based on system state, feature flags, or resource availability.
 
 This comprehensive examples guide demonstrates how to use Hydra-Logger in various real-world scenarios, from simple applications to complex enterprise systems, showing the flexibility and power of the multi-format logging system. 

@@ -876,6 +876,257 @@ config = LoggingConfig(
 )
 ```
 
+#### Issue: Configuration validation errors
+**Solution**: Use proper validation and error handling.
+
+```python
+from hydra_logger import HydraLogger
+from pydantic import ValidationError
+
+try:
+    logger = HydraLogger.from_config("config.yaml")
+except FileNotFoundError:
+    print("Configuration file not found, using defaults")
+    logger = HydraLogger()
+except ValidationError as e:
+    print(f"Configuration validation error: {e}")
+    logger = HydraLogger()
+except Exception as e:
+    print(f"Unexpected error: {e}")
+    logger = HydraLogger()
+```
+
+#### Issue: Log levels not working as expected
+**Solution**: Check layer and destination level configuration.
+
+```python
+# Layer level controls overall logging for the layer
+# Destination level can override for specific destinations
+config = LoggingConfig(
+    layers={
+        "APP": LogLayer(
+            level="DEBUG",  # Layer level: DEBUG and above
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/app.log",
+                    level="INFO"  # Destination level: INFO and above only
+                ),
+                LogDestination(
+                    type="console",
+                    level="WARNING"  # Console: WARNING and above only
+                )
+            ]
+        )
+    }
+)
+```
+
+#### Issue: File rotation not working
+**Solution**: Check file size format and permissions.
+
+```python
+# Use proper size format
+config = LoggingConfig(
+    layers={
+        "APP": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/app.log",
+                    max_size="10MB",  # Use MB, KB, GB format
+                    backup_count=5
+                )
+            ]
+        )
+    }
+)
+```
+
+#### Issue: Multiple loggers conflicting
+**Solution**: Use proper logger naming and cleanup.
+
+```python
+# Clear existing handlers to avoid conflicts
+import logging
+
+# Clear root logger handlers
+root_logger = logging.getLogger()
+if root_logger.hasHandlers():
+    root_logger.handlers.clear()
+
+# Create Hydra-Logger
+logger = HydraLogger(config)
+```
+
+### Performance Optimization
+
+#### High-Throughput Logging
+
+```python
+# Use CSV format for high-volume data
+config = LoggingConfig(
+    layers={
+        "EVENTS": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/events.csv",
+                    format="csv",  # Fastest format for high volume
+                    max_size="500MB",
+                    backup_count=1
+                )
+            ]
+        )
+    }
+)
+```
+
+#### Memory-Efficient Configuration
+
+```python
+# Use smaller file sizes and fewer backups for memory-constrained environments
+config = LoggingConfig(
+    layers={
+        "APP": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/app.log",
+                    max_size="1MB",  # Smaller files
+                    backup_count=1   # Fewer backups
+                )
+            ]
+        )
+    }
+)
+```
+
+### Security Considerations
+
+#### Secure File Permissions
+
+```python
+import os
+from pathlib import Path
+
+# Set secure permissions for log files
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+
+# Set directory permissions (Unix-like systems)
+os.chmod(log_dir, 0o750)  # Owner read/write/execute, group read/execute
+
+# Log files will inherit secure permissions
+logger = HydraLogger(config)
+```
+
+#### Sensitive Data Filtering
+
+```python
+import re
+from hydra_logger import HydraLogger
+
+class SecureLogger:
+    """Logger with sensitive data filtering."""
+    
+    def __init__(self, config):
+        self.logger = HydraLogger(config)
+        self.sensitive_patterns = [
+            r'password["\']?\s*[:=]\s*["\'][^"\']*["\']',
+            r'api_key["\']?\s*[:=]\s*["\'][^"\']*["\']',
+            r'token["\']?\s*[:=]\s*["\'][^"\']*["\']'
+        ]
+    
+    def _filter_sensitive_data(self, message):
+        """Filter sensitive data from log messages."""
+        filtered_message = message
+        for pattern in self.sensitive_patterns:
+            filtered_message = re.sub(pattern, '[REDACTED]', filtered_message, flags=re.IGNORECASE)
+        return filtered_message
+    
+    def log(self, layer, level, message):
+        """Log message with sensitive data filtering."""
+        filtered_message = self._filter_sensitive_data(message)
+        self.logger.log(layer, level, filtered_message)
+
+# Usage
+secure_logger = SecureLogger(config)
+secure_logger.log("APP", "INFO", "User login: password=secret123")  # Will be filtered
+```
+
+### Debugging Configuration
+
+#### Configuration Validation
+
+```python
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+def validate_config(config_dict):
+    """Validate configuration before creating logger."""
+    try:
+        config = LoggingConfig(**config_dict)
+        print("✅ Configuration is valid")
+        return config
+    except Exception as e:
+        print(f"❌ Configuration error: {e}")
+        return None
+
+# Test your configuration
+test_config = {
+    "layers": {
+        "APP": {
+            "level": "INFO",
+            "destinations": [
+                {
+                    "type": "file",
+                    "path": "logs/app.log",
+                    "format": "text"
+                }
+            ]
+        }
+    }
+}
+
+valid_config = validate_config(test_config)
+if valid_config:
+    logger = HydraLogger(valid_config)
+```
+
+#### Configuration Debugging
+
+```python
+import json
+from hydra_logger import HydraLogger
+
+def debug_config(config):
+    """Debug configuration by printing details."""
+    print("🔍 Configuration Debug:")
+    print(f"  Default Level: {config.default_level}")
+    print(f"  Layers: {len(config.layers)}")
+    
+    for layer_name, layer_config in config.layers.items():
+        print(f"  Layer '{layer_name}':")
+        print(f"    Level: {layer_config.level}")
+        print(f"    Destinations: {len(layer_config.destinations)}")
+        
+        for i, dest in enumerate(layer_config.destinations):
+            print(f"    Destination {i+1}:")
+            print(f"      Type: {dest.type}")
+            if dest.path:
+                print(f"      Path: {dest.path}")
+            print(f"      Format: {dest.format}")
+            print(f"      Level: {dest.level}")
+
+# Use with your configuration
+config = LoggingConfig(layers={...})  # Your config
+debug_config(config)
+logger = HydraLogger(config)
+```
+
 ### Migration Checklist
 
 - [ ] Install Hydra-Logger: `pip install hydra-logger`
@@ -889,4 +1140,26 @@ config = LoggingConfig(
 - [ ] Check performance impact
 - [ ] Update documentation
 
-This comprehensive migration guide provides multiple paths for transitioning to Hydra-Logger, ensuring a smooth migration process regardless of your current logging setup. 
+### Common Error Messages and Solutions
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `FileNotFoundError: Configuration file not found` | Config file doesn't exist | Check file path and create file |
+| `ValidationError: Invalid level` | Invalid log level | Use DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `ValueError: Path is required for file destinations` | Missing file path | Add `path` parameter for file destinations |
+| `OSError: Permission denied` | File permission issues | Check directory permissions |
+| `ImportError: No module named 'python_json_logger'` | Missing dependency | Run `pip install python-json-logger` |
+| `ValueError: Invalid format` | Unsupported format | Use text, json, csv, syslog, or gelf |
+
+### Getting Help
+
+If you encounter issues during migration:
+
+1. **Check the logs**: Look for error messages in console output
+2. **Validate configuration**: Use the validation examples above
+3. **Test incrementally**: Start with simple configuration and add complexity
+4. **Check dependencies**: Ensure all required packages are installed
+5. **Review examples**: Refer to the examples in this guide
+6. **Open an issue**: Report bugs on the GitHub repository
+
+This comprehensive troubleshooting section ensures a smooth migration experience with solutions for common issues and best practices for production deployment. 

@@ -4,6 +4,7 @@ This comprehensive guide covers all configuration options for Hydra-Logger, incl
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Configuration Methods](#configuration-methods)
 - [Programmatic Configuration](#programmatic-configuration)
 - [YAML Configuration Files](#yaml-configuration-files)
@@ -13,6 +14,278 @@ This comprehensive guide covers all configuration options for Hydra-Logger, incl
 - [Best Practices](#best-practices)
 - [Environment Variables](#environment-variables)
 - [Validation and Error Handling](#validation-and-error-handling)
+
+## Quick Start
+
+### 🚀 Zero Configuration (Start Immediately)
+
+```python
+from hydra_logger import HydraLogger
+
+# Works out of the box - no configuration needed!
+logger = HydraLogger()
+logger.info("DEFAULT", "Hello, Hydra-Logger!")
+```
+
+**What you get:**
+- File logging to `logs/app.log`
+- Console output
+- Text format
+- 5MB file rotation with 3 backups
+- INFO level logging
+
+### ⚡ Simple Configuration (30 seconds)
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+# Quick setup with custom path
+config = LoggingConfig(
+    layers={
+        "APP": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/myapp.log"),
+                LogDestination(type="console")
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+logger.info("APP", "Application started!")
+```
+
+### 📁 Configuration File (1 minute)
+
+**Create `logging.yaml`:**
+```yaml
+layers:
+  APP:
+    level: INFO
+    destinations:
+      - type: file
+        path: logs/app.log
+        format: text
+      - type: console
+        format: json
+```
+
+**Use it:**
+```python
+from hydra_logger import HydraLogger
+
+logger = HydraLogger.from_config("logging.yaml")
+logger.info("APP", "Loaded from config file!")
+```
+
+### 🎯 Multi-Format Setup (2 minutes)
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+config = LoggingConfig(
+    layers={
+        "APP": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/app.log", format="text"),
+                LogDestination(type="file", path="logs/app.json", format="json"),
+                LogDestination(type="console", format="json")
+            ]
+        ),
+        "ERRORS": LogLayer(
+            level="ERROR",
+            destinations=[
+                LogDestination(type="file", path="logs/errors.log", format="text")
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+logger.info("APP", "This goes to all destinations!")
+logger.error("ERRORS", "This goes to errors only!")
+```
+
+### 🌍 Environment-Specific (3 minutes)
+
+```python
+import os
+from hydra_logger import HydraLogger
+
+# Load different configs based on environment
+env = os.getenv("ENVIRONMENT", "development")
+config_file = f"config/logging-{env}.yaml"
+
+logger = HydraLogger.from_config(config_file)
+logger.info("APP", f"Running in {env} mode!")
+```
+
+**Development (`config/logging-development.yaml`):**
+```yaml
+layers:
+  APP:
+    level: DEBUG
+    destinations:
+      - type: file
+        path: logs/dev/app.log
+        format: text
+      - type: console
+        level: DEBUG
+        format: text
+```
+
+**Production (`config/logging-production.yaml`):**
+```yaml
+layers:
+  APP:
+    level: INFO
+    destinations:
+      - type: file
+        path: logs/prod/app.log
+        format: json
+        max_size: 100MB
+        backup_count: 10
+      - type: console
+        level: ERROR
+        format: json
+```
+
+### 🎨 Format Showcase
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+# All formats in one configuration
+config = LoggingConfig(
+    layers={
+        "TEXT": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/text.log", format="text")
+            ]
+        ),
+        "JSON": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/json.json", format="json")
+            ]
+        ),
+        "CSV": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/csv.csv", format="csv")
+            ]
+        ),
+        "SYSLOG": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/syslog.log", format="syslog")
+            ]
+        ),
+        "GELF": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="file", path="logs/gelf.gelf", format="gelf")
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+
+# Same message in 5 different formats!
+logger.info("TEXT", "Hello World!")
+logger.info("JSON", "Hello World!")
+logger.info("CSV", "Hello World!")
+logger.info("SYSLOG", "Hello World!")
+logger.info("GELF", "Hello World!")
+```
+
+### 🔧 Advanced Features
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+# Enterprise-ready configuration
+config = LoggingConfig(
+    layers={
+        "APP": LogLayer(
+            level="INFO",
+            destinations=[
+                # Main application logs
+                LogDestination(
+                    type="file",
+                    path="logs/app/main.log",
+                    format="text",
+                    max_size="10MB",
+                    backup_count=5
+                ),
+                # Structured logs for analysis
+                LogDestination(
+                    type="file",
+                    path="logs/app/structured.json",
+                    format="json"
+                ),
+                # Console output for monitoring
+                LogDestination(
+                    type="console",
+                    level="WARNING",
+                    format="json"
+                )
+            ]
+        ),
+        "SECURITY": LogLayer(
+            level="WARNING",
+            destinations=[
+                # Security events
+                LogDestination(
+                    type="file",
+                    path="logs/security/events.log",
+                    format="syslog",
+                    max_size="1MB",
+                    backup_count=20
+                )
+            ]
+        ),
+        "PERFORMANCE": LogLayer(
+            level="INFO",
+            destinations=[
+                # Performance metrics
+                LogDestination(
+                    type="file",
+                    path="logs/performance/metrics.csv",
+                    format="csv"
+                )
+            ]
+        ),
+        "MONITORING": LogLayer(
+            level="INFO",
+            destinations=[
+                # Centralized monitoring
+                LogDestination(
+                    type="file",
+                    path="logs/monitoring/alerts.gelf",
+                    format="gelf"
+                )
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+
+# Different types of logs go to different destinations
+logger.info("APP", "User logged in")
+logger.warning("SECURITY", "Failed login attempt")
+logger.info("PERFORMANCE", "API response time: 150ms")
+logger.info("MONITORING", "System health check completed")
+```
 
 ## Configuration Methods
 
