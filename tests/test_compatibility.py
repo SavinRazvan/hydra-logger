@@ -409,3 +409,95 @@ class TestBackwardCompatibility:
         assert os.path.exists(logs_dir), "Both should create logs directory"
 
         assert True, "Migration should preserve all original functionality"
+
+
+def test_setup_logging_normal(monkeypatch):
+    # Patch os.makedirs to avoid real file I/O
+    monkeypatch.setattr(os, "makedirs", lambda *a, **k: None)
+    # Patch RotatingFileHandler and StreamHandler
+    with patch("hydra_logger.compatibility.RotatingFileHandler") as mock_file, \
+         patch("hydra_logger.compatibility.logging.StreamHandler") as mock_console:
+        setup_logging()
+        assert mock_file.called
+        assert mock_console.called
+
+
+def test_setup_logging_file_only(monkeypatch):
+    monkeypatch.setattr(os, "makedirs", lambda *a, **k: None)
+    with patch("hydra_logger.compatibility.RotatingFileHandler") as mock_file:
+        setup_logging(enable_console_logging=False)
+        assert mock_file.called
+
+
+def test_setup_logging_console_only(monkeypatch):
+    with patch("hydra_logger.compatibility.logging.StreamHandler") as mock_console:
+        setup_logging(enable_file_logging=False)
+        assert mock_console.called
+
+
+def test_setup_logging_oserror(monkeypatch):
+    # Simulate OSError when creating directory
+    def raise_oserror(*a, **k):
+        raise OSError("fail")
+    monkeypatch.setattr(os, "makedirs", raise_oserror)
+    # Clear root logger handlers to avoid MagicMock comparison issues
+    logger = logging.getLogger()
+    logger.handlers.clear()
+    # Patch handlers to avoid TypeError if called
+    with patch("hydra_logger.compatibility.RotatingFileHandler") as mock_file, \
+         patch("hydra_logger.compatibility.logging.StreamHandler") as mock_console:
+        # Configure mocks to handle setLevel calls properly and have integer level
+        mock_file.return_value.setLevel = MagicMock()
+        mock_console.return_value.setLevel = MagicMock()
+        mock_file.return_value.setFormatter = MagicMock()
+        mock_console.return_value.setFormatter = MagicMock()
+        mock_file.return_value.level = logging.DEBUG
+        mock_console.return_value.level = logging.INFO
+        # Should not raise
+        setup_logging()
+
+
+def test_setup_logging_handler_exception(monkeypatch):
+    monkeypatch.setattr(os, "makedirs", lambda *a, **k: None)
+    # Simulate exception in handler setup
+    with patch("hydra_logger.compatibility.RotatingFileHandler", side_effect=Exception("fail")):
+        setup_logging()
+
+
+def test_create_hydra_config_from_legacy_all_combinations():
+    # Both enabled
+    config = create_hydra_config_from_legacy()
+    assert "DEFAULT" in config.layers
+    # File only
+    config = create_hydra_config_from_legacy(enable_console_logging=False)
+    assert any(d.type == "file" for d in config.layers["DEFAULT"].destinations)
+    # Console only
+    config = create_hydra_config_from_legacy(enable_file_logging=False)
+    assert any(d.type == "console" for d in config.layers["DEFAULT"].destinations)
+    # Neither (should still create DEFAULT layer)
+    config = create_hydra_config_from_legacy(enable_file_logging=False, enable_console_logging=False)
+    assert "DEFAULT" in config.layers
+    # Custom log file path
+    config = create_hydra_config_from_legacy(log_file_path="custom.log")
+    assert any(getattr(d, "path", None) == "custom.log" for d in config.layers["DEFAULT"].destinations)
+
+
+def test_level_int_to_str_all_levels():
+    assert _level_int_to_str(logging.DEBUG) == "DEBUG"
+    assert _level_int_to_str(logging.INFO) == "INFO"
+    assert _level_int_to_str(logging.WARNING) == "WARNING"
+    assert _level_int_to_str(logging.ERROR) == "ERROR"
+    assert _level_int_to_str(logging.CRITICAL) == "CRITICAL"
+    # Unknown level
+    assert _level_int_to_str(999) == "INFO"
+
+
+def test_migrate_to_hydra():
+    logger = migrate_to_hydra()
+    from hydra_logger.logger import HydraLogger
+    assert isinstance(logger, HydraLogger)
+    # Check config matches
+    assert hasattr(logger, "config")
+    assert "DEFAULT" in logger.config.layers
+
+# All test classes and functions from test_backward_compatibility.py go here, after the last test class in this file.

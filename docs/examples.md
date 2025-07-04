@@ -32,12 +32,12 @@ Hydra-Logger is designed to work with **any Python application**:
 
 ## Basic Examples
 
-### Simple Logging with Default Configuration
+### Zero-Configuration Mode (New Way)
 
 ```python
 from hydra_logger import HydraLogger
 
-# Create logger with default configuration
+# Create logger with zero configuration - it just works!
 logger = HydraLogger()
 
 # Log messages to different levels
@@ -48,13 +48,63 @@ logger.error("DEFAULT", "Database connection failed")
 logger.critical("DEFAULT", "System shutdown initiated")
 ```
 
+### Auto-Detection Mode
+
+```python
+from hydra_logger import HydraLogger
+
+# Enable auto-detection for environment-aware configuration
+logger = HydraLogger(auto_detect=True)
+
+# The logger automatically detects your environment:
+# - Development: Debug level, console + file, text format
+# - Production: Info level, JSON format, file rotation
+# - Cloud: Console output for better log aggregation
+
+logger.info("DEFAULT", "Auto-detected configuration applied")
+```
+
+### Manual Configuration (Old Way - Still Supported)
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+# Create custom configuration manually
+config = LoggingConfig(
+    layers={
+        "DEFAULT": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/app.log",
+                    format="text"
+                ),
+                LogDestination(
+                    type="console",
+                    level="WARNING",
+                    format="text"
+                )
+            ]
+        )
+    }
+)
+
+# Create logger with manual configuration
+logger = HydraLogger(config)
+
+# Use the logger
+logger.info("DEFAULT", "Application started with manual configuration")
+```
+
 ### Custom Configuration with Multiple Formats
 
 ```python
 from hydra_logger import HydraLogger
 from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-# Create custom configuration with different formats
+# Create custom configuration with different formats (old way - still supported)
 config = LoggingConfig(
     default_level="INFO",
     layers={
@@ -97,18 +147,95 @@ logger.debug("DEBUG", "Detailed debug information")
 logger.warning("APP", "This warning appears in both file and console")
 ```
 
+### Enhanced Features with Backward Compatibility
+
+```python
+from hydra_logger import HydraLogger
+
+# New features work with existing code:
+
+# 1. Performance monitoring (new feature)
+logger = HydraLogger(enable_performance_monitoring=True)
+logger.info("DEFAULT", "Performance monitoring enabled")
+
+# 2. Sensitive data redaction (new feature)
+logger = HydraLogger(redact_sensitive=True)
+logger.info("AUTH", "User login", email="user@example.com", password="secret")
+# Automatically redacts sensitive information
+
+# 3. Auto-detection with existing config
+config = LoggingConfig(layers={...})  # Your existing config
+logger = HydraLogger(config, auto_detect=True)  # Auto-detection + your config
+
+# 4. Environment variables with manual config
+import os
+os.environ["HYDRA_LOG_COLOR_ERROR"] = "red"
+logger = HydraLogger(config)  # Your config + environment customization
+```
+
 ### Configuration File Usage
 
 ```python
 from hydra_logger import HydraLogger
 
-# Load configuration from YAML file
+# Load configuration from YAML file (old way - still supported)
 logger = HydraLogger.from_config("config/logging.yaml")
 
 # Use the logger
 logger.info("APP", "Application loaded from configuration file")
 logger.debug("API", "API endpoint called")
 logger.error("SECURITY", "Authentication failed")
+```
+
+### Environment Variable Configuration
+
+```python
+from hydra_logger import HydraLogger
+import os
+
+# Set environment variables for zero-config customization
+os.environ["ENVIRONMENT"] = "production"
+os.environ["LOG_LEVEL"] = "WARNING"
+os.environ["HYDRA_LOG_COLOR_ERROR"] = "red"
+os.environ["HYDRA_LOG_LAYER_COLOR"] = "cyan"
+
+# Create logger with environment-based configuration
+logger = HydraLogger(auto_detect=True)
+
+# The logger automatically uses environment variables:
+# - ENVIRONMENT: Determines the base configuration
+# - LOG_LEVEL: Overrides the default log level
+# - HYDRA_LOG_COLOR_*: Customizes colors
+# - HYDRA_LOG_LAYER_COLOR: Sets layer name colors
+
+logger.info("DEFAULT", "Environment-based configuration applied")
+```
+
+### Backward Compatibility
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+# All existing code continues to work:
+
+# 1. Manual configuration (old way)
+config = LoggingConfig(layers={...})
+logger = HydraLogger(config)
+
+# 2. Configuration file loading (old way)
+logger = HydraLogger.from_config("config.yaml")
+
+# 3. Default configuration (old way)
+logger = HydraLogger()  # Uses default config
+
+# 4. New zero-config way
+logger = HydraLogger()  # Uses auto-detection
+
+# 5. New auto-detect way
+logger = HydraLogger(auto_detect=True)
+
+# All methods work together seamlessly!
 ```
 
 ## Environment-Specific Configurations

@@ -35,6 +35,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Dict, Optional, Union
+import threading
 
 from hydra_logger.config import (
     LogDestination,
@@ -234,7 +235,11 @@ class HydraLogger:
     def __init__(self, config: Optional[LoggingConfig] = None, 
                  auto_detect: bool = False,
                  enable_performance_monitoring: bool = False,
-                 redact_sensitive: bool = False):
+                 redact_sensitive: bool = False,
+                 date_format: Optional[str] = None,
+                 time_format: Optional[str] = None,
+                 logger_name_format: Optional[str] = None,
+                 message_format: Optional[str] = None):
         """
         Initialize HydraLogger with configuration.
 
@@ -242,11 +247,19 @@ class HydraLogger:
             config (Optional[LoggingConfig]): LoggingConfig object. If None,
                 uses default config.
             auto_detect (bool): Auto-detect environment and configure accordingly.
-                Defaults to True for zero-configuration mode.
+                Defaults to False for backward compatibility.
             enable_performance_monitoring (bool): Enable performance monitoring.
                 Defaults to False.
             redact_sensitive (bool): Auto-redact sensitive information (emails, 
                 passwords, tokens). Defaults to False.
+            date_format (Optional[str]): Custom date format string. If None,
+                uses environment variable HYDRA_LOG_DATE_FORMAT or default.
+            time_format (Optional[str]): Custom time format string. If None,
+                uses environment variable HYDRA_LOG_TIME_FORMAT or default.
+            logger_name_format (Optional[str]): Custom logger name format string.
+                If None, uses environment variable HYDRA_LOG_LOGGER_NAME_FORMAT or default.
+            message_format (Optional[str]): Custom message format string. If None,
+                uses environment variable HYDRA_LOG_MESSAGE_FORMAT or default.
 
         Raises:
             HydraLoggerError: If logger setup fails due to configuration issues.
@@ -257,7 +270,17 @@ class HydraLogger:
         - Logger setup for each configured layer
         - Handler creation and configuration
         """
+        def _env_or_default(var, default):
+            val = os.getenv(var)
+            return val if val else default
+
         try:
+            # Store format customization settings, treat empty env as unset
+            self.date_format = date_format or _env_or_default("HYDRA_LOG_DATE_FORMAT", "%Y-%m-%d %H:%M:%S")
+            self.time_format = time_format or _env_or_default("HYDRA_LOG_TIME_FORMAT", "%H:%M:%S")
+            self.logger_name_format = logger_name_format or _env_or_default("HYDRA_LOG_LOGGER_NAME_FORMAT", "%(name)s")
+            self.message_format = message_format or _env_or_default("HYDRA_LOG_MESSAGE_FORMAT", "%(levelname)s - %(message)s")
+            
             # Auto-detect configuration if enabled and no config provided
             if config is None and auto_detect:
                 config = self._auto_detect_config()
@@ -269,8 +292,11 @@ class HydraLogger:
                 self.config = config
                 
             self.loggers: Dict[str, logging.Logger] = {}
+            self._logger_init_lock = threading.Lock()
             self.performance_monitoring = enable_performance_monitoring
             self.redact_sensitive = redact_sensitive
+            
+            # Create log directories and setup loggers immediately (Week 1 behavior)
             self._setup_loggers()
         except Exception as e:
             raise HydraLoggerError(f"Failed to initialize HydraLogger: {e}") from e
@@ -309,85 +335,118 @@ class HydraLogger:
 
     def _setup_loggers(self) -> None:
         """
-        Set up individual loggers for each layer.
-
-        This method creates and configures logging handlers for each layer defined
-        in the configuration. It handles directory creation, handler setup, and
-        error recovery for invalid configurations.
-
-        The setup process includes:
-        - Creating all necessary log directories
-        - Setting up individual loggers for each layer
-        - Configuring handlers for each destination
-        - Error handling and fallback mechanisms
-
-        Raises:
-            HydraLoggerError: If critical setup failures occur that prevent
-                the logger from functioning properly.
+        Setup all loggers for configured layers.
+        
+        This method creates loggers and handlers for all configured layers
+        during initialization. It handles directory creation and error recovery.
         """
         try:
-            try:
-                # Create log directories first
-                create_log_directories(self.config)
-            except OSError as dir_err:
-                self._log_warning(f"Directory creation failed: {dir_err}. Falling back to console logging for all layers.")
-                # Fallback: replace all file destinations with console destinations
-                for layer in self.config.layers.values():
-                    layer.destinations = [
-                        d if d.type == "console" else LogDestination(type="console", level=d.level, format=getattr(d, "format", "text"))
-                        for d in layer.destinations
-                    ]
-
-            # Set up each layer
-            for layer_name, layer_config in self.config.layers.items():
-                self._setup_single_layer(layer_name, layer_config)
-
+            # Create log directories at startup (for file destinations)
+            create_log_directories(self.config)
+        except OSError as dir_err:
+            self._log_warning(f"Directory creation failed: {dir_err}. Falling back to console logging for all layers.")
+            for layer in self.config.layers.values():
+                layer.destinations = [
+                    d if d.type == "console" else LogDestination(type="console", level=d.level, format=getattr(d, "format", "text"))
+                    for d in layer.destinations
+                ]
         except Exception as e:
+            # Handle any other exceptions during directory creation
+            self._log_error(f"Failed to setup loggers: {e}")
             raise HydraLoggerError(f"Failed to setup loggers: {e}") from e
+        
+        # Setup each configured layer
+        for layer_name, layer_config in self.config.layers.items():
+            self._setup_single_layer(layer_name, layer_config)
 
     def _setup_single_layer(self, layer_name: str, layer_config: LogLayer) -> None:
         """
-        Set up a single logging layer.
-
+        Setup a single logging layer.
+        
         Args:
-            layer_name (str): Name of the layer to configure.
-            layer_config (LogLayer): Configuration for this layer.
-
-        This method configures a single logging layer with its destinations,
-        handlers, and log levels. It includes error handling to ensure that
-        failures in one layer don't prevent other layers from being set up.
-
-        Raises:
-            HydraLoggerError: If layer setup fails completely and cannot be recovered.
+            layer_name (str): Name of the layer to setup.
+            layer_config (LogLayer): Configuration for the layer.
         """
         try:
+            # Create and configure logger for this layer
             logger = logging.getLogger(layer_name)
             logger.setLevel(getattr(logging, layer_config.level))
-
-            # Clear existing handlers to avoid duplicates
+            
+            # Clear existing handlers
             if logger.hasHandlers():
                 logger.handlers.clear()
-
-            # Add handlers for each destination
+            
+            # Create handlers for each destination
             valid_handlers = 0
             for destination in layer_config.destinations:
                 handler = self._create_handler(destination, layer_config.level)
                 if handler:
                     logger.addHandler(handler)
                     valid_handlers += 1
-
-            # Warn if no valid handlers were created for this layer
+            
             if valid_handlers == 0:
                 self._log_warning(
-                    f"No valid handlers created for layer '{layer_name}'. "
-                    f"Layer will not log to any destination."
+                    f"No valid handlers created for layer '{layer_name}'. Layer will not log to any destination."
                 )
-
+            
+            # Store the logger
             self.loggers[layer_name] = logger
-
+            
         except Exception as e:
             self._log_error(f"Failed to setup layer '{layer_name}': {e}")
-            # Don't raise here to allow other layers to be set up
+            # Create a fallback logger
+            try:
+                fallback_logger = logging.getLogger(layer_name)
+                fallback_logger.setLevel(getattr(logging, self.config.default_level))
+                if not fallback_logger.handlers:
+                    console_handler = logging.StreamHandler(sys.stdout)
+                    console_handler.setLevel(getattr(logging, self.config.default_level))
+                    console_handler.setFormatter(self._get_formatter())
+                    fallback_logger.addHandler(console_handler)
+                self.loggers[layer_name] = fallback_logger
+            except Exception as fallback_error:
+                # If even the fallback fails, create a minimal logger
+                self._log_error(f"Fallback logger creation failed for '{layer_name}': {fallback_error}")
+                try:
+                    minimal_logger = logging.getLogger(f"hydra.{layer_name}")
+                    minimal_logger.setLevel(getattr(logging, self.config.default_level))
+                    self.loggers[layer_name] = minimal_logger
+                except Exception as final_error:
+                    # If even the minimal logger fails, create a dummy logger object
+                    self._log_error(f"Minimal logger creation failed for '{layer_name}': {final_error}")
+                    # Create a minimal logger object that won't fail
+                    class DummyLogger:
+                        def __init__(self, name, default_level="INFO"):
+                            self.name = name
+                            self.level = getattr(logging, default_level)
+                            self.handlers = []
+                        
+                        def setLevel(self, level):
+                            self.level = level
+                        
+                        def addHandler(self, handler):
+                            self.handlers.append(handler)
+                        
+                        def hasHandlers(self):
+                            return len(self.handlers) > 0
+                        
+                        def debug(self, msg):
+                            pass
+                        
+                        def info(self, msg):
+                            pass
+                        
+                        def warning(self, msg):
+                            pass
+                        
+                        def error(self, msg):
+                            pass
+                        
+                        def critical(self, msg):
+                            pass
+                    
+                    dummy_logger = DummyLogger(f"hydra.{layer_name}", self.config.default_level)
+                    self.loggers[layer_name] = dummy_logger  # type: ignore
 
     def _create_handler(
         self, destination: LogDestination, layer_level: str
@@ -582,21 +641,26 @@ class HydraLogger:
         )
 
     def _get_text_formatter(self) -> logging.Formatter:
-        """Get the standard text formatter."""
+        """Get the standard text formatter with custom format support."""
         if should_use_colors():
             return ColoredTextFormatter()
         else:
-            return logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - "
-                "%(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
+            # Use custom formats if available, otherwise use defaults
+            date_format = getattr(self, 'date_format', "%Y-%m-%d %H:%M:%S")
+            logger_name_format = getattr(self, 'logger_name_format', "%(name)s")
+            message_format = getattr(self, 'message_format', "%(levelname)s - %(message)s")
+            
+            # Build the format string using custom components
+            format_string = f"%(asctime)s - {logger_name_format} - {message_format} - %(filename)s:%(lineno)d"
+            
+            return logging.Formatter(format_string, datefmt=date_format)
 
     def _get_csv_formatter(self) -> logging.Formatter:
         """Get CSV formatter for structured log output."""
+        date_format = getattr(self, 'date_format', "%Y-%m-%d %H:%M:%S")
         return logging.Formatter(
             "%(asctime)s,%(name)s,%(levelname)s,%(filename)s,%(lineno)d,%(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+            datefmt=date_format,
         )
 
     def _get_syslog_formatter(self) -> logging.Formatter:
@@ -606,6 +670,52 @@ class HydraLogger:
     def _get_gelf_formatter(self) -> logging.Formatter:
         """Get GELF-compatible formatter (basic structure)."""
         return logging.Formatter("%(message)s")  # GELF handler will add the structure
+
+    def _get_calling_module_name(self) -> str:
+        """
+        Get the name of the calling module for automatic module name detection.
+        
+        Returns:
+            str: The name of the calling module or 'DEFAULT' as fallback.
+        """
+        try:
+            import inspect
+            # Get the frame of the calling function (2 levels up: current -> logging method -> caller)
+            frame = inspect.currentframe()
+            if frame:
+                # Go up 2 levels to get the caller's frame
+                caller_frame = frame.f_back
+                if caller_frame:
+                    caller_frame = caller_frame.f_back
+                    if caller_frame:
+                        module_name = caller_frame.f_globals.get('__name__', 'DEFAULT')
+                        # Clean up the module name (remove package prefixes if desired)
+                        if module_name != '__main__':
+                            return module_name
+        except Exception:
+            pass
+        return 'DEFAULT'
+
+    def _log_with_auto_detection(self, level: str, layer_or_message: str, message: Optional[str] = None) -> None:
+        """
+        Log with automatic module name detection.
+        
+        Args:
+            level (str): Log level (debug, info, warning, error, critical)
+            layer_or_message (str): Either layer name or message (if no layer provided)
+            message (Optional[str]): Message (if layer was provided in layer_or_message)
+        """
+        if message is None:
+            # Single argument: use automatic module name detection
+            layer = self._get_calling_module_name()
+            message = layer_or_message
+        else:
+            # Two arguments: explicit layer and message
+            layer = layer_or_message
+            
+        # Call the appropriate logging method
+        log_method = getattr(self, level.lower())
+        log_method(layer, message)
 
     def _parse_size(self, size_str: str) -> int:
         """
@@ -689,91 +799,64 @@ class HydraLogger:
             self._log_error(f"Failed to log {level} message to layer '{layer}': {e}")
             logger.info(message)
 
-    def _get_or_create_logger(self, layer: str) -> logging.Logger:
-        """
-        Get existing logger or create a new one for unknown layers.
-
-        Args:
-            layer (str): Layer name.
-
-        Returns:
-            logging.Logger: Configured logging.Logger instance.
-
-        This method provides fallback functionality for logging to layers that
-        weren't explicitly configured. It first tries to use the DEFAULT layer
-        if available, otherwise creates a simple logger with console output
-        for unknown layers.
-        """
-        if layer not in self.loggers:
-            # Fallback to default layer if available
-            if "DEFAULT" in self.loggers:
-                layer = "DEFAULT"
-            else:
-                # Create a simple logger for unknown layers
-                logger = logging.getLogger(f"hydra.{layer}")
-                logger.setLevel(getattr(logging, self.config.default_level))
-
-                # Add a console handler for unknown layers
-                if not logger.handlers:
-                    console_handler = logging.StreamHandler(sys.stdout)
-                    console_handler.setLevel(
-                        getattr(logging, self.config.default_level)
-                    )
-                    console_handler.setFormatter(self._get_formatter())
-                    logger.addHandler(console_handler)
-
-                self.loggers[layer] = logger
-
-        return self.loggers[layer]
-
-    def debug(self, layer: str, message: str) -> None:
-        """
-        Log debug message to layer.
-
-        Args:
-            layer (str): Layer name to log to.
-            message (str): Debug message to log.
-        """
+    def debug(self, layer_or_message: str, message: Optional[str] = None) -> None:
+        if message is None and layer_or_message is None:
+            return
+        if message is None:
+            layer = self._get_calling_module_name()
+            message = layer_or_message
+        else:
+            layer = layer_or_message
+        if message is None:
+            return
         self.log(layer, "DEBUG", message)
 
-    def info(self, layer: str, message: str) -> None:
-        """
-        Log info message to layer.
-
-        Args:
-            layer (str): Layer name to log to.
-            message (str): Info message to log.
-        """
+    def info(self, layer_or_message: str, message: Optional[str] = None) -> None:
+        if message is None and layer_or_message is None:
+            return
+        if message is None:
+            layer = self._get_calling_module_name()
+            message = layer_or_message
+        else:
+            layer = layer_or_message
+        if message is None:
+            return
         self.log(layer, "INFO", message)
 
-    def warning(self, layer: str, message: str) -> None:
-        """
-        Log warning message to layer.
-
-        Args:
-            layer (str): Layer name to log to.
-            message (str): Warning message to log.
-        """
+    def warning(self, layer_or_message: str, message: Optional[str] = None) -> None:
+        if message is None and layer_or_message is None:
+            return
+        if message is None:
+            layer = self._get_calling_module_name()
+            message = layer_or_message
+        else:
+            layer = layer_or_message
+        if message is None:
+            return
         self.log(layer, "WARNING", message)
 
-    def error(self, layer: str, message: str) -> None:
-        """
-        Log error message to layer.
-
-        Args:
-            layer (str): Layer name to log to.
-            message (str): Error message to log.
-        """
+    def error(self, layer_or_message: str, message: Optional[str] = None) -> None:
+        if message is None and layer_or_message is None:
+            return
+        if message is None:
+            layer = self._get_calling_module_name()
+            message = layer_or_message
+        else:
+            layer = layer_or_message
+        if message is None:
+            return
         self.log(layer, "ERROR", message)
 
-    def critical(self, layer: str, message: str) -> None:
-        """
-        Log critical message to layer.
-
-        Args:
-            layer (str): Layer name to log to.
-            message (str): Critical message to log.
-        """
+    def critical(self, layer_or_message: str, message: Optional[str] = None) -> None:
+        if message is None and layer_or_message is None:
+            return
+        if message is None:
+            layer = self._get_calling_module_name()
+            message = layer_or_message
+        else:
+            layer = layer_or_message
+        if message is None:
+            return
         self.log(layer, "CRITICAL", message)
 
     def get_logger(self, layer: str) -> logging.Logger:
@@ -951,3 +1034,110 @@ class HydraLogger:
                     layer.destinations = [LogDestination(type="console", format="text")]
         
         return config
+
+    def _get_or_create_logger(self, layer: str) -> logging.Logger:
+        """
+        Get existing logger or create a new one for unknown layers.
+        Lazily initializes loggers and handlers for the layer on first use.
+        Thread-safe.
+        """
+        if layer in self.loggers:
+            return self.loggers[layer]
+        with self._logger_init_lock:
+            if layer in self.loggers:
+                return self.loggers[layer]
+            
+            # Create a minimal logger object that won't fail
+            class DummyLogger:
+                def __init__(self, name, default_level="INFO"):
+                    self.name = name
+                    self.level = getattr(logging, default_level)
+                    self.handlers = []
+                
+                def setLevel(self, level):
+                    self.level = level
+                
+                def addHandler(self, handler):
+                    self.handlers.append(handler)
+                
+                def hasHandlers(self):
+                    return len(self.handlers) > 0
+                
+                def debug(self, msg):
+                    pass
+                
+                def info(self, msg):
+                    pass
+                
+                def warning(self, msg):
+                    pass
+                
+                def error(self, msg):
+                    pass
+                
+                def critical(self, msg):
+                    pass
+            
+            # Find layer config or fallback
+            layer_config = self.config.layers.get(layer)
+            if not layer_config and "DEFAULT" in self.config.layers:
+                layer_config = self.config.layers["DEFAULT"]
+                layer = "DEFAULT"
+            if not layer_config:
+                # Create a simple logger for unknown layers
+                try:
+                    logger = logging.getLogger(layer)
+                    logger.setLevel(getattr(logging, self.config.default_level))
+                    if not logger.handlers:
+                        console_handler = logging.StreamHandler(sys.stdout)
+                        console_handler.setLevel(getattr(logging, self.config.default_level))
+                        console_handler.setFormatter(self._get_formatter())
+                        logger.addHandler(console_handler)
+                    self.loggers[layer] = logger
+                    return logger
+                except Exception as e:
+                    # If logger creation fails, create a minimal fallback
+                    self._log_error(f"Failed to create logger for '{layer}': {e}")
+                    try:
+                        minimal_logger = logging.getLogger(f"hydra.{layer}")
+                        minimal_logger.setLevel(getattr(logging, self.config.default_level))
+                        self.loggers[layer] = minimal_logger
+                        return minimal_logger
+                    except Exception as fallback_error:
+                        # If even the fallback fails, create a dummy logger object
+                        self._log_error(f"Fallback logger creation failed for '{layer}': {fallback_error}")
+                        dummy_logger = DummyLogger(f"hydra.{layer}", self.config.default_level)
+                        self.loggers[layer] = dummy_logger  # type: ignore
+                        return dummy_logger  # type: ignore
+            # Create and configure logger for this layer
+            try:
+                logger = logging.getLogger(layer)
+                logger.setLevel(getattr(logging, layer_config.level))
+                if logger.hasHandlers():
+                    logger.handlers.clear()
+                valid_handlers = 0
+                for destination in layer_config.destinations:
+                    handler = self._create_handler(destination, layer_config.level)
+                    if handler:
+                        logger.addHandler(handler)
+                        valid_handlers += 1
+                if valid_handlers == 0:
+                    self._log_warning(
+                        f"No valid handlers created for layer '{layer}'. Layer will not log to any destination."
+                    )
+                self.loggers[layer] = logger
+                return logger
+            except Exception as e:
+                # If logger creation fails, create a minimal fallback
+                self._log_error(f"Failed to create logger for '{layer}': {e}")
+                try:
+                    minimal_logger = logging.getLogger(f"hydra.{layer}")
+                    minimal_logger.setLevel(getattr(logging, self.config.default_level))
+                    self.loggers[layer] = minimal_logger
+                    return minimal_logger
+                except Exception as fallback_error:
+                    # If even the fallback fails, create a dummy logger object
+                    self._log_error(f"Fallback logger creation failed for '{layer}': {fallback_error}")
+                    dummy_logger = DummyLogger(f"hydra.{layer}", self.config.default_level)
+                    self.loggers[layer] = dummy_logger  # type: ignore
+                    return dummy_logger  # type: ignore

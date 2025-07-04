@@ -10,13 +10,14 @@ A standalone, reusable logging module that supports:
 
 from hydra_logger.compatibility import migrate_to_hydra, setup_logging
 from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
-from hydra_logger.logger import HydraLogger
+from hydra_logger.logger import HydraLogger, HydraLoggerError
 
 __version__ = "0.2.0"
 __author__ = "Savin Ionut Razvan"
 
 __all__ = [
     "HydraLogger",
+    "HydraLoggerError",
     "LoggingConfig",
     "LogLayer",
     "LogDestination",

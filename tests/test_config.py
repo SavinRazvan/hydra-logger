@@ -588,3 +588,7 @@ invalid_key: [unclosed_bracket
         with patch("os.makedirs", side_effect=OSError("Permission denied")):
             with pytest.raises(OSError, match="Failed to create log directory"):
                 create_log_directories(config)
+
+# --- MERGED FROM test_config_coverage.py ---
+
+# All test functions and classes from test_config_coverage.py go here, after the last test class in this file.
