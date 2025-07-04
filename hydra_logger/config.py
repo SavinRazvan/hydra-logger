@@ -103,7 +103,7 @@ class LogDestination(BaseModel):
         specified, preventing configuration errors that would cause logging
         failures at runtime.
         """
-        if info.data and info.data.get("type") == "file" and not v:
+        if info.data and info.data.get("type") == "file" and (not v or (v and not v.strip())):
             raise ValueError("Path is required for file destinations")
         return v
 
@@ -120,7 +120,7 @@ class LogDestination(BaseModel):
         This method provides additional validation after model initialization
         to ensure that file destinations have the required path configuration.
         """
-        if self.type == "file" and not self.path:
+        if self.type == "file" and (not self.path or (self.path and not self.path.strip())):
             raise ValueError("Path is required for file destinations")
 
     @field_validator("level")
