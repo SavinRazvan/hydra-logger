@@ -197,7 +197,7 @@ class HydraLogger:
             HydraLoggerError: If layer setup fails completely and cannot be recovered.
         """
         try:
-            logger = logging.getLogger(f"hydra.{layer_name}")
+            logger = logging.getLogger(layer_name)
             logger.setLevel(getattr(logging, layer_config.level))
 
             # Clear existing handlers to avoid duplicates
