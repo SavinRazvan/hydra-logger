@@ -76,13 +76,22 @@ class HydraLogger:
             layer name.
     """
 
-    def __init__(self, config: Optional[LoggingConfig] = None):
+    def __init__(self, config: Optional[LoggingConfig] = None, 
+                 auto_detect: bool = False,
+                 enable_performance_monitoring: bool = False,
+                 redact_sensitive: bool = False):
         """
         Initialize HydraLogger with configuration.
 
         Args:
             config (Optional[LoggingConfig]): LoggingConfig object. If None,
                 uses default config.
+            auto_detect (bool): Auto-detect environment and configure accordingly.
+                Defaults to True for zero-configuration mode.
+            enable_performance_monitoring (bool): Enable performance monitoring.
+                Defaults to False.
+            redact_sensitive (bool): Auto-redact sensitive information (emails, 
+                passwords, tokens). Defaults to False.
 
         Raises:
             HydraLoggerError: If logger setup fails due to configuration issues.
@@ -94,8 +103,19 @@ class HydraLogger:
         - Handler creation and configuration
         """
         try:
-            self.config = config or get_default_config()
+            # Auto-detect configuration if enabled and no config provided
+            if config is None and auto_detect:
+                config = self._auto_detect_config()
+            
+            # Use provided config, auto-detected config, or default config
+            if config is None:
+                self.config = get_default_config()
+            else:
+                self.config = config
+                
             self.loggers: Dict[str, logging.Logger] = {}
+            self.performance_monitoring = enable_performance_monitoring
+            self.redact_sensitive = redact_sensitive
             self._setup_loggers()
         except Exception as e:
             raise HydraLoggerError(f"Failed to initialize HydraLogger: {e}") from e
@@ -628,3 +648,123 @@ class HydraLogger:
         itself may not be fully initialized.
         """
         print(f"ERROR: {message}", file=sys.stderr)
+
+    def _auto_detect_config(self) -> LoggingConfig:
+        """
+        Auto-detect environment and create appropriate configuration.
+        
+        Returns:
+            LoggingConfig: Configuration based on detected environment.
+            
+        This method detects the current environment (development, production, 
+        testing) and creates an appropriate configuration with sensible defaults.
+        """
+        import os
+        import platform
+        
+        # Detect environment
+        env = os.getenv('ENVIRONMENT', '').lower()
+        if not env:
+            if os.getenv('FLASK_ENV') == 'development':
+                env = 'development'
+            elif os.getenv('DJANGO_SETTINGS_MODULE'):
+                env = 'production' if os.getenv('DJANGO_DEBUG') != 'True' else 'development'
+            elif os.getenv('NODE_ENV'):
+                node_env = os.getenv('NODE_ENV')
+                env = node_env.lower() if node_env else 'development'
+            else:
+                # Default to development if no clear indicators
+                env = 'development'
+        
+        # Detect if running in container
+        is_container = os.path.exists('/.dockerenv') or os.getenv('KUBERNETES_SERVICE_HOST')
+        
+        # Detect if running in CI/CD
+        is_ci = bool(os.getenv('CI') or os.getenv('GITHUB_ACTIONS') or 
+                     os.getenv('GITLAB_CI') or os.getenv('TRAVIS'))
+        
+        # Create base configuration
+        config = LoggingConfig(
+            layers={}
+        )
+        
+        # Environment-specific configurations
+        if env == 'development':
+            config.layers = {
+                "DEFAULT": LogLayer(
+                    level="DEBUG",
+                    destinations=[
+                        LogDestination(type="console", format="text"),
+                        LogDestination(type="file", path="app.log", format="text")
+                    ]
+                ),
+                "debug": LogLayer(
+                    level="DEBUG", 
+                    destinations=[
+                        LogDestination(type="file", path="debug.log", format="json")
+                    ]
+                )
+            }
+        elif env == 'production':
+            app_destinations = [
+                LogDestination(type="file", path="app.log", format="json")
+            ]
+            if not is_container:
+                app_destinations.append(LogDestination(type="file", path="app.log", format="gelf"))
+            
+            config.layers = {
+                "DEFAULT": LogLayer(
+                    level="INFO",
+                    destinations=app_destinations
+                ),
+                "error": LogLayer(
+                    level="ERROR",
+                    destinations=[
+                        LogDestination(type="file", path="error.log", format="json")
+                    ]
+                ),
+                "security": LogLayer(
+                    level="WARNING",
+                    destinations=[
+                        LogDestination(type="file", path="security.log", format="json")
+                    ]
+                )
+            }
+        elif env == 'testing':
+            config.layers = {
+                "DEFAULT": LogLayer(
+                    level="DEBUG",
+                    destinations=[
+                        LogDestination(type="file", path="test.log", format="json")
+                    ]
+                )
+            }
+        else:
+            # Fallback configuration
+            config.layers = {
+                "DEFAULT": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(type="console", format="text"),
+                        LogDestination(type="file", path="app.log", format="text")
+                    ]
+                )
+            }
+        
+        # Adjust for container environments
+        if is_container:
+            # In containers, prefer console output and structured formats
+            for layer in config.layers.values():
+                for dest in layer.destinations:
+                    if dest.type == "file" and dest.format == "text":
+                        dest.format = "json"
+        
+        # Adjust for CI environments
+        if is_ci:
+            # In CI, prefer console output and minimal file logging
+            for layer in config.layers.values():
+                layer.destinations = [d for d in layer.destinations if d.type == "console"]
+                if not layer.destinations:
+                    layer.destinations = [LogDestination(type="console", format="text")]
+        
+        return config
