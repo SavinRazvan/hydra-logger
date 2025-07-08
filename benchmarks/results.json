@@ -1,0 +1,173 @@
+{
+  "summary": {
+    "total_tests": 13,
+    "successful_tests": 13,
+    "failed_tests": 0,
+    "best_performance": 108204.84675064764,
+    "worst_performance": 3911.6412608236433,
+    "average_performance": 56217.20291657631,
+    "best_duration": 0.09241730199983067,
+    "worst_duration": 2.5564716529997895,
+    "average_duration": 0.4716936852307229
+  },
+  "results": {
+    "HydraLogger Sync Default Console": {
+      "duration": 0.6205542849997983,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Default Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync Default File": {
+      "duration": 0.2422974940000131,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Default File",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync High Performance Console": {
+      "duration": 0.549533486999735,
+      "memory_info": {
+        "test_name": "HydraLogger Sync High Performance Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync High Performance File": {
+      "duration": 0.5151960880002662,
+      "memory_info": {
+        "test_name": "HydraLogger Sync High Performance File",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync Ultra Fast Console": {
+      "duration": 0.519197298999643,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Ultra Fast Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync Ultra Fast File": {
+      "duration": 0.5192522990000725,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Ultra Fast File",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync Production Console": {
+      "duration": 0.1051593000001958,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Production Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync Development Console": {
+      "duration": 0.10460220000004483,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Development Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync Microservice Console": {
+      "duration": 0.10129749999987325,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Microservice Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync Web App Console": {
+      "duration": 0.1124580989999231,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Web App Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync API Service Console": {
+      "duration": 0.09241730199983067,
+      "memory_info": {
+        "test_name": "HydraLogger Sync API Service Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Sync Background Worker Console": {
+      "duration": 0.09358090200021252,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Background Worker Console",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    },
+    "HydraLogger Stress Test": {
+      "duration": 2.5564716529997895,
+      "memory_info": {
+        "test_name": "HydraLogger Stress Test",
+        "memory_before_mb": 41.83984375,
+        "memory_after_mb": 41.83984375,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true
+    }
+  },
+  "memory_leaks": [],
+  "timestamp": 1751994940.7624876
+}

@@ -301,6 +301,6 @@ The modular architecture makes it easy to start simple and progressively add com
 
 ---
 
-**Hydra-Logger**: The most user-friendly, enterprise-ready Python logging library with modular architecture, zero-configuration, and performance that aims to outperform Loguru. 
+**Hydra-Logger**: The most user-friendly, enterprise-ready Python logging library with modular architecture, zero-configuration, and exceptional performance. 
 
 - [🪄 Magic Config System](magic_configs.md) — One-line reusable logging setups 

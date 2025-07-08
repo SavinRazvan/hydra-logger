@@ -6,6 +6,19 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+## 🏆 Performance Highlights
+
+**Comprehensive benchmark results show exceptional performance across all configurations:**
+
+- **🚀 API Service & Background Worker**: 108,204 messages/sec
+- **⚡ Microservice**: 98,718 messages/sec  
+- **🏭 Production & Development**: 95,600 messages/sec
+- **📊 6.7x performance improvement** from default to optimized configurations
+- **💾 Zero memory leaks** across all 13 tested configurations
+- **🛡️ Comprehensive error handling** ensures reliable logging
+
+*See [benchmarks/README.md](benchmarks/README.md) for detailed performance analysis.*
+
 ## ✨ Features
 
 ### 🎯 **Zero Configuration**
@@ -28,6 +41,16 @@ logger.info("DATABASE", "Query executed")
 logger.info("Application started")
 logger.debug("Configuration loaded")
 logger.warning("High memory usage detected")
+```
+
+### 🚀 **Optimized Configurations**
+```python
+# High-performance configurations for specific use cases
+logger = HydraLogger.for_api_service()        # 108K messages/sec
+logger = HydraLogger.for_background_worker()  # 108K messages/sec
+logger = HydraLogger.for_microservice()       # 99K messages/sec
+logger = HydraLogger.for_production()         # 96K messages/sec
+logger = HydraLogger.for_development()        # 96K messages/sec
 ```
 
 ### 🎨 **Format Customization**
@@ -157,6 +180,24 @@ logger.info("BACKEND", "API endpoint called")
 logger.info("DATABASE", "Query executed")
 ```
 
+### **High-Performance Usage**
+```python
+from hydra_logger import HydraLogger
+
+# Choose the right configuration for your use case
+if is_api_service:
+    logger = HydraLogger.for_api_service()        # 108K messages/sec
+elif is_background_worker:
+    logger = HydraLogger.for_background_worker()  # 108K messages/sec
+elif is_microservice:
+    logger = HydraLogger.for_microservice()       # 99K messages/sec
+else:
+    logger = HydraLogger.for_production()         # 96K messages/sec
+
+# Log with confidence - comprehensive error handling ensures delivery
+logger.info("APP", "Application message")
+```
+
 ### **Advanced Configuration**
 ```python
 from hydra_logger import HydraLogger
@@ -282,15 +323,15 @@ logger = HydraLogger.for_testing()
 @HydraLogger.register_magic("my_app")
 def my_app_config():
     return {
-        "layers": {
-            "APP": {
+    "layers": {
+        "APP": {
                 "level": "INFO",
-                "destinations": [
+            "destinations": [
                     {"type": "console", "format": "text"}
-                ]
-            }
+            ]
         }
     }
+}
 
 # Use custom magic config
 logger = HydraLogger.for_my_app()

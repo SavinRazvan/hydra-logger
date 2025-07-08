@@ -792,7 +792,7 @@ class TestCoreLogger:
         logger = create_logger(enable_security=False, enable_sanitization=False, enable_plugins=False)
         assert logger.enable_security is False
         assert logger.enable_sanitization is False
-        assert logger.enable_plugins is False
+        assert logger.enable_plugins is False 
 
     # Additional comprehensive test coverage for missing features
     

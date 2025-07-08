@@ -1,0 +1,14 @@
+Test Name,Duration (s),Messages/sec,Success,Memory Leak
+HydraLogger Sync Default Console,0.6205542849997983,16114.625652779516,True,False
+HydraLogger Sync Default File,0.2422974940000131,41271.578318508975,True,False
+HydraLogger Sync High Performance Console,0.549533486999735,18197.253191241503,True,False
+HydraLogger Sync High Performance File,0.5151960880002662,19410.08527222131,True,False
+HydraLogger Sync Ultra Fast Console,0.519197298999643,19260.500813982235,True,False
+HydraLogger Sync Ultra Fast File,0.5192522990000725,19258.460712176075,True,False
+HydraLogger Sync Production Console,0.1051593000001958,95093.82432159001,True,False
+HydraLogger Sync Development Console,0.10460220000004483,95600.28374160118,True,False
+HydraLogger Sync Microservice Console,0.10129749999987325,98719.11942557825,True,False
+HydraLogger Sync Web App Console,0.1124580989999231,88922.00818730574,True,False
+HydraLogger Sync API Service Console,0.09241730199983067,108204.84675064764,True,False
+HydraLogger Sync Background Worker Console,0.09358090200021252,106859.410267036,True,False
+HydraLogger Stress Test,2.5564716529997895,3911.6412608236433,True,False

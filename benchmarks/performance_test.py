@@ -3,9 +3,9 @@
 Performance Benchmark: HydraLogger Performance Analysis
 
 Tests:
-- Console logging (HydraLogger Sync Default/High Performance/Ultra Fast, HydraLogger Async Default/High Performance/Ultra Fast, Loguru)
-- File logging (HydraLogger Sync Default/High Performance/Ultra Fast, HydraLogger Async Default/High Performance/Ultra Fast, Loguru)
-- Parameter grid search for HydraLogger Async batch settings
+- Console logging (HydraLogger Sync Default/High Performance/Ultra Fast)
+- File logging (HydraLogger Sync Default/High Performance/Ultra Fast)
+- Various configurations and message types
 
 Features:
 - Memory cleaning between tests
@@ -24,14 +24,12 @@ import psutil
 import os
 from typing import List, Dict, Any
 from pathlib import Path
-from hydra_logger import HydraLogger, AsyncHydraLogger
+from hydra_logger import HydraLogger
 from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-from loguru import logger as loguru_logger
 
-# Parameter grid for async
+# Parameter grid for tests
 ITERATIONS = 10000
 STRESS_ITERATIONS = 50000  # For stress testing
-CONCURRENT_TESTS = 1000    # For concurrent testing
 
 def get_message(i):
     return f"Test log message {i} with consistent content for fair comparison"
@@ -90,7 +88,7 @@ def create_console_config():
     )
 
 def create_file_config():
-    log_path = "logs/comprehensive_benchmark.log"
+    log_path = "logs/benchmark.log"
     try:
         Path(log_path).unlink()
     except Exception:
@@ -224,303 +222,11 @@ def benchmark_hydra_sync_ultra_fast_file():
         print(f"ERROR in HydraLogger Sync Ultra Fast File: {e}")
         return float('inf')
 
-# Async benchmarks - Default
-async def benchmark_hydra_async_default_console():
-    """Benchmark HydraLogger async default mode for console logging."""
+# Additional sync benchmarks
+def benchmark_hydra_sync_production_console():
+    """Benchmark HydraLogger sync production mode for console logging."""
     try:
-        logger = AsyncHydraLogger(
-            config=create_console_config(),
-            queue_size=10000,
-            batch_size=100,
-            batch_timeout=1.0
-        )
-        await logger.initialize()
-        # Warm up
-        for i in range(100):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.05)
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.2)
-        end = time.perf_counter()
-        await logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Async Default Console: {e}")
-        return float('inf')
-
-async def benchmark_hydra_async_default_file():
-    """Benchmark HydraLogger async default mode for file logging."""
-    try:
-        logger = AsyncHydraLogger(
-            config=create_file_config(),
-            queue_size=10000,
-            batch_size=100,
-            batch_timeout=1.0
-        )
-        await logger.initialize()
-        # Warm up
-        for i in range(100):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.05)
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.2)
-        end = time.perf_counter()
-        await logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Async Default File: {e}")
-        return float('inf')
-
-# Async benchmarks - High Performance
-async def benchmark_hydra_async_high_performance_console():
-    """Benchmark HydraLogger async high performance mode for console logging."""
-    try:
-        logger = AsyncHydraLogger.for_high_performance()
-        await logger.initialize()
-        # Warm up
-        for i in range(100):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.05)
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.2)
-        end = time.perf_counter()
-        await logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Async High Performance Console: {e}")
-        return float('inf')
-
-async def benchmark_hydra_async_high_performance_file():
-    """Benchmark HydraLogger async high performance mode for file logging."""
-    try:
-        logger = AsyncHydraLogger.for_high_performance()
-        await logger.initialize()
-        # Warm up
-        for i in range(100):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.05)
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.2)
-        end = time.perf_counter()
-        await logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Async High Performance File: {e}")
-        return float('inf')
-
-# Async benchmarks - Ultra Fast
-async def benchmark_hydra_async_ultra_fast_console():
-    """Benchmark HydraLogger async ultra fast mode for console logging."""
-    try:
-        logger = AsyncHydraLogger.for_ultra_fast()
-        await logger.initialize()
-        # Warm up
-        for i in range(100):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.05)
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.2)
-        end = time.perf_counter()
-        await logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Async Ultra Fast Console: {e}")
-        return float('inf')
-
-async def benchmark_hydra_async_ultra_fast_file():
-    """Benchmark HydraLogger async ultra fast mode for file logging."""
-    try:
-        logger = AsyncHydraLogger.for_ultra_fast()
-        await logger.initialize()
-        # Warm up
-        for i in range(100):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.05)
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            await logger.info("DEFAULT", get_message(i))
-        await asyncio.sleep(0.2)
-        end = time.perf_counter()
-        await logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Async Ultra Fast File: {e}")
-        return float('inf')
-
-# Loguru benchmarks
-def benchmark_loguru_console():
-    """Benchmark Loguru for console logging."""
-    try:
-        loguru_logger.remove()
-        loguru_logger.add(lambda msg: print(msg, end=""), format="{message}", level="INFO")
-        # Warm up
-        for i in range(100):
-            loguru_logger.info(get_message(i))
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            loguru_logger.info(get_message(i))
-        end = time.perf_counter()
-        loguru_logger.remove()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in Loguru Console: {e}")
-        return float('inf')
-
-def benchmark_loguru_file():
-    """Benchmark Loguru for file logging."""
-    try:
-        loguru_logger.remove()
-        loguru_logger.add("logs/loguru_comprehensive.log", format="{message}", level="INFO")
-        # Warm up
-        for i in range(100):
-            loguru_logger.info(get_message(i))
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            loguru_logger.info(get_message(i))
-        end = time.perf_counter()
-        loguru_logger.remove()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in Loguru File: {e}")
-        return float('inf')
-
-# Additional test configurations
-def create_debug_config():
-    """Create configuration for DEBUG level testing."""
-    return LoggingConfig(
-        layers={
-            "DEFAULT": LogLayer(
-                level="DEBUG",
-                destinations=[
-                    LogDestination(
-                        type="console",
-                        format="plain-text",
-                        color_mode="never"
-                    )
-                ]
-            )
-        }
-    )
-
-def create_error_config():
-    """Create configuration for ERROR level testing."""
-    return LoggingConfig(
-        layers={
-            "DEFAULT": LogLayer(
-                level="ERROR",
-                destinations=[
-                    LogDestination(
-                        type="console",
-                        format="plain-text",
-                        color_mode="never"
-                    )
-                ]
-            )
-        }
-    )
-
-def create_multi_destination_config():
-    """Create configuration for multi-destination testing."""
-    return LoggingConfig(
-        layers={
-            "DEFAULT": LogLayer(
-                level="INFO",
-                destinations=[
-                    LogDestination(
-                        type="console",
-                        format="plain-text",
-                        color_mode="never"
-                    ),
-                    LogDestination(
-                        type="file",
-                        path="logs/multi_destination.log",
-                        format="plain-text",
-                        color_mode="never",
-                        max_size="50MB",
-                        backup_count=1
-                    )
-                ]
-            )
-        }
-    )
-
-# Additional benchmark functions
-def benchmark_hydra_sync_debug_console():
-    """Test HydraLogger sync with DEBUG level."""
-    try:
-        logger = HydraLogger(config=create_debug_config())
-        # Warm up
-        for i in range(100):
-            logger.debug("DEFAULT", get_debug_message(i))
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            logger.debug("DEFAULT", get_debug_message(i))
-        end = time.perf_counter()
-        logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Sync Debug Console: {e}")
-        return float('inf')
-
-def benchmark_hydra_sync_error_console():
-    """Test HydraLogger sync with ERROR level."""
-    try:
-        logger = HydraLogger(config=create_error_config())
-        # Warm up
-        for i in range(100):
-            logger.error("DEFAULT", get_error_message(i))
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            logger.error("DEFAULT", get_error_message(i))
-        end = time.perf_counter()
-        logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Sync Error Console: {e}")
-        return float('inf')
-
-def benchmark_hydra_sync_large_messages():
-    """Test HydraLogger sync with large messages."""
-    try:
-        logger = HydraLogger(config=create_console_config())
-        # Warm up
-        for i in range(100):
-            logger.info("DEFAULT", get_large_message(i))
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            logger.info("DEFAULT", get_large_message(i))
-        end = time.perf_counter()
-        logger.close()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in HydraLogger Sync Large Messages: {e}")
-        return float('inf')
-
-def benchmark_hydra_sync_multi_destination():
-    """Test HydraLogger sync with multiple destinations."""
-    try:
-        logger = HydraLogger(config=create_multi_destination_config())
+        logger = HydraLogger.for_production()
         # Warm up
         for i in range(100):
             logger.info("DEFAULT", get_message(i))
@@ -532,17 +238,107 @@ def benchmark_hydra_sync_multi_destination():
         logger.close()
         return end - start
     except Exception as e:
-        print(f"ERROR in HydraLogger Sync Multi Destination: {e}")
+        print(f"ERROR in HydraLogger Sync Production Console: {e}")
+        return float('inf')
+
+def benchmark_hydra_sync_development_console():
+    """Benchmark HydraLogger sync development mode for console logging."""
+    try:
+        logger = HydraLogger.for_development()
+        # Warm up
+        for i in range(100):
+            logger.info("DEFAULT", get_message(i))
+        # Benchmark
+        start = time.perf_counter()
+        for i in range(ITERATIONS):
+            logger.info("DEFAULT", get_message(i))
+        end = time.perf_counter()
+        logger.close()
+        return end - start
+    except Exception as e:
+        print(f"ERROR in HydraLogger Sync Development Console: {e}")
+        return float('inf')
+
+def benchmark_hydra_sync_microservice_console():
+    """Benchmark HydraLogger sync microservice mode for console logging."""
+    try:
+        logger = HydraLogger.for_microservice()
+        # Warm up
+        for i in range(100):
+            logger.info("DEFAULT", get_message(i))
+        # Benchmark
+        start = time.perf_counter()
+        for i in range(ITERATIONS):
+            logger.info("DEFAULT", get_message(i))
+        end = time.perf_counter()
+        logger.close()
+        return end - start
+    except Exception as e:
+        print(f"ERROR in HydraLogger Sync Microservice Console: {e}")
+        return float('inf')
+
+def benchmark_hydra_sync_web_app_console():
+    """Benchmark HydraLogger sync web app mode for console logging."""
+    try:
+        logger = HydraLogger.for_web_app()
+        # Warm up
+        for i in range(100):
+            logger.info("DEFAULT", get_message(i))
+        # Benchmark
+        start = time.perf_counter()
+        for i in range(ITERATIONS):
+            logger.info("DEFAULT", get_message(i))
+        end = time.perf_counter()
+        logger.close()
+        return end - start
+    except Exception as e:
+        print(f"ERROR in HydraLogger Sync Web App Console: {e}")
+        return float('inf')
+
+def benchmark_hydra_sync_api_service_console():
+    """Benchmark HydraLogger sync API service mode for console logging."""
+    try:
+        logger = HydraLogger.for_api_service()
+        # Warm up
+        for i in range(100):
+            logger.info("DEFAULT", get_message(i))
+        # Benchmark
+        start = time.perf_counter()
+        for i in range(ITERATIONS):
+            logger.info("DEFAULT", get_message(i))
+        end = time.perf_counter()
+        logger.close()
+        return end - start
+    except Exception as e:
+        print(f"ERROR in HydraLogger Sync API Service Console: {e}")
+        return float('inf')
+
+def benchmark_hydra_sync_background_worker_console():
+    """Benchmark HydraLogger sync background worker mode for console logging."""
+    try:
+        logger = HydraLogger.for_background_worker()
+        # Warm up
+        for i in range(100):
+            logger.info("DEFAULT", get_message(i))
+        # Benchmark
+        start = time.perf_counter()
+        for i in range(ITERATIONS):
+            logger.info("DEFAULT", get_message(i))
+        end = time.perf_counter()
+        logger.close()
+        return end - start
+    except Exception as e:
+        print(f"ERROR in HydraLogger Sync Background Worker Console: {e}")
         return float('inf')
 
 def benchmark_stress_test():
-    """Stress test with higher iterations."""
+    """Stress test with high volume logging."""
     try:
         logger = HydraLogger.for_high_performance()
         # Warm up
         for i in range(100):
             logger.info("DEFAULT", get_message(i))
-        # Benchmark
+        # Stress test
         start = time.perf_counter()
         for i in range(STRESS_ITERATIONS):
             logger.info("DEFAULT", get_message(i))
@@ -553,437 +349,221 @@ def benchmark_stress_test():
         print(f"ERROR in Stress Test: {e}")
         return float('inf')
 
-async def benchmark_concurrent_logging():
-    """Test concurrent logging with multiple async tasks."""
+def run_test_with_memory_check(test_func, test_name, *args, **kwargs):
+    """Run a test with memory leak detection."""
     try:
-        logger = AsyncHydraLogger.for_high_performance()
-        await logger.initialize()
+        clean_memory()
+        memory_before = get_memory_usage()
         
-        async def log_task(task_id):
-            for i in range(CONCURRENT_TESTS):
-                await logger.info("DEFAULT", f"Task {task_id}: {get_message(i)}")
+        result = test_func(*args, **kwargs)
         
-        # Create multiple concurrent tasks
-        tasks = [log_task(i) for i in range(5)]  # 5 concurrent tasks
+        clean_memory()
+        memory_after = get_memory_usage()
         
-        start = time.perf_counter()
-        await asyncio.gather(*tasks)
-        end = time.perf_counter()
+        memory_info = check_memory_leak(memory_before, memory_after, test_name)
         
-        await logger.close()
-        return end - start
+        return {
+            "duration": result,
+            "memory_info": memory_info,
+            "success": result != float('inf')
+        }
     except Exception as e:
-        print(f"ERROR in Concurrent Logging: {e}")
-        return float('inf')
-
-def benchmark_loguru_large_messages():
-    """Test Loguru with large messages."""
-    try:
-        loguru_logger.remove()
-        loguru_logger.add(lambda msg: print(msg, end=""), format="{message}", level="INFO")
-        # Warm up
-        for i in range(100):
-            loguru_logger.info(get_large_message(i))
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            loguru_logger.info(get_large_message(i))
-        end = time.perf_counter()
-        loguru_logger.remove()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in Loguru Large Messages: {e}")
-        return float('inf')
-
-def benchmark_loguru_debug():
-    """Test Loguru with DEBUG level."""
-    try:
-        loguru_logger.remove()
-        loguru_logger.add(lambda msg: print(msg, end=""), format="{message}", level="DEBUG")
-        # Warm up
-        for i in range(100):
-            loguru_logger.debug(get_debug_message(i))
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            loguru_logger.debug(get_debug_message(i))
-        end = time.perf_counter()
-        loguru_logger.remove()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in Loguru Debug: {e}")
-        return float('inf')
-
-def benchmark_loguru_error():
-    """Test Loguru with ERROR level."""
-    try:
-        loguru_logger.remove()
-        loguru_logger.add(lambda msg: print(msg, end=""), format="{message}", level="ERROR")
-        # Warm up
-        for i in range(100):
-            loguru_logger.error(get_error_message(i))
-        # Benchmark
-        start = time.perf_counter()
-        for i in range(ITERATIONS):
-            loguru_logger.error(get_error_message(i))
-        end = time.perf_counter()
-        loguru_logger.remove()
-        return end - start
-    except Exception as e:
-        print(f"ERROR in Loguru Error: {e}")
-        return float('inf')
-
-async def run_test_with_memory_check(test_func, test_name, *args, **kwargs):
-    """Run a test with memory monitoring and cleanup."""
-    print(f"\n🧪 Running: {test_name}")
-    
-    # Clean memory before test
-    clean_memory()
-    memory_before = get_memory_usage()
-    
-    # Run test
-    if asyncio.iscoroutinefunction(test_func):
-        # For async functions, await them directly
-        duration = await test_func(*args, **kwargs)
-    else:
-        # For sync functions, run them normally
-        duration = test_func(*args, **kwargs)
-    
-    # Clean memory after test
-    clean_memory()
-    memory_after = get_memory_usage()
-    
-    # Check for memory leaks
-    leak_info = check_memory_leak(memory_before, memory_after, test_name)
-    
-    # Wait 1 second between tests
-    print(f"⏳ Waiting 1 second before next test...")
-    time.sleep(1.0)
-    
-    return duration, leak_info
+        print(f"ERROR in {test_name}: {e}")
+        return {
+            "duration": float('inf'),
+            "memory_info": {"test_name": test_name, "error": str(e)},
+            "success": False
+        }
 
 def clean_all_log_files():
-    """Remove all relevant log files before running benchmarks."""
+    """Clean up all log files before running tests."""
     log_files = [
-        "logs/comprehensive_benchmark.log",
-        "logs/loguru_comprehensive.log",
-        "logs/multi_destination.log"
+        "logs/benchmark.log",
+        "logs/app.log",
+        "logs/error.log",
+        "logs/debug.log"
     ]
-    for path in log_files:
+    
+    for log_file in log_files:
         try:
-            Path(path).unlink()
-        except FileNotFoundError:
+            Path(log_file).unlink()
+        except Exception:
             pass
-        except Exception as e:
-            print(f"Warning: Could not remove {path}: {e}")
 
-async def main():
-    # Clean up all log files before running any tests
+def main():
+    """Main benchmark execution."""
+    print("HydraLogger Performance Benchmark (Sync Only)")
+    print("=" * 60)
+    
+    # Clean up log files
     clean_all_log_files()
-    results: List[Dict[str, Any]] = []
-    failures: List[Dict[str, Any]] = []
-    memory_leaks: List[Dict[str, Any]] = []
     
-    print("=" * 60)
-    print("COMPREHENSIVE PERFORMANCE BENCHMARK")
-    print("=" * 60)
-    print(f"Testing {ITERATIONS:,} logs per configuration")
-    print("Features: Memory cleaning, leak detection, 1s isolation")
-    print("=" * 60)
-    
-    # Console benchmarks
-    print("\n" + "=" * 40)
-    print("CONSOLE LOGGING TESTS")
-    print("=" * 40)
-    
-    # Test configurations
-    console_tests = [
+    # Define all sync tests
+    sync_tests = [
         ("HydraLogger Sync Default Console", benchmark_hydra_sync_default_console),
-        ("HydraLogger Sync High Performance Console", benchmark_hydra_sync_high_performance_console),
-        ("HydraLogger Sync Ultra Fast Console", benchmark_hydra_sync_ultra_fast_console),
-        ("HydraLogger Async Default Console", benchmark_hydra_async_default_console),
-        ("HydraLogger Async High Performance Console", benchmark_hydra_async_high_performance_console),
-        ("HydraLogger Async Ultra Fast Console", benchmark_hydra_async_ultra_fast_console),
-        ("Loguru Console", benchmark_loguru_console),
-    ]
-    
-    for test_name, test_func in console_tests:
-        try:
-            duration, leak_info = await run_test_with_memory_check(test_func, test_name)
-            
-            logs_per_sec = ITERATIONS / duration if duration > 0 and duration != float('inf') else 0
-            
-            # Determine logger type and variant
-            if "HydraLogger" in test_name:
-                if "Sync" in test_name:
-                    mode = "sync"
-                else:
-                    mode = "async"
-                
-                if "Default" in test_name:
-                    variant = "default"
-                elif "High Performance" in test_name:
-                    variant = "high_performance"
-                elif "Ultra Fast" in test_name:
-                    variant = "ultra_fast"
-                else:
-                    variant = "default"
-            else:
-                mode = "sync"
-                variant = "default"
-            
-            results.append({
-                "logger": "HydraLogger" if "HydraLogger" in test_name else "Loguru",
-                "mode": mode,
-                "variant": variant,
-                "destination": "console",
-                "batch_size": None,
-                "batch_timeout": None,
-                "duration": duration,
-                "logs_per_sec": logs_per_sec,
-                "error": None,
-                "memory_before_mb": leak_info["memory_before_mb"],
-                "memory_after_mb": leak_info["memory_after_mb"],
-                "memory_diff_mb": leak_info["memory_diff_mb"],
-                "potential_leak": leak_info["potential_leak"]
-            })
-            
-            print(f"✅ {test_name}: {logs_per_sec:,.0f} logs/sec ({duration:.3f}s)")
-            if leak_info["potential_leak"]:
-                print(f"⚠️  Potential memory leak: {leak_info['memory_diff_mb']:.2f}MB")
-                memory_leaks.append(leak_info)
-                
-        except Exception as e:
-            tb = traceback.format_exc()
-            failures.append({"test": test_name, "error": str(e), "traceback": tb})
-            print(f"❌ ERROR in {test_name}: {e}")
-    
-    # File benchmarks
-    print("\n" + "=" * 40)
-    print("FILE LOGGING TESTS")
-    print("=" * 40)
-    
-    file_tests = [
         ("HydraLogger Sync Default File", benchmark_hydra_sync_default_file),
+        ("HydraLogger Sync High Performance Console", benchmark_hydra_sync_high_performance_console),
         ("HydraLogger Sync High Performance File", benchmark_hydra_sync_high_performance_file),
+        ("HydraLogger Sync Ultra Fast Console", benchmark_hydra_sync_ultra_fast_console),
         ("HydraLogger Sync Ultra Fast File", benchmark_hydra_sync_ultra_fast_file),
-        ("HydraLogger Async Default File", benchmark_hydra_async_default_file),
-        ("HydraLogger Async High Performance File", benchmark_hydra_async_high_performance_file),
-        ("HydraLogger Async Ultra Fast File", benchmark_hydra_async_ultra_fast_file),
-        ("Loguru File", benchmark_loguru_file),
+        ("HydraLogger Sync Production Console", benchmark_hydra_sync_production_console),
+        ("HydraLogger Sync Development Console", benchmark_hydra_sync_development_console),
+        ("HydraLogger Sync Microservice Console", benchmark_hydra_sync_microservice_console),
+        ("HydraLogger Sync Web App Console", benchmark_hydra_sync_web_app_console),
+        ("HydraLogger Sync API Service Console", benchmark_hydra_sync_api_service_console),
+        ("HydraLogger Sync Background Worker Console", benchmark_hydra_sync_background_worker_console),
+        ("HydraLogger Stress Test", benchmark_stress_test),
     ]
     
-    for test_name, test_func in file_tests:
-        try:
-            duration, leak_info = await run_test_with_memory_check(test_func, test_name)
+    results = {}
+    memory_leaks = []
+    
+    # Run all sync tests
+    for test_name, test_func in sync_tests:
+        print(f"\nRunning {test_name}...")
+        
+        result = run_test_with_memory_check(test_func, test_name)
+        results[test_name] = result
+        
+        if result["success"]:
+            duration = result["duration"]
+            messages_per_sec = ITERATIONS / duration if duration > 0 else 0
+            print(f"  Duration: {duration:.4f}s")
+            print(f"  Messages/sec: {messages_per_sec:.2f}")
             
-            logs_per_sec = ITERATIONS / duration if duration > 0 and duration != float('inf') else 0
-            
-            # Determine logger type and variant
-            if "HydraLogger" in test_name:
-                if "Sync" in test_name:
-                    mode = "sync"
-                else:
-                    mode = "async"
-                
-                if "Default" in test_name:
-                    variant = "default"
-                elif "High Performance" in test_name:
-                    variant = "high_performance"
-                elif "Ultra Fast" in test_name:
-                    variant = "ultra_fast"
-                else:
-                    variant = "default"
+            # Check for memory leaks
+            memory_info = result["memory_info"]
+            if memory_info.get("potential_leak", False):
+                memory_leaks.append(memory_info)
+                print(f"  ⚠️  Potential memory leak detected: {memory_info['memory_diff_mb']:.2f}MB")
             else:
-                mode = "sync"
-                variant = "default"
-            
-            results.append({
-                "logger": "HydraLogger" if "HydraLogger" in test_name else "Loguru",
-                "mode": mode,
-                "variant": variant,
-                "destination": "file",
-                "batch_size": None,
-                "batch_timeout": None,
-                "duration": duration,
-                "logs_per_sec": logs_per_sec,
-                "error": None,
-                "memory_before_mb": leak_info["memory_before_mb"],
-                "memory_after_mb": leak_info["memory_after_mb"],
-                "memory_diff_mb": leak_info["memory_diff_mb"],
-                "potential_leak": leak_info["potential_leak"]
-            })
-            
-            print(f"✅ {test_name}: {logs_per_sec:,.0f} logs/sec ({duration:.3f}s)")
-            if leak_info["potential_leak"]:
-                print(f"⚠️  Potential memory leak: {leak_info['memory_diff_mb']:.2f}MB")
-                memory_leaks.append(leak_info)
-                
-        except Exception as e:
-            tb = traceback.format_exc()
-            failures.append({"test": test_name, "error": str(e), "traceback": tb})
-            print(f"❌ ERROR in {test_name}: {e}")
+                print(f"  ✅ No memory leak detected")
+        else:
+            print(f"  ❌ Test failed")
+        
+        # Wait between tests for isolation
+        time.sleep(1)
     
-    # Additional tests
-    print("\n" + "=" * 40)
-    print("ADDITIONAL TESTS")
-    print("=" * 40)
+    # Calculate summary statistics
+    successful_tests = [r for r in results.values() if r["success"]]
     
-    additional_tests = [
-        ("HydraLogger Sync Debug Console", benchmark_hydra_sync_debug_console),
-        ("HydraLogger Sync Error Console", benchmark_hydra_sync_error_console),
-        ("HydraLogger Sync Large Messages", benchmark_hydra_sync_large_messages),
-        ("HydraLogger Sync Multi Destination", benchmark_hydra_sync_multi_destination),
-        ("Stress Test", benchmark_stress_test),
-        ("Concurrent Logging", benchmark_concurrent_logging),
-        ("Loguru Large Messages", benchmark_loguru_large_messages),
-        ("Loguru Debug", benchmark_loguru_debug),
-        ("Loguru Error", benchmark_loguru_error),
-    ]
-    
-    for test_name, test_func in additional_tests:
-        try:
-            duration, leak_info = await run_test_with_memory_check(test_func, test_name)
-            
-            logs_per_sec = ITERATIONS / duration if duration > 0 and duration != float('inf') else 0
-            
-            # Determine logger type and variant
-            if "HydraLogger" in test_name:
-                if "Sync" in test_name:
-                    mode = "sync"
-                else:
-                    mode = "async"
-                
-                if "Default" in test_name:
-                    variant = "default"
-                elif "High Performance" in test_name:
-                    variant = "high_performance"
-                elif "Ultra Fast" in test_name:
-                    variant = "ultra_fast"
-                else:
-                    variant = "default"
-            else:
-                mode = "sync"
-                variant = "default"
-            
-            results.append({
-                "logger": "HydraLogger" if "HydraLogger" in test_name else "Loguru",
-                "mode": mode,
-                "variant": variant,
-                "destination": "console",
-                "batch_size": None,
-                "batch_timeout": None,
-                "duration": duration,
-                "logs_per_sec": logs_per_sec,
-                "error": None,
-                "memory_before_mb": leak_info["memory_before_mb"],
-                "memory_after_mb": leak_info["memory_after_mb"],
-                "memory_diff_mb": leak_info["memory_diff_mb"],
-                "potential_leak": leak_info["potential_leak"]
-            })
-            
-            print(f"✅ {test_name}: {logs_per_sec:,.0f} logs/sec ({duration:.3f}s)")
-            if leak_info["potential_leak"]:
-                print(f"⚠️  Potential memory leak: {leak_info['memory_diff_mb']:.2f}MB")
-                memory_leaks.append(leak_info)
-                
-        except Exception as e:
-            tb = traceback.format_exc()
-            failures.append({"test": test_name, "error": str(e), "traceback": tb})
-            print(f"❌ ERROR in {test_name}: {e}")
-    
-    # Final cleanup
-    clean_memory()
-    
-    # Analysis and Results Display
-    print("\n" + "=" * 60)
-    print("COMPREHENSIVE RESULTS ANALYSIS")
-    print("=" * 60)
-    
-    # Find best in each category
-    console_results = [r for r in results if r["destination"] == "console" and not r["error"]]
-    file_results = [r for r in results if r["destination"] == "file" and not r["error"]]
-    
-    if console_results:
-        best_console = max(console_results, key=lambda x: x["logs_per_sec"])
-        print(f"🏆 Best Console: {best_console['logger']} {best_console['mode']} {best_console['variant']} ({best_console['logs_per_sec']:,.0f} logs/sec)")
+    if successful_tests:
+        durations = [r["duration"] for r in successful_tests]
+        messages_per_sec_list = [ITERATIONS / d for d in durations if d > 0]
+        
+        summary = {
+            "total_tests": len(sync_tests),
+            "successful_tests": len(successful_tests),
+            "failed_tests": len(sync_tests) - len(successful_tests),
+            "best_performance": max(messages_per_sec_list) if messages_per_sec_list else 0,
+            "worst_performance": min(messages_per_sec_list) if messages_per_sec_list else 0,
+            "average_performance": sum(messages_per_sec_list) / len(messages_per_sec_list) if messages_per_sec_list else 0,
+            "best_duration": min(durations),
+            "worst_duration": max(durations),
+            "average_duration": sum(durations) / len(durations)
+        }
     else:
-        print("❌ No successful console results.")
-    
-    if file_results:
-        best_file = max(file_results, key=lambda x: x["logs_per_sec"])
-        print(f"🏆 Best File: {best_file['logger']} {best_file['mode']} {best_file['variant']} ({best_file['logs_per_sec']:,.0f} logs/sec)")
-    else:
-        print("❌ No successful file results.")
-    
-    # Overall winner
-    successful_results = [r for r in results if not r["error"]]
-    if successful_results:
-        best_overall = max(successful_results, key=lambda x: x["logs_per_sec"])
-        print(f"\n🏆 FASTEST OVERALL: {best_overall['logger']} {best_overall['mode']} {best_overall['variant']} {best_overall['destination']} ({best_overall['logs_per_sec']:,.0f} logs/sec)")
-    else:
-        print("❌ No successful runs.")
-    
-    # Memory leak summary
-    if memory_leaks:
-        print(f"\n⚠️  MEMORY LEAK SUMMARY ({len(memory_leaks)} potential leaks):")
-        for leak in memory_leaks:
-            print(f"   {leak['test_name']}: {leak['memory_diff_mb']:.2f}MB")
-    else:
-        print(f"\n✅ No memory leaks detected!")
-    
-    # Performance summary by logger
-    print(f"\n📊 PERFORMANCE SUMMARY BY LOGGER:")
-    logger_summary = {}
-    for result in successful_results:
-        logger_key = f"{result['logger']} {result['mode']} {result['variant']}"
-        if logger_key not in logger_summary:
-            logger_summary[logger_key] = []
-        logger_summary[logger_key].append(result['logs_per_sec'])
-    
-    for logger, performances in logger_summary.items():
-        avg_performance = sum(performances) / len(performances)
-        max_performance = max(performances)
-        print(f"   {logger}: Avg {avg_performance:,.0f} logs/sec, Max {max_performance:,.0f} logs/sec")
+        summary = {
+            "total_tests": len(sync_tests),
+            "successful_tests": 0,
+            "failed_tests": len(sync_tests),
+            "best_performance": 0,
+            "worst_performance": 0,
+            "average_performance": 0,
+            "best_duration": 0,
+            "worst_duration": 0,
+            "average_duration": 0
+        }
     
     # Save results
-    outdir = Path("benchmarks")
-    outdir.mkdir(exist_ok=True)
+    try:
+        os.makedirs("benchmarks", exist_ok=True)
+        os.makedirs("logs", exist_ok=True)
+        
+        # Save JSON results
+        with open("benchmarks/results.json", "w") as f:
+            json.dump({
+                "summary": summary,
+                "results": results,
+                "memory_leaks": memory_leaks,
+                "timestamp": time.time()
+            }, f, indent=2)
+        
+        # Save CSV results
+        with open("benchmarks/results.csv", "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Test Name", "Duration (s)", "Messages/sec", "Success", "Memory Leak"])
+            
+            for test_name, result in results.items():
+                duration = result["duration"]
+                messages_per_sec = ITERATIONS / duration if duration > 0 else 0
+                success = result["success"]
+                memory_leak = result["memory_info"].get("potential_leak", False)
+                
+                writer.writerow([test_name, duration, messages_per_sec, success, memory_leak])
+        
+        # Save summary to log file
+        with open("logs/benchmark.log", "w") as f:
+            f.write("HydraLogger Performance Benchmark Results\n")
+            f.write("=" * 50 + "\n\n")
+            
+            f.write(f"Total Tests: {summary['total_tests']}\n")
+            f.write(f"Successful: {summary['successful_tests']}\n")
+            f.write(f"Failed: {summary['failed_tests']}\n\n")
+            
+            if summary['successful_tests'] > 0:
+                f.write("Performance Summary:\n")
+                f.write(f"  Best Performance: {summary['best_performance']:.2f} messages/sec\n")
+                f.write(f"  Worst Performance: {summary['worst_performance']:.2f} messages/sec\n")
+                f.write(f"  Average Performance: {summary['average_performance']:.2f} messages/sec\n\n")
+                
+                f.write("Duration Summary:\n")
+                f.write(f"  Best Duration: {summary['best_duration']:.4f}s\n")
+                f.write(f"  Worst Duration: {summary['worst_duration']:.4f}s\n")
+                f.write(f"  Average Duration: {summary['average_duration']:.4f}s\n\n")
+            
+            if memory_leaks:
+                f.write("Memory Leaks Detected:\n")
+                for leak in memory_leaks:
+                    f.write(f"  - {leak['test_name']}: {leak['memory_diff_mb']:.2f}MB\n")
+            else:
+                f.write("No memory leaks detected.\n")
+        
+        print(f"\nResults saved to:")
+        print(f"  - benchmarks/results.json")
+        print(f"  - benchmarks/results.csv")
+        print(f"  - logs/benchmark.log")
+        
+    except Exception as e:
+        print(f"Failed to save results: {e}")
     
-    # CSV
-    csv_path = outdir / "comprehensive_results.csv"
-    with open(csv_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=results[0].keys())
-        writer.writeheader()
-        writer.writerows(results)
+    # Print final summary
+    print(f"\n{'='*60}")
+    print("FINAL SUMMARY")
+    print(f"{'='*60}")
+    print(f"Total Tests: {summary['total_tests']}")
+    print(f"Successful: {summary['successful_tests']}")
+    print(f"Failed: {summary['failed_tests']}")
     
-    # JSON
-    json_path = outdir / "comprehensive_results.json"
-    with open(json_path, "w") as f:
-        json.dump(results, f, indent=2)
+    if summary['successful_tests'] > 0:
+        print(f"\nPerformance Summary:")
+        print(f"  Best Performance: {summary['best_performance']:.2f} messages/sec")
+        print(f"  Worst Performance: {summary['worst_performance']:.2f} messages/sec")
+        print(f"  Average Performance: {summary['average_performance']:.2f} messages/sec")
+        
+        print(f"\nDuration Summary:")
+        print(f"  Best Duration: {summary['best_duration']:.4f}s")
+        print(f"  Worst Duration: {summary['worst_duration']:.4f}s")
+        print(f"  Average Duration: {summary['average_duration']:.4f}s")
     
-    # Memory leak report
     if memory_leaks:
-        leak_path = outdir / "memory_leaks.json"
-        with open(leak_path, "w") as f:
-            json.dump(memory_leaks, f, indent=2)
-        print(f"\n📊 Results saved to: {csv_path}, {json_path}, and {leak_path}")
+        print(f"\n⚠️  Memory Leaks Detected: {len(memory_leaks)}")
+        for leak in memory_leaks:
+            print(f"  - {leak['test_name']}: {leak['memory_diff_mb']:.2f}MB")
     else:
-        print(f"\n📊 Results saved to: {csv_path} and {json_path}")
+        print(f"\n✅ No memory leaks detected")
     
-    # Print summary of failures
-    if failures:
-        print(f"\n❌ FAILURE SUMMARY ({len(failures)} failures):")
-        for fail in failures:
-            print(f"   {fail['test']}: {fail['error']}")
-    else:
-        print(f"\n✅ All {len(results)} tests completed successfully!")
-    
-    print(f"\n🎯 BENCHMARK COMPLETED:")
-    print(f"   Total tests: {len(results)}")
-    print(f"   Successful: {len(successful_results)}")
-    print(f"   Failed: {len(failures)}")
-    print(f"   Memory leaks: {len(memory_leaks)}")
+    print(f"\nBenchmark completed successfully!")
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    main() 

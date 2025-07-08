@@ -722,14 +722,14 @@ class AsyncHydraLogger:
                 self.config = LoggingConfig(
                     layers={
                         "DEFAULT": LogLayer(
-                            level="INFO",
-                            destinations=[
-                                LogDestination(
-                                    type="console",
-                                    format="plain-text",
-                                    color_mode="never"
-                                )
-                            ]
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="console",
+                            format="plain-text",
+                            color_mode="never"
+                        )
+                    ]
                         )
                     }
                 )
@@ -963,7 +963,7 @@ class AsyncHydraLogger:
                  sanitize: bool = True,
                  validate_security: bool = True) -> None:
         """
-        Log a message to a specific layer with comprehensive features.
+        Log a message to a specific layer with comprehensive error handling.
         
         Args:
             layer (str): Layer to log to
@@ -976,18 +976,27 @@ class AsyncHydraLogger:
         if self._closed:
             return
         
+        # Ensure initialization
         if not self._initialized:
-            await self.initialize()
+            try:
+                await self.initialize()
+            except Exception as e:
+                print(f"Failed to initialize async logger: {e}", file=sys.stderr)
+                # Continue with fallback logging
         
         try:
             if not self._accepting_messages:
                 return
                 
             # Performance monitoring
+            start_time = None
             if self._performance_monitor:
-                start_time = self._performance_monitor.start_log_processing_timer()
+                try:
+                    start_time = self._performance_monitor.start_log_processing_timer()
+                except Exception:
+                    pass  # Continue without performance monitoring
             
-            # Security validation
+            # Security validation with fallback
             if validate_security and self._security_validator:
                 try:
                     validate_fn = getattr(self._security_validator, 'validate_message', None) or getattr(self._security_validator, 'validate_input', None)
@@ -997,8 +1006,9 @@ class AsyncHydraLogger:
                             self._performance_monitor.record_security_event()
                 except Exception as e:
                     print(f"Security validation failed: {e}", file=sys.stderr)
+                    # Continue without security validation
             
-            # Data sanitization
+            # Data sanitization with fallback
             if sanitize and self._data_sanitizer:
                 try:
                     sanitize_fn = getattr(self._data_sanitizer, 'sanitize_message', None) or getattr(self._data_sanitizer, 'sanitize_data', None)
@@ -1010,8 +1020,9 @@ class AsyncHydraLogger:
                             self._performance_monitor.record_sanitization_event()
                 except Exception as e:
                     print(f"Data sanitization failed: {e}", file=sys.stderr)
+                    # Continue with original message
             
-            # Plugin processing
+            # Plugin processing with fallback
             if self.enable_plugins:
                 for plugin_name, plugin in self._plugins.items():
                     try:
@@ -1026,27 +1037,46 @@ class AsyncHydraLogger:
                                 self._performance_monitor.record_plugin_event()
                     except Exception as e:
                         print(f"Plugin processing failed for {plugin_name}: {e}", file=sys.stderr)
+                        # Continue without this plugin
             
             # Redact sensitive information if enabled
             if self.redact_sensitive:
-                message = self._redact_sensitive_data(message)
+                try:
+                    message = self._redact_sensitive_data(message)
+                except Exception as e:
+                    print(f"Redaction failed: {e}", file=sys.stderr)
+                    # Continue with original message
             
-            # Create log record using object pooling if enabled
-            if self.enable_object_pooling and self._record_pool:
-                record = await self._record_pool.get_record(
-                    name=layer,
-                    level=getattr(logging, level.upper()),
-                    msg=message,
-                    pathname="",
-                    lineno=0,
-                    func="",
-                    exc_info=None
-                )
-            else:
-                # Fallback to standard LogRecord creation
+            # Create log record with fallback
+            record = None
+            try:
+                if self.enable_object_pooling and self._record_pool:
+                    record = await self._record_pool.get_record(
+                        name=layer,
+                        level=getattr(logging, level.upper(), logging.INFO),
+                        msg=message,
+                        pathname="",
+                        lineno=0,
+                        func="",
+                        exc_info=None
+                    )
+                else:
+                    # Fallback to standard LogRecord creation
+                    record = logging.LogRecord(
+                        name=layer,
+                        level=getattr(logging, level.upper(), logging.INFO),
+                        pathname="",
+                        lineno=0,
+                        msg=message,
+                        args=(),
+                        exc_info=None
+                    )
+            except Exception as e:
+                print(f"Failed to create log record: {e}", file=sys.stderr)
+                # Create minimal record as last resort
                 record = logging.LogRecord(
                     name=layer,
-                    level=getattr(logging, level.upper()),
+                    level=logging.INFO,
                     pathname="",
                     lineno=0,
                     msg=message,
@@ -1054,44 +1084,106 @@ class AsyncHydraLogger:
                     exc_info=None
                 )
             
-            # Queue the record for async processing
-            if layer in self._async_queues:
-                success = await self._async_queues[layer].put(record)
+            # Queue the record with intelligent fallback
+            success = False
+            try:
+                # Try async queue first
+                if layer in self._async_queues:
+                    success = await self._async_queues[layer].put(record)
+                else:
+                    # Try fallback layers
+                    fallback_layers = ["DEFAULT", "__CENTRALIZED__"]
+                    for fallback_layer in fallback_layers:
+                        if fallback_layer in self._async_queues:
+                            success = await self._async_queues[fallback_layer].put(record)
+                            break
+                    
+                    # If no async queue available, use sync fallback
+                    if not success:
+                        await self._sync_fallback_log(layer, level, message)
+                        success = True
+                
                 if success:
                     self._total_messages += 1
                 else:
                     self._failed_messages += 1
                     if self._performance_monitor:
                         self._performance_monitor.record_error()
-            else:
-                # Fallback to sync logging if async queue not available
-                if layer not in self._sync_loggers:
-                    from hydra_logger.core.logger import HydraLogger
-                    self._sync_loggers[layer] = HydraLogger(config=self.config)
-                
-                # Use sync logger with correct arguments (layer, message)
-                getattr(self._sync_loggers[layer], level.lower())(layer, message)
-                self._total_messages += 1
+                        
+            except Exception as e:
+                print(f"Failed to queue log message: {e}", file=sys.stderr)
+                # Final fallback to sync logging
+                try:
+                    await self._sync_fallback_log(layer, level, message)
+                    self._total_messages += 1
+                except Exception as fallback_error:
+                    print(f"All logging fallbacks failed: {fallback_error}", file=sys.stderr)
+                    self._failed_messages += 1
+                    if self._performance_monitor:
+                        self._performance_monitor.record_error()
             
             # End performance monitoring
-            if self._performance_monitor:
-                self._performance_monitor.end_log_processing_timer(start_time)
+            if self._performance_monitor and start_time:
+                try:
+                    self._performance_monitor.end_log_processing_timer(start_time)
+                except Exception:
+                    pass  # Ignore performance monitoring errors
                 
         except Exception as e:
             self._failed_messages += 1
             if self._performance_monitor:
                 self._performance_monitor.record_error()
-            if self.enable_performance_monitoring:
-                print(f"Error logging message to layer '{layer}': {e}", file=sys.stderr)
+            print(f"Critical error in async logging: {e}", file=sys.stderr)
+    
+    async def _sync_fallback_log(self, layer: str, level: str, message: str) -> None:
+        """Fallback to sync logging when async logging fails."""
+        try:
+            if layer not in self._sync_loggers:
+                from hydra_logger.core.logger import HydraLogger
+                self._sync_loggers[layer] = HydraLogger(config=self.config)
+            
+            # Use sync logger with correct arguments
+            log_method = getattr(self._sync_loggers[layer], level.lower(), self._sync_loggers[layer].info)
+            log_method(message, layer=layer)
+            
+        except Exception as e:
+            print(f"Sync fallback logging failed: {e}", file=sys.stderr)
+            # Last resort - print to stderr
+            print(f"[{level.upper()}] {layer}: {message}", file=sys.stderr)
     
     async def _get_or_create_async_logger(self, layer: str) -> AsyncLogHandler:
-        """Get or create an async logger for a layer."""
-        if layer not in self.async_loggers:
-            # Create new async logger with concrete implementation
-            from hydra_logger.async_hydra.async_handlers import AsyncStreamHandler
-            self.async_loggers[layer] = AsyncStreamHandler()
+        """
+        Get async logger with intelligent fallback chain.
         
-        return self.async_loggers[layer]
+        Fallback priority:
+        1. Requested layer
+        2. DEFAULT layer (user-defined)
+        3. __CENTRALIZED__ layer (reserved)
+        4. System logger (final fallback)
+        """
+        try:
+            # Try requested layer
+            if layer in self._async_queues:
+                return self._async_queues[layer]
+            
+            # Try DEFAULT layer (user-defined)
+            if "DEFAULT" in self._async_queues:
+                return self._async_queues["DEFAULT"]
+            
+            # Try centralized fallback (reserved layer)
+            if "__CENTRALIZED__" in self._async_queues:
+                return self._async_queues["__CENTRALIZED__"]
+            
+            # Final fallback - create a basic async handler
+            from hydra_logger.async_hydra.async_handlers import AsyncStreamHandler
+            fallback_handler = AsyncStreamHandler()
+            return fallback_handler
+            
+        except Exception as e:
+            print(f"Error getting async logger for layer '{layer}': {e}", file=sys.stderr)
+            # Last resort fallback
+            from hydra_logger.async_hydra.async_handlers import AsyncStreamHandler
+            return AsyncStreamHandler()
     
     async def debug(self, layer_or_message: str, message: Optional[str] = None) -> None:
         """Log a debug message asynchronously."""
