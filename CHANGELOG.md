@@ -1,9 +1,56 @@
 # Changelog
 
-All notable changes to Hydra-Logger will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Modular architecture with clear separation of concerns
+- Zero-configuration mode that works out of the box
+- Async logging system with data loss protection
+- Format customization with environment variable support
+- Color mode control for all destinations
+- Plugin system with registry and base classes
+- Custom Magic Config System with built-in configs
+- Comprehensive examples and documentation
+
+### Changed
+- Complete refactoring to modular architecture
+- Enhanced error handling and validation
+- Improved performance with lazy initialization
+- Better type hints and documentation
+
+### Fixed
+- All linter errors and type issues
+- Import circular dependencies
+- Format naming confusion (plain vs text)
+- Async method signatures and awaitable errors
+
+## [0.4.0] - 2025-07-06
+
+### Added
+- Modular architecture foundation
+- Zero-configuration mode
+- Async logging system
+- Format customization system
+- Color mode control
+- Plugin system
+- Custom Magic Config System
+- Comprehensive documentation and examples
+
+### Changed
+- Complete refactoring from monolithic to modular design
+- Enhanced error handling and validation
+- Improved performance with lazy initialization
+
+### Fixed
+- All linter errors and type issues
+- Import circular dependencies
+- Format naming confusion
+- Async method signatures
 
 ## [0.2.0] - 2025-07-04
 
@@ -95,7 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
-### Version 0.1.0 (Current)
+### Version 0.4.0 (Current)
 - **Release Date**: July 3, 2025
 - **Status**: Stable release
 - **Features**: Complete multi-format logging system

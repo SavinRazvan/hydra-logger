@@ -38,7 +38,7 @@ class TestAsyncSystemIntegration:
                 "DEFAULT": LogLayer(
                     level="INFO",
                     destinations=[
-                        LogDestination(type="console", format="text"),
+                        LogDestination(type="console", format="plain-text"),
                         LogDestination(type="file", path=os.path.join(temp_dir, "async_integration.log"))
                     ]
                 ),

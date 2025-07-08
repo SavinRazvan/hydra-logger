@@ -110,7 +110,7 @@ class TestLogDestination:
         Verifies that LogDestination accepts all valid format values
         and normalizes them to lowercase.
         """
-        valid_formats = ["text", "json", "csv", "syslog", "gelf"]
+        valid_formats = ["plain-text", "json", "csv", "syslog", "gelf"]
 
         for fmt in valid_formats:
             # Test both lowercase and uppercase
@@ -122,12 +122,12 @@ class TestLogDestination:
 
     def test_format_default_value(self):
         """
-        Test that format defaults to 'text'.
+        Test that format defaults to 'plain-text'.
 
-        Verifies that when no format is specified, it defaults to 'text'.
+        Verifies that when no format is specified, it defaults to 'plain-text'.
         """
         dest = LogDestination(type="console")
-        assert dest.format == "text"
+        assert dest.format == "plain-text"
 
     def test_invalid_format(self):
         """
@@ -136,10 +136,10 @@ class TestLogDestination:
         Verifies that LogDestination rejects invalid format values
         and provides clear error messages.
         """
-        with pytest.raises(ValueError, match="Invalid format: INVALID"):
+        with pytest.raises(ValueError, match="Invalid format 'INVALID'"):
             LogDestination(type="console", format="INVALID")
 
-        with pytest.raises(ValueError, match="Invalid format: xml"):
+        with pytest.raises(ValueError, match="Invalid format 'xml'"):
             LogDestination(type="console", format="xml")
 
     def test_format_with_file_destination(self):
@@ -387,11 +387,11 @@ default_level = "INFO"
         """
         Test loading configuration with unsupported file format.
 
-        Verifies that load_config raises ValueError when the file
+        Verifies that load_config raises ConfigurationError when the file
         has an unsupported extension.
         """
         with patch("pathlib.Path.exists", return_value=True):
-            with pytest.raises(ValueError, match="Unsupported config file format"):
+            with pytest.raises(ConfigurationError, match="Unsupported configuration format"):
                 load_config("config.txt")
 
     def test_load_config_empty_file(self):
@@ -664,11 +664,12 @@ def test_load_config_invalid_yaml(tmp_path):
 
 def test_load_config_invalid_toml(tmp_path):
     from hydra_logger.config import load_config
+    from hydra_logger.core.exceptions import ConfigurationError
     file = tmp_path / "config.toml"
     file.write_text("bad = [unclosed")
-    with patch.object(config_mod, 'tomllib', MagicMock()):
-        config_mod.tomllib.load.side_effect = Exception("TOML error")
-        with pytest.raises(ValueError, match="Failed to parse TOML"):
+    with patch("hydra_logger.config.loaders.tomllib") as mock_tomllib:
+        mock_tomllib.load.side_effect = Exception("TOML error")
+        with pytest.raises(ConfigurationError, match="Failed to load configuration"):
             load_config(file)
 
 

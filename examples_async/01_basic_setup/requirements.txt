@@ -1,5 +1,0 @@
-# Core dependency
-hydra-logger
-
-# No additional dependencies needed for basic setup
-# This example uses only the core hydra-logger package 

@@ -16,7 +16,7 @@ from hydra_logger.async_hydra.async_context import (
     get_async_context, set_async_context, clear_async_context,
     get_trace_id, start_trace, set_correlation_id, get_correlation_id,
     detect_context_switch, get_context_switch_count,
-    async_context, trace_context, _async_context_switcher
+    async_context, trace_context
 )
 
 

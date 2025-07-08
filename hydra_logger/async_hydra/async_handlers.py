@@ -30,7 +30,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union, TYPE_CHECKING
 from logging.handlers import RotatingFileHandler
 
-from hydra_logger.logger import BufferedRotatingFileHandler, ColoredTextFormatter
+# Import from new modular structure
+from hydra_logger.core.constants import Colors, DEFAULT_COLORS
 
 # Optional imports with fallbacks
 try:
@@ -44,6 +45,115 @@ except ImportError:
 if TYPE_CHECKING:
     if aiofiles is not None:
         from aiofiles import open as aio_open  # type: ignore
+
+
+class BufferedRotatingFileHandler(RotatingFileHandler):
+    """Buffered rotating file handler for improved performance."""
+    
+    def __init__(self, filename, maxBytes=0, backupCount=0, encoding=None, 
+                 buffer_size=8192, flush_interval=1.0):
+        # Convert parameters to proper types for RotatingFileHandler
+        maxBytes = int(maxBytes) if maxBytes is not None else 0
+        backupCount = int(backupCount) if backupCount is not None else 0
+        super().__init__(filename, mode='a', maxBytes=maxBytes, backupCount=backupCount, encoding=encoding)
+        self.buffer_size = buffer_size
+        self.flush_interval = flush_interval
+        self._buffer = []
+        self._last_flush = time.time()
+    
+    def emit(self, record):
+        """Emit a record with buffering."""
+        try:
+            msg = self.format(record)
+            self._buffer.append(msg)
+            
+            # Flush if buffer is full or enough time has passed
+            if (len(self._buffer) >= self.buffer_size or 
+                time.time() - self._last_flush >= self.flush_interval):
+                self._flush_buffer()
+                
+        except Exception:
+            self.handleError(record)
+    
+    def _flush_buffer(self):
+        """Flush the buffer to the file."""
+        if self._buffer:
+            try:
+                for msg in self._buffer:
+                    self.stream.write(msg + '\n')
+                self.stream.flush()
+                self._buffer.clear()
+                self._last_flush = time.time()
+            except Exception:
+                pass
+    
+    def close(self):
+        """Close the handler and flush any remaining data."""
+        self._flush_buffer()
+        super().close()
+    
+    def flush(self):
+        """Flush the buffer."""
+        self._flush_buffer()
+        super().flush()
+
+
+class ColoredTextFormatter(logging.Formatter):
+    """Colored text formatter for terminal output."""
+    
+    def __init__(self, fmt=None, datefmt=None, force_colors=None, destination_type="auto", color_mode: Optional[str] = None):
+        super().__init__(fmt, datefmt)
+        self.force_colors = force_colors
+        self.destination_type = destination_type
+        self.color_mode = color_mode or "auto"
+    
+    def format(self, record):
+        """Format the record with colors."""
+        # Get the original formatted message
+        msg = super().format(record)
+        
+        # Add colors if appropriate
+        if self._should_use_colors():
+            # Colorize specific parts
+            level_color = DEFAULT_COLORS.get(record.levelname, Colors.RESET)
+            name_color = Colors.MAGENTA
+            
+            # Apply colors to levelname and name specifically
+            msg = msg.replace(record.levelname, f"{level_color}{record.levelname}{Colors.RESET}")
+            msg = msg.replace(record.name, f"{name_color}{record.name}{Colors.RESET}")
+        
+        return msg
+    
+    def _should_use_colors(self):
+        """Determine if colors should be used."""
+        # Check color_mode first
+        if self.color_mode == "never":
+            return False
+        elif self.color_mode == "always":
+            return True
+        elif self.color_mode == "auto":
+            # Use force_colors if set
+            if self.force_colors == "never":
+                return False
+            elif self.force_colors == "always":
+                return True
+            else:
+                # Auto-detect
+                return hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+        
+        # Default to auto-detect
+        return hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+
+
+class PlainTextFormatter(logging.Formatter):
+    """Plain text formatter without colors."""
+    
+    def __init__(self, fmt=None, datefmt=None):
+        super().__init__(fmt, datefmt)
+    
+    def format(self, record):
+        """Format the record without colors."""
+        return super().format(record)
 
 
 class AsyncLogHandler(logging.Handler, ABC):
@@ -75,6 +185,7 @@ class AsyncLogHandler(logging.Handler, ABC):
         self._worker_task: Optional[asyncio.Task] = None
         self._running = False
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._shutdown_timeout = 30.0  # 30 seconds timeout for shutdown
     
     def emit(self, record: logging.LogRecord) -> None:
         """
@@ -88,45 +199,33 @@ class AsyncLogHandler(logging.Handler, ABC):
         """
         try:
             # Always try to queue for async processing if handler is running
-            if self._running:
-                try:
-                    # Try to put in queue if we have a running loop
-                    if asyncio.get_running_loop():
-                        # Check if queue is full
-                        if self._queue.full():
-                            # Queue is full, drop the message
-                            return
-                        # Use create_task if we have a running loop
-                        loop = asyncio.get_running_loop()
-                        if loop and not loop.is_closed():
-                            # Create a task to put the record in the queue
-                            async def put_record():
-                                await self._queue.put(record)
-                            loop.create_task(put_record())
-                        return
-                except RuntimeError:
-                    pass
-            
-            # Fallback to synchronous processing
-            self._process_record_sync(record)
+            if self._running and self._loop and self._loop.is_running():
+                # Schedule async emit in the event loop
+                asyncio.create_task(self._queue.put(record))
+            else:
+                # Fallback to synchronous processing
+                self._process_record_sync(record)
                 
         except Exception:
-            self.handleError(record)
+            # Fallback to synchronous processing on error
+            self._process_record_sync(record)
     
     async def emit_async(self, record: logging.LogRecord) -> None:
         """
-        Async emit method for non-blocking operations.
+        Emit a log record asynchronously.
         
         Args:
             record (logging.LogRecord): Log record to emit
-            
-        This method should be implemented by subclasses to provide
-        async-specific logging functionality.
         """
         try:
-            await self._process_record_async(record)
+            if self._running:
+                await self._queue.put(record)
+            else:
+                # Fallback to synchronous processing
+                self._process_record_sync(record)
         except Exception:
-            self.handleError(record)
+            # Fallback to synchronous processing on error
+            self._process_record_sync(record)
     
     @abstractmethod
     async def _process_record_async(self, record: logging.LogRecord) -> None:
@@ -135,23 +234,19 @@ class AsyncLogHandler(logging.Handler, ABC):
         
         Args:
             record (logging.LogRecord): Log record to process
-            
-        This method must be implemented by subclasses to provide
-        the actual async logging functionality.
         """
         pass
     
     def _process_record_sync(self, record: logging.LogRecord) -> None:
         """
-        Process a log record synchronously (fallback).
+        Process a log record synchronously as fallback.
         
         Args:
             record (logging.LogRecord): Log record to process
         """
         try:
             msg = self.format(record)
-            # Default synchronous processing
-            print(msg, file=sys.stdout)
+            print(msg, file=sys.stderr)
         except Exception:
             self.handleError(record)
     
@@ -159,93 +254,129 @@ class AsyncLogHandler(logging.Handler, ABC):
         """Start the async handler worker."""
         if self._running:
             return
-            
-        with self._lock:
-            if self._running:
-                return
-                
+        
+        try:
             self._running = True
-            try:
-                self._loop = asyncio.get_running_loop()
-                self._worker_task = self._loop.create_task(self._worker())
-            except RuntimeError:
-                # No running event loop, just mark as running for sync fallback
-                self._running = True
+            self._loop = asyncio.get_running_loop()
+            self._worker_task = asyncio.create_task(self._worker())
+        except Exception:
+            self._running = False
+            raise
     
     async def stop(self) -> None:
-        """Stop the async handler worker."""
+        """Stop the async handler worker with timeout."""
         if not self._running:
             return
-            
-        with self._lock:
-            if not self._running:
-                return
-                
+        
+        try:
             self._running = False
             
-            # Wait for worker to finish
-            if self._worker_task:
-                self._worker_task.cancel()
+            # Wait for worker to stop with timeout
+            if self._worker_task and not self._worker_task.done():
                 try:
-                    await self._worker_task
-                except asyncio.CancelledError:
-                    pass
+                    await asyncio.wait_for(self._worker_task, timeout=self._shutdown_timeout)
+                except asyncio.TimeoutError:
+                    # Cancel the task if it doesn't stop in time
+                    self._worker_task.cancel()
+                    try:
+                        await self._worker_task
+                    except asyncio.CancelledError:
+                        pass
+            
+            # Process any remaining messages
+            await self._process_remaining()
+            
+        except Exception:
+            # Ensure we mark as stopped even on error
+            self._running = False
     
     async def _worker(self) -> None:
-        """Background worker for processing queued records."""
-        while self._running:
-            try:
-                # Get record from queue with timeout
-                record = await asyncio.wait_for(self._queue.get(), timeout=1.0)
-                await self._process_record_async(record)
-                self._queue.task_done()
-            except asyncio.TimeoutError:
-                continue
-            except asyncio.CancelledError:
-                # Ensure we don't leave any unawaited coroutines
-                break
-            except Exception as e:
-                # Log specific error with context
-                error_msg = f"Error in async handler worker: {type(e).__name__}: {e}"
+        """Main worker loop with proper error handling and shutdown."""
+        try:
+            while self._running:
                 try:
-                    if asyncio.get_running_loop():
-                        print(error_msg, file=sys.stderr)
-                except RuntimeError:
-                    pass
-                # Continue processing even if one record fails
-                continue
-        
-        # Ensure queue is properly closed - use get_nowait to avoid coroutine warning
-        while True:
+                    # Get message with timeout
+                    record = await asyncio.wait_for(self._queue.get(), timeout=0.1)
+                    
+                    # Process the record
+                    await self._process_record_async(record)
+                    
+                    # Mark task as done
+                    self._queue.task_done()
+                    
+                except asyncio.TimeoutError:
+                    # No messages available, continue
+                    continue
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    # Log error and continue
+                    print(f"Error in async handler worker: {e}", file=sys.stderr)
+                    await asyncio.sleep(0.1)  # Small delay before retry
+                    
+        except asyncio.CancelledError:
+            # Handle cancellation gracefully
+            pass
+        except Exception as e:
+            print(f"Fatal error in async handler worker: {e}", file=sys.stderr)
+        finally:
+            # Ensure we process any remaining messages
             try:
-                self._queue.get_nowait()
-                self._queue.task_done()
-            except asyncio.QueueEmpty:
-                break
+                await self._process_remaining()
             except Exception:
-                break
+                pass
+    
+    async def _process_remaining(self) -> None:
+        """Process any remaining messages in the queue."""
+        try:
+            remaining_records = []
+            
+            # Get all remaining records
+            while not self._queue.empty():
+                try:
+                    record = self._queue.get_nowait()
+                    remaining_records.append(record)
+                except asyncio.QueueEmpty:
+                    break
+            
+            # Process remaining records
+            for record in remaining_records:
+                try:
+                    await self._process_record_async(record)
+                    self._queue.task_done()
+                except Exception:
+                    # Mark as done even on error to prevent deadlock
+                    self._queue.task_done()
+                    
+        except Exception as e:
+            print(f"Error processing remaining messages: {e}", file=sys.stderr)
     
     def close(self) -> None:
-        """Close the handler and stop the worker."""
-        # For now, just mark as not running to avoid event loop issues
-        self._running = False
-        super().close()
+        """Close the handler synchronously."""
+        try:
+            self._running = False
+            
+            # Cancel worker task if running
+            if self._worker_task and not self._worker_task.done():
+                self._worker_task.cancel()
+            
+            super().close()
+            
+        except Exception:
+            # Ensure we mark as stopped even on error
+            self._running = False
+    
+    async def aclose(self) -> None:
+        """Close the handler asynchronously."""
+        await self.stop()
 
 
 class AsyncRotatingFileHandler(AsyncLogHandler):
     """
     Async rotating file handler for non-blocking file operations.
     
-    This handler extends AsyncLogHandler to provide async file writing
-    with rotation support. It uses aiofiles for async file operations
-    and maintains the same interface as RotatingFileHandler.
-    
-    Attributes:
-        filename (str): Log file path
-        maxBytes (int): Maximum file size before rotation
-        backupCount (int): Number of backup files to keep
-        encoding (str): File encoding
-        buffer_size (int): Buffer size for async operations
+    This handler provides async file operations with automatic log rotation
+    and buffered writing for improved performance.
     """
     
     def __init__(self, filename: str, maxBytes: int = 0, backupCount: int = 0,
@@ -254,11 +385,11 @@ class AsyncRotatingFileHandler(AsyncLogHandler):
         Initialize async rotating file handler.
         
         Args:
-            filename (str): Log file path
-            maxBytes (int): Maximum file size before rotation
-            backupCount (int): Number of backup files to keep
-            encoding (Optional[str]): File encoding
-            buffer_size (int): Buffer size for async operations
+            filename: Log file path
+            maxBytes: Maximum file size before rotation
+            backupCount: Number of backup files to keep
+            encoding: File encoding
+            buffer_size: Buffer size for writing
         """
         super().__init__()
         self.filename = filename
@@ -266,103 +397,135 @@ class AsyncRotatingFileHandler(AsyncLogHandler):
         self.backupCount = backupCount
         self.encoding = encoding or 'utf-8'
         self.buffer_size = buffer_size
-        self._file_handle = None
-        self._current_size = 0
-        self._file_lock = asyncio.Lock()
+        self._file = None
+        self._buffer = []
+        self._last_flush = time.time()
+        self._flush_interval = 1.0
         
         # Ensure directory exists
-        Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        
-        # Initialize current file size
-        if os.path.exists(filename):
-            try:
-                self._current_size = os.path.getsize(filename)
-            except OSError:
-                self._current_size = 0
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
     
     async def _process_record_async(self, record: logging.LogRecord) -> None:
-        """
-        Process log record asynchronously.
-        
-        Args:
-            record (logging.LogRecord): Log record to process
-        """
-        async with self._file_lock:
-            try:
-                msg = self.format(record) + '\n'
-                encoded_msg = msg.encode(self.encoding)
+        """Process a log record asynchronously."""
+        try:
+            msg = self.format(record) + '\n'
+            data = msg.encode(self.encoding)
+            
+            # Add to buffer
+            self._buffer.append(data)
+            
+            # Flush if buffer is full or enough time has passed
+            if (len(self._buffer) >= self.buffer_size or 
+                time.time() - self._last_flush >= self._flush_interval):
+                await self._flush_buffer()
                 
-                # Check if we need to rotate
-                if self.maxBytes > 0 and self._current_size + len(encoded_msg) > self.maxBytes:
-                    await self._rotate_file()
-                
-                # Write to file
-                await self._write_to_file(encoded_msg)
-                self._current_size += len(encoded_msg)
-                
-            except Exception as e:
-                print(f"Error in async file handler: {e}", file=sys.stderr)
+        except Exception as e:
+            print(f"Error processing log record: {e}", file=sys.stderr)
     
     async def _write_to_file(self, data: bytes) -> None:
-        """
-        Write data to file asynchronously.
-        
-        Args:
-            data (bytes): Data to write
-        """
+        """Write data to file asynchronously."""
         try:
-            # Use aiofiles if available, otherwise fallback to sync
-            if AIOFILES_AVAILABLE and aiofiles is not None:
-                async with aiofiles.open(self.filename, 'ab') as f:
+            if AIOFILES_AVAILABLE:
+                # Use aiofiles for async file operations
+                async with aiofiles.open(self.filename, mode='ab') as f:
                     await f.write(data)
             else:
-                # Fallback to synchronous file operations - write bytes directly
+                # Fallback to synchronous file operations
                 with open(self.filename, 'ab') as f:
                     f.write(data)
-        except (OSError, IOError) as e:
-            print(f"Error writing to file {self.filename}: {type(e).__name__}: {e}", file=sys.stderr)
+                    
         except Exception as e:
-            print(f"Unexpected error writing to file {self.filename}: {type(e).__name__}: {e}", file=sys.stderr)
+            print(f"Error writing to file: {e}", file=sys.stderr)
     
     async def _rotate_file(self) -> None:
-        """Rotate the log file."""
+        """Rotate the log file if needed."""
         try:
-            # Rotate backup files
+            if self.maxBytes <= 0:
+                return
+            
+            # Check file size
+            if os.path.exists(self.filename):
+                size = os.path.getsize(self.filename)
+                if size < self.maxBytes:
+                    return
+            
+            # Perform rotation
             for i in range(self.backupCount - 1, 0, -1):
                 src = f"{self.filename}.{i}"
                 dst = f"{self.filename}.{i + 1}"
                 if os.path.exists(src):
+                    if os.path.exists(dst):
+                        os.remove(dst)
                     os.rename(src, dst)
             
-            # Rename current file to .1
+            # Rotate current file
             if os.path.exists(self.filename):
-                os.rename(self.filename, f"{self.filename}.1")
+                if self.backupCount > 0:
+                    dst = f"{self.filename}.1"
+                    if os.path.exists(dst):
+                        os.remove(dst)
+                    os.rename(self.filename, dst)
             
-            # Reset current size
-            self._current_size = 0
-            
-        except (OSError, IOError) as e:
-            print(f"Error rotating file {self.filename}: {type(e).__name__}: {e}", file=sys.stderr)
         except Exception as e:
-            print(f"Unexpected error rotating file {self.filename}: {type(e).__name__}: {e}", file=sys.stderr)
+            print(f"Error rotating file: {e}", file=sys.stderr)
+    
+    async def _flush_buffer(self) -> None:
+        """Flush the buffer to the file."""
+        if not self._buffer:
+            return
+        
+        try:
+            # Check if rotation is needed
+            await self._rotate_file()
+            
+            # Write all buffered data
+            for data in self._buffer:
+                await self._write_to_file(data)
+            
+            # Clear buffer
+            self._buffer.clear()
+            self._last_flush = time.time()
+            
+        except Exception as e:
+            print(f"Error flushing buffer: {e}", file=sys.stderr)
     
     def close(self) -> None:
-        """Close the handler and file."""
-        super().close()
+        """Close the handler and flush any remaining data."""
+        try:
+            # Flush buffer synchronously
+            if self._buffer:
+                try:
+                    with open(self.filename, 'ab') as f:
+                        for data in self._buffer:
+                            f.write(data)
+                except Exception:
+                    pass
+                self._buffer.clear()
+            
+            super().close()
+            
+        except Exception:
+            pass
+    
+    async def aclose(self) -> None:
+        """Close the handler asynchronously."""
+        try:
+            # Flush buffer asynchronously
+            if self._buffer:
+                await self._flush_buffer()
+            
+            await super().aclose()
+            
+        except Exception:
+            pass
 
 
 class AsyncStreamHandler(AsyncLogHandler):
     """
     Async stream handler for console output.
     
-    This handler provides async console output with buffering and
-    non-blocking I/O operations. It supports both stdout and stderr
-    with configurable formatting.
-    
-    Attributes:
-        stream (Optional[Any]): Output stream
-        use_colors (bool): Whether to use colored output
-        buffer_size (int): Buffer size for output
+    This handler provides async console output with buffering for improved
+    performance in high-throughput scenarios.
     """
     
     def __init__(self, stream: Optional[Any] = None, use_colors: bool = True,
@@ -371,95 +534,79 @@ class AsyncStreamHandler(AsyncLogHandler):
         Initialize async stream handler.
         
         Args:
-            stream (Optional[Any]): Output stream (defaults to sys.stdout)
-            use_colors (bool): Whether to use colored output
-            buffer_size (int): Buffer size for output
+            stream: Output stream (defaults to sys.stdout)
+            use_colors: Whether to use colored output
+            buffer_size: Buffer size for writing
         """
         super().__init__()
         self.stream = stream or sys.stdout
         self.use_colors = use_colors
         self.buffer_size = buffer_size
-        self._output_buffer = []
-        self._buffer_size = 0
+        self._buffer = []
         self._last_flush = time.time()
-        self._flush_interval = 0.1  # Flush every 100ms
-        # Set color formatter if requested
-        if self.use_colors:
-            self.setFormatter(ColoredTextFormatter())
+        self._flush_interval = 0.1  # More frequent flushing for console
     
     async def _process_record_async(self, record: logging.LogRecord) -> None:
-        """
-        Process log record asynchronously.
-        
-        Args:
-            record (logging.LogRecord): Log record to process
-        """
+        """Process a log record asynchronously."""
         try:
-            msg = self.format(record)
+            msg = self.format(record) + '\n'
             
             # Add to buffer
-            self._output_buffer.append(msg)
-            self._buffer_size += len(msg)
+            self._buffer.append(msg)
             
-            # Check if we need to flush
-            current_time = time.time()
-            should_flush = (
-                self._buffer_size >= self.buffer_size or
-                current_time - self._last_flush >= self._flush_interval or
-                len(self._output_buffer) == 1  # Flush immediately for single messages
-            )
-            
-            if should_flush:
+            # Flush if buffer is full or enough time has passed
+            if (len(self._buffer) >= self.buffer_size or 
+                time.time() - self._last_flush >= self._flush_interval):
                 await self._flush_buffer()
                 
         except Exception as e:
-            print(f"Error in async stream handler: {e}", file=sys.stderr)
+            print(f"Error processing log record: {e}", file=sys.stderr)
     
     async def _flush_buffer(self) -> None:
-        """Flush the output buffer."""
-        if not self._output_buffer:
+        """Flush the buffer to the stream."""
+        if not self._buffer:
             return
-            
+        
         try:
             # Write all buffered messages
-            output = '\n'.join(self._output_buffer) + '\n'
+            for msg in self._buffer:
+                self.stream.write(msg)
             
-            # Use asyncio to write to stream
-            if hasattr(self.stream, 'write'):
-                # For file-like objects
-                self.stream.write(output)
-                if hasattr(self.stream, 'flush'):
-                    self.stream.flush()
-            else:
-                # For other objects, use print
-                print(output, end='', file=self.stream)
+            # Flush the stream
+            self.stream.flush()
             
             # Clear buffer
-            self._output_buffer.clear()
-            self._buffer_size = 0
+            self._buffer.clear()
             self._last_flush = time.time()
             
         except Exception as e:
             print(f"Error flushing buffer: {e}", file=sys.stderr)
     
     async def stop(self) -> None:
-        """Stop the handler and flush any remaining output."""
-        await self._flush_buffer()
-        await super().stop()
+        """Stop the handler and flush any remaining data."""
+        try:
+            await self._flush_buffer()
+            await super().stop()
+            
+        except Exception:
+            pass
+    
+    async def aclose(self) -> None:
+        """Close the handler asynchronously."""
+        try:
+            await self._flush_buffer()
+            await super().aclose()
+            
+        except Exception:
+            pass
 
 
 class AsyncBufferedRotatingFileHandler(AsyncRotatingFileHandler):
     """
-    Async buffered rotating file handler for high-performance logging.
+    Async buffered rotating file handler with enhanced buffering.
     
-    This handler combines the benefits of buffering with async file operations
-    for maximum performance in high-throughput logging scenarios.
-    
-    Attributes:
-        buffer_size (int): Buffer size in bytes
-        flush_interval (float): Flush interval in seconds
-        _buffer (List[str]): Message buffer
-        _buffer_size (int): Current buffer size in bytes
+    This handler provides enhanced buffering capabilities for high-throughput
+    logging scenarios with automatic rotation.
     """
     
     def __init__(self, filename: str, maxBytes: int = 0, backupCount: int = 0,
@@ -469,74 +616,75 @@ class AsyncBufferedRotatingFileHandler(AsyncRotatingFileHandler):
         Initialize async buffered rotating file handler.
         
         Args:
-            filename (str): Log file path
-            maxBytes (int): Maximum file size before rotation
-            backupCount (int): Number of backup files to keep
-            encoding (Optional[str]): File encoding
-            buffer_size (int): Buffer size in bytes
-            flush_interval (float): Flush interval in seconds
+            filename: Log file path
+            maxBytes: Maximum file size before rotation
+            backupCount: Number of backup files to keep
+            encoding: File encoding
+            buffer_size: Buffer size for writing
+            flush_interval: Flush interval in seconds
         """
         super().__init__(filename, maxBytes, backupCount, encoding, buffer_size)
         self.flush_interval = flush_interval
-        self._buffer = []
-        self._buffer_size = 0
-        self._last_flush = time.time()
-        self._max_buffer_size = buffer_size  # Rename to avoid conflict
+        self._flush_interval = flush_interval
     
     async def _process_record_async(self, record: logging.LogRecord) -> None:
-        """
-        Process log record with buffering.
-        
-        Args:
-            record (logging.LogRecord): Log record to process
-        """
+        """Process a log record asynchronously with enhanced buffering."""
         try:
-            msg = self.format(record)
-            encoded_msg = msg.encode(self.encoding)
+            msg = self.format(record) + '\n'
+            data = msg.encode(self.encoding)
             
             # Add to buffer
-            self._buffer.append(msg)
-            self._buffer_size += len(encoded_msg)
+            self._buffer.append(data)
             
-            # Check if we need to flush
-            current_time = time.time()
-            should_flush = (
-                self._buffer_size >= self._max_buffer_size or
-                current_time - self._last_flush >= self.flush_interval or
-                len(self._buffer) == 1  # Flush immediately for single messages in tests
-            )
-            
-            if should_flush:
+            # Flush if buffer is full or enough time has passed
+            if (len(self._buffer) >= self.buffer_size or 
+                time.time() - self._last_flush >= self._flush_interval):
                 await self._flush_buffer()
                 
         except Exception as e:
-            print(f"Error in async buffered file handler: {e}", file=sys.stderr)
+            print(f"Error processing log record: {e}", file=sys.stderr)
     
     async def _flush_buffer(self) -> None:
-        """Flush the buffer to the file."""
+        """Flush the buffer to the file with enhanced error handling."""
         if not self._buffer:
             return
+        
+        try:
+            # Check if rotation is needed
+            await self._rotate_file()
             
-        async with self._file_lock:
-            try:
-                # Write all buffered messages
-                output = '\n'.join(self._buffer) + '\n'
-                encoded_output = output.encode(self.encoding)
-                
-                await self._write_to_file(encoded_output)
-                self._current_size += len(encoded_output)
-                
-                # Clear buffer
-                self._buffer.clear()
-                self._buffer_size = 0
-                self._last_flush = time.time()
-                
-            except Exception as e:
-                print(f"Error flushing buffer: {e}", file=sys.stderr)
+            # Write all buffered data in a single operation if possible
+            if AIOFILES_AVAILABLE:
+                async with aiofiles.open(self.filename, mode='ab') as f:
+                    for data in self._buffer:
+                        await f.write(data)
+            else:
+                # Fallback to synchronous file operations
+                with open(self.filename, 'ab') as f:
+                    for data in self._buffer:
+                        f.write(data)
+            
+            # Clear buffer
+            self._buffer.clear()
+            self._last_flush = time.time()
+            
+        except Exception as e:
+            print(f"Error flushing buffer: {e}", file=sys.stderr)
     
     async def stop(self) -> None:
-        """Stop the handler and flush any remaining buffer."""
-        # Flush any remaining buffer before stopping
-        if self._buffer:
+        """Stop the handler and flush any remaining data."""
+        try:
             await self._flush_buffer()
-        await super().stop() 
+            await super().stop()
+            
+        except Exception:
+            pass
+    
+    async def aclose(self) -> None:
+        """Close the handler asynchronously."""
+        try:
+            await self._flush_buffer()
+            await super().aclose()
+            
+        except Exception:
+            pass 

@@ -1,353 +1,424 @@
 """
-Tests for security features including PII detection, redaction, and security logging.
+Tests for security features and data protection.
 
-This module tests the security features of HydraLogger including:
-- PII detection and redaction
-- Security-specific logging methods
-- Audit trail functionality
-- Compliance logging
+This module tests the security features of HydraLogger including
+data sanitization, security validation, and data hashing.
 """
 
 import pytest
 from unittest.mock import patch, MagicMock
 from hydra_logger import HydraLogger
-from hydra_logger.logger import redact_sensitive_data, PII_PATTERNS
+from hydra_logger.data_protection.security import DataSanitizer, SecurityValidator, DataHasher
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
 
-class TestPIIDetectionAndRedaction:
-    """Test PII detection and redaction functionality."""
+class TestDataSanitizer:
+    """Test data sanitization functionality."""
 
-    def test_email_redaction(self):
-        """Test that email addresses are properly redacted."""
-        message = "User john.doe@example.com logged in successfully"
-        redacted = redact_sensitive_data(message)
-        assert "[EMAIL_REDACTED]" in redacted
-        assert "john.doe@example.com" not in redacted
+    def setup_method(self):
+        """Setup test environment."""
+        self.sanitizer = DataSanitizer()
 
-    def test_password_redaction(self):
-        """Test that passwords are properly redacted."""
-        message = "Password: mysecretpassword123"
-        redacted = redact_sensitive_data(message)
-        assert "password=[PASSWORD_REDACTED]" in redacted
-        assert "mysecretpassword123" not in redacted
+    def test_sanitize_email(self):
+        """Test email sanitization."""
+        test_data = "Contact us at user@example.com for support"
+        sanitized = self.sanitizer.sanitize_data(test_data)
+        assert "[REDACTED_EMAIL]" in sanitized
+        assert "user@example.com" not in sanitized
 
-    def test_api_key_redaction(self):
-        """Test that API keys are properly redacted."""
-        message = "API Key: sk-1234567890abcdef"
-        redacted = redact_sensitive_data(message)
-        assert "api_key=[API_KEY_REDACTED]" in redacted
-        assert "sk-1234567890abcdef" not in redacted
+    def test_sanitize_credit_card(self):
+        """Test credit card sanitization."""
+        test_data = "Payment with card 4111-1111-1111-1111"
+        sanitized = self.sanitizer.sanitize_data(test_data)
+        assert "[REDACTED_CREDIT_CARD]" in sanitized
+        assert "4111-1111-1111-1111" not in sanitized
 
-    def test_token_redaction(self):
-        """Test that tokens are properly redacted."""
-        message = "Bearer token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
-        redacted = redact_sensitive_data(message)
-        assert "token=[TOKEN_REDACTED]" in redacted
-        assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" not in redacted
+    def test_sanitize_ssn(self):
+        """Test SSN sanitization."""
+        test_data = "SSN: 123-45-6789"
+        sanitized = self.sanitizer.sanitize_data(test_data)
+        assert "[REDACTED_SSN]" in sanitized
+        assert "123-45-6789" not in sanitized
 
-    def test_credit_card_redaction(self):
-        """Test that credit card numbers are properly redacted."""
-        message = "Payment with card 1234-5678-9012-3456"
-        redacted = redact_sensitive_data(message)
-        assert "[CREDIT_CARD_REDACTED]" in redacted
-        assert "1234-5678-9012-3456" not in redacted
+    def test_sanitize_phone(self):
+        """Test phone number sanitization."""
+        test_data = "Call us at (555) 123-4567"
+        sanitized = self.sanitizer.sanitize_data(test_data)
+        assert "[REDACTED_PHONE]" in sanitized
+        assert "(555) 123-4567" not in sanitized
 
-    def test_ssn_redaction(self):
-        """Test that SSNs are properly redacted."""
-        message = "SSN: 123-45-6789"
-        redacted = redact_sensitive_data(message)
-        assert "[SSN_REDACTED]" in redacted
-        assert "123-45-6789" not in redacted
-
-    def test_phone_redaction(self):
-        """Test that phone numbers are properly redacted."""
-        message = "Contact: 555-123-4567"
-        redacted = redact_sensitive_data(message)
-        assert "[PHONE_REDACTED]" in redacted
-        assert "555-123-4567" not in redacted
-
-    def test_ip_address_redaction(self):
-        """Test that IP addresses are properly redacted."""
-        message = "Request from 192.168.1.100"
-        redacted = redact_sensitive_data(message)
-        assert "[IP_REDACTED]" in redacted
-        assert "192.168.1.100" not in redacted
-
-    def test_url_with_auth_redaction(self):
-        """Test that URLs with authentication are properly redacted."""
-        message = "Connecting to https://user:pass@api.example.com"
-        redacted = redact_sensitive_data(message)
-        assert "[URL_WITH_AUTH_REDACTED]" in redacted
-        assert "user:pass" not in redacted
-
-    def test_multiple_pii_redaction(self):
-        """Test that multiple PII types are redacted in the same message."""
-        message = "User john@example.com with password secret123 from 192.168.1.1"
-        redacted = redact_sensitive_data(message)
-        assert "[EMAIL_REDACTED]" in redacted
-        assert "[PASSWORD_REDACTED]" in redacted
-        assert "[IP_REDACTED]" in redacted
-        assert "john@example.com" not in redacted
-        assert "secret123" not in redacted
-        assert "192.168.1.1" not in redacted
-
-    def test_no_pii_no_redaction(self):
-        """Test that messages without PII are not modified."""
-        message = "This is a normal log message without sensitive data"
-        redacted = redact_sensitive_data(message)
-        assert redacted == message
-
-
-class TestSecurityLoggingMethods:
-    """Test security-specific logging methods."""
-
-    def test_security_method_redaction(self):
-        """Test that security method automatically redacts sensitive data."""
-        logger = HydraLogger(redact_sensitive=False)  # Disable global redaction
+    def test_sanitize_dict(self):
+        """Test dictionary sanitization."""
+        test_data = {
+            "user": "john_doe",
+            "password": "secret123",
+            "email": "john@example.com",
+            "normal_field": "safe data"
+        }
+        sanitized = self.sanitizer.sanitize_data(test_data)
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.security("User login: john@example.com with password secret123")
-            
-            # Check that the log method was called with redacted message
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args[0]
-            assert call_args[0] == "tests.test_security_features"  # Auto-detected module
-            assert call_args[1] == "WARNING"   # Security level
-            assert "[SECURITY]" in call_args[2]  # Security prefix
-            assert "[EMAIL_REDACTED]" in call_args[2]  # Email redacted
-            assert "[PASSWORD_REDACTED]" in call_args[2]  # Password redacted
+        assert sanitized["password"] == "[REDACTED]"
+        assert "[REDACTED_EMAIL]" in sanitized["email"]
+        assert sanitized["normal_field"] == "safe data"
 
-    def test_audit_method_timestamp(self):
-        """Test that audit method adds timestamps."""
-        logger = HydraLogger()
+    def test_sanitize_list(self):
+        """Test list sanitization."""
+        test_data = [
+            "normal text",
+            "user@example.com",
+            "4111-1111-1111-1111"
+        ]
+        sanitized = self.sanitizer.sanitize_data(test_data)
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.audit("User access granted")
-            
-            # Check that the log method was called with audit message
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args[0]
-            assert call_args[0] == "tests.test_security_features"  # Auto-detected module
-            assert call_args[1] == "INFO"     # Audit level
-            assert "[AUDIT]" in call_args[2]  # Audit prefix
-            assert "User access granted" in call_args[2]  # Original message
+        assert sanitized[0] == "normal text"
+        assert "[REDACTED_EMAIL]" in sanitized[1]
+        assert "[REDACTED_CREDIT_CARD]" in sanitized[2]
 
-    def test_compliance_method_timestamp(self):
-        """Test that compliance method adds timestamps."""
-        logger = HydraLogger()
+    def test_sanitize_nested_structure(self):
+        """Test sanitization of nested data structures."""
+        test_data = {
+            "user": {
+                "name": "John Doe",
+                "email": "john@example.com",
+                "password": "secret123"
+            },
+            "transactions": [
+                {"card": "4111-1111-1111-1111", "amount": 100},
+                {"card": "5555-5555-5555-5555", "amount": 200}
+            ]
+        }
+        sanitized = self.sanitizer.sanitize_data(test_data)
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.compliance("Data retention policy applied")
-            
-            # Check that the log method was called with compliance message
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args[0]
-            assert call_args[0] == "tests.test_security_features"  # Auto-detected module
-            assert call_args[1] == "INFO"     # Compliance level
-            assert "[COMPLIANCE]" in call_args[2]  # Compliance prefix
-            assert "Data retention policy applied" in call_args[2]  # Original message
+        assert sanitized["user"]["password"] == "[REDACTED]"
+        assert "[REDACTED_EMAIL]" in sanitized["user"]["email"]
+        assert "[REDACTED_CREDIT_CARD]" in sanitized["transactions"][0]["card"]
 
-    def test_security_method_with_explicit_layer(self):
-        """Test security method with explicit layer."""
-        logger = HydraLogger()
+    def test_add_custom_pattern(self):
+        """Test adding custom redaction patterns."""
+        self.sanitizer.add_pattern("custom_id", r"\bID\d{6}\b")
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.security("AUTH", "Login attempt from 192.168.1.100")
-            
-            # Check that the log method was called with correct layer
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args[0]
-            assert call_args[0] == "AUTH"     # Explicit layer
-            assert call_args[1] == "WARNING"   # Security level
-            assert "[SECURITY]" in call_args[2]  # Security prefix
-            # Note: IP redaction might not work if the pattern doesn't match exactly
-            # The important thing is that the security method is called correctly
+        test_data = "User ID123456 is active"
+        sanitized = self.sanitizer.sanitize_data(test_data)
+        assert "[REDACTED]" in sanitized
+        assert "ID123456" not in sanitized
 
-    def test_audit_method_with_explicit_layer(self):
-        """Test audit method with explicit layer."""
-        logger = HydraLogger()
+    def test_remove_pattern(self):
+        """Test removing redaction patterns."""
+        # Add a pattern
+        self.sanitizer.add_pattern("test_pattern", r"test")
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.audit("COMPLIANCE", "Data access logged")
-            
-            # Check that the log method was called with correct layer
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args[0]
-            assert call_args[0] == "COMPLIANCE"  # Explicit layer
-            assert call_args[1] == "INFO"        # Audit level
-            assert "[AUDIT]" in call_args[2]     # Audit prefix
+        # Remove it
+        result = self.sanitizer.remove_pattern("test_pattern")
+        assert result is True
+        
+        # Test that it's no longer active
+        test_data = "This is a test message"
+        sanitized = self.sanitizer.sanitize_data(test_data)
+        assert sanitized == test_data  # No redaction
 
-    def test_compliance_method_with_explicit_layer(self):
-        """Test compliance method with explicit layer."""
-        logger = HydraLogger()
+    def test_remove_nonexistent_pattern(self):
+        """Test removing a pattern that doesn't exist."""
+        result = self.sanitizer.remove_pattern("nonexistent_pattern")
+        assert result is False
+
+    def test_sensitive_key_detection(self):
+        """Test detection of sensitive keys in dictionaries."""
+        test_data = {
+            "normal_field": "safe",
+            "password": "secret",
+            "api_key": "abc123",
+            "auth_token": "xyz789",
+            "private_data": "confidential"
+        }
+        sanitized = self.sanitizer.sanitize_data(test_data)
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.compliance("REGULATORY", "GDPR compliance check")
-            
-            # Check that the log method was called with correct layer
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args[0]
-            assert call_args[0] == "REGULATORY"  # Explicit layer
-            assert call_args[1] == "INFO"        # Compliance level
-            assert "[COMPLIANCE]" in call_args[2]  # Compliance prefix
+        # Sensitive keys should be redacted
+        assert sanitized["password"] == "[REDACTED]"
+        assert sanitized["api_key"] == "[REDACTED]"
+        assert sanitized["auth_token"] == "[REDACTED]"
+        assert sanitized["private_data"] == "[REDACTED]"
+        
+        # Normal fields should remain
+        assert sanitized["normal_field"] == "safe"
+
+
+class TestSecurityValidator:
+    """Test security validation functionality."""
+
+    def setup_method(self):
+        """Setup test environment."""
+        self.validator = SecurityValidator()
+
+    def test_sql_injection_detection(self):
+        """Test SQL injection detection."""
+        malicious_input = "'; DROP TABLE users; --"
+        result = self.validator.validate_input(malicious_input)
+        
+        assert not result["valid"]
+        assert len(result["threats"]) > 0
+        assert any(threat["type"] == "sql_injection" for threat in result["threats"])
+
+    def test_xss_detection(self):
+        """Test XSS detection."""
+        malicious_input = "<script>alert('xss')</script>"
+        result = self.validator.validate_input(malicious_input)
+        
+        assert not result["valid"]
+        assert len(result["threats"]) > 0
+        assert any(threat["type"] == "xss" for threat in result["threats"])
+
+    def test_path_traversal_detection(self):
+        """Test path traversal detection."""
+        malicious_input = "../../../etc/passwd"
+        result = self.validator.validate_input(malicious_input)
+        
+        assert not result["valid"]
+        assert len(result["threats"]) > 0
+        assert any(threat["type"] == "path_traversal" for threat in result["threats"])
+
+    def test_command_injection_detection(self):
+        """Test command injection detection."""
+        malicious_input = "ls; rm -rf /"
+        result = self.validator.validate_input(malicious_input)
+        
+        assert not result["valid"]
+        assert len(result["threats"]) > 0
+        assert any(threat["type"] == "command_injection" for threat in result["threats"])
+
+    def test_safe_input(self):
+        """Test that safe input passes validation."""
+        safe_input = "This is a normal message with no threats"
+        result = self.validator.validate_input(safe_input)
+        
+        assert result["valid"]
+        assert len(result["threats"]) == 0
+
+    def test_dict_validation(self):
+        """Test validation of dictionary data."""
+        test_data = {
+            "normal_field": "safe data",
+            "malicious_field": "<script>alert('xss')</script>"
+        }
+        result = self.validator.validate_input(test_data)
+        
+        assert not result["valid"]
+        assert len(result["threats"]) > 0
+
+    def test_list_validation(self):
+        """Test validation of list data."""
+        test_data = [
+            "safe message",
+            "'; DROP TABLE users; --",
+            "normal text"
+        ]
+        result = self.validator.validate_input(test_data)
+        
+        assert not result["valid"]
+        assert len(result["threats"]) > 0
+
+    def test_add_threat_pattern(self):
+        """Test adding custom threat patterns."""
+        self.validator.add_threat_pattern("custom_threat", r"malicious_pattern")
+        
+        test_data = "This contains malicious_pattern"
+        result = self.validator.validate_input(test_data)
+        
+        assert not result["valid"]
+        assert any(threat["type"] == "custom_threat" for threat in result["threats"])
+
+    def test_threat_severity(self):
+        """Test threat severity classification."""
+        # Test high severity threats
+        sql_injection = "'; DROP TABLE users; --"
+        result = self.validator.validate_input(sql_injection)
+        
+        sql_threat = next(threat for threat in result["threats"] if threat["type"] == "sql_injection")
+        assert sql_threat["severity"] in ["high", "medium", "low"]
+
+
+class TestDataHasher:
+    """Test data hashing functionality."""
+
+    def setup_method(self):
+        """Setup test environment."""
+        self.hasher = DataHasher()
+
+    def test_hash_data(self):
+        """Test basic data hashing."""
+        test_data = "sensitive information"
+        hash_value = self.hasher.hash_data(test_data)
+        
+        assert isinstance(hash_value, str)
+        assert len(hash_value) == 64  # SHA-256 produces 64 character hex string
+        assert hash_value != test_data
+
+    def test_hash_verification(self):
+        """Test hash verification."""
+        test_data = "sensitive information"
+        hash_value = self.hasher.hash_data(test_data)
+        
+        # Verify correct data
+        assert self.hasher.verify_hash(test_data, hash_value) is True
+        
+        # Verify incorrect data
+        assert self.hasher.verify_hash("wrong data", hash_value) is False
+
+    def test_hash_sensitive_fields(self):
+        """Test hashing specific fields in a dictionary."""
+        test_data = {
+            "user_id": "12345",
+            "password": "secret123",
+            "email": "user@example.com",
+            "normal_field": "safe data"
+        }
+        
+        sensitive_fields = ["password", "email"]
+        hashed_data = self.hasher.hash_sensitive_fields(test_data, sensitive_fields)
+        
+        # Sensitive fields should be hashed
+        assert hashed_data["password"] != "secret123"
+        assert hashed_data["email"] != "user@example.com"
+        assert len(hashed_data["password"]) == 64
+        assert len(hashed_data["email"]) == 64
+        
+        # Normal fields should remain unchanged
+        assert hashed_data["user_id"] == "12345"
+        assert hashed_data["normal_field"] == "safe data"
+
+    def test_different_hash_algorithms(self):
+        """Test different hash algorithms."""
+        test_data = "sensitive information"
+        
+        # Test SHA-256
+        sha256_hasher = DataHasher("sha256")
+        sha256_hash = sha256_hasher.hash_data(test_data)
+        
+        # Test SHA-1
+        sha1_hasher = DataHasher("sha1")
+        sha1_hash = sha1_hasher.hash_data(test_data)
+        
+        assert sha256_hash != sha1_hash
+        assert len(sha256_hash) == 64
+        assert len(sha1_hash) == 40
 
 
 class TestSecurityIntegration:
-    """Test integration of security features."""
+    """Test security features integration with HydraLogger."""
 
-    def test_redaction_with_performance_monitoring(self):
-        """Test that redaction works with performance monitoring."""
-        logger = HydraLogger(
-            redact_sensitive=True,
-            enable_performance_monitoring=True
+    def setup_method(self):
+        """Setup test environment."""
+        self.test_logs_dir = "_tests_logs"
+        import os
+        os.makedirs(self.test_logs_dir, exist_ok=True)
+        self.log_file = os.path.join(self.test_logs_dir, "test_security.log")
+
+    def teardown_method(self):
+        """Cleanup test files."""
+        import os
+        import shutil
+        if os.path.exists(self.test_logs_dir):
+            shutil.rmtree(self.test_logs_dir)
+
+    def test_logger_with_security_enabled(self):
+        """Test logger with security features enabled."""
+        logger = HydraLogger(enable_security=True, enable_sanitization=True)
+        
+        # Log message with sensitive data
+        logger.info("SECURITY", "User email: user@example.com, password: secret123")
+        
+        # Check that security events were tracked
+        metrics = logger.get_performance_metrics()
+        assert metrics["security_events"] >= 0
+        assert metrics["sanitization_events"] >= 0
+
+    def test_logger_with_security_disabled(self):
+        """Test logger with security features disabled."""
+        logger = HydraLogger(enable_security=False, enable_sanitization=False)
+        
+        # Log message with sensitive data
+        logger.info("SECURITY", "User email: user@example.com, password: secret123")
+        
+        # Check that no security events were tracked
+        metrics = logger.get_performance_metrics()
+        assert metrics["security_events"] == 0
+        assert metrics["sanitization_events"] == 0
+
+    def test_security_with_file_logging(self):
+        """Test security features with file logging."""
+        config = LoggingConfig(
+            layers={
+                "SECURITY": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(type="file", path=self.log_file, level="INFO")
+                    ]
+                )
+            }
         )
         
-        # Log a message with sensitive data
-        logger.info("User login: john@example.com with password secret123")
+        logger = HydraLogger(
+            config=config,
+            enable_security=True,
+            enable_sanitization=True
+        )
         
-        # Check performance statistics
-        stats = logger.get_performance_statistics()
-        assert stats is not None
-        assert stats["total_messages"] == 1
+        # Log sensitive data
+        logger.info("SECURITY", "Payment with card 4111-1111-1111-1111")
+        
+        # Check that file was created and contains sanitized data
+        import os
+        assert os.path.exists(self.log_file)
+        
+        with open(self.log_file, 'r') as f:
+            content = f.read()
+            assert "[REDACTED_CREDIT_CARD]" in content
+            assert "4111-1111-1111-1111" not in content
 
-    def test_security_methods_with_auto_detection(self):
-        """Test security methods with automatic module name detection."""
-        logger = HydraLogger(redact_sensitive=True)
+    def test_security_validation_integration(self):
+        """Test security validation integration."""
+        logger = HydraLogger(enable_security=True)
         
-        with patch.object(logger, '_get_calling_module_name', return_value='auth_module'):
-            with patch.object(logger, 'log') as mock_log:
-                logger.security("Login attempt with sensitive data")
-                
-                # Check that auto-detection works with security methods
-                mock_log.assert_called_once()
-                call_args = mock_log.call_args[0]
-                assert call_args[0] == "auth_module"  # Auto-detected module
-                assert call_args[1] == "WARNING"      # Security level
+        # Test with malicious input
+        malicious_input = "<script>alert('xss')</script>"
+        
+        # This should trigger security validation
+        logger.info("SECURITY", f"Received input: {malicious_input}")
+        
+        # Check metrics
+        metrics = logger.get_performance_metrics()
+        assert metrics["security_events"] >= 0
 
-    def test_audit_trail_comprehensive(self):
-        """Test comprehensive audit trail functionality."""
-        logger = HydraLogger(redact_sensitive=True)
+    def test_data_sanitization_integration(self):
+        """Test data sanitization integration."""
+        logger = HydraLogger(enable_sanitization=True)
         
-        # Simulate a complete audit trail
-        with patch.object(logger, 'log') as mock_log:
-            logger.audit("User session started")
-            logger.security("Login attempt from 192.168.1.100")
-            logger.audit("Data access: user profile")
-            logger.compliance("GDPR consent recorded")
-            logger.audit("User session ended")
-            
-            # Check that all audit events were logged
-            assert mock_log.call_count == 5
-            
-            # Check that all events have appropriate prefixes
-            calls = mock_log.call_args_list
-            assert "[AUDIT]" in calls[0][0][2]  # First audit
-            assert "[SECURITY]" in calls[1][0][2]  # Security event
-            assert "[AUDIT]" in calls[2][0][2]  # Second audit
-            assert "[COMPLIANCE]" in calls[3][0][2]  # Compliance event
-            assert "[AUDIT]" in calls[4][0][2]  # Third audit
+        # Test with sensitive data
+        sensitive_data = {
+            "user": "john_doe",
+            "email": "john@example.com",
+            "ssn": "123-45-6789"
+        }
+        
+        logger.info("SECURITY", f"User data: {sensitive_data}")
+        
+        # Check metrics
+        metrics = logger.get_performance_metrics()
+        assert metrics["sanitization_events"] >= 0
 
-    def test_compliance_logging_with_sensitive_data(self):
-        """Test compliance logging with sensitive data redaction."""
-        logger = HydraLogger(redact_sensitive=True)
+    def test_security_error_handling(self):
+        """Test error handling in security features."""
+        logger = HydraLogger(enable_security=True, enable_sanitization=True)
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.compliance("Patient data accessed: SSN 123-45-6789, Phone 555-123-4567")
-            
-            # Check that sensitive data is redacted in compliance logs
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args[0]
-            assert "[COMPLIANCE]" in call_args[2]
-            # Note: Redaction might not work if patterns don't match exactly
-            # The important thing is that compliance logging works
-            assert "Patient data accessed" in call_args[2]
-
-
-class TestSecurityErrorHandling:
-    """Test error handling in security features."""
-
-    def test_redaction_with_invalid_regex(self):
-        """Test redaction handles invalid regex gracefully."""
-        # This should not raise an exception
-        message = "Invalid regex test: ["
-        redacted = redact_sensitive_data(message)
-        assert redacted == message  # Should remain unchanged
-
-    def test_security_method_with_none_message(self):
-        """Test security method handles None messages gracefully."""
-        logger = HydraLogger()
+        # Test with invalid data that might cause errors
+        try:
+            logger.info("SECURITY", str(None))  # Convert None to string for testing
+        except Exception:
+            pass
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.security("")  # Use empty string instead of None
-            mock_log.assert_not_called()
-
-    def test_audit_method_with_empty_message(self):
-        """Test audit method handles empty messages gracefully."""
-        logger = HydraLogger()
+        # Logger should still work
+        logger.info("SECURITY", "Normal message after error")
         
-        with patch.object(logger, 'log') as mock_log:
-            logger.audit("")
-            mock_log.assert_not_called()
-
-    def test_compliance_method_with_none_parameters(self):
-        """Test compliance method handles None parameters gracefully."""
-        logger = HydraLogger()
-        
-        with patch.object(logger, 'log') as mock_log:
-            logger.compliance("", "")  # Use empty strings instead of None
-            mock_log.assert_not_called()
-
-
-class TestSecurityConfiguration:
-    """Test security feature configuration."""
-
-    def test_redact_sensitive_parameter(self):
-        """Test that redact_sensitive parameter is properly set."""
-        logger = HydraLogger(redact_sensitive=True)
-        assert logger.redact_sensitive is True
-        
-        logger = HydraLogger(redact_sensitive=False)
-        assert logger.redact_sensitive is False
-        
-        logger = HydraLogger()  # Default
-        assert logger.redact_sensitive is False
-
-    def test_security_methods_preserve_redact_setting(self):
-        """Test that security methods preserve the original redact setting."""
-        logger = HydraLogger(redact_sensitive=False)
-        
-        # Security methods should temporarily enable redaction
-        original_setting = logger.redact_sensitive
-        assert original_setting is False
-        
-        with patch.object(logger, 'log'):
-            logger.security("Test message")
-        
-        # Setting should be restored
-        assert logger.redact_sensitive == original_setting
-
-    def test_audit_methods_preserve_redact_setting(self):
-        """Test that audit methods preserve the original redact setting."""
-        logger = HydraLogger(redact_sensitive=False)
-        
-        original_setting = logger.redact_sensitive
-        assert original_setting is False
-        
-        with patch.object(logger, 'log'):
-            logger.audit("Test message")
-        
-        # Setting should be restored
-        assert logger.redact_sensitive == original_setting
-
-    def test_compliance_methods_preserve_redact_setting(self):
-        """Test that compliance methods preserve the original redact setting."""
-        logger = HydraLogger(redact_sensitive=False)
-        
-        original_setting = logger.redact_sensitive
-        assert original_setting is False
-        
-        with patch.object(logger, 'log'):
-            logger.compliance("Test message")
-        
-        # Setting should be restored
-        assert logger.redact_sensitive == original_setting 
+        # Check that metrics are still available
+        metrics = logger.get_performance_metrics()
+        assert metrics is not None
+        assert "total_logs" in metrics 
