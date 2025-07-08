@@ -1,0 +1,15 @@
+# Ignore logs directory
+logs/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary files
+*.tmp
+*.log
+
+# IDE files
+.vscode/
+.idea/ 

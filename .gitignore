@@ -221,6 +221,7 @@ __marimo__
 logs/
 workflow_logs/
 demo_logs/
+_tests_logs/
 *.log
 
 # Test artifacts
@@ -261,4 +262,4 @@ Thumbs.db
 # Local configuration files
 config.local.yaml
 config.local.toml
-.env.local
+.env.local_tests_logs/

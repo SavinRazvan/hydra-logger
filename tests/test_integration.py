@@ -11,20 +11,31 @@ complex applications with various logging requirements including:
 - Backward compatibility with existing code
 - Configuration file loading and validation
 - Log level filtering and message routing
+- Async logging capabilities
+- Performance monitoring
+- Framework integrations
+- Error handling and edge cases
 
 These tests verify that Hydra-Logger works correctly in realistic
 application environments with complex logging requirements.
 """
 
+import asyncio
 import logging
 import os
 import shutil
 import tempfile
+import time
+import json
+import yaml
+from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 import pytest
 
 from hydra_logger import HydraLogger
 from hydra_logger.config import LogDestination, LoggingConfig, LogLayer
+from hydra_logger.compatibility import migrate_to_hydra
 
 
 class TestIntegration:
@@ -274,8 +285,6 @@ class TestIntegration:
         """
 
         # Test the migration function with custom path
-        from hydra_logger.compatibility import migrate_to_hydra
-
         logger = migrate_to_hydra(
             enable_file_logging=True,
             console_level=logging.INFO,
@@ -461,3 +470,769 @@ layers:
             assert "Critical message for ERROR_LAYER" in content
 
         print("✅ Log level filtering works correctly per layer!")
+
+    def test_async_logging_integration(self, temp_dir):
+        """
+        Test async logging capabilities integration.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that async logging works correctly with the main logger
+        and that async handlers are properly integrated.
+        """
+        
+        # Create config with file destination only (avoid async HTTP for testing)
+        config = LoggingConfig(
+            layers={
+                "ASYNC_LAYER": LogLayer(
+                    level="DEBUG",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "async", "async.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        logger = HydraLogger(config)
+        
+        # Test async logging
+        async def test_async_logging():
+            logger.info("ASYNC_LAYER", "Async test message")
+            logger.debug("ASYNC_LAYER", "Async debug message")
+            logger.error("ASYNC_LAYER", "Async error message")
+            
+            # Wait a bit for async processing
+            await asyncio.sleep(0.1)
+        
+        # Run async test
+        asyncio.run(test_async_logging())
+        
+        # Verify file was created
+        log_file = os.path.join(temp_dir, "logs", "async", "async.log")
+        assert os.path.exists(log_file), "Async log file was not created"
+        
+        with open(log_file, "r") as f:
+            content = f.read()
+            assert "Async test message" in content
+            assert "Async debug message" in content
+            assert "Async error message" in content
+        
+        print("✅ Async logging integration works!")
+
+    def test_performance_monitoring(self, temp_dir):
+        """
+        Test performance monitoring capabilities.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that performance monitoring works correctly and
+        provides useful statistics.
+        """
+        
+        config = LoggingConfig(
+            layers={
+                "PERF_LAYER": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "perf", "perf.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        # Enable performance monitoring
+        logger = HydraLogger(config, enable_performance_monitoring=True)
+        
+        # Perform some logging operations
+        for i in range(10):
+            logger.info("PERF_LAYER", f"Performance test message {i}")
+            time.sleep(0.01)  # Small delay to simulate real usage
+        
+        # Get performance statistics
+        stats = logger.get_performance_statistics()
+        assert stats is not None, "Performance statistics should be available"
+        assert "handler_creation_time" in stats
+        assert "log_processing_time" in stats
+        assert "memory_usage" in stats
+        assert "error_count" in stats
+        
+        print(f"✅ Performance monitoring works! Stats: {stats}")
+
+    def test_sensitive_data_redaction(self, temp_dir):
+        """
+        Test sensitive data redaction functionality.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that sensitive information is properly redacted
+        from log messages.
+        """
+        
+        config = LoggingConfig(
+            layers={
+                "SECURITY_LAYER": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "security", "security.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        # Enable sensitive data redaction
+        logger = HydraLogger(config, redact_sensitive=True)
+        
+        # Log messages with sensitive data
+        sensitive_messages = [
+            "User login with email: user@example.com",
+            "API key: sk-1234567890abcdef",
+            "Password: secret123",
+            "Token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "Credit card: 1234-5678-9012-3456",
+            "SSN: 123-45-6789",
+            "Phone: 555-123-4567",
+            "IP: 192.168.1.100",
+            "URL with auth: https://user:pass@api.example.com/data",
+        ]
+        
+        for message in sensitive_messages:
+            logger.info("SECURITY_LAYER", message)
+        
+        # Verify redaction
+        log_file = os.path.join(temp_dir, "logs", "security", "security.log")
+        assert os.path.exists(log_file), "Security log file was not created"
+        
+        with open(log_file, "r") as f:
+            content = f.read()
+            
+            # Check that sensitive data was redacted
+            assert "[EMAIL_REDACTED]" in content
+            assert "[API_KEY_REDACTED]" in content
+            assert "[PASSWORD_REDACTED]" in content
+            assert "[TOKEN_REDACTED]" in content
+            assert "[CREDIT_CARD_REDACTED]" in content
+            assert "[SSN_REDACTED]" in content
+            assert "[PHONE_REDACTED]" in content
+            assert "[IP_REDACTED]" in content
+            assert "[URL_WITH_AUTH_REDACTED]" in content
+            
+            # Check that original sensitive data is NOT in the log
+            assert "user@example.com" not in content
+            assert "sk-1234567890abcdef" not in content
+            assert "secret123" not in content
+            assert "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." not in content
+            assert "1234-5678-9012-3456" not in content
+            assert "123-45-6789" not in content
+            assert "555-123-4567" not in content
+            assert "192.168.1.100" not in content
+            assert "https://user:pass@api.example.com/data" not in content
+        
+        print("✅ Sensitive data redaction works correctly!")
+
+    def test_framework_integrations(self, temp_dir):
+        """
+        Test framework integration methods.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that framework-specific logger configurations
+        work correctly.
+        """
+        
+        # Test FastAPI integration (with mock to handle missing dependencies)
+        with patch('hydra_logger.framework_integration.FrameworkDetector.detect_environment', return_value='development'):
+            with patch('hydra_logger.framework_integration.MagicConfig._setup_fastapi') as mock_setup:
+                mock_setup.return_value = HydraLogger()
+                fastapi_logger = HydraLogger.for_fastapi()
+                assert fastapi_logger is not None
+                assert isinstance(fastapi_logger, HydraLogger)
+        
+        # Test Django integration (with mock to handle missing dependencies)
+        with patch('hydra_logger.framework_integration.FrameworkDetector.detect_environment', return_value='development'):
+            with patch('hydra_logger.framework_integration.MagicConfig._setup_django') as mock_setup:
+                mock_setup.return_value = HydraLogger()
+                django_logger = HydraLogger.for_django()
+                assert django_logger is not None
+                assert isinstance(django_logger, HydraLogger)
+        
+        # Test Flask integration (with mock to handle missing dependencies)
+        with patch('hydra_logger.framework_integration.FrameworkDetector.detect_environment', return_value='development'):
+            with patch('hydra_logger.framework_integration.MagicConfig._setup_flask') as mock_setup:
+                mock_setup.return_value = HydraLogger()
+                flask_logger = HydraLogger.for_flask()
+                assert flask_logger is not None
+                assert isinstance(flask_logger, HydraLogger)
+        
+        # Test Web App integration (should work without mocks)
+        web_logger = HydraLogger.for_web_app()
+        assert web_logger is not None
+        assert isinstance(web_logger, HydraLogger)
+        
+        # Test Microservice integration (should work without mocks)
+        microservice_logger = HydraLogger.for_microservice()
+        assert microservice_logger is not None
+        assert isinstance(microservice_logger, HydraLogger)
+        
+        # Test CLI Tool integration (should work without mocks)
+        cli_logger = HydraLogger.for_cli_tool()
+        assert cli_logger is not None
+        assert isinstance(cli_logger, HydraLogger)
+        
+        print("✅ Framework integrations work correctly!")
+
+    def test_error_handling_and_edge_cases(self, temp_dir):
+        """
+        Test error handling and edge cases.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that the logger handles errors gracefully and
+        works correctly in edge cases.
+        """
+        
+        # Test with invalid config
+        with pytest.raises(Exception):
+            invalid_config = LoggingConfig(
+                layers={
+                    "INVALID": LogLayer(
+                        level="INVALID_LEVEL",
+                        destinations=[],
+                    ),
+                }
+            )
+            logger = HydraLogger(invalid_config)
+        
+        # Test with non-existent directory (should create it)
+        deep_path = os.path.join(temp_dir, "deep", "nested", "path", "logs")
+        config = LoggingConfig(
+            layers={
+                "DEEP": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(deep_path, "deep.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        logger = HydraLogger(config)
+        logger.info("DEEP", "Test message in deep path")
+        
+        # Verify directory was created
+        assert os.path.exists(deep_path), "Deep nested directory was not created"
+        log_file = os.path.join(deep_path, "deep.log")
+        assert os.path.exists(log_file), "Deep log file was not created"
+        
+        # Test with empty message
+        logger.info("DEEP", "")
+        
+        # Test with very long message
+        long_message = "A" * 10000
+        logger.info("DEEP", long_message)
+        
+        # Test with special characters
+        special_message = "Special chars: éñçüöäëïÿ€£¥¢©®™"
+        logger.info("DEEP", special_message)
+        
+        # Test with None message (should handle gracefully)
+        logger.info("DEEP", None)
+        
+        print("✅ Error handling and edge cases work correctly!")
+
+    def test_auto_detection_and_lazy_initialization(self, temp_dir):
+        """
+        Test auto-detection and lazy initialization features.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that auto-detection works correctly and lazy
+        initialization improves performance.
+        """
+        
+        # Test auto-detection
+        logger = HydraLogger(auto_detect=True)
+        logger.info("Test message with auto-detection")
+        
+        # Test lazy initialization
+        logger = HydraLogger(lazy_initialization=True)
+        # Logger should not be fully initialized yet
+        
+        # Force initialization by logging
+        logger.info("Test message with lazy initialization")
+        
+        # Test with custom date/time formats
+        logger = HydraLogger(
+            date_format="%Y-%m-%d",
+            time_format="%H:%M:%S",
+            logger_name_format="%(name)s",
+            message_format="%(message)s"
+        )
+        logger.info("Test message with custom formats")
+        
+        print("✅ Auto-detection and lazy initialization work correctly!")
+
+    def test_structured_logging_formats(self, temp_dir):
+        """
+        Test structured logging formats (JSON, CSV, Syslog, GELF).
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that different log formats work correctly.
+        """
+        
+        formats_to_test = ["json", "csv", "syslog", "gelf"]
+        
+        for fmt in formats_to_test:
+            config = LoggingConfig(
+                layers={
+                    f"FORMAT_{fmt.upper()}": LogLayer(
+                        level="INFO",
+                        destinations=[
+                            LogDestination(
+                                type="file",
+                                path=os.path.join(temp_dir, "logs", "formats", f"{fmt}.log"),
+                                format=fmt,
+                            ),
+                        ],
+                    ),
+                }
+            )
+            
+            logger = HydraLogger(config)
+            logger.info(f"FORMAT_{fmt.upper()}", f"Test message in {fmt} format")
+            
+            # Verify file was created
+            log_file = os.path.join(temp_dir, "logs", "formats", f"{fmt}.log")
+            assert os.path.exists(log_file), f"{fmt} log file was not created"
+            
+            with open(log_file, "r") as f:
+                content = f.read()
+                assert len(content) > 0, f"{fmt} log file is empty"
+                
+                if fmt == "json":
+                    # Verify JSON format
+                    lines = content.strip().split('\n')
+                    for line in lines:
+                        if line.strip():
+                            json.loads(line)  # Should be valid JSON
+                
+                elif fmt == "csv":
+                    # Verify CSV format
+                    assert "," in content, "CSV format should contain commas"
+                
+                elif fmt == "syslog":
+                    # Verify Syslog format
+                    assert "Test message in syslog format" in content
+                
+                elif fmt == "gelf":
+                    # Verify GELF format
+                    assert "Test message in gelf format" in content
+        
+        print("✅ Structured logging formats work correctly!")
+
+    def test_concurrent_logging(self, temp_dir):
+        """
+        Test concurrent logging operations.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that the logger works correctly under concurrent
+        access from multiple threads.
+        """
+        
+        import threading
+        
+        config = LoggingConfig(
+            layers={
+                "CONCURRENT": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "concurrent", "concurrent.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        logger = HydraLogger(config)
+        
+        def log_messages(thread_id):
+            for i in range(10):
+                logger.info("CONCURRENT", f"Thread {thread_id} message {i}")
+                time.sleep(0.001)  # Small delay
+        
+        # Create multiple threads
+        threads = []
+        for i in range(5):
+            thread = threading.Thread(target=log_messages, args=(i,))
+            threads.append(thread)
+            thread.start()
+        
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+        
+        # Verify all messages were logged
+        log_file = os.path.join(temp_dir, "logs", "concurrent", "concurrent.log")
+        assert os.path.exists(log_file), "Concurrent log file was not created"
+        
+        with open(log_file, "r") as f:
+            content = f.read()
+            # Should have messages from all threads
+            for i in range(5):
+                assert f"Thread {i} message" in content
+        
+        print("✅ Concurrent logging works correctly!")
+
+    def test_configuration_validation(self, temp_dir):
+        """
+        Test configuration validation and error handling.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that configuration validation works correctly
+        and provides helpful error messages.
+        """
+        
+        # Test invalid log level
+        with pytest.raises(Exception):
+            config = LoggingConfig(
+                layers={
+                    "INVALID": LogLayer(
+                        level="INVALID_LEVEL",
+                        destinations=[],
+                    ),
+                }
+            )
+        
+        # Test invalid destination type
+        with pytest.raises(Exception):
+            config = LoggingConfig(
+                layers={
+                    "INVALID": LogLayer(
+                        level="INFO",
+                        destinations=[
+                            LogDestination(type="invalid_type"),
+                        ],
+                    ),
+                }
+            )
+        
+        # Test file destination without path
+        with pytest.raises(Exception):
+            config = LoggingConfig(
+                layers={
+                    "INVALID": LogLayer(
+                        level="INFO",
+                        destinations=[
+                            LogDestination(type="file"),  # Missing path
+                        ],
+                    ),
+                }
+            )
+        
+        # Test valid configuration
+        config = LoggingConfig(
+            layers={
+                "VALID": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "valid", "valid.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        logger = HydraLogger(config)
+        logger.info("VALID", "Valid configuration test")
+        
+        # Verify it worked
+        log_file = os.path.join(temp_dir, "logs", "valid", "valid.log")
+        assert os.path.exists(log_file), "Valid log file was not created"
+        
+        print("✅ Configuration validation works correctly!")
+
+    def test_performance_under_load(self, temp_dir):
+        """
+        Test performance under high load.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that the logger performs well under high
+        message volume.
+        """
+        
+        config = LoggingConfig(
+            layers={
+                "LOAD": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "load", "load.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        logger = HydraLogger(config, enable_performance_monitoring=True)
+        
+        # Log many messages quickly
+        start_time = time.time()
+        for i in range(1000):
+            logger.info("LOAD", f"Load test message {i}")
+        
+        end_time = time.time()
+        duration = end_time - start_time
+        
+        # Verify performance is reasonable (should complete in under 5 seconds)
+        assert duration < 5.0, f"Performance test took too long: {duration:.2f} seconds"
+        
+        # Verify all messages were logged
+        log_file = os.path.join(temp_dir, "logs", "load", "load.log")
+        assert os.path.exists(log_file), "Load test log file was not created"
+        
+        with open(log_file, "r") as f:
+            content = f.read()
+            lines = content.split('\n')
+            # Should have close to 1000 lines (allowing for some overhead)
+            assert len(lines) >= 950, f"Expected ~1000 lines, got {len(lines)}"
+        
+        # Get performance statistics
+        stats = logger.get_performance_statistics()
+        assert stats is not None
+        assert "log_processing_time" in stats
+        
+        print(f"✅ Performance under load: {duration:.2f} seconds for 1000 messages")
+
+    def test_memory_efficiency(self, temp_dir):
+        """
+        Test memory efficiency during logging operations.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that the logger doesn't leak memory during
+        extended operations.
+        """
+        
+        import gc
+        import psutil
+        import os
+        
+        config = LoggingConfig(
+            layers={
+                "MEMORY": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "memory", "memory.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        logger = HydraLogger(config, enable_performance_monitoring=True)
+        
+        # Get initial memory usage
+        process = psutil.Process(os.getpid())
+        initial_memory = process.memory_info().rss
+        
+        # Perform many logging operations
+        for i in range(1000):
+            logger.info("MEMORY", f"Memory test message {i}")
+        
+        # Force garbage collection
+        gc.collect()
+        
+        # Get final memory usage
+        final_memory = process.memory_info().rss
+        memory_increase = final_memory - initial_memory
+        
+        # Memory increase should be reasonable (less than 50MB)
+        memory_increase_mb = memory_increase / 1024 / 1024
+        assert memory_increase_mb < 50, f"Memory increase too high: {memory_increase_mb:.2f} MB"
+        
+        print(f"✅ Memory efficiency: {memory_increase_mb:.2f} MB increase for 1000 messages")
+
+    def test_error_recovery(self, temp_dir):
+        """
+        Test error recovery and resilience.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Verifies that the logger recovers gracefully from
+        various error conditions.
+        """
+        
+        # Test with invalid file path (should handle gracefully)
+        config = LoggingConfig(
+            layers={
+                "ERROR_RECOVERY": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="/invalid/path/that/does/not/exist/test.log",
+                        ),
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "recovery", "recovery.log"),
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        logger = HydraLogger(config)
+        
+        # These should not crash the application
+        logger.info("ERROR_RECOVERY", "Test message 1")
+        logger.error("ERROR_RECOVERY", "Test message 2")
+        logger.warning("ERROR_RECOVERY", "Test message 3")
+        
+        # Verify that valid destination still works
+        log_file = os.path.join(temp_dir, "logs", "recovery", "recovery.log")
+        assert os.path.exists(log_file), "Recovery log file was not created"
+        
+        with open(log_file, "r") as f:
+            content = f.read()
+            assert "Test message 1" in content
+            assert "Test message 2" in content
+            assert "Test message 3" in content
+        
+        print("✅ Error recovery works correctly!")
+
+    def test_comprehensive_integration_scenario(self, temp_dir):
+        """
+        Test a comprehensive integration scenario.
+        
+        Args:
+            temp_dir: Temporary directory for test files.
+            
+        Simulates a complex real-world application with multiple
+        logging requirements and verifies everything works together.
+        """
+        
+        # Create a complex configuration
+        config = LoggingConfig(
+            layers={
+                "APP": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "app", "main.log"),
+                            format="json",
+                        ),
+                        LogDestination(
+                            type="console",
+                            level="ERROR",
+                        ),
+                    ],
+                ),
+                "SECURITY": LogLayer(
+                    level="DEBUG",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "security", "security.log"),
+                            format="text",
+                        ),
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "security", "audit.log"),
+                            format="csv",
+                        ),
+                    ],
+                ),
+                "PERFORMANCE": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path=os.path.join(temp_dir, "logs", "performance", "metrics.log"),
+                            format="json",
+                        ),
+                    ],
+                ),
+            }
+        )
+        
+        # Create logger with all features enabled
+        logger = HydraLogger(
+            config,
+            enable_performance_monitoring=True,
+            redact_sensitive=True,
+            auto_detect=True,
+            lazy_initialization=False,
+        )
+        
+        # Simulate complex application usage
+        logger.info("APP", "Application started")
+        logger.info("SECURITY", "User login: admin@example.com")
+        logger.debug("SECURITY", "Authentication successful")
+        logger.info("PERFORMANCE", "Response time: 150ms")
+        logger.error("APP", "Database connection failed")
+        logger.warning("APP", "High memory usage detected")
+        logger.critical("SECURITY", "Security breach detected")
+        
+        # Verify all log files were created
+        expected_files = [
+            os.path.join(temp_dir, "logs", "app", "main.log"),
+            os.path.join(temp_dir, "logs", "security", "security.log"),
+            os.path.join(temp_dir, "logs", "security", "audit.log"),
+            os.path.join(temp_dir, "logs", "performance", "metrics.log"),
+        ]
+        
+        for log_file in expected_files:
+            assert os.path.exists(log_file), f"Log file {log_file} was not created"
+            
+            with open(log_file, "r") as f:
+                content = f.read()
+                assert len(content) > 0, f"Log file {log_file} is empty"
+        
+        # Test performance statistics
+        stats = logger.get_performance_statistics()
+        assert stats is not None
+        assert "memory_usage" in stats
+        
+        # Test logger retrieval
+        app_logger = logger.get_logger("APP")
+        assert app_logger is not None
+        assert isinstance(app_logger, logging.Logger)
+        
+        print("✅ Comprehensive integration scenario works correctly!")
+        print(f"📁 Created {len(expected_files)} log files with different formats")
+        print(f"📊 Performance stats: {stats}")

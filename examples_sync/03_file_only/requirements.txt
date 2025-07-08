@@ -1,0 +1,19 @@
+# File-Only Logging Example Requirements
+# Core dependency
+hydra-logger>=0.1.0
+
+# Optional dependencies for enhanced examples
+# These are not strictly required but enhance the examples
+# Uncomment if you want to install them:
+
+# For enhanced JSON handling
+# json5>=0.9.0
+
+# For enhanced CSV handling  
+# pandas>=1.3.0
+
+# For enhanced date/time handling
+# python-dateutil>=2.8.0
+
+# For enhanced file operations
+# pathlib2>=2.3.0 

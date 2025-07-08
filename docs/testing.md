@@ -350,7 +350,7 @@ def test_multi_layer_configuration(self, temp_dir):
             "APP": LogLayer(
                 level="INFO",
                 destinations=[
-                    LogDestination(type="file", path=os.path.join(temp_dir, "app.log"), format="text"),
+                    LogDestination(type="file", path=os.path.join(temp_dir, "app.log"), format="plain-text"),
                     LogDestination(type="console", format="json")
                 ]
             ),
@@ -363,7 +363,7 @@ def test_multi_layer_configuration(self, temp_dir):
             "ERRORS": LogLayer(
                 level="ERROR",
                 destinations=[
-                    LogDestination(type="file", path=os.path.join(temp_dir, "errors.log"), format="text")
+                    LogDestination(type="file", path=os.path.join(temp_dir, "errors.log"), format="plain-text")
                 ]
             )
         }
@@ -453,7 +453,7 @@ def test_concurrent_logging(self, temp_dir):
                     LogDestination(
                         type="file",
                         path=os.path.join(temp_dir, "concurrent.log"),
-                        format="text"
+                        format="plain-text"
                     )
                 ]
             )
@@ -500,7 +500,7 @@ def test_file_rotation(self, temp_dir):
                         path=os.path.join(temp_dir, "rotation.log"),
                         max_size="1KB",
                         backup_count=3,
-                        format="text"
+                        format="plain-text"
                     )
                 ]
             )

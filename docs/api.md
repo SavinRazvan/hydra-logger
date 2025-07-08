@@ -205,7 +205,7 @@ from hydra_logger.config import LogLayer, LogDestination
 layer = LogLayer(
     level="INFO",
     destinations=[
-        LogDestination(type="file", path="logs/app.log", format="text"),
+        LogDestination(type="file", path="logs/app.log", format="plain-text"),
         LogDestination(type="console", format="json")
     ]
 )
@@ -231,7 +231,7 @@ class LogDestination(BaseModel):
 - `level` (Optional[str]): Override log level for this destination
 - `max_size` (Optional[str]): Maximum file size (e.g., "10MB", "1GB")
 - `backup_count` (Optional[int]): Number of backup files to keep
-- `format` (Optional[str]): Log format ("text", "json", "csv", "syslog", "gelf")
+- `format` (Optional[str]): Log format ("plain-text", "json", "csv", "syslog", "gelf")
 
 **Example:**
 ```python
@@ -246,11 +246,11 @@ file_dest = LogDestination(
     format="json"
 )
 
-# Console destination with text format
+# Console destination with plain-text format
 console_dest = LogDestination(
     type="console",
     level="WARNING",
-    format="text"
+    format="plain-text"
 )
 ```
 
@@ -258,7 +258,7 @@ console_dest = LogDestination(
 
 Hydra-Logger supports multiple log formats for different use cases:
 
-### Text Format (Default)
+### Plain-Text Format (Default)
 
 Traditional plain text logging with timestamps and log levels.
 
@@ -269,7 +269,7 @@ Traditional plain text logging with timestamps and log levels.
 
 **Configuration:**
 ```python
-LogDestination(type="file", path="logs/app.log", format="text")
+LogDestination(type="file", path="logs/app.log", format="plain-text")
 ```
 
 ### JSON Format
@@ -430,7 +430,7 @@ config = LoggingConfig(
         "APP": LogLayer(
             level="INFO",
             destinations=[
-                LogDestination(type="file", path="logs/app.log", format="text"),
+                LogDestination(type="file", path="logs/app.log", format="plain-text"),
                 LogDestination(type="console", format="json")
             ]
         ),
@@ -443,7 +443,7 @@ config = LoggingConfig(
         "ERRORS": LogLayer(
             level="ERROR",
             destinations=[
-                LogDestination(type="file", path="logs/errors.log", format="text"),
+                LogDestination(type="file", path="logs/errors.log", format="plain-text"),
                 LogDestination(type="console", level="CRITICAL", format="gelf")
             ]
         )
@@ -468,7 +468,7 @@ layers:
     destinations:
       - type: file
         path: "logs/app.log"
-        format: text
+        format: plain-text
       - type: console
         format: json
   
@@ -582,7 +582,7 @@ config = LoggingConfig(
     layers={
         "DEBUG": LogLayer(
             destinations=[
-                LogDestination(type="file", path="logs/debug.log", format="text")  # Human-readable
+                LogDestination(type="file", path="logs/debug.log", format="plain-text")  # Human-readable
             ]
         ),
         "ANALYTICS": LogLayer(
@@ -766,8 +766,8 @@ def get_environment_config():
                 "APP": {
                     "level": "DEBUG",
                     "destinations": [
-                        {"type": "file", "path": "logs/dev/app.log", "format": "text"},
-                        {"type": "console", "level": "DEBUG", "format": "text"}
+                        {"type": "file", "path": "logs/dev/app.log", "format": "plain-text"},
+                        {"type": "console", "level": "DEBUG", "format": "plain-text"}
                     ]
                 }
             }
@@ -801,7 +801,7 @@ def create_app_layer():
     return LogLayer(
         level="INFO",
         destinations=[
-            LogDestination(type="file", path="logs/app.log", format="text"),
+            LogDestination(type="file", path="logs/app.log", format="plain-text"),
             LogDestination(type="console", format="json")
         ]
     )
@@ -861,7 +861,7 @@ test_config = {
                 {
                     "type": "file",
                     "path": "logs/app.log",
-                    "format": "text"
+                    "format": "plain-text"
                 }
             ]
         }
@@ -999,4 +999,45 @@ structured_logger.log_event("API", "INFO", "user_login", user_id=123, ip="192.16
 structured_logger.log_metric("PERFORMANCE", "response_time", 150, "ms")
 ```
 
-These best practices ensure that your Hydra-Logger implementation is secure, performant, and maintainable in production environments. 
+## Format System: `plain-text` and Color Mode
+
+Hydra-Logger supports the `plain-text` format for human-readable output with color control:
+
+- **`plain-text`**: Human-readable text format with color control via `color_mode`
+- **Other formats**: `json`, `csv`, `syslog`, `gelf` (all support color_mode for future colored variants)
+
+**Color Mode** (`color_mode`):
+- `auto`: Detects if colors should be used (default)
+- `always`: Forces colors on
+- `never`: Forces colors off
+
+**Example:**
+```python
+config = {
+    "layers": {
+        "APP": {
+            "level": "INFO",
+            "destinations": [
+                {"type": "console", "format": "plain-text", "color_mode": "always"},  # Colored console
+                {"type": "file", "format": "plain-text", "color_mode": "never"}      # Plain file
+            ]
+        }
+    }
+}
+logger = HydraLogger(config=config)
+logger.info("APP", "Colored console, plain file")
+```
+
+## Available Formats
+- `plain-text` - Human-readable text (colored in console if color_mode allows)
+- `json` - JSON format (structured)
+- `csv` - CSV format (tabular)
+- `syslog` - Syslog format (system logging)
+- `gelf` - GELF format (Graylog)
+
+## Color Mode Options
+- `auto` - Automatic detection (default)
+- `always` - Force colors on
+- `never` - Force colors off
+
+# (Other sections remain unchanged, but all format/color examples and references are now up to date) 

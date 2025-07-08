@@ -1,31 +1,17 @@
 """
-Comprehensive test suite for Hydra-Logger configuration system.
+Tests for config functionality.
 
-This module contains unit tests for the configuration models and functions
-that define the logging setup for Hydra-Logger. Tests cover Pydantic models,
-validation logic, configuration loading from files, and error handling.
-
-The tests verify that:
-- Configuration models validate input correctly
-- File and YAML/TOML loading works properly
-- Error handling is robust for invalid configurations
-- Directory creation functions work correctly
-- Edge cases and error conditions are handled gracefully
+This module tests the LoggingConfig, LogLayer, and LogDestination classes.
 """
 
-import os
-import tempfile
-from unittest.mock import mock_open, patch
-
 import pytest
+import tempfile
+import os
+from unittest.mock import Mock, patch, mock_open
 
 from hydra_logger.config import (
-    LogDestination,
-    LoggingConfig,
-    LogLayer,
-    create_log_directories,
-    get_default_config,
-    load_config,
+    LoggingConfig, LogLayer, LogDestination, get_default_config,
+    load_config, create_log_directories
 )
 
 
@@ -46,7 +32,7 @@ class TestLogDestination:
         """
         dest = LogDestination(
             type="file",
-            path="logs/app.log",
+            path="logs/_tests_logs/app.log",
             level="DEBUG",
             max_size="10MB",
             backup_count=5,
@@ -210,7 +196,7 @@ class TestLogLayer:
         layer = LogLayer(
             level="DEBUG",
             destinations=[
-                LogDestination(type="file", path="logs/debug.log"),
+                LogDestination(type="file", path="logs/_tests_logs/debug.log"),
                 LogDestination(type="console", level="INFO"),
             ],
         )
@@ -462,13 +448,13 @@ invalid_key: [unclosed_bracket
             layers={
                 "APP": LogLayer(
                     destinations=[
-                        LogDestination(type="file", path="logs/app/main.log"),
-                        LogDestination(type="file", path="logs/app/errors.log"),
+                                        LogDestination(type="file", path="logs/_tests_logs/app/main.log"),
+                LogDestination(type="file", path="logs/_tests_logs/app/errors.log"),
                     ]
                 ),
                 "DEBUG": LogLayer(
                     destinations=[
-                        LogDestination(type="file", path="logs/debug/all.log")
+                        LogDestination(type="file", path="logs/_tests_logs/debug/all.log")
                     ]
                 ),
             }
@@ -592,3 +578,105 @@ invalid_key: [unclosed_bracket
 # --- MERGED FROM test_config_coverage.py ---
 
 # All test functions and classes from test_config_coverage.py go here, after the last test class in this file.
+
+# === BEGIN GAP TESTS (from test_config_coverage_gaps.py) ===
+import sys
+import types
+from unittest.mock import patch, MagicMock
+import hydra_logger.config as config_mod
+
+def test_tomllib_import_logic(monkeypatch):
+    # Simulate Python <3.11: no tomllib, fallback to tomli
+    monkeypatch.setitem(sys.modules, 'tomllib', None)
+    sys.modules.pop('tomllib', None)
+    sys.modules.pop('tomli', None)
+    import importlib
+    importlib.reload(config_mod)
+    assert hasattr(config_mod, 'tomllib')
+    assert hasattr(config_mod, 'TOMLDecodeError')
+
+    # Simulate tomllib import but missing TOMLDecodeError (AttributeError)
+    class DummyTomlLib:
+        pass
+    monkeypatch.setitem(sys.modules, 'tomllib', DummyTomlLib())
+    sys.modules.pop('tomli', None)
+    importlib.reload(config_mod)
+    assert hasattr(config_mod, 'TOMLDecodeError')
+
+
+def test_logdestination_path_validation():
+    from hydra_logger.config import LogDestination
+    with pytest.raises(ValueError, match="Path is required for file destinations"):
+        LogDestination(type="file", path=None, level="INFO")
+    with pytest.raises(ValueError, match="Path is required for file destinations"):
+        LogDestination(type="file", path="   ", level="INFO")
+
+
+def test_logdestination_level_and_format_validation():
+    from hydra_logger.config import LogDestination
+    with pytest.raises(ValueError, match="Invalid level"):
+        LogDestination(type="console", level="INVALID")
+    with pytest.raises(ValueError, match="Invalid format"):
+        LogDestination(type="console", level="INFO", format="badformat")
+
+
+def test_loglayer_level_validation():
+    from hydra_logger.config import LogLayer
+    with pytest.raises(ValueError, match="Invalid level"):
+        LogLayer(level="BADLEVEL", destinations=[])
+
+
+def test_loggingconfig_default_level_validation():
+    from hydra_logger.config import LoggingConfig
+    with pytest.raises(ValueError, match="Invalid default_level"):
+        LoggingConfig(layers={}, default_level="BADLEVEL")
+
+
+def test_load_config_file_not_found():
+    from hydra_logger.config import load_config
+    with pytest.raises(FileNotFoundError):
+        load_config("/tmp/this_file_does_not_exist.yaml")
+
+
+def test_load_config_unsupported_extension(tmp_path):
+    from hydra_logger.config import load_config
+    file = tmp_path / "config.unsupported"
+    file.write_text("irrelevant")
+    with pytest.raises(ValueError, match="Unsupported config file format"):
+        load_config(file)
+
+
+def test_load_config_empty_file(tmp_path):
+    from hydra_logger.config import load_config
+    file = tmp_path / "config.yaml"
+    file.write_text("")
+    with pytest.raises(ValueError, match="empty or invalid"):
+        load_config(file)
+
+
+def test_load_config_invalid_yaml(tmp_path):
+    from hydra_logger.config import load_config
+    file = tmp_path / "config.yaml"
+    file.write_text(": bad yaml")
+    with pytest.raises(ValueError, match="Failed to parse YAML"):
+        load_config(file)
+
+
+def test_load_config_invalid_toml(tmp_path):
+    from hydra_logger.config import load_config
+    file = tmp_path / "config.toml"
+    file.write_text("bad = [unclosed")
+    with patch.object(config_mod, 'tomllib', MagicMock()):
+        config_mod.tomllib.load.side_effect = Exception("TOML error")
+        with pytest.raises(ValueError, match="Failed to parse TOML"):
+            load_config(file)
+
+
+def test_load_config_yaml_parse_error(tmp_path):
+    from hydra_logger.config import load_config
+    file = tmp_path / "config.yaml"
+    file.write_text("bad: [unclosed")
+    with patch("hydra_logger.config.yaml.safe_load", side_effect=Exception("YAML error")):
+        with pytest.raises(ValueError, match="Failed to load configuration"):
+            load_config(file)
+# === END GAP TESTS ===

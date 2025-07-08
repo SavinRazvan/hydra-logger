@@ -1,654 +1,369 @@
-# 🐉 Hydra-Logger
+# 🚀 Hydra-Logger
+
+**The most user-friendly, enterprise-ready Python logging library with modular architecture, zero-configuration, and exceptional performance.**
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-white.svg)](https://opensource.org/licenses/MIT)
-[![Codecov](https://img.shields.io/codecov/c/github/SavinRazvan/hydra-logger?logo=codecov)](https://codecov.io/gh/SavinRazvan/hydra-logger)
-[![PyPI](https://img.shields.io/badge/PyPI-hydra--logger-darkblue.svg)](https://pypi.org/project/hydra-logger/)
-
-A **dynamic, multi-headed logging system** for Python applications that supports custom folder paths, multi-layered logging, multiple log formats, and configuration via YAML/TOML files. Perfect for organizing logs by module, purpose, or severity level with structured output formats.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## ✨ Features
 
-- 🎯 **Multi-layered Logging**: Route different types of logs to different destinations
-- 📁 **Custom Folder Paths**: Specify custom folders for each log file (e.g., `logs/config/`, `logs/security/`)
-- 🔄 **Multiple Destinations**: File and console output per layer with different log levels
-- 📊 **Multiple Log Formats**: Support for text, structured JSON, CSV, Syslog, and GELF formats
-- ⚙️ **Configuration Files**: YAML/TOML configuration support for easy deployment
-- 🔄 **Backward Compatibility**: Works with existing `setup_logging()` code
-- 📦 **File Rotation**: Configurable file sizes and backup counts
-- 🚀 **Standalone Package**: Reusable across multiple projects
-- 🧵 **Thread-Safe**: Safe for concurrent logging operations
-- 🛡️ **Error Handling**: Graceful fallbacks and error recovery
-- 📈 **Structured Logging**: JSON Lines format for log aggregation and analysis
+### 🎯 **Zero Configuration**
+```python
+from hydra_logger import HydraLogger
 
-## 🌍 Universal Application Support
+# It just works - no configuration needed!
+logger = HydraLogger()
+logger.info("Application started")
+```
 
-Hydra-Logger is designed to work with **any type of Python application**:
+### 🏗️ **Flexible Layer System**
+```python
+# Option 1: Custom layer names (your choice)
+logger.info("FRONTEND", "User interface updated")
+logger.info("BACKEND", "API endpoint called")
+logger.info("DATABASE", "Query executed")
 
-### **Web Applications**
-- Django, Flask, FastAPI, Pyramid, Bottle
-- REST APIs and GraphQL services
-- WebSocket applications
-- Static site generators
+# Option 2: Centralized logging (no layers)
+logger.info("Application started")
+logger.debug("Configuration loaded")
+logger.warning("High memory usage detected")
+```
 
-### **Desktop Applications**
-- GUI applications (Tkinter, PyQt, wxPython)
-- CLI tools and command-line applications
-- System utilities and automation scripts
-- Data processing pipelines
+### 🎨 **Format Customization**
+```python
+# Complete control over log format
+logger = HydraLogger(
+    date_format="%Y-%m-%d",
+    time_format="%H:%M:%S",
+    logger_name_format="[{name}]",
+    message_format="{level}: {message}"
+)
 
-### **Data Science & Machine Learning**
-- Jupyter notebooks and data analysis scripts
-- ML model training and inference
-- ETL pipelines and data processing
-- Statistical analysis and reporting
+logger.info("APP", "Custom format message")
+# Output: 2024-01-15 10:30:15 [APP] INFO: Custom format message
+```
 
-### **Microservices & Distributed Systems**
-- Containerized applications (Docker, Kubernetes)
-- Message queue workers
-- Background job processors
-- API gateways and load balancers
+### 🌈 **Color Mode Control**
+```python
+config = {
+    "layers": {
+        "APP": {
+            "destinations": [
+                {"type": "console", "color_mode": "always"},  # Colored console
+                {"type": "file", "path": "logs/app.log", "color_mode": "never"}  # Plain file
+            ]
+        }
+    }
+}
 
-### **Enterprise Applications**
-- Business logic applications
-- Financial and trading systems
-- Healthcare and medical applications
-- E-commerce and inventory systems
+logger = HydraLogger(config=config)
+```
 
-### **IoT & Embedded Systems**
-- Sensor data collection
-- Device monitoring and control
-- Edge computing applications
-- Industrial automation
+### ⚡ **Async Logging**
+```python
+from hydra_logger.async_hydra import AsyncHydraLogger
+import asyncio
 
-### **Games & Entertainment**
-- Game engines and simulations
-- Media processing applications
-- Real-time streaming services
-- Interactive applications
+async def main():
+    logger = AsyncHydraLogger()
+    await logger.initialize()
+    
+    # High-performance async logging
+    await logger.info("ASYNC", "Async message")
+    
+    await logger.close()
 
-### **DevOps & Infrastructure**
-- Configuration management tools
-- Deployment automation
-- Monitoring and alerting systems
-- Infrastructure as Code tools
+asyncio.run(main())
+```
 
-**Hydra-Logger provides comprehensive logging capabilities for all Python application types, ensuring consistent and reliable log management across diverse environments.**
+### 🔌 **Plugin System**
+```python
+from hydra_logger import HydraLogger, register_plugin, AnalyticsPlugin
+
+class CustomAnalytics(AnalyticsPlugin):
+    def process_event(self, event):
+        # Custom analytics logic
+        return {"processed": True}
+
+register_plugin("analytics", CustomAnalytics)
+logger = HydraLogger(enable_plugins=True)
+```
+
+### 🔒 **Security & Data Protection**
+```python
+logger = HydraLogger(enable_security=True, enable_sanitization=True)
+
+# Sensitive data automatically masked
+logger.info("AUTH", "Login attempt", 
+           extra={"email": "user@example.com", "password": "secret123"})
+# Output: email=***@***.com password=***
+```
+
+### 🌍 **Environment Variable Support**
+```bash
+export HYDRA_LOG_DATE_FORMAT="%Y-%m-%d"
+export HYDRA_LOG_MESSAGE_FORMAT="[{level}] {message}"
+export HYDRA_LOG_LEVEL=DEBUG
+```
+
+### 🪄 **Custom Magic Config System**
+```python
+from hydra_logger import HydraLogger, LoggingConfig
+
+@HydraLogger.register_magic("my_app")
+def my_app_config():
+    return LoggingConfig(layers={"APP": LogLayer(...)})
+
+logger = HydraLogger.for_my_app()
+```
+
+- Built-in configs: `for_production()`, `for_development()`, `for_testing()`, `for_microservice()`, `for_web_app()`, `for_api_service()`, `for_background_worker()`, `for_high_performance()`, `for_ultra_fast()`
+
+### 🚀 **Performance Modes**
+```python
+# High-performance mode for maximum throughput
+logger = HydraLogger.for_high_performance()
+logger.info("PERFORMANCE", "Fast log message")
+
+# Ultra-fast mode for extreme performance
+logger = HydraLogger.for_ultra_fast()
+logger.info("PERFORMANCE", "Ultra fast log message")
+```
 
 ## 🚀 Quick Start
 
-### 📦 Installation
-
-#### 🎯 **For Users** (Quick Installation)
-For production use of Hydra-Logger in your projects:
-
+### **Installation**
 ```bash
 pip install hydra-logger
 ```
 
-Installation complete. Hydra-Logger is now available for use in your Python applications.
-
-#### 🛠️ **For Developers** (Development Installation)
-For contributing, modifying, or developing Hydra-Logger:
-
-**Step 1: Clone the repository**
-```bash
-git clone https://github.com/SavinRazvan/hydra-logger.git
-cd hydra-logger
-```
-
-**Step 2: Choose your preferred installation method**
-
-**Option A: Pip with editable install (Recommended)**
-```bash
-pip install -e .
-pip install -r requirements-dev.txt
-```
-
-**Option B: Conda environment**
-```bash
-conda env create -f environment.yml
-conda activate hydra-logger
-```
-
-**Option C: Requirements files**
-```bash
-pip install -r requirements.txt          # Core dependencies only
-pip install -r requirements-dev.txt      # Development dependencies
-```
-
-### Basic Usage
-
+### **Basic Usage**
 ```python
 from hydra_logger import HydraLogger
 
-# Simple usage with default configuration
+# Zero configuration - it just works!
 logger = HydraLogger()
-logger.info("DEFAULT", "Application initialized successfully")
 
-# Advanced usage with custom configuration and multiple formats
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+# Centralized logging (no layers)
+logger.info("Application started")
+logger.debug("Configuration loaded")
+logger.warning("High memory usage detected")
+logger.error("Authentication failed")
 
-config = LoggingConfig(
-    layers={
-        "CONFIG": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/config/app.log",  # Custom folder!
-                    max_size="5MB",
-                    backup_count=3,
-                    format="text"  # Plain text format
-                ),
-                LogDestination(
-                    type="console",
-                    level="WARNING",
-                    format="json"  # Structured JSON format for console
-                )
-            ]
-        ),
-        "EVENTS": LogLayer(
-            level="DEBUG",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/events/stream.json",  # Different folder!
-                    max_size="10MB",
-                    format="json"  # Structured JSON format for log aggregation
-                )
-            ]
-        ),
-        "ANALYTICS": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/analytics/metrics.csv",
-                    format="csv"  # CSV format for data analysis
-                )
-            ]
-        )
-    }
-)
-
-logger = HydraLogger(config)
-logger.info("CONFIG", "Configuration loaded")
-logger.debug("EVENTS", "Event processed")
-logger.info("ANALYTICS", "Performance metric recorded")
+# Or use custom layer names
+logger.info("FRONTEND", "User interface updated")
+logger.info("BACKEND", "API endpoint called")
+logger.info("DATABASE", "Query executed")
 ```
 
-## 📊 Supported Log Formats
-
-Hydra-Logger supports multiple log formats for different use cases:
-
-### **Text Format** (Default)
-Traditional plain text logging with timestamps and log levels.
-```
-2025-07-03 14:30:15 INFO [hydra.CONFIG] Configuration loaded (logger.py:483)
-```
-
-### **JSON Format** 
-Structured JSON format for log aggregation and analysis. Each log entry is a valid JSON object.
-```json
-{"timestamp": "2025-07-03 14:30:15", "level": "INFO", "logger": "hydra.CONFIG", "message": "Configuration loaded", "filename": "logger.py", "lineno": 483}
-```
-
-### **CSV Format**
-Comma-separated values for analytics and data processing.
-```csv
-timestamp,level,logger,message,filename,lineno
-2025-07-03 14:30:15,INFO,hydra.CONFIG,Configuration loaded,logger.py,483
-```
-
-### **Syslog Format**
-Standard syslog format for system integration.
-```
-<134>2025-07-03T14:30:15.123Z hostname hydra.CONFIG: Configuration loaded
-```
-
-### **GELF Format**
-Graylog Extended Log Format for centralized logging systems.
-```json
-{"version": "1.1", "host": "hostname", "short_message": "Configuration loaded", "level": 6, "_logger": "hydra.CONFIG"}
-```
-
-## 📋 Configuration File Usage
-
-Create `hydra_logging.yaml` (see `demos/examples/config_examples/` for more examples):
-
-```yaml
-layers:
-  CONFIG:
-    level: INFO
-    destinations:
-      - type: file
-        path: "logs/config/app.log"
-        max_size: "5MB"
-        backup_count: 3
-        format: text
-      - type: console
-        level: WARNING
-        format: json
-  
-  EVENTS:
-    level: DEBUG
-    destinations:
-      - type: file
-        path: "logs/events/stream.json"
-        max_size: "10MB"
-        format: json
-  
-  SECURITY:
-    level: ERROR
-    destinations:
-      - type: file
-        path: "logs/security/auth.log"
-        max_size: "1MB"
-        backup_count: 10
-        format: syslog
-  
-  ANALYTICS:
-    level: INFO
-    destinations:
-      - type: file
-        path: "logs/analytics/metrics.csv"
-        format: csv
-```
-
-Use the configuration:
-
+### **Advanced Configuration**
 ```python
 from hydra_logger import HydraLogger
 
-logger = HydraLogger.from_config("hydra_logging.yaml")
-logger.info("CONFIG", "Configuration loaded")
-logger.debug("EVENTS", "Event processed")
-logger.error("SECURITY", "Security alert")
-```
-
-## 🔄 Backward Compatibility
-
-If you're migrating from the original `setup_logging()` function:
-
-```python
-from hydra_logger import setup_logging, migrate_to_hydra
-import logging
-
-# Option 1: Keep using the old interface
-setup_logging(enable_file_logging=True, console_level=logging.INFO)
-
-# Option 2: Migrate with custom path
-logger = migrate_to_hydra(
-    enable_file_logging=True,
-    console_level=logging.INFO,
-    log_file_path="logs/custom/app.log"  # Custom folder path!
-)
-```
-
-## 🏗️ Advanced Configuration
-
-### Multiple Destinations per Layer with Different Formats
-
-```yaml
-layers:
-  API:
-    level: INFO
-    destinations:
-      - type: file
-        path: "logs/api/requests.json"
-        max_size: "10MB"
-        backup_count: 5
-        format: json  # Structured logging for requests
-      - type: file
-        path: "logs/api/errors.log"
-        max_size: "2MB"
-        backup_count: 3
-        format: text  # Plain text for errors
-      - type: console
-        level: ERROR
-        format: gelf  # GELF format for console
-```
-
-### Different Log Levels per Layer
-
-```yaml
-layers:
-  DEBUG_LAYER:
-    level: DEBUG
-    destinations:
-      - type: file
-        path: "logs/debug/detailed.log"
-        format: text  # Plain text for debugging
-  
-  ERROR_LAYER:
-    level: ERROR
-    destinations:
-      - type: file
-        path: "logs/errors/critical.json"
-        format: json  # JSON for error analysis
-```
-
-### Real-World Application Example
-
-```python
-# Web application with multiple modules and formats
-config = LoggingConfig(
-    layers={
-        "APP": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(type="file", path="logs/app/main.log", format="text"),
-                LogDestination(type="console", level="WARNING", format="json")
+config = {
+    "layers": {
+        "FRONTEND": {
+            "level": "INFO",
+            "destinations": [
+                {
+                    "type": "console",
+                    "format": "text",
+                    "level": "INFO",
+                    "color_mode": "always"
+                },
+                {
+                    "type": "file",
+                    "path": "logs/frontend.log",
+                    "format": "json",
+                    "level": "INFO"
+                }
             ]
-        ),
-        "AUTH": LogLayer(
-            level="DEBUG",
-            destinations=[
-                LogDestination(type="file", path="logs/auth/security.log", format="syslog"),
-                LogDestination(type="file", path="logs/auth/errors.json", format="json")
+        },
+        "BACKEND": {
+            "level": "DEBUG",
+            "destinations": [
+                {
+                    "type": "file",
+                    "path": "logs/backend.json",
+                    "format": "json"
+                }
             ]
-        ),
-        "API": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(type="file", path="logs/api/requests.json", format="json"),
-                LogDestination(type="file", path="logs/api/errors.log", format="text")
-            ]
-        ),
-        "DB": LogLayer(
-            level="DEBUG",
-            destinations=[
-                LogDestination(type="file", path="logs/database/queries.log", format="text")
-            ]
-        ),
-        "PERF": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(type="file", path="logs/performance/metrics.csv", format="csv")
-            ]
-        ),
-        "MONITORING": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(type="file", path="logs/monitoring/alerts.gelf", format="gelf")
-            ]
-        )
+        }
     }
+}
+
+logger = HydraLogger(config=config)
+logger.info("FRONTEND", "User interface updated")
+logger.debug("BACKEND", "API endpoint called")
+```
+
+### **Async Logging**
+```python
+from hydra_logger.async_hydra import AsyncHydraLogger
+import asyncio
+
+async def main():
+    # Create async logger
+    logger = AsyncHydraLogger()
+    await logger.initialize()
+    
+    # Log messages asynchronously
+    await logger.info("ASYNC", "Async message")
+    await logger.error("ERROR", "Async error")
+    
+    # Structured logging with context
+    await logger.log_structured(
+        layer="REQUEST",
+        level="INFO",
+        message="HTTP request processed",
+        correlation_id="req-123",
+        context={"user_id": "456", "duration": 0.5}
+    )
+    
+    # Close logger
+    await logger.close()
+
+asyncio.run(main())
+```
+
+### **Security Features**
+```python
+from hydra_logger import HydraLogger
+
+# Enable security and sanitization
+logger = HydraLogger(
+    enable_security=True,
+    enable_sanitization=True,
+    redact_sensitive=True
 )
 
-logger = HydraLogger(config)
+# Sensitive data is automatically redacted
+logger.info("AUTH", "Login attempt", 
+           extra={"email": "user@example.com", "password": "secret123"})
 
-# Log from different modules
-logger.info("APP", "Application started")
-logger.debug("AUTH", "User login attempt: user123")
-logger.info("API", "API request: GET /api/users")
-logger.debug("DB", "SQL Query: SELECT * FROM users")
-logger.info("PERF", "Response time: 150ms")
-logger.info("MONITORING", "System health check completed")
+# Security events are tracked
+logger.security("SECURITY", "Suspicious activity detected")
+logger.audit("AUDIT", "User action logged")
+logger.compliance("COMPLIANCE", "GDPR compliance check")
 ```
 
-## 📁 File Structure
+### **Plugin System**
+```python
+from hydra_logger import HydraLogger, AnalyticsPlugin
 
-After running the examples, you'll see logs organized in different folders:
+class CustomAnalytics(AnalyticsPlugin):
+    def process_event(self, event):
+        # Process log events
+        return {"processed": True}
+    
+    def get_insights(self):
+        # Return analytics insights
+        return {"total_events": 100}
 
+# Register and use plugin
+logger = HydraLogger(enable_plugins=True)
+logger.add_plugin("custom_analytics", CustomAnalytics())
+
+# Get plugin insights
+insights = logger.get_plugin_insights()
 ```
-logs/
-├── app.log                     # Default logs
-├── config/
-│   └── app.log                 # Configuration logs
-├── events/
-│   └── stream.json             # Event logs (JSON format)
-├── security/
-│   └── auth.log                # Security logs (Syslog format)
-├── api/
-│   ├── requests.json           # API request logs (JSON format)
-│   └── errors.log              # API error logs (Text format)
-├── database/
-│   └── queries.log             # Database query logs (Text format)
-└── performance/
-    └── metrics.csv             # Performance logs (CSV format)
+
+### **Magic Configs**
+```python
+from hydra_logger import HydraLogger
+
+# Use built-in magic configs
+logger = HydraLogger.for_production()
+logger = HydraLogger.for_development()
+logger = HydraLogger.for_testing()
+
+# Create custom magic config
+@HydraLogger.register_magic("my_app")
+def my_app_config():
+    return {
+        "layers": {
+            "APP": {
+                "level": "INFO",
+                "destinations": [
+                    {"type": "console", "format": "text"}
+                ]
+            }
+        }
+    }
+
+# Use custom magic config
+logger = HydraLogger.for_my_app()
 ```
+
+## 🎯 Performance Goals
+
+**Target: Exceptional Performance Metrics**
+
+- **Throughput**: 15,000+ logs/second
+- **Latency**: <0.5ms average
+- **Memory**: Optimized memory usage
+- **Startup**: Fast initialization
+- **Async**: High concurrent performance
 
 ## 📚 Documentation
 
-For comprehensive documentation, see our [Documentation Hub](docs/README.md):
-
-- **[API Reference](docs/api.md)** - Complete API documentation with examples
-- **[Configuration Guide](docs/configuration.md)** - Detailed configuration options and formats
-- **[Examples Guide](docs/examples.md)** - Comprehensive code examples and use cases
-- **[Migration Guide](docs/migration.md)** - How to migrate from existing logging systems
-- **[Security Guide](docs/security.md)** - Security best practices and considerations
-- **[Testing Guide](docs/testing.md)** - How to run tests and generate coverage reports
-
-### Quick API Reference
-
-#### HydraLogger Methods
-
-- `__init__(config=None)`: Initialize with optional configuration
-- `from_config(config_path)`: Create from configuration file
-- `log(layer, level, message)`: Log message to specific layer
-- `debug(layer, message)`: Log debug message
-- `info(layer, message)`: Log info message
-- `warning(layer, message)`: Log warning message
-- `error(layer, message)`: Log error message
-- `critical(layer, message)`: Log critical message
-- `get_logger(layer)`: Get underlying logging.Logger
-
-#### Configuration Models
-
-- `LoggingConfig`: Main configuration container
-- `LogLayer`: Configuration for a single layer
-- `LogDestination`: Configuration for a single destination
-
-#### Compatibility Functions
-
-- `setup_logging()`: Original flexiai setup_logging function
-- `migrate_to_hydra()`: Migration helper function
-
-## 🧪 Examples
-
-### Quick Examples
-
-For comprehensive examples and use cases, see our [Examples Guide](docs/examples.md).
-
-**Basic Usage:**
-```bash
-# Run basic examples
-python demos/examples/basic_usage.py
-
-# Run format demonstrations
-python demos/examples/log_formats_demo.py
-```
-
-**Advanced Examples:**
-```bash
-# Run multi-module demo
-python demos/multi_module_demo.py
-
-# Run complex workflow demo
-python demos/multi_file_workflow_demo.py
-```
-
-### Example Structure
-
-```
-demos/
-├── examples/                    # Basic examples and configurations
-│   ├── basic_usage.py           # Different usage patterns
-│   ├── log_formats_demo.py      # All supported formats
-│   └── config_examples/         # Various configuration examples
-├── multi_module_demo.py         # Real-world multi-module demo
-└── multi_file_workflow_demo.py  # Complex workflow demo
-```
-
-## 🛠️ Development
-
-### 🧪 Testing & Development Tools
-
-Once you have the development environment set up (see installation above), you can:
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=hydra_logger --cov-report=term-missing
-
-# Run specific test file
-pytest tests/test_integration.py -v
-
-# Run with HTML coverage report
-pytest --cov=hydra_logger --cov-report=html
-```
-
-### Test Coverage
-
-- **146 tests** covering all major functionality
-- **97% code coverage** with comprehensive edge case testing
-- **Thread safety, error handling, and integration tests** included
-- **Format-specific tests** for all supported log formats
-
-## 📦 Package Structure
-
-```
-hydra-logger/
-├── 📋 Project Files
-│   ├── README.md, LICENSE, pyproject.toml
-│   ├── setup.py, requirements.txt, requirements-dev.txt
-│   ├── environment.yml, .gitignore
-│   ├── pytest.ini, .github/ (CI/CD workflows)
-│   └── .github/ (CI/CD workflows)
-│
-├── 🏗️  Core Package (hydra_logger/)
-│   ├── __init__.py               # Main package exports
-│   ├── config.py                 # Pydantic models & config loading
-│   ├── logger.py                 # Main HydraLogger class
-│   ├── compatibility.py          # Backward compatibility layer
-│   └── examples/                 # Example configurations & usage
-│       ├── basic_usage.py
-│       ├── README.md
-│       └── config_examples/
-│           ├── simple.yaml
-│           └── advanced.yaml
-│
-├── 🧪 Tests (tests/)
-│   ├── test_config.py            # Config model tests
-│   ├── test_logger.py            # Core logger tests
-│   ├── test_compatibility.py     # Backward compatibility tests
-│   └── test_integration.py       # Integration & real-world tests
-│
-└── 📚 Demos (demos/)
-    ├── examples/                   # Basic examples and configurations
-    ├── demo_modules/               # Module examples
-    ├── multi_module_demo.py        # Real-world multi-module demo
-    └── multi_file_workflow_demo.py # Complex workflow demo
-```
+- [Usage Guide](USAGE_GUIDE.md) - Comprehensive usage examples
+- [Strategic Plan](STRATEGIC_PLAN.md) - Development roadmap
+- [Current Status](CURRENT_STATUS.md) - Project status and progress
+- [Error Handling](ERROR_HANDLING_SUMMARY.md) - Error handling guide
+- [Roadmap](ROADMAP.md) - Future development plans
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### 📋 Project Documentation
-
-- **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
-- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards and guidelines
-- **[Security Policy](SECURITY.md)** - Security reporting and best practices
-- **[Changelog](CHANGELOG.md)** - Version history and release notes
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass (`pytest`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🗺️ Roadmap
+## 🎯 Roadmap
 
-- [x] Multi-format logging support (text, JSON, CSV, syslog, GELF)
-- [x] Structured JSON logging with all fields
-- [x] Configuration file support (YAML/TOML)
-- [x] Backward compatibility layer
-- [x] Comprehensive test suite
-- [ ] Remote logging destinations (syslog server, etc.)
-- [ ] Log aggregation and analysis tools
-- [ ] Performance monitoring integration
-- [ ] Docker and Kubernetes deployment examples
-- [ ] Web UI for log visualization
-- [ ] Integration with popular logging frameworks
-
-## 📝 Changelog
-
-### 0.1.0 (Current)
-- Initial release
-- Multi-layered logging support
-- Custom folder paths
-- Multiple log formats (text, JSON, CSV, syslog, GELF)
-- YAML/TOML configuration
-- Backward compatibility
-- Thread-safe logging
-- Comprehensive test suite (97% coverage)
-- Real-world examples and documentation
-- Professional packaging and distribution
-
-## 🎨 Color Customization
-
-Hydra-Logger supports beautiful colored output with easy customization:
-
-### **Default Professional Colors**
-- **DEBUG**: Cyan
-- **INFO**: Green  
-- **WARNING**: Yellow
-- **ERROR**: Red
-- **CRITICAL**: Bright Red
-- **Layer Names**: Magenta
-
-### **Easy Color Customization**
-
-#### **Using Named Colors (Recommended)**
-```bash
-# Change ERROR to red and layer names to cyan
-export HYDRA_LOG_COLOR_ERROR=red
-export HYDRA_LOG_LAYER_COLOR=cyan
-
-# Or use bright colors
-export HYDRA_LOG_COLOR_CRITICAL=bright_red
-export HYDRA_LOG_COLOR_DEBUG=bright_cyan
-```
-
-#### **Using ANSI Codes (Advanced)**
-```bash
-# Custom ANSI codes
-export HYDRA_LOG_COLOR_ERROR='\033[31m'
-export HYDRA_LOG_LAYER_COLOR='\033[36m'
-```
-
-#### **Available Named Colors**
-- `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`
-- `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`
-
-#### **Disable Colors**
-```bash
-export HYDRA_LOG_NO_COLOR=1
-```
-
-### **Example**
-```python
-from hydra_logger import HydraLogger
-
-logger = HydraLogger()
-logger.info("CONFIG", "Configuration loaded")  # Green INFO, Magenta CONFIG
-logger.error("SECURITY", "Authentication failed")  # Red ERROR, Magenta SECURITY
-```
+- **Week 4**: Performance Optimization (Exceptional Performance)
+- **Week 5**: Security Features (Enhanced PII Protection)
+- **Week 6**: Custom Magic Config System (✅ COMPLETED)
+- **Week 7**: Enhanced Color System (Colored formatters for all formats)
+- **Week 8**: Plugin Marketplace (Community plugin repository)
+- **Week 9**: Cloud Integrations (Auto-detection for cloud environments)
 
 ---
 
-**Made with ❤️ by [Savin Ionut Razvan](https://github.com/SavinRazvan) for better logging organization**
+**Hydra-Logger**: The most user-friendly, enterprise-ready Python logging library with modular architecture, zero-configuration, and exceptional performance.
+
+## Performance Recommendations for Async Logging
+
+To ensure world-class performance with Hydra-Logger's async logging system:
+
+1. **Console Logging**
+   - Console logs are now written immediately with no buffering or delay. No further tuning is needed for optimal performance.
+
+2. **File Logging**
+   - For true async file logging, install the `aiofiles` package in your environment:
+     ```bash
+     pip install aiofiles
+     ```
+   - Without `aiofiles`, file logging will fall back to synchronous I/O, which is slower and may block the event loop.
+
+3. **Network, Database, and Cloud Sinks**
+   - All network, database, and cloud sinks use high-performance async libraries (`aiohttp`, `asyncpg`, `aioredis`).
+   - Ensure these dependencies are installed for non-blocking logging.
+
+4. **No Blocking Calls**
+   - The async logging pipeline is fully non-blocking. Avoid adding any synchronous I/O or `time.sleep` in your async code.
+
+5. **Error Handling**
+   - All exceptions in async handlers are caught and logged. Logging failures will not crash your application.
+
+6. **Initialization and Shutdown**
+   - Handlers start and stop cleanly. No resource leaks or unawaited coroutines.
+
+7. **Performance Monitoring**
+   - Optional performance monitoring is available and adds minimal overhead.
+
+**Summary:**
+- Hydra-Logger's async logging is production-ready, robust, and highly performant. For best results, always use async-compatible dependencies in production environments.

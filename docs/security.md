@@ -660,7 +660,7 @@ layers:
     destinations:
       - type: file
         path: /var/log/secure/app.log
-        format: text
+        format: plain-text
         max_size: 10MB
         backup_count: 5
       - type: console
@@ -678,10 +678,10 @@ layers:
     level: DEBUG
     destinations:
       - type: console
-        format: text
+        format: plain-text
       - type: file
         path: logs/debug.log
-        format: text
+        format: plain-text
   
   APP:
     level: INFO
@@ -690,7 +690,7 @@ layers:
         format: json
       - type: file
         path: logs/app.log
-        format: text
+        format: plain-text
 ```
 
 **Production Configuration:**
@@ -702,7 +702,7 @@ layers:
     destinations:
       - type: file
         path: /var/log/secure/debug.log
-        format: text
+        format: plain-text
         max_size: 5MB
         backup_count: 3
       # No console output in production
@@ -712,7 +712,7 @@ layers:
     destinations:
       - type: file
         path: /var/log/secure/app.log
-        format: text
+        format: plain-text
         max_size: 10MB
         backup_count: 5
       - type: console

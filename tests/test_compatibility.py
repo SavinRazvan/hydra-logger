@@ -1,36 +1,44 @@
 """
-Comprehensive test suite for Hydra-Logger compatibility layer.
+Tests for compatibility functionality.
 
-This module tests the backward compatibility functions that provide seamless
-migration from the original flexiai-toolsmith logging system to Hydra-Logger.
-The tests verify that existing applications can continue to work without
-modification while providing clear migration paths to advanced features.
-
-Test Coverage:
-- setup_logging function with various configurations
-- Migration utilities for converting legacy configurations
-- Level conversion between integer and string representations
-- Error handling and edge cases
-- Backward compatibility preservation
+This module tests the compatibility utilities for different Python versions
+and platforms.
 """
 
-import logging
-import os
-import shutil
-import tempfile
-from logging.handlers import RotatingFileHandler
-from unittest.mock import MagicMock, patch
-
 import pytest
+import sys
+import platform
+import os
+import tempfile
+import logging
+import shutil
+from unittest.mock import Mock, patch, MagicMock
+from logging.handlers import RotatingFileHandler
 
 from hydra_logger.compatibility import (
+    setup_logging, create_hydra_config_from_legacy, migrate_to_hydra,
     _level_int_to_str,
-    create_hydra_config_from_legacy,
-    migrate_to_hydra,
-    setup_logging,
+    get_python_version,
+    get_platform_info,
+    check_compatibility,
+    is_async_available,
+    is_aiohttp_available,
+    is_asyncpg_available,
+    is_aioredis_available,
+    get_available_async_libraries,
+    check_system_requirements,
+    get_memory_info,
+    get_cpu_info,
+    get_processor_count,
+    get_system_memory,
+    is_windows,
+    is_linux,
+    is_macos,
+    is_arm_architecture,
+    is_virtual_environment,
 )
+from hydra_logger import HydraLogger
 from hydra_logger.config import LoggingConfig
-from hydra_logger.logger import HydraLogger
 
 
 class TestSetupLogging:
@@ -478,7 +486,7 @@ def test_create_hydra_config_from_legacy_all_combinations():
     config = create_hydra_config_from_legacy(enable_file_logging=False, enable_console_logging=False)
     assert "DEFAULT" in config.layers
     # Custom log file path
-    config = create_hydra_config_from_legacy(log_file_path="custom.log")
+    config = create_hydra_config_from_legacy(log_file_path="logs/_tests_logs/custom.log")
     assert any(getattr(d, "path", None) == "custom.log" for d in config.layers["DEFAULT"].destinations)
 
 
@@ -500,4 +508,422 @@ def test_migrate_to_hydra():
     assert hasattr(logger, "config")
     assert "DEFAULT" in logger.config.layers
 
-# All test classes and functions from test_backward_compatibility.py go here, after the last test class in this file.
+
+class TestPythonVersionCompatibility:
+    """Test Python version compatibility functions."""
+    
+    def test_get_python_version(self):
+        """Test getting Python version information."""
+        version_info = get_python_version()
+        
+        assert isinstance(version_info, dict)
+        assert "major" in version_info
+        assert "minor" in version_info
+        assert "micro" in version_info
+        assert "version" in version_info
+        assert "hexversion" in version_info
+        
+        assert version_info["major"] == sys.version_info.major
+        assert version_info["minor"] == sys.version_info.minor
+        assert version_info["micro"] == sys.version_info.micro
+        assert version_info["version"] == sys.version
+    
+    def test_get_platform_info(self):
+        """Test getting platform information."""
+        platform_info = get_platform_info()
+        
+        assert isinstance(platform_info, dict)
+        assert "system" in platform_info
+        assert "release" in platform_info
+        assert "version" in platform_info
+        assert "machine" in platform_info
+        assert "processor" in platform_info
+        
+        assert platform_info["system"] == platform.system()
+        assert platform_info["release"] == platform.release()
+        assert platform_info["version"] == platform.version()
+        assert platform_info["machine"] == platform.machine()
+    
+    def test_check_compatibility(self):
+        """Test compatibility checking."""
+        # Test with current Python version (should be compatible)
+        result = check_compatibility()
+        assert result["compatible"] is True
+        assert "python_version" in result
+        assert "platform_info" in result
+        assert "issues" in result
+        assert isinstance(result["issues"], list)
+    
+    def test_check_compatibility_with_issues(self):
+        """Test compatibility checking with known issues."""
+        with patch('hydra_logger.compatibility.get_python_version') as mock_version:
+            mock_version.return_value = {"major": 2, "minor": 7, "micro": 0}
+            
+            result = check_compatibility()
+            assert result["compatible"] is False
+            assert len(result["issues"]) > 0
+            assert any("Python 2" in issue for issue in result["issues"])
+
+
+class TestAsyncLibraryCompatibility:
+    """Test async library compatibility functions."""
+    
+    def test_is_async_available(self):
+        """Test async availability check."""
+        # Should be available in Python 3.7+
+        result = is_async_available()
+        assert isinstance(result, bool)
+        assert result is True  # Should be available in modern Python
+    
+    def test_is_aiohttp_available(self):
+        """Test aiohttp availability check."""
+        result = is_aiohttp_available()
+        assert isinstance(result, bool)
+    
+    def test_is_asyncpg_available(self):
+        """Test asyncpg availability check."""
+        result = is_asyncpg_available()
+        assert isinstance(result, bool)
+    
+    def test_is_aioredis_available(self):
+        """Test aioredis availability check."""
+        result = is_aioredis_available()
+        assert isinstance(result, bool)
+    
+    def test_get_available_async_libraries(self):
+        """Test getting available async libraries."""
+        libraries = get_available_async_libraries()
+        
+        assert isinstance(libraries, dict)
+        assert "aiohttp" in libraries
+        assert "asyncpg" in libraries
+        assert "aioredis" in libraries
+        assert "asyncio" in libraries
+        
+        # All values should be booleans
+        for value in libraries.values():
+            assert isinstance(value, bool)
+    
+    def test_async_library_availability_with_mocks(self):
+        """Test async library availability with mocked imports."""
+        # Test when aiohttp is available
+        with patch('hydra_logger.compatibility.AIOHTTP_AVAILABLE', True):
+            assert is_aiohttp_available() is True
+        
+        # Test when aiohttp is not available
+        with patch('hydra_logger.compatibility.AIOHTTP_AVAILABLE', False):
+            assert is_aiohttp_available() is False
+        
+        # Test when asyncpg is available
+        with patch('hydra_logger.compatibility.ASYNCPG_AVAILABLE', True):
+            assert is_asyncpg_available() is True
+        
+        # Test when asyncpg is not available
+        with patch('hydra_logger.compatibility.ASYNCPG_AVAILABLE', False):
+            assert is_asyncpg_available() is False
+        
+        # Test when aioredis is available
+        with patch('hydra_logger.compatibility.AIOREDIS_AVAILABLE', True):
+            assert is_aioredis_available() is True
+        
+        # Test when aioredis is not available
+        with patch('hydra_logger.compatibility.AIOREDIS_AVAILABLE', False):
+            assert is_aioredis_available() is False
+
+
+class TestSystemRequirements:
+    """Test system requirements checking."""
+    
+    def test_check_system_requirements(self):
+        """Test system requirements checking."""
+        requirements = check_system_requirements()
+        
+        assert isinstance(requirements, dict)
+        assert "cpu_cores" in requirements
+        assert "memory_mb" in requirements
+        assert "disk_space_mb" in requirements
+        assert "python_version" in requirements
+        assert "platform" in requirements
+        assert "meets_requirements" in requirements
+        
+        # All values should be appropriate types
+        assert isinstance(requirements["cpu_cores"], int)
+        assert isinstance(requirements["memory_mb"], int)
+        assert isinstance(requirements["disk_space_mb"], int)
+        assert isinstance(requirements["meets_requirements"], bool)
+    
+    def test_get_memory_info(self):
+        """Test getting memory information."""
+        memory_info = get_memory_info()
+        
+        assert isinstance(memory_info, dict)
+        assert "total" in memory_info
+        assert "available" in memory_info
+        assert "used" in memory_info
+        assert "percent" in memory_info
+        
+        # Values should be reasonable
+        assert memory_info["total"] > 0
+        assert memory_info["available"] >= 0
+        assert memory_info["used"] >= 0
+        assert 0 <= memory_info["percent"] <= 100
+    
+    def test_get_cpu_info(self):
+        """Test getting CPU information."""
+        cpu_info = get_cpu_info()
+        
+        assert isinstance(cpu_info, dict)
+        assert "count" in cpu_info
+        assert "count_logical" in cpu_info
+        assert "usage_percent" in cpu_info
+        
+        # Values should be reasonable
+        assert cpu_info["count"] > 0
+        assert cpu_info["count_logical"] >= cpu_info["count"]
+        assert 0 <= cpu_info["usage_percent"] <= 100
+    
+    def test_get_processor_count(self):
+        """Test getting processor count."""
+        count = get_processor_count()
+        
+        assert isinstance(count, int)
+        assert count > 0
+    
+    def test_get_system_memory(self):
+        """Test getting system memory."""
+        memory = get_system_memory()
+        
+        assert isinstance(memory, int)
+        assert memory > 0  # Should have some memory
+
+
+class TestPlatformDetection:
+    """Test platform detection functions."""
+    
+    def test_is_windows(self):
+        """Test Windows detection."""
+        result = is_windows()
+        assert isinstance(result, bool)
+        
+        # Should match platform.system() == "Windows"
+        expected = platform.system() == "Windows"
+        assert result == expected
+    
+    def test_is_linux(self):
+        """Test Linux detection."""
+        result = is_linux()
+        assert isinstance(result, bool)
+        
+        # Should match platform.system() == "Linux"
+        expected = platform.system() == "Linux"
+        assert result == expected
+    
+    def test_is_macos(self):
+        """Test macOS detection."""
+        result = is_macos()
+        assert isinstance(result, bool)
+        
+        # Should match platform.system() == "Darwin"
+        expected = platform.system() == "Darwin"
+        assert result == expected
+    
+    def test_is_arm_architecture(self):
+        """Test ARM architecture detection."""
+        result = is_arm_architecture()
+        assert isinstance(result, bool)
+        
+        # Should match platform.machine() containing "arm"
+        expected = "arm" in platform.machine().lower()
+        assert result == expected
+    
+    def test_platform_detection_with_mocks(self):
+        """Test platform detection with mocked platform."""
+        # Test Windows
+        with patch('platform.system', return_value="Windows"):
+            assert is_windows() is True
+            assert is_linux() is False
+            assert is_macos() is False
+        
+        # Test Linux
+        with patch('platform.system', return_value="Linux"):
+            assert is_windows() is False
+            assert is_linux() is True
+            assert is_macos() is False
+        
+        # Test macOS
+        with patch('platform.system', return_value="Darwin"):
+            assert is_windows() is False
+            assert is_linux() is False
+            assert is_macos() is True
+        
+        # Test ARM architecture
+        with patch('platform.machine', return_value="arm64"):
+            assert is_arm_architecture() is True
+        
+        with patch('platform.machine', return_value="x86_64"):
+            assert is_arm_architecture() is False
+
+
+class TestVirtualEnvironment:
+    """Test virtual environment detection."""
+    
+    def test_is_virtual_environment(self):
+        """Test virtual environment detection."""
+        result = is_virtual_environment()
+        assert isinstance(result, bool)
+    
+    def test_virtual_environment_detection_methods(self):
+        """Test different virtual environment detection methods."""
+        # Test with VIRTUAL_ENV environment variable
+        with patch.dict('os.environ', {'VIRTUAL_ENV': '/path/to/venv'}):
+            assert is_virtual_environment() is True
+        
+        # Test without VIRTUAL_ENV environment variable
+        with patch.dict('os.environ', {}, clear=True):
+            # Result depends on actual environment
+            result = is_virtual_environment()
+            assert isinstance(result, bool)
+        
+        # Test with CONDA_DEFAULT_ENV environment variable
+        with patch.dict('os.environ', {'CONDA_DEFAULT_ENV': 'conda_env'}):
+            assert is_virtual_environment() is True
+
+
+class TestCompatibilityIntegration:
+    """Integration tests for compatibility components."""
+    
+    def test_full_compatibility_report(self):
+        """Test generating a full compatibility report."""
+        # Get all compatibility information
+        python_version = get_python_version()
+        platform_info = get_platform_info()
+        compatibility = check_compatibility()
+        async_libraries = get_available_async_libraries()
+        system_requirements = check_system_requirements()
+        
+        # Verify all components are present
+        assert isinstance(python_version, dict)
+        assert isinstance(platform_info, dict)
+        assert isinstance(compatibility, dict)
+        assert isinstance(async_libraries, dict)
+        assert isinstance(system_requirements, dict)
+        
+        # Verify required keys exist
+        assert "major" in python_version
+        assert "system" in platform_info
+        assert "compatible" in compatibility
+        assert "asyncio" in async_libraries
+        assert "meets_requirements" in system_requirements
+    
+    def test_compatibility_performance(self):
+        """Test compatibility checking performance."""
+        import time
+        
+        # Test performance of compatibility checks
+        start_time = time.time()
+        
+        for _ in range(100):
+            get_python_version()
+            get_platform_info()
+            check_compatibility()
+            get_available_async_libraries()
+            check_system_requirements()
+        
+        end_time = time.time()
+        processing_time = end_time - start_time
+        
+        # Should be fast
+        assert processing_time < 1.0
+    
+    def test_compatibility_error_handling(self):
+        """Test compatibility error handling."""
+        # Test with mocked platform that raises exceptions
+        with patch('platform.system', side_effect=Exception("Platform error")):
+            # Should handle gracefully
+            platform_info = get_platform_info()
+            assert isinstance(platform_info, dict)
+            assert "error" in platform_info
+        
+        # Test with mocked psutil that raises exceptions
+        with patch('hydra_logger.compatibility.psutil', None):
+            # Should handle gracefully
+            memory_info = get_memory_info()
+            assert isinstance(memory_info, dict)
+            assert "error" in memory_info
+    
+    def test_compatibility_edge_cases(self):
+        """Test compatibility edge cases."""
+        # Test with very old Python version
+        with patch('hydra_logger.compatibility.get_python_version') as mock_version:
+            mock_version.return_value = {"major": 2, "minor": 6, "micro": 0}
+            
+            compatibility = check_compatibility()
+            assert compatibility["compatible"] is False
+            assert len(compatibility["issues"]) > 0
+        
+        # Test with very new Python version
+        with patch('hydra_logger.compatibility.get_python_version') as mock_version:
+            mock_version.return_value = {"major": 4, "minor": 0, "micro": 0}
+            
+            compatibility = check_compatibility()
+            # Should be compatible or have specific issues
+            assert isinstance(compatibility["compatible"], bool)
+    
+    def test_compatibility_memory_efficiency(self):
+        """Test compatibility memory efficiency."""
+        # Run many compatibility checks
+        for _ in range(1000):
+            get_python_version()
+            get_platform_info()
+            check_compatibility()
+            get_available_async_libraries()
+            check_system_requirements()
+        
+        # Should not consume excessive memory
+        # Test that functions still work
+        python_version = get_python_version()
+        platform_info = get_platform_info()
+        
+        assert isinstance(python_version, dict)
+        assert isinstance(platform_info, dict)
+    
+    def test_compatibility_thread_safety(self):
+        """Test compatibility thread safety."""
+        import threading
+        import queue
+        
+        results = queue.Queue()
+        
+        def compatibility_worker():
+            try:
+                python_version = get_python_version()
+                platform_info = get_platform_info()
+                compatibility = check_compatibility()
+                
+                results.put({
+                    "python_version": python_version,
+                    "platform_info": platform_info,
+                    "compatibility": compatibility
+                })
+            except Exception as e:
+                results.put({"error": str(e)})
+        
+        # Create multiple threads
+        threads = []
+        for _ in range(10):
+            thread = threading.Thread(target=compatibility_worker)
+            threads.append(thread)
+            thread.start()
+        
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+        
+        # Check all results
+        while not results.empty():
+            result = results.get()
+            assert "error" not in result
+            assert isinstance(result["python_version"], dict)
+            assert isinstance(result["platform_info"], dict)
+            assert isinstance(result["compatibility"], dict)
+

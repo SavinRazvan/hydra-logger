@@ -30,7 +30,7 @@ logger.info("DEFAULT", "Application initialized successfully")
 **Default Configuration:**
 - File logging to `logs/app.log`
 - Console output
-- Text format
+- Plain-text format
 - 5MB file rotation with 3 backups
 - INFO level logging
 
@@ -67,7 +67,7 @@ layers:
     destinations:
       - type: file
         path: logs/app.log
-        format: text
+        format: plain-text
       - type: console
         format: json
 ```
@@ -91,7 +91,7 @@ config = LoggingConfig(
         "APP": LogLayer(
             level="INFO",
             destinations=[
-                LogDestination(type="file", path="logs/app.log", format="text"),
+                LogDestination(type="file", path="logs/app.log", format="plain-text"),
                 LogDestination(type="file", path="logs/app.json", format="json"),
                 LogDestination(type="console", format="json")
             ]
@@ -99,7 +99,7 @@ config = LoggingConfig(
         "ERRORS": LogLayer(
             level="ERROR",
             destinations=[
-                LogDestination(type="file", path="logs/errors.log", format="text")
+                LogDestination(type="file", path="logs/errors.log", format="plain-text")
             ]
         )
     }
@@ -132,10 +132,10 @@ layers:
     destinations:
       - type: file
         path: logs/dev/app.log
-        format: text
+        format: plain-text
       - type: console
         level: DEBUG
-        format: text
+        format: plain-text
 ```
 
 **Production (`config/logging-production.yaml`):**
@@ -166,7 +166,7 @@ config = LoggingConfig(
         "TEXT": LogLayer(
             level="INFO",
             destinations=[
-                LogDestination(type="file", path="logs/text.log", format="text")
+                LogDestination(type="file", path="logs/text.log", format="plain-text")
             ]
         ),
         "JSON": LogLayer(
@@ -199,7 +199,7 @@ config = LoggingConfig(
 logger = HydraLogger(config)
 
 # Test all formats
-logger.info("TEXT", "This goes to text format")
+logger.info("TEXT", "This goes to plain-text format")
 logger.info("JSON", "This goes to JSON format")
 logger.info("CSV", "This goes to CSV format")
 logger.info("SYSLOG", "This goes to syslog format")
@@ -219,7 +219,7 @@ config = LoggingConfig(
             level="INFO",
             destinations=[
                 LogDestination(type="file", path="logs/web/requests.log", format="json"),
-                LogDestination(type="console", level="ERROR", format="text")
+                LogDestination(type="console", level="ERROR", format="plain-text")
             ]
         ),
         "AUTH": LogLayer(
@@ -240,8 +240,8 @@ config = LoggingConfig(
         "CLI": LogLayer(
             level="INFO",
             destinations=[
-                LogDestination(type="console", format="text"),
-                LogDestination(type="file", path="logs/cli.log", format="text")
+                LogDestination(type="console", format="plain-text"),
+                LogDestination(type="file", path="logs/cli.log", format="plain-text")
             ]
         )
     }
@@ -263,7 +263,7 @@ config = LoggingConfig(
         "DATA": LogLayer(
             level="DEBUG",
             destinations=[
-                LogDestination(type="file", path="logs/ml/data_processing.log", format="text")
+                LogDestination(type="file", path="logs/ml/data_processing.log", format="plain-text")
             ]
         )
     }
@@ -294,8 +294,8 @@ config = LoggingConfig(
         "UI": LogLayer(
             level="INFO",
             destinations=[
-                LogDestination(type="file", path="logs/ui/events.log", format="text"),
-                LogDestination(type="console", level="ERROR", format="text")
+                LogDestination(type="file", path="logs/ui/events.log", format="plain-text"),
+                LogDestination(type="console", level="ERROR", format="plain-text")
             ]
         )
     }
@@ -332,7 +332,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file", 
                     path="logs/app.log",
-                    format="text"
+                    format="plain-text"
                 ),
                 LogDestination(
                     type="console", 
@@ -359,7 +359,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/app/main.log",
-                    format="text",
+                    format="plain-text",
                     max_size="10MB",
                     backup_count=5
                 ),
@@ -383,7 +383,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/api/errors.log",
-                    format="text",
+                    format="plain-text",
                     max_size="2MB",
                     backup_count=10
                 )
@@ -442,7 +442,7 @@ layers:
         path: logs/app.log
         max_size: 10MB
         backup_count: 5
-        format: text
+        format: plain-text
       - type: console
         level: WARNING
         format: json
@@ -454,7 +454,7 @@ layers:
         path: logs/debug.log
         max_size: 5MB
         backup_count: 3
-        format: text
+        format: plain-text
 ```
 
 ### Advanced YAML Configuration with Multiple Formats
@@ -470,7 +470,7 @@ layers:
         path: logs/app/main.log
         max_size: 10MB
         backup_count: 5
-        format: text
+        format: plain-text
       - type: console
         level: WARNING
         format: json
@@ -487,7 +487,7 @@ layers:
         path: logs/api/errors.log
         max_size: 2MB
         backup_count: 3
-        format: text
+        format: plain-text
       - type: console
         level: ERROR
         format: json
@@ -502,7 +502,7 @@ layers:
         format: syslog
       - type: console
         level: CRITICAL
-        format: text
+        format: plain-text
   
   DATABASE:
     level: DEBUG
@@ -511,7 +511,7 @@ layers:
         path: logs/database/queries.log
         max_size: 5MB
         backup_count: 3
-        format: text
+        format: plain-text
   
   PERFORMANCE:
     level: INFO
@@ -556,14 +556,14 @@ default_level = "INFO"
 [layers.APP]
 level = "INFO"
 destinations = [
-    { type = "file", path = "logs/app.log", max_size = "10MB", backup_count = 5, format = "text" },
+    { type = "file", path = "logs/app.log", max_size = "10MB", backup_count = 5, format = "plain-text" },
     { type = "console", level = "WARNING", format = "json" }
 ]
 
 [layers.DEBUG]
 level = "DEBUG"
 destinations = [
-    { type = "file", path = "logs/debug.log", max_size = "5MB", backup_count = 3, format = "text" }
+    { type = "file", path = "logs/debug.log", max_size = "5MB", backup_count = 3, format = "plain-text" }
 ]
 ```
 
@@ -575,7 +575,7 @@ default_level = "INFO"
 [layers.APP]
 level = "INFO"
 destinations = [
-    { type = "file", path = "logs/app/main.log", max_size = "10MB", backup_count = 5, format = "text" },
+    { type = "file", path = "logs/app/main.log", max_size = "10MB", backup_count = 5, format = "plain-text" },
     { type = "console", level = "WARNING", format = "json" }
 ]
 
@@ -583,7 +583,7 @@ destinations = [
 level = "INFO"
 destinations = [
     { type = "file", path = "logs/api/requests.json", max_size = "50MB", backup_count = 5, format = "json" },
-    { type = "file", path = "logs/api/errors.log", max_size = "2MB", backup_count = 3, format = "text" },
+    { type = "file", path = "logs/api/errors.log", max_size = "2MB", backup_count = 3, format = "plain-text" },
     { type = "console", level = "ERROR", format = "json" }
 ]
 
@@ -591,7 +591,7 @@ destinations = [
 level = "ERROR"
 destinations = [
     { type = "file", path = "logs/security/auth.log", max_size = "1MB", backup_count = 10, format = "syslog" },
-    { type = "console", level = "CRITICAL", format = "text" }
+    { type = "console", level = "CRITICAL", format = "plain-text" }
 ]
 
 [layers.ANALYTICS]
@@ -605,7 +605,7 @@ destinations = [
 
 Hydra-Logger supports multiple log formats, each optimized for different use cases:
 
-### Text Format (default)
+### Plain-Text Format (default)
 Traditional plain text logging with timestamps and log levels.
 
 **Use Cases:**
@@ -619,7 +619,7 @@ Traditional plain text logging with timestamps and log levels.
 destinations:
   - type: file
     path: logs/app.log
-    format: text
+    format: plain-text
 ```
 
 **Example Output:**
@@ -733,7 +733,7 @@ Application started successfully
 - `console`: Write logs to console output
 
 ### Format Options
-- `text`: Plain text format (default)
+- `plain-text`: Plain text format (default)
 - `json`: JSON format
 - `csv`: CSV format
 - `syslog`: Syslog format
@@ -747,7 +747,7 @@ Application started successfully
 - Separate concerns into different layers
 
 ### Format Selection
-- Use **text** format for human-readable logs and debugging
+- Use **plain-text** format for human-readable logs and debugging
 - Use **JSON** format for log aggregation and machine processing
 - Use **CSV** format for analytics and data analysis
 - Use **syslog** format for system integration and security
@@ -797,7 +797,7 @@ export HYDRA_MAX_SIZE=20MB
 ### Error Handling
 - Graceful fallback to default configuration
 - File permission errors trigger console fallback
-- Format errors fall back to text format
+- Format errors fall back to plain-text format
 - Directory creation failures are handled automatically
 
 ### Example Error Handling
@@ -832,7 +832,7 @@ layers:
     destinations:
       - type: file
         path: logs/app/main.log
-        format: text
+        format: plain-text
         max_size: 10MB
         backup_count: 5
       - type: console
@@ -849,7 +849,7 @@ layers:
         backup_count: 3
       - type: file
         path: logs/api/errors.log
-        format: text
+        format: plain-text
         max_size: 2MB
         backup_count: 10
   
@@ -881,7 +881,7 @@ layers:
     destinations:
       - type: file
         path: logs/service.log
-        format: text
+        format: plain-text
         max_size: 5MB
         backup_count: 3
       - type: console
@@ -902,6 +902,61 @@ layers:
       - type: file
         path: logs/monitoring.gelf
         format: gelf
+```
+
+## Format System: `plain-text` and Color Mode
+
+Hydra-Logger supports the `plain-text` format for human-readable output with color control:
+
+- **`plain-text`**: Human-readable text format with color control via `color_mode`
+- **Other formats**: `json`, `csv`, `syslog`, `gelf` (all support color_mode for future colored variants)
+
+**Color Mode** (`color_mode`):
+- `auto`: Detects if colors should be used (default)
+- `always`: Forces colors on
+- `never`: Forces colors off
+
+**Example:**
+```python
+config = {
+    "layers": {
+        "APP": {
+            "level": "INFO",
+            "destinations": [
+                {"type": "console", "format": "plain-text", "color_mode": "always"},  # Colored console
+                {"type": "file", "format": "plain-text", "color_mode": "never"}      # Plain file
+            ]
+        }
+    }
+}
+logger = HydraLogger(config=config)
+logger.info("APP", "Colored console, plain file")
+```
+
+## Available Formats
+- `plain-text` - Human-readable text (colored in console if color_mode allows)
+- `json` - JSON format (structured)
+- `csv` - CSV format (tabular)
+- `syslog` - Syslog format (system logging)
+- `gelf` - GELF format (Graylog)
+
+## Color Mode Options
+- `auto` - Automatic detection (default)
+- `always` - Force colors on
+- `never` - Force colors off
+
+## Example Configuration
+```python
+config = {
+    "layers": {
+        "APP": {
+            "destinations": [
+                {"type": "console", "format": "plain-text", "color_mode": "auto"},
+                {"type": "file", "format": "plain-text", "color_mode": "never"}
+            ]
+        }
+    }
+}
 ```
 
 This configuration guide provides comprehensive coverage of all Hydra-Logger configuration options, helping you create optimal logging setups for any application scenario. 

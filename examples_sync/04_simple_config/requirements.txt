@@ -1,0 +1,22 @@
+# Simple Configuration Example Requirements
+# Core dependency
+hydra-logger>=0.1.0
+
+# Optional dependencies for enhanced examples
+# These are not strictly required but enhance the examples
+# Uncomment if you want to install them:
+
+# For YAML configuration files
+# pyyaml>=5.4.0
+
+# For TOML configuration files (Python 3.11+ has built-in tomllib)
+# tomli>=2.0.0  # For Python < 3.11
+
+# For enhanced JSON handling
+# json5>=0.9.0
+
+# For enhanced date/time handling
+# python-dateutil>=2.8.0
+
+# For enhanced file operations
+# pathlib2>=2.3.0 

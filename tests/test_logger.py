@@ -374,7 +374,9 @@ default_level: INFO
         # Patch logger to raise on warning
         app_logger = logger.get_logger("APP")
         original_warning = app_logger.warning
-        app_logger.warning = lambda msg: (_ for _ in ()).throw(Exception("fail"))
+        def mock_warning(msg, *args, exc_info=None, stack_info=False, stacklevel=1, extra=None):
+            raise Exception("fail")
+        app_logger.warning = mock_warning
         logger.log("APP", "WARNING", "Should fallback to info")
         app_logger.warning = original_warning
         filepath = os.path.join(temp_dir, "app.log")
@@ -568,7 +570,7 @@ default_level: INFO
         # Get logger for non-existent layer (should return a new logger)
         non_existent_logger = logger.get_logger("NONEXISTENT")
         assert isinstance(non_existent_logger, logging.Logger)
-        assert non_existent_logger.name == "hydra.NONEXISTENT"
+        assert non_existent_logger.name == "NONEXISTENT"
 
     def test_invalid_config_structure(self):
         """

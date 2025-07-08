@@ -20,7 +20,7 @@ Hydra-Logger provides multiple migration paths to help you transition from exist
 
 ### Migration Benefits
 - **Multi-layered logging**: Route different types of logs to different destinations
-- **Multiple formats**: Support for text, JSON, CSV, syslog, and GELF formats
+- **Multiple formats**: Support for plain-text, JSON, CSV, syslog, and GELF formats
 - **Better organization**: Separate logs by functionality or concern
 - **Enhanced performance**: Optimized for high-throughput logging
 - **Enterprise features**: File rotation, custom paths, and format support
@@ -85,7 +85,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/app.log",
-                    format="text",
+                    format="plain-text",
                     max_size="10MB",
                     backup_count=5
                 ),
@@ -101,7 +101,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/debug.log",
-                    format="text"
+                    format="plain-text"
                 )
             ]
         )
@@ -189,14 +189,14 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="app.log",
-                    format="text",
+                    format="plain-text",
                     max_size="10MB",
                     backup_count=5
                 ),
                 LogDestination(
                     type="console",
                     level="WARNING",
-                    format="text"
+                    format="plain-text"
                 )
             ]
         )
@@ -223,7 +223,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/app.log",
-                    format="text",
+                    format="plain-text",
                     max_size="10MB",
                     backup_count=5
                 ),
@@ -310,7 +310,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/app.log",
-                    format="text"
+                    format="plain-text"
                 ),
                 LogDestination(
                     type="file",
@@ -325,7 +325,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/errors.log",
-                    format="text"
+                    format="plain-text"
                 ),
                 LogDestination(
                     type="file",
@@ -340,7 +340,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/debug.log",
-                    format="text"
+                    format="plain-text"
                 )
             ]
         ),
@@ -355,7 +355,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/api/errors.log",
-                    format="text"
+                    format="plain-text"
                 )
             ]
         )
@@ -438,11 +438,11 @@ layers:
     destinations:
       - type: file
         path: logs/app.log
-        format: text
+        format: plain-text
         max_size: 10MB
         backup_count: 5
       - type: console
-        format: text
+        format: plain-text
   
   API:
     level: INFO
@@ -458,7 +458,7 @@ layers:
     destinations:
       - type: file
         path: logs/app.log
-        format: text
+        format: plain-text
         max_size: 10MB
         backup_count: 5
 ```
@@ -589,12 +589,12 @@ config = LoggingConfig(
             destinations=[
                 LogDestination(
                     type="console",
-                    format="text"
+                    format="plain-text"
                 ),
                 LogDestination(
                     type="file",
                     path="logs/app.log",
-                    format="text",
+                    format="plain-text",
                     max_size="10MB",
                     backup_count=5
                 )
@@ -606,7 +606,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/app.log",
-                    format="text",
+                    format="plain-text",
                     max_size="10MB",
                     backup_count=5
                 )
@@ -697,12 +697,12 @@ def migrate_logging_config(old_config_path, new_config_path):
                     'path': handler_config['filename'],
                     'max_size': f"{handler_config['maxBytes'] // (1024*1024)}MB",
                     'backup_count': handler_config['backupCount'],
-                    'format': 'json' if 'json' in handler_name else 'text'
+                    'format': 'json' if 'json' in handler_name else 'plain-text'
                 }
             elif handler_config['class'] == 'logging.StreamHandler':
                 destination = {
                     'type': 'console',
-                    'format': 'text'
+                    'format': 'plain-text'
                 }
             
             new_config['layers'][layer_name]['destinations'].append(destination)
@@ -740,7 +740,7 @@ def test_migration():
                         LogDestination(
                             type="file",
                             path=os.path.join(temp_dir, "test.log"),
-                            format="text"
+                            format="plain-text"
                         ),
                         LogDestination(
                             type="file",
@@ -821,7 +821,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path=str(log_dir / "app.log"),
-                    format="text"
+                    format="plain-text"
                 )
             ]
         )
@@ -1084,7 +1084,7 @@ test_config = {
                 {
                     "type": "file",
                     "path": "logs/app.log",
-                    "format": "text"
+                    "format": "plain-text"
                 }
             ]
         }
@@ -1149,7 +1149,7 @@ logger = HydraLogger(config)
 | `ValueError: Path is required for file destinations` | Missing file path | Add `path` parameter for file destinations |
 | `OSError: Permission denied` | File permission issues | Check directory permissions |
 | `ImportError: No module named 'python_json_logger'` | Missing dependency | Run `pip install python-json-logger` |
-| `ValueError: Invalid format` | Unsupported format | Use text, json, csv, syslog, or gelf |
+| `ValueError: Invalid format` | Unsupported format | Use plain-text, json, csv, syslog, or gelf |
 
 ### Getting Help
 
@@ -1162,4 +1162,51 @@ If you encounter issues during migration:
 5. **Review examples**: Refer to the examples in this guide
 6. **Open an issue**: Report bugs on the GitHub repository
 
-This comprehensive troubleshooting section ensures a smooth migration experience with solutions for common issues and best practices for production deployment. 
+This comprehensive troubleshooting section ensures a smooth migration experience with solutions for common issues and best practices for production deployment.
+
+## Format System: `plain-text` and Color Mode
+
+Hydra-Logger now supports the `plain-text` format for human-readable output with color control:
+
+- **`plain-text`**: Human-readable text format with color control via `color_mode`
+- **Other formats**: `json`, `csv`, `syslog`, `gelf` (all support color_mode for future colored variants)
+
+**Color Mode** (`color_mode`):
+- `auto`: Detects if colors should be used (default)
+- `always`: Forces colors on
+- `never`: Forces colors off
+
+**Example:**
+```python
+config = {
+    "layers": {
+        "APP": {
+            "level": "INFO",
+            "destinations": [
+                {"type": "console", "format": "plain-text", "color_mode": "always"},  # Colored console
+                {"type": "file", "format": "plain-text", "color_mode": "never"}      # Plain file
+            ]
+        }
+    }
+}
+logger = HydraLogger(config=config)
+logger.info("APP", "Colored console, plain file")
+```
+
+## Available Formats
+- `plain-text` - Human-readable text (colored in console if color_mode allows)
+- `json` - JSON format (structured)
+- `csv` - CSV format (tabular)
+- `syslog` - Syslog format (system logging)
+- `gelf` - GELF format (Graylog)
+
+## Color Mode Options
+- `auto` - Automatic detection (default)
+- `always` - Force colors on
+- `never` - Force colors off
+
+## Migration Notes
+- If you previously used `format='text'`, it is now `format='plain-text'`.
+- `format='plain-text'` now works with `color_mode` for fine-grained color control.
+- All destinations now support `color_mode` for color control.
+- Validation errors now clearly explain the available formats and color_mode options. 

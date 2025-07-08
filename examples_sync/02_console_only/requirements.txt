@@ -1,0 +1,11 @@
+# Core Hydra-Logger
+hydra-logger
+
+# Optional dependencies for enhanced examples
+colorama>=0.4.6
+pyyaml>=6.0
+toml>=0.10.2
+
+# Development dependencies (optional)
+pytest>=7.0.0
+pytest-cov>=4.0.0 

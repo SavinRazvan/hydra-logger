@@ -8,11 +8,12 @@ system that supports complex logging scenarios for enterprise applications.
 Key Features:
 - Pydantic-based configuration models with automatic validation
 - Multi-layered logging with custom folder paths for each layer
-- Multiple destinations per layer (file, console) with independent configurations
+- Multiple destinations per layer (file, console, async sinks) with independent configurations
 - YAML and TOML configuration file loading with error handling
 - Automatic directory creation for custom log file paths
 - Comprehensive validation of log levels, file paths, and configuration structure
 - Default configuration generation for quick setup
+- Async sink support for HTTP, database, queue, and cloud destinations
 
 The configuration system enables sophisticated logging setups where different
 modules can log to different destinations with custom folder structures,
@@ -46,27 +47,37 @@ else:
 
 class LogDestination(BaseModel):
     """
-    Configuration for a single log destination (file or console).
+    Configuration for a single log destination (file, console, or async sink).
 
     This model defines the configuration for individual logging destinations,
-    supporting both file and console output with customizable settings including
-    log levels, file paths, rotation settings, and backup counts.
+    supporting file, console, and async sink output with customizable settings including
+    log levels, file paths, rotation settings, backup counts, and async-specific options.
 
     Attributes:
-        type (Literal["file", "console"]): Type of destination (file or console).
+        type (Literal["file", "console", "async_http", "async_database", "async_queue", "async_cloud"]): 
+            Type of destination (file, console, or async sink).
         level (str): Logging level for this destination (default: "INFO").
         path (Optional[str]): File path, required for file destinations.
-        max_size (Optional[str]): Maximum file size for rotation (e.g., '5MB',
-            '1GB').
+        max_size (Optional[str]): Maximum file size for rotation (e.g., '5MB', '1GB').
         backup_count (Optional[int]): Number of backup files to keep (default: 3).
-        format (str): Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'
-            (default: 'text').
+        format (str): Log format: 'text', 'json', 'csv', 'syslog', or 'gelf' (default: 'text').
+        url (Optional[str]): URL for async HTTP sinks.
+        connection_string (Optional[str]): Connection string for async database sinks.
+        queue_url (Optional[str]): Queue URL for async queue sinks.
+        service_type (Optional[str]): Cloud service type for async cloud sinks.
+        credentials (Optional[Dict[str, str]]): Credentials for async sinks.
+        retry_count (Optional[int]): Number of retries for async operations (default: 3).
+        retry_delay (Optional[float]): Delay between retries in seconds (default: 1.0).
+        timeout (Optional[float]): Timeout for async operations in seconds (default: 30.0).
+        max_connections (Optional[int]): Maximum connections for async sinks (default: 10).
 
     The model includes comprehensive validation to ensure that file destinations
     have required paths and that log levels are valid.
     """
 
-    type: Literal["file", "console"] = Field(description="Type of destination")
+    type: Literal["file", "console", "async_http", "async_database", "async_queue", "async_cloud"] = Field(
+        description="Type of destination"
+    )
     level: str = Field(default="INFO", description="Logging level for this destination")
     path: Optional[str] = Field(
         default=None, description="File path (required for file type)"
@@ -80,6 +91,17 @@ class LogDestination(BaseModel):
         default="text",
         description=("Log format: 'text', 'json', 'csv', 'syslog', or 'gelf'"),
     )
+    
+    # Async sink specific fields
+    url: Optional[str] = Field(default=None, description="URL for async HTTP sinks")
+    connection_string: Optional[str] = Field(default=None, description="Connection string for async database sinks")
+    queue_url: Optional[str] = Field(default=None, description="Queue URL for async queue sinks")
+    service_type: Optional[str] = Field(default=None, description="Cloud service type for async cloud sinks")
+    credentials: Optional[Dict[str, str]] = Field(default=None, description="Credentials for async sinks")
+    retry_count: Optional[int] = Field(default=3, description="Number of retries for async operations")
+    retry_delay: Optional[float] = Field(default=1.0, description="Delay between retries in seconds")
+    timeout: Optional[float] = Field(default=30.0, description="Timeout for async operations in seconds")
+    max_connections: Optional[int] = Field(default=10, description="Maximum connections for async sinks")
 
     @field_validator("path")
     @classmethod
@@ -107,21 +129,109 @@ class LogDestination(BaseModel):
             raise ValueError("Path is required for file destinations")
         return v
 
+    @field_validator("url")
+    @classmethod
+    def validate_async_http_url(cls, v: Optional[str], info: ValidationInfo) -> Optional[str]:
+        """
+        Ensure that async HTTP destinations have a URL specified.
+
+        Args:
+            v (Optional[str]): The URL value to validate.
+            info (ValidationInfo): Validation context information.
+
+        Returns:
+            Optional[str]: The validated URL value.
+
+        Raises:
+            ValueError: If an async HTTP destination is missing a required URL.
+        """
+        if info.data and info.data.get("type") == "async_http" and (not v or (v and not v.strip())):
+            raise ValueError("URL is required for async HTTP destinations")
+        return v
+
+    @field_validator("connection_string")
+    @classmethod
+    def validate_async_database_connection(cls, v: Optional[str], info: ValidationInfo) -> Optional[str]:
+        """
+        Ensure that async database destinations have a connection string specified.
+
+        Args:
+            v (Optional[str]): The connection string value to validate.
+            info (ValidationInfo): Validation context information.
+
+        Returns:
+            Optional[str]: The validated connection string value.
+
+        Raises:
+            ValueError: If an async database destination is missing a required connection string.
+        """
+        if info.data and info.data.get("type") == "async_database" and (not v or (v and not v.strip())):
+            raise ValueError("Connection string is required for async database destinations")
+        return v
+
+    @field_validator("queue_url")
+    @classmethod
+    def validate_async_queue_url(cls, v: Optional[str], info: ValidationInfo) -> Optional[str]:
+        """
+        Ensure that async queue destinations have a queue URL specified.
+
+        Args:
+            v (Optional[str]): The queue URL value to validate.
+            info (ValidationInfo): Validation context information.
+
+        Returns:
+            Optional[str]: The validated queue URL value.
+
+        Raises:
+            ValueError: If an async queue destination is missing a required queue URL.
+        """
+        if info.data and info.data.get("type") == "async_queue" and (not v or (v and not v.strip())):
+            raise ValueError("Queue URL is required for async queue destinations")
+        return v
+
+    @field_validator("service_type")
+    @classmethod
+    def validate_async_cloud_service(cls, v: Optional[str], info: ValidationInfo) -> Optional[str]:
+        """
+        Ensure that async cloud destinations have a service type specified.
+
+        Args:
+            v (Optional[str]): The service type value to validate.
+            info (ValidationInfo): Validation context information.
+
+        Returns:
+            Optional[str]: The validated service type value.
+
+        Raises:
+            ValueError: If an async cloud destination is missing a required service type.
+        """
+        if info.data and info.data.get("type") == "async_cloud" and (not v or (v and not v.strip())):
+            raise ValueError("Service type is required for async cloud destinations")
+        return v
+
     def model_post_init(self, __context: Any) -> None:
         """
-        Post-initialization validation for file destinations.
+        Post-initialization validation for destinations.
 
         Args:
             __context (Any): Post-init context (unused).
 
         Raises:
-            ValueError: If a file destination is missing a required path.
+            ValueError: If a destination is missing required configuration.
 
         This method provides additional validation after model initialization
-        to ensure that file destinations have the required path configuration.
+        to ensure that destinations have the required configuration.
         """
         if self.type == "file" and (not self.path or (self.path and not self.path.strip())):
             raise ValueError("Path is required for file destinations")
+        elif self.type == "async_http" and (not self.url or (self.url and not self.url.strip())):
+            raise ValueError("URL is required for async HTTP destinations")
+        elif self.type == "async_database" and (not self.connection_string or (self.connection_string and not self.connection_string.strip())):
+            raise ValueError("Connection string is required for async database destinations")
+        elif self.type == "async_queue" and (not self.queue_url or (self.queue_url and not self.queue_url.strip())):
+            raise ValueError("Queue URL is required for async queue destinations")
+        elif self.type == "async_cloud" and (not self.service_type or (self.service_type and not self.service_type.strip())):
+            raise ValueError("Service type is required for async cloud destinations")
 
     @field_validator("level")
     @classmethod
@@ -166,13 +276,36 @@ class LogDestination(BaseModel):
             raise ValueError(f"Invalid format: {v}. Must be one of {valid_formats}")
         return v.lower()
 
+    @field_validator("service_type")
+    @classmethod
+    def validate_service_type(cls, v: Optional[str]) -> Optional[str]:
+        """
+        Validate that the cloud service type is one of the supported types.
+
+        Args:
+            v (Optional[str]): The service type value to validate.
+
+        Returns:
+            Optional[str]: The normalized (lowercase) service type.
+
+        Raises:
+            ValueError: If the service type is not one of the valid options.
+        """
+        if v is None:
+            return v
+        
+        valid_service_types = ["aws", "gcp", "azure"]
+        if v.lower() not in valid_service_types:
+            raise ValueError(f"Invalid service type: {v}. Must be one of {valid_service_types}")
+        return v.lower()
+
 
 class LogLayer(BaseModel):
     """
     Configuration for a single logging layer.
 
     This model defines the configuration for a logging layer, which can contain
-    multiple destinations (files, console) with different log levels and settings.
+    multiple destinations (files, console, async sinks) with different log levels and settings.
     Each layer represents a logical grouping of logging output, such as different
     modules or types of logs in an application.
 
@@ -181,7 +314,7 @@ class LogLayer(BaseModel):
         destinations (List[LogDestination]): List of destinations for this layer.
 
     A layer can have multiple destinations, allowing logs to be written to
-    multiple files and/or console output simultaneously with different
+    multiple files, console output, and/or async sinks simultaneously with different
     configurations for each destination.
     """
 
@@ -229,7 +362,7 @@ class LoggingConfig(BaseModel):
 
     The configuration supports complex scenarios where different parts of an
     application can log to different destinations with custom folder structures,
-    file rotation settings, and log level filtering.
+    file rotation settings, log level filtering, and async sink integration.
     """
 
     layers: Dict[str, LogLayer] = Field(
@@ -348,6 +481,50 @@ def get_default_config() -> LoggingConfig:
                         type="file", path="logs/app.log", max_size="5MB", backup_count=3
                     ),
                     LogDestination(type="console", level="INFO"),
+                ],
+            )
+        },
+        default_level="INFO",
+    )
+
+
+def get_async_default_config() -> LoggingConfig:
+    """
+    Get default async configuration with async sink setup.
+
+    This function provides a sensible default async configuration that includes
+    a DEFAULT layer with both file and async HTTP destinations. It's useful
+    for quick async setup or as a starting point for custom async configurations.
+
+    Returns:
+        LoggingConfig: Default async configuration with a DEFAULT layer containing:
+        - File destination: logs/app_async.log with 5MB rotation and 3 backups
+        - Async HTTP destination: http://localhost:8080/logs with JSON format
+        - Default level: INFO for all layers
+
+    The default async configuration provides a good starting point for async
+    applications and can be easily extended with additional layers and async
+    destinations as needed.
+
+    Example:
+        >>> config = get_async_default_config()
+        >>> logger = AsyncHydraLogger(config)
+    """
+    return LoggingConfig(
+        layers={
+            "DEFAULT": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file", path="logs/app_async.log", max_size="5MB", backup_count=3
+                    ),
+                    LogDestination(
+                        type="async_http", 
+                        url="http://localhost:8080/logs",
+                        format="json",
+                        retry_count=3,
+                        timeout=30.0
+                    ),
                 ],
             )
         },
