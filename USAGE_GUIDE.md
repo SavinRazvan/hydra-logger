@@ -175,7 +175,7 @@ logger = HydraLogger(
 )
 
 logger.info("APP", "Custom format message")
-# Output: 2024-01-15 10:30:15 [APP] INFO: Custom format message
+# Output: [APP] INFO: Custom format message
 ```
 
 ### **Environment Variables**
@@ -434,18 +434,18 @@ print(configs)
 
 ## 🚀 Performance Modes
 
-### **High-Performance Mode**
+### **Minimal Features Mode**
 ```python
-# Optimized for maximum throughput
-logger = HydraLogger.for_high_performance()
+# Optimized for maximum throughput (~20K msgs/sec)
+logger = HydraLogger.for_minimal_features()
 logger.info("PERFORMANCE", "Fast log message")
 ```
 
-### **Ultra-Fast Mode**
+### **Bare Metal Mode**
 ```python
-# Extreme performance optimization
-logger = HydraLogger.for_ultra_fast()
-logger.info("PERFORMANCE", "Ultra fast log message")
+# Extreme performance optimization (~20K msgs/sec)
+logger = HydraLogger.for_bare_metal()
+logger.info("PERFORMANCE", "Bare metal log message")
 ```
 
 ### **Performance Monitoring**

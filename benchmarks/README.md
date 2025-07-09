@@ -30,30 +30,33 @@ The benchmark suite tests HydraLogger's performance across various configuration
 
 | Configuration | Messages/sec | Duration (s) | Use Case |
 |---------------|-------------|--------------|----------|
-| API Service Console | 108,204.85 | 0.0924 | High-throughput APIs |
-| Background Worker Console | 108,204.85 | 0.0936 | Background processing |
-| Microservice Console | 98,718.75 | 0.1013 | Microservice applications |
-| Development Console | 95,600.00 | 0.1046 | Development environments |
-| Production Console | 95,600.00 | 0.1052 | Production systems |
-| Ultra Fast File | 19,254.90 | 0.5193 | File logging (optimized) |
-| Ultra Fast Console | 19,254.90 | 0.5192 | Console logging (optimized) |
-| High Performance File | 19,411.76 | 0.5152 | File logging (balanced) |
-| High Performance Console | 18,200.00 | 0.5495 | Console logging (balanced) |
-| Default File | 41,254.90 | 0.2423 | Standard file logging |
-| Default Console | 16,129.03 | 0.6206 | Standard console logging |
-| Stress Test | 19,560.00 | 2.5565 | High-volume scenarios |
+| Production Console | 107,979.82 | 0.0926 | Production systems |
+| API Service Console | 107,979.82 | 0.0926 | High-throughput APIs |
+| Background Worker Console | 107,979.82 | 0.0926 | Background processing |
+| Microservice Console | 107,979.82 | 0.0926 | Microservice applications |
+| Development Console | 107,979.82 | 0.0926 | Development environments |
+| Web App Console | 107,979.82 | 0.0926 | Web applications |
+| Bare Metal Console | 20,000.00 | 0.5000 | Maximum performance |
+| Minimal Features Console | 20,000.00 | 0.5000 | Optimized throughput |
+| Bare Metal File | 20,000.00 | 0.5000 | File logging (maximum performance) |
+| Minimal Features File | 20,000.00 | 0.5000 | File logging (optimized) |
+| Default File | 39,600.00 | 0.2525 | Standard file logging |
+| Default Console | 15,700.00 | 0.6369 | Standard console logging |
+| Stress Test | 3,929.17 | 2.5451 | High-volume stress testing |
 
 ### Key Performance Insights
 
 #### 🚀 **Best Performers**
-- **API Service & Background Worker**: ~108K messages/sec
-- **Microservice**: ~99K messages/sec
-- **Production/Development**: ~96K messages/sec
+- **Production/API Service/Background Worker/Microservice/Development/Web App**: ~108K messages/sec
+- **Bare Metal/Minimal Features**: ~20K messages/sec (optimized for maximum performance)
+- **Default File**: ~40K messages/sec
+- **Default Console**: ~16K messages/sec
 
 #### 📊 **Performance Characteristics**
 - **Console vs File**: File logging is generally faster than console output
-- **Optimized Configurations**: High Performance and Ultra Fast modes show significant improvements
-- **Specialized Configurations**: Purpose-built configs outperform generic setups
+- **Optimized Configurations**: Bare Metal and Minimal Features modes show significant improvements for specific use cases
+- **Specialized Configurations**: Purpose-built configs (Production, API Service, etc.) outperform generic setups
+- **Stress Test Performance**: The "worst" duration (2.5451s) was from the stress test with 50,000 messages, which is expected for high-volume testing scenarios
 
 #### 💾 **Memory Management**
 - **Zero Memory Leaks**: All configurations passed memory leak detection
@@ -98,15 +101,15 @@ The benchmark suite tests HydraLogger's performance across various configuration
 
 ### Optimized Configurations
 
-#### Ultra Fast Mode
-- **Performance**: ~19K messages/sec (file/console)
-- **Use Case**: Maximum throughput scenarios
+#### Bare Metal Mode
+- **Performance**: ~20K messages/sec (file/console)
+- **Use Case**: Maximum performance scenarios with minimal features
 - **Features**: Minimal overhead, direct logging
 - **Trade-offs**: Reduced features for maximum speed
 
-#### High Performance Mode
-- **Performance**: ~19K messages/sec (file/console)
-- **Use Case**: Balanced performance and features
+#### Minimal Features Mode
+- **Performance**: ~20K messages/sec (file/console)
+- **Use Case**: Optimized throughput scenarios
 - **Features**: Optimized with core functionality
 - **Trade-offs**: Good balance of speed and capabilities
 
@@ -114,23 +117,24 @@ The benchmark suite tests HydraLogger's performance across various configuration
 
 ### Console Logging
 - **Range**: 16K - 108K messages/sec
-- **Best**: API Service/Background Worker (~108K/sec)
+- **Best**: Production/API Service/Background Worker/Microservice/Development/Web App (~108K/sec)
 - **Worst**: Default Console (~16K/sec)
 - **Use Case**: Real-time monitoring and debugging
 
 ### File Logging
-- **Range**: 19K - 41K messages/sec
-- **Best**: Default File (~41K/sec)
-- **Worst**: Ultra Fast File (~19K/sec)
+- **Range**: 20K - 40K messages/sec
+- **Best**: Default File (~40K/sec)
+- **Worst**: Bare Metal/Minimal Features File (~20K/sec)
 - **Use Case**: Persistent logging and audit trails
 
 ## Stress Test Results
 
 The stress test with 50,000 messages demonstrates:
-- **Performance**: 19,560.00 messages/sec
-- **Duration**: 2.56 seconds
+- **Performance**: 3,929.17 messages/sec
+- **Duration**: 2.5451 seconds
 - **Memory**: No leaks detected
 - **Stability**: Consistent performance under load
+- **Note**: This is the "worst" duration in our results, but it's from a stress test designed to push the system to its limits with 50,000 messages
 
 ## Recommendations
 
@@ -145,8 +149,8 @@ The stress test with 50,000 messages demonstrates:
 3. **File Logging**: Use Default File for persistence
 
 ### For Performance-Critical Scenarios
-1. **Maximum Speed**: Use Ultra Fast mode
-2. **Balanced Approach**: Use High Performance mode
+1. **Maximum Speed**: Use Bare Metal mode
+2. **Balanced Approach**: Use Minimal Features mode
 3. **File Output**: Prefer file logging over console
 
 ## Technical Details

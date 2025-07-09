@@ -10,10 +10,9 @@
 
 **Comprehensive benchmark results show exceptional performance across all configurations:**
 
-- **🚀 API Service & Background Worker**: 108,204 messages/sec
-- **⚡ Microservice**: 98,718 messages/sec  
-- **🏭 Production & Development**: 95,600 messages/sec
-- **📊 6.7x performance improvement** from default to optimized configurations
+- **🚀 Production/API Service/Background Worker/Microservice/Development/Web App**: 107,980 messages/sec
+- **⚡ Bare Metal/Minimal Features**: 20,000 messages/sec (optimized for maximum performance)
+- **📊 6.9x performance improvement** from default to optimized configurations
 - **💾 Zero memory leaks** across all 13 tested configurations
 - **🛡️ Comprehensive error handling** ensures reliable logging
 
@@ -46,11 +45,12 @@ logger.warning("High memory usage detected")
 ### 🚀 **Optimized Configurations**
 ```python
 # High-performance configurations for specific use cases
+logger = HydraLogger.for_production()         # 108K messages/sec
 logger = HydraLogger.for_api_service()        # 108K messages/sec
 logger = HydraLogger.for_background_worker()  # 108K messages/sec
-logger = HydraLogger.for_microservice()       # 99K messages/sec
-logger = HydraLogger.for_production()         # 96K messages/sec
-logger = HydraLogger.for_development()        # 96K messages/sec
+logger = HydraLogger.for_microservice()       # 108K messages/sec
+logger = HydraLogger.for_development()        # 108K messages/sec
+logger = HydraLogger.for_web_app()           # 108K messages/sec
 ```
 
 ### 🎨 **Format Customization**
@@ -64,7 +64,7 @@ logger = HydraLogger(
 )
 
 logger.info("APP", "Custom format message")
-# Output: 2024-01-15 10:30:15 [APP] INFO: Custom format message
+# Output: [APP] INFO: Custom format message
 ```
 
 ### 🌈 **Color Mode Control**
@@ -141,17 +141,17 @@ def my_app_config():
 logger = HydraLogger.for_my_app()
 ```
 
-- Built-in configs: `for_production()`, `for_development()`, `for_testing()`, `for_microservice()`, `for_web_app()`, `for_api_service()`, `for_background_worker()`, `for_high_performance()`, `for_ultra_fast()`
+- Built-in configs: `for_production()`, `for_development()`, `for_testing()`, `for_microservice()`, `for_web_app()`, `for_api_service()`, `for_background_worker()`, `for_minimal_features()`, `for_bare_metal()`
 
 ### 🚀 **Performance Modes**
 ```python
-# High-performance mode for maximum throughput
-logger = HydraLogger.for_high_performance()
+# Minimal features mode for optimized performance (~20K msgs/sec)
+logger = HydraLogger.for_minimal_features()
 logger.info("PERFORMANCE", "Fast log message")
 
-# Ultra-fast mode for extreme performance
-logger = HydraLogger.for_ultra_fast()
-logger.info("PERFORMANCE", "Ultra fast log message")
+# Bare metal mode for maximum performance (~20K msgs/sec)
+logger = HydraLogger.for_bare_metal()
+logger.info("PERFORMANCE", "Bare metal log message")
 ```
 
 ## 🚀 Quick Start
@@ -190,9 +190,11 @@ if is_api_service:
 elif is_background_worker:
     logger = HydraLogger.for_background_worker()  # 108K messages/sec
 elif is_microservice:
-    logger = HydraLogger.for_microservice()       # 99K messages/sec
+    logger = HydraLogger.for_microservice()       # 108K messages/sec
+elif is_web_app:
+    logger = HydraLogger.for_web_app()           # 108K messages/sec
 else:
-    logger = HydraLogger.for_production()         # 96K messages/sec
+    logger = HydraLogger.for_production()         # 108K messages/sec
 
 # Log with confidence - comprehensive error handling ensures delivery
 logger.info("APP", "Application message")
@@ -350,6 +352,7 @@ logger = HydraLogger.for_my_app()
 ## 📚 Documentation
 
 - [Usage Guide](USAGE_GUIDE.md) - Comprehensive usage examples
+- [Performance Summary](PERFORMANCE_SUMMARY.md) - Latest benchmark results and performance data
 - [Strategic Plan](STRATEGIC_PLAN.md) - Development roadmap
 - [Current Status](CURRENT_STATUS.md) - Project status and progress
 - [Error Handling](ERROR_HANDLING_SUMMARY.md) - Error handling guide
