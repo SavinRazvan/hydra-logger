@@ -300,8 +300,8 @@ class HydraLogger:
         message_format: Optional[str] = None,
         buffer_size: int = 8192,
         flush_interval: float = 1.0,
-        high_performance_mode: bool = False,
-        ultra_fast_mode: bool = False
+        minimal_features_mode: bool = False,
+        bare_metal_mode: bool = False
     ):
         """
         Initialize HydraLogger with comprehensive error handling.
@@ -318,8 +318,8 @@ class HydraLogger:
             message_format: Custom message format
             buffer_size: Buffer size for file handlers
             flush_interval: Flush interval for file handlers
-            high_performance_mode: Enable high performance mode
-            ultra_fast_mode: Enable ultra fast mode
+            minimal_features_mode: Enable minimal features mode
+            bare_metal_mode: Enable bare metal mode
         """
         with error_context("logger", "initialization"):
             self._closed = False
@@ -334,8 +334,8 @@ class HydraLogger:
             self._data_sanitizer = None
             
             # Performance settings
-            self.high_performance_mode = high_performance_mode
-            self.ultra_fast_mode = ultra_fast_mode
+            self.minimal_features_mode = minimal_features_mode
+            self.bare_metal_mode = bare_metal_mode
             self.buffer_size = buffer_size
             self.flush_interval = flush_interval
             
@@ -394,9 +394,9 @@ class HydraLogger:
                 if enable_plugins:
                     self._load_plugins()
                 
-                # Setup ultra-fast mode if enabled
-                if ultra_fast_mode:
-                    self._setup_ultra_fast_mode()
+                # Setup bare metal mode if enabled
+                if bare_metal_mode:
+                    self._setup_bare_metal_mode()
                     
             except Exception as e:
                 track_configuration_error(
@@ -600,14 +600,14 @@ class HydraLogger:
             return
         
         with error_context("logger", "log_message"):
-            # Ultra-fast mode: maximum performance
-            if self.ultra_fast_mode:
-                self._ultra_fast_log(level, message, layer, extra)
+            # Bare metal mode: maximum performance
+            if self.bare_metal_mode:
+                self._bare_metal_log(level, message, layer, extra)
                 return
             
-            # High-performance mode: direct logging without overhead
-            if self.high_performance_mode:
-                self._fast_log(level, message, layer, extra)
+            # Minimal features mode: direct logging without overhead
+            if self.minimal_features_mode:
+                self._minimal_features_log(level, message, layer, extra)
                 return
             
             # Standard mode with all features
@@ -683,8 +683,8 @@ class HydraLogger:
                     print(f"Critical logging error: {e}", file=sys.stderr)
                     print(f"Fallback error: {fallback_error}", file=sys.stderr)
     
-    def _fast_log(self, level: str, message: str, layer: str = "DEFAULT", extra: Optional[Dict[str, Any]] = None) -> None:
-        """Fast logging without security validation or sanitization."""
+    def _minimal_features_log(self, level: str, message: str, layer: str = "DEFAULT", extra: Optional[Dict[str, Any]] = None) -> None:
+        """Minimal features logging without security validation or sanitization."""
         if self._closed:
             return
         
@@ -702,21 +702,21 @@ class HydraLogger:
             pass
     
     def _precompute_log_methods(self) -> None:
-        """Precompute log methods for ultra-fast mode."""
+        """Precompute log methods for bare metal mode."""
         levels = ["debug", "info", "warning", "error", "critical"]
         layers = list(self._layers.keys())
         
         for level in levels:
             for layer in layers:
                 method_name = f"{level}_{layer}"
-                self._precomputed_methods[method_name] = lambda l=level, lay=layer, msg="": self._fast_log(l, msg, lay)
+                self._precomputed_methods[method_name] = lambda l=level, lay=layer, msg="": self._minimal_features_log(l, msg, lay)
     
-    def _setup_ultra_fast_mode(self) -> None:
-        """Setup ultra-fast mode optimizations."""
+    def _setup_bare_metal_mode(self) -> None:
+        """Setup bare metal mode optimizations."""
         self._precompute_log_methods()
     
-    def _ultra_fast_log(self, level: str, message: str, layer: str = "DEFAULT", extra: Optional[Dict[str, Any]] = None) -> None:
-        """Ultra-fast logging with minimal overhead."""
+    def _bare_metal_log(self, level: str, message: str, layer: str = "DEFAULT", extra: Optional[Dict[str, Any]] = None) -> None:
+        """Bare metal logging with minimal overhead."""
         if self._closed:
             return
         
@@ -850,9 +850,8 @@ class HydraLogger:
         if not MagicConfigRegistry.has_config(name):
             raise ConfigurationError(f"Magic config '{name}' not found")
         
-        config_func = MagicConfigRegistry.get_config(name)
-        # Call the config function to get the actual config
-        config = config_func() if callable(config_func) else config_func
+        # Get the config directly (get_config now returns LoggingConfig instance)
+        config = MagicConfigRegistry.get_config(name)
         return cls(config=config, **kwargs)
     
     @classmethod
@@ -902,76 +901,82 @@ class HydraLogger:
         return cls.for_custom("background_worker", **kwargs)
     
     @classmethod
-    def for_high_performance(cls, **kwargs) -> 'HydraLogger':
+    def for_minimal_features(cls, **kwargs) -> 'HydraLogger':
         """
-        Create a high-performance logger optimized for maximum throughput.
+        Create a HydraLogger optimized for minimal feature overhead.
         
-        This configuration:
-        - Disables expensive features (security, sanitization, plugins)
-        - Uses buffered file handlers
-        - Minimizes formatting overhead
-        - Uses pre-computed log methods
-        - Optimized for high throughput scenarios
+        This configuration disables expensive features to maximize performance:
+        - Disables security validation (no input sanitization)
+        - Disables data sanitization (no PII detection)
+        - Disables plugin system (no plugin overhead)
+        - Disables performance monitoring (no metrics collection)
+        
+        Performance: ~19K messages/sec (file/console)
+        Use Case: When you trust your data and don't need security features
+        Trade-off: Reduced security and data protection for speed
         
         Args:
             **kwargs: Additional arguments to pass to HydraLogger constructor
             
         Returns:
-            HydraLogger: High-performance logger instance
+            HydraLogger: Optimized logger instance with minimal features
             
         Example:
-            logger = HydraLogger.for_high_performance()
+            logger = HydraLogger.for_minimal_features()
             logger.info("PERFORMANCE", "Fast log message")
         """
         # Use the high_performance magic config
         config = MagicConfigRegistry.get_config("high_performance")
         
-        # Override with performance optimizations
+        # Override with minimal feature optimizations
         return cls(
             config=config,
             enable_security=False,  # Disable security for speed
             enable_sanitization=False,  # Disable sanitization for speed
             enable_plugins=False,  # Disable plugins for speed
             enable_performance_monitoring=False,  # Disable monitoring overhead
-            high_performance_mode=True,  # Enable high performance mode
+            minimal_features_mode=True,  # Enable minimal features mode
             buffer_size=16384,  # Larger buffer
             flush_interval=0.1,  # Shorter flush interval
             **kwargs
         )
     
     @classmethod
-    def for_ultra_fast(cls, **kwargs) -> 'HydraLogger':
+    def for_bare_metal(cls, **kwargs) -> 'HydraLogger':
         """
-        Create an ultra-fast logger optimized for maximum throughput.
+        Create a HydraLogger optimized for bare-metal performance.
         
-        This configuration:
-        - Disables ALL features for maximum speed
-        - Uses direct method calls without lookups
-        - Pre-computes everything at initialization
-        - Uses minimal formatting
-        - Optimized for ultra-high throughput scenarios
+        This configuration disables ALL optional features for maximum speed:
+        - Disables ALL features (security, sanitization, plugins, monitoring)
+        - Uses pre-computed log methods (no runtime lookups)
+        - Uses direct method calls (minimal overhead)
+        - Uses minimal formatting (no color codes or timestamps)
+        
+        Performance: ~19K messages/sec (file/console)
+        Use Case: When you need absolute maximum performance
+        Trade-off: No features for maximum speed
         
         Args:
             **kwargs: Additional arguments to pass to HydraLogger constructor
             
         Returns:
-            HydraLogger: Ultra-fast logger instance
+            HydraLogger: Bare-metal optimized logger instance
             
         Example:
-            logger = HydraLogger.for_ultra_fast()
-            logger.info("PERFORMANCE", "Ultra fast log message")
+            logger = HydraLogger.for_bare_metal()
+            logger.info("PERFORMANCE", "Bare metal log message")
         """
         # Use the high_performance magic config
         config = MagicConfigRegistry.get_config("high_performance")
         
-        # Override with ultra-fast optimizations
+        # Override with bare-metal optimizations
         return cls(
             config=config,
             enable_security=False,  # Disable all features
             enable_sanitization=False,
             enable_plugins=False,
             enable_performance_monitoring=False,
-            ultra_fast_mode=True,  # Enable ultra-fast mode
+            bare_metal_mode=True,  # Enable bare metal mode
             buffer_size=32768,  # Very large buffer
             flush_interval=0.05,  # Very short flush interval
             **kwargs

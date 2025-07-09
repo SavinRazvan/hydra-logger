@@ -620,20 +620,20 @@ class TestCoreLogger:
         assert "TASK" in logger.config.layers
         assert "PROGRESS" in logger.config.layers
 
-    def test_for_high_performance(self):
-        """Test creating high performance logger."""
-        logger = HydraLogger.for_high_performance()
+    def test_for_minimal_features(self):
+        """Test creating minimal features logger."""
+        logger = HydraLogger.for_minimal_features()
         assert logger is not None
-        assert logger.high_performance_mode is True
+        assert logger.minimal_features_mode is True
         assert logger.enable_security is False
         assert logger.enable_sanitization is False
         assert logger.enable_plugins is False
 
-    def test_for_ultra_fast(self):
-        """Test creating ultra fast logger."""
-        logger = HydraLogger.for_ultra_fast()
+    def test_for_bare_metal(self):
+        """Test creating bare metal logger."""
+        logger = HydraLogger.for_bare_metal()
         assert logger is not None
-        assert logger.ultra_fast_mode is True
+        assert logger.bare_metal_mode is True
         assert logger.enable_security is False
         assert logger.enable_sanitization is False
         assert logger.enable_plugins is False
@@ -653,25 +653,25 @@ class TestCoreLogger:
             HydraLogger.for_custom("invalid_config")
 
     # Performance Mode Tests
-    def test_high_performance_mode(self):
-        """Test high performance mode functionality."""
-        logger = HydraLogger(high_performance_mode=True)
-        assert logger.high_performance_mode is True
+    def test_minimal_features_mode(self):
+        """Test minimal features mode functionality."""
+        logger = HydraLogger(minimal_features_mode=True)
+        assert logger.minimal_features_mode is True
         
         # Test fast logging
-        logger.info("test_layer", "High performance message")
+        logger.info("test_layer", "Minimal features message")
         
         # Check metrics
         metrics = logger.get_performance_metrics()
         assert metrics["total_logs"] >= 1
 
-    def test_ultra_fast_mode(self):
-        """Test ultra fast mode functionality."""
-        logger = HydraLogger(ultra_fast_mode=True)
-        assert logger.ultra_fast_mode is True
+    def test_bare_metal_mode(self):
+        """Test bare metal mode functionality."""
+        logger = HydraLogger(bare_metal_mode=True)
+        assert logger.bare_metal_mode is True
         
-        # Test ultra fast logging
-        logger.info("test_layer", "Ultra fast message")
+        # Test bare metal logging
+        logger.info("test_layer", "Bare metal message")
         
         # Check metrics
         metrics = logger.get_performance_metrics()
@@ -842,8 +842,8 @@ class TestCoreLogger:
             message_format="%(levelname)s: %(message)s",
             buffer_size=16384,
             flush_interval=0.5,
-            high_performance_mode=True,
-            ultra_fast_mode=False
+            minimal_features_mode=True,
+            bare_metal_mode=False
         )
         
         # Test all customizations are applied
@@ -853,8 +853,8 @@ class TestCoreLogger:
         assert hasattr(logger, '_message_format')
         assert logger.buffer_size == 16384
         assert logger.flush_interval == 0.5
-        assert logger.high_performance_mode is True
-        assert logger.ultra_fast_mode is False
+        assert logger.minimal_features_mode is True
+        assert logger.bare_metal_mode is False
         
         # Test logging
         logger.info("test_layer", "All customizations message")
@@ -863,27 +863,27 @@ class TestCoreLogger:
         metrics = logger.get_performance_metrics()
         assert metrics["total_logs"] >= 1
 
-    def test_logger_with_ultra_fast_mode(self):
-        """Test logger with ultra-fast mode enabled."""
-        logger = HydraLogger(ultra_fast_mode=True)
+    def test_logger_with_bare_metal_mode(self):
+        """Test logger with bare metal mode enabled."""
+        logger = HydraLogger(bare_metal_mode=True)
         
-        # Test ultra-fast logging
-        logger.info("test_layer", "Ultra fast message 1")
-        logger.info("test_layer", "Ultra fast message 2")
-        logger.info("test_layer", "Ultra fast message 3")
+        # Test bare metal logging
+        logger.info("test_layer", "Bare metal message 1")
+        logger.info("test_layer", "Bare metal message 2")
+        logger.info("test_layer", "Bare metal message 3")
         
         # Check metrics
         metrics = logger.get_performance_metrics()
         assert metrics["total_logs"] >= 3
 
-    def test_logger_with_high_performance_mode(self):
-        """Test logger with high-performance mode enabled."""
-        logger = HydraLogger(high_performance_mode=True)
+    def test_logger_with_minimal_features_mode(self):
+        """Test logger with minimal features mode enabled."""
+        logger = HydraLogger(minimal_features_mode=True)
         
-        # Test high-performance logging
-        logger.info("test_layer", "High performance message 1")
-        logger.info("test_layer", "High performance message 2")
-        logger.info("test_layer", "High performance message 3")
+        # Test minimal features logging
+        logger.info("test_layer", "Minimal features message 1")
+        logger.info("test_layer", "Minimal features message 2")
+        logger.info("test_layer", "Minimal features message 3")
         
         # Check metrics
         metrics = logger.get_performance_metrics()
@@ -1297,16 +1297,16 @@ class TestCoreLogger:
             message_format="%(levelname)s: %(message)s",
             buffer_size=16384,
             flush_interval=0.5,
-            high_performance_mode=False,
-            ultra_fast_mode=False
+            minimal_features_mode=False,
+            bare_metal_mode=False
         )
         
         # Test all features are enabled
         assert logger.enable_security is True
         assert logger.enable_sanitization is True
         assert logger.enable_plugins is True
-        assert logger.high_performance_mode is False
-        assert logger.ultra_fast_mode is False
+        assert logger.minimal_features_mode is False
+        assert logger.bare_metal_mode is False
         
         # Test logging with all features
         logger.info("COMPREHENSIVE", "Comprehensive test message")
@@ -1526,20 +1526,20 @@ class TestCoreLogger:
 
     def test_default_centralized_logger_performance_modes(self):
         """Test default centralized logger in performance modes."""
-        # Test high performance mode
-        logger_high = HydraLogger(high_performance_mode=True)
-        logger_high.info("Message in high performance mode")
+        # Test minimal features mode
+        logger_minimal = HydraLogger(minimal_features_mode=True)
+        logger_minimal.info("Message in minimal features mode")
         
-        # Test ultra fast mode
-        logger_ultra = HydraLogger(ultra_fast_mode=True)
-        logger_ultra.info("Message in ultra fast mode")
+        # Test bare metal mode
+        logger_bare = HydraLogger(bare_metal_mode=True)
+        logger_bare.info("Message in bare metal mode")
         
         # Check metrics for both
-        metrics_high = logger_high.get_performance_metrics()
-        metrics_ultra = logger_ultra.get_performance_metrics()
+        metrics_minimal = logger_minimal.get_performance_metrics()
+        metrics_bare = logger_bare.get_performance_metrics()
         
-        assert metrics_high["total_logs"] >= 1
-        assert metrics_ultra["total_logs"] >= 1
+        assert metrics_minimal["total_logs"] >= 1
+        assert metrics_bare["total_logs"] >= 1
 
     def test_default_centralized_logger_with_plugins(self):
         """Test default centralized logger with plugins."""
@@ -1769,20 +1769,20 @@ class TestCoreLogger:
 
     def test_centralized_logger_performance_modes(self):
         """Test centralized logger in performance modes."""
-        # Test high performance mode
-        logger_high = HydraLogger(high_performance_mode=True)
-        logger_high.info("Message in high performance mode")
+        # Test minimal features mode
+        logger_minimal = HydraLogger(minimal_features_mode=True)
+        logger_minimal.info("Message in minimal features mode")
         
-        # Test ultra fast mode
-        logger_ultra = HydraLogger(ultra_fast_mode=True)
-        logger_ultra.info("Message in ultra fast mode")
+        # Test bare metal mode
+        logger_bare = HydraLogger(bare_metal_mode=True)
+        logger_bare.info("Message in bare metal mode")
         
         # Check metrics for both
-        metrics_high = logger_high.get_performance_metrics()
-        metrics_ultra = logger_ultra.get_performance_metrics()
+        metrics_minimal = logger_minimal.get_performance_metrics()
+        metrics_bare = logger_bare.get_performance_metrics()
         
-        assert metrics_high["total_logs"] >= 1
-        assert metrics_ultra["total_logs"] >= 1
+        assert metrics_minimal["total_logs"] >= 1
+        assert metrics_bare["total_logs"] >= 1
 
     def test_centralized_logger_with_file_destinations(self):
         """Test centralized logger with file destinations."""
