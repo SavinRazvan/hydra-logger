@@ -149,10 +149,10 @@ def benchmark_hydra_sync_default_file():
         return float('inf')
 
 # Sync benchmarks - High Performance
-def benchmark_hydra_sync_high_performance_console():
-    """Benchmark HydraLogger sync high performance mode for console logging."""
+def benchmark_hydra_sync_minimal_features_console():
+    """Benchmark HydraLogger sync minimal features mode for console logging."""
     try:
-        logger = HydraLogger.for_high_performance()
+        logger = HydraLogger.for_minimal_features()
         # Warm up
         for i in range(100):
             logger.info("DEFAULT", get_message(i))
@@ -164,13 +164,13 @@ def benchmark_hydra_sync_high_performance_console():
         logger.close()
         return end - start
     except Exception as e:
-        print(f"ERROR in HydraLogger Sync High Performance Console: {e}")
+        print(f"ERROR in HydraLogger Sync Minimal Features Console: {e}")
         return float('inf')
 
-def benchmark_hydra_sync_high_performance_file():
-    """Benchmark HydraLogger sync high performance mode for file logging."""
+def benchmark_hydra_sync_minimal_features_file():
+    """Benchmark HydraLogger sync minimal features mode for file logging."""
     try:
-        logger = HydraLogger.for_high_performance()
+        logger = HydraLogger.for_minimal_features()
         # Warm up
         for i in range(100):
             logger.info("DEFAULT", get_message(i))
@@ -182,14 +182,14 @@ def benchmark_hydra_sync_high_performance_file():
         logger.close()
         return end - start
     except Exception as e:
-        print(f"ERROR in HydraLogger Sync High Performance File: {e}")
+        print(f"ERROR in HydraLogger Sync Minimal Features File: {e}")
         return float('inf')
 
 # Sync benchmarks - Ultra Fast
-def benchmark_hydra_sync_ultra_fast_console():
-    """Benchmark HydraLogger sync ultra fast mode for console logging."""
+def benchmark_hydra_sync_bare_metal_console():
+    """Benchmark HydraLogger sync bare metal mode for console logging."""
     try:
-        logger = HydraLogger.for_ultra_fast()
+        logger = HydraLogger.for_bare_metal()
         # Warm up
         for i in range(100):
             logger.info("DEFAULT", get_message(i))
@@ -201,13 +201,13 @@ def benchmark_hydra_sync_ultra_fast_console():
         logger.close()
         return end - start
     except Exception as e:
-        print(f"ERROR in HydraLogger Sync Ultra Fast Console: {e}")
+        print(f"ERROR in HydraLogger Sync Bare Metal Console: {e}")
         return float('inf')
 
-def benchmark_hydra_sync_ultra_fast_file():
-    """Benchmark HydraLogger sync ultra fast mode for file logging."""
+def benchmark_hydra_sync_bare_metal_file():
+    """Benchmark HydraLogger sync bare metal mode for file logging."""
     try:
-        logger = HydraLogger.for_ultra_fast()
+        logger = HydraLogger.for_bare_metal()
         # Warm up
         for i in range(100):
             logger.info("DEFAULT", get_message(i))
@@ -219,7 +219,7 @@ def benchmark_hydra_sync_ultra_fast_file():
         logger.close()
         return end - start
     except Exception as e:
-        print(f"ERROR in HydraLogger Sync Ultra Fast File: {e}")
+        print(f"ERROR in HydraLogger Sync Bare Metal File: {e}")
         return float('inf')
 
 # Additional sync benchmarks
@@ -334,7 +334,7 @@ def benchmark_hydra_sync_background_worker_console():
 def benchmark_stress_test():
     """Stress test with high volume logging."""
     try:
-        logger = HydraLogger.for_high_performance()
+        logger = HydraLogger.for_minimal_features()
         # Warm up
         for i in range(100):
             logger.info("DEFAULT", get_message(i))
@@ -402,10 +402,10 @@ def main():
     sync_tests = [
         ("HydraLogger Sync Default Console", benchmark_hydra_sync_default_console),
         ("HydraLogger Sync Default File", benchmark_hydra_sync_default_file),
-        ("HydraLogger Sync High Performance Console", benchmark_hydra_sync_high_performance_console),
-        ("HydraLogger Sync High Performance File", benchmark_hydra_sync_high_performance_file),
-        ("HydraLogger Sync Ultra Fast Console", benchmark_hydra_sync_ultra_fast_console),
-        ("HydraLogger Sync Ultra Fast File", benchmark_hydra_sync_ultra_fast_file),
+        ("HydraLogger Sync Minimal Features Console", benchmark_hydra_sync_minimal_features_console),
+        ("HydraLogger Sync Minimal Features File", benchmark_hydra_sync_minimal_features_file),
+        ("HydraLogger Sync Bare Metal Console", benchmark_hydra_sync_bare_metal_console),
+        ("HydraLogger Sync Bare Metal File", benchmark_hydra_sync_bare_metal_file),
         ("HydraLogger Sync Production Console", benchmark_hydra_sync_production_console),
         ("HydraLogger Sync Development Console", benchmark_hydra_sync_development_console),
         ("HydraLogger Sync Microservice Console", benchmark_hydra_sync_microservice_console),
