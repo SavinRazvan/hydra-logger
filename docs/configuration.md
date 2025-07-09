@@ -624,7 +624,7 @@ destinations:
 
 **Example Output:**
 ```
-2024-01-15 10:30:45 - hydra.APP - INFO - logger.py:123 - Application started successfully
+APP - INFO - logger.py:123 - Application started successfully
 ```
 
 ### JSON Format
@@ -646,7 +646,7 @@ destinations:
 
 **Example Output:**
 ```json
-{"timestamp": "2024-01-15T10:30:45Z", "level": "INFO", "logger": "hydra.APP", "message": "Application started successfully"}
+{"level": "INFO", "logger": "APP", "message": "Application started successfully"}
 ```
 
 ### CSV Format
@@ -668,7 +668,7 @@ destinations:
 
 **Example Output:**
 ```
-2024-01-15 10:30:45,hydra.APP,INFO,logger.py,123,Application started successfully
+APP,INFO,logger.py,123,Application started successfully
 ```
 
 ### Syslog Format
@@ -690,7 +690,7 @@ destinations:
 
 **Example Output:**
 ```
-hydra.APP[12345]: INFO: Application started successfully
+APP[12345]: INFO: Application started successfully
 ```
 
 ### GELF Format

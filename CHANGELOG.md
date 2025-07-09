@@ -196,7 +196,7 @@ The JSON format has been enhanced with complete structured fields:
 {
     "timestamp": "2025-07-03 14:30:15",
     "level": "INFO", 
-    "logger": "hydra.LAYER",
+    "logger": "LAYER",
     "message": "Log message",
     "filename": "logger.py",
     "lineno": 483

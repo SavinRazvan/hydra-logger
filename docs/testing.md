@@ -177,7 +177,7 @@ def test_structured_json_formatter(self, temp_dir):
         # Verify data types and values
         assert log_entry["level"] == "INFO"
         assert log_entry["message"] == "Test structured JSON"
-        assert log_entry["logger"] == "hydra.STRUCTURED_JSON"
+        assert log_entry["logger"] == "STRUCTURED_JSON"
         assert log_entry["lineno"] > 0
 ```
 
@@ -261,7 +261,7 @@ def test_csv_format(self, temp_dir):
         # Verify data line
         data_line = lines[1].strip()
         assert "INFO" in data_line
-        assert "hydra.CSV_TEST" in data_line
+        assert "CSV_TEST" in data_line
         assert "Test CSV message" in data_line
 ```
 
@@ -296,7 +296,7 @@ def test_syslog_format(self, temp_dir):
         
         # Verify syslog format
         assert content.startswith("<")
-        assert "hydra.SYSLOG_TEST" in content
+        assert "SYSLOG_TEST" in content
         assert "Test syslog message" in content
 ```
 
@@ -335,7 +335,7 @@ def test_gelf_format(self, temp_dir):
         assert "host" in log_entry
         assert log_entry["short_message"] == "Test GELF message"
         assert log_entry["level"] == 6  # INFO level
-        assert log_entry["_logger"] == "hydra.GELF_TEST"
+        assert log_entry["_logger"] == "GELF_TEST"
 ```
 
 ## Integration Tests

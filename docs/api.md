@@ -264,7 +264,7 @@ Traditional plain text logging with timestamps and log levels.
 
 **Output Example:**
 ```
-2025-07-03 14:30:15 INFO [hydra.API] Request processed successfully (logger.py:483)
+INFO [API] Request processed successfully (logger.py:483)
 ```
 
 **Configuration:**
@@ -278,7 +278,7 @@ Structured JSON format for log aggregation and analysis. Each log entry is a val
 
 **Output Example:**
 ```json
-{"timestamp": "2025-07-03 14:30:15", "level": "INFO", "logger": "hydra.API", "message": "Request processed successfully", "filename": "logger.py", "lineno": 483}
+{"level": "INFO", "logger": "API", "message": "Request processed successfully", "filename": "logger.py", "lineno": 483}
 ```
 
 **Configuration:**
@@ -301,7 +301,7 @@ Comma-separated values for analytics and data processing.
 **Output Example:**
 ```csv
 timestamp,level,logger,message,filename,lineno
-2025-07-03 14:30:15,INFO,hydra.API,Request processed successfully,logger.py,483
+INFO,API,Request processed successfully,logger.py,483
 ```
 
 **Configuration:**
@@ -315,7 +315,7 @@ Standard syslog format for system integration.
 
 **Output Example:**
 ```
-<134>2025-07-03T14:30:15.123Z hostname hydra.API: Request processed successfully
+<134>hostname API: Request processed successfully
 ```
 
 **Configuration:**
@@ -329,7 +329,7 @@ Graylog Extended Log Format for centralized logging systems.
 
 **Output Example:**
 ```json
-{"version": "1.1", "host": "hostname", "short_message": "Request processed successfully", "level": 6, "_logger": "hydra.API"}
+{"version": "1.1", "host": "hostname", "short_message": "Request processed successfully", "level": 6, "_logger": "API"}
 ```
 
 **Configuration:**
