@@ -267,8 +267,9 @@ class AsyncLogQueue:
     async def _restore_from_backup(self) -> None:
         """Restore messages from backup."""
         try:
-            if self._data_protection:
-                backup_messages = await self._data_protection.get_backup_messages("main_queue")
+            # Only restore if get_backup_messages exists (for type safety)
+            if self._data_protection and hasattr(self._data_protection, 'get_backup_messages'):
+                backup_messages = await self._data_protection.get_backup_messages("main_queue")  # type: ignore
                 for message in backup_messages:
                     if not self._queue.full():
                         await self._queue.put(message)
@@ -341,7 +342,8 @@ class AsyncLogQueue:
                     break
             
             # Clear batch queue
-            self._batch_queue.clear()
+            if self._batch_queue is not None:
+                self._batch_queue.clear()
             
             # Reset task counter
             self._reset_task_counter()
@@ -712,9 +714,17 @@ class AsyncLogQueue:
         
         try:
             # Clear all references
-            self._queue = None
-            self._batch_queue = None
-            self.processor = None
+            if hasattr(self, '_queue') and self._queue is not None:
+                while not self._queue.empty():
+                    try:
+                        self._queue.get_nowait()
+                        self._queue.task_done()
+                    except Exception:
+                        break
+            if hasattr(self, '_batch_queue') and self._batch_queue is not None:
+                self._batch_queue.clear()
+            if hasattr(self, 'processor'):
+                self.processor = None
             
             # Clear data protection
             if self._data_protection:
@@ -760,6 +770,7 @@ class AsyncBatchProcessor:
         self._worker_task: Optional[asyncio.Task] = None
         self._lock = asyncio.Lock()
         self._stats = QueueStats()
+        self._stats_lock = threading.Lock()
     
     async def start(self) -> None:
         """Start the batch processor."""
@@ -780,7 +791,8 @@ class AsyncBatchProcessor:
                 await self._process_batch()
             
             # Clear batch queue
-            self._batch_queue.clear()
+            if self._batch_queue is not None:
+                self._batch_queue.clear()
             
         except Exception as e:
             print(f"Error stopping batch processor: {e}", file=sys.stderr)
@@ -929,6 +941,7 @@ class AsyncBackpressureHandler:
         self._current_queue_size = 0
         self._stats = QueueStats()
         self._lock = threading.Lock()
+        self._stats_lock = threading.Lock()
     
     async def should_accept_message(self, current_queue_size: int) -> bool:
         """

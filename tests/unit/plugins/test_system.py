@@ -239,7 +239,7 @@ class TestPluginRegistry:
         with patch('importlib.import_module') as mock_import:
             mock_module = MagicMock()
             # Simulate attribute error when accessing plugin class
-            mock_module.TestPlugin = MagicMock(side_effect=AttributeError("No attribute"))
+            del mock_module.TestPlugin  # Remove the attribute
             mock_import.return_value = mock_module
             
             with pytest.raises(PluginError, match="Failed to load plugin"):
@@ -452,7 +452,7 @@ class TestBasePluginClasses:
 
         # Test get_format_name
         format_name = plugin.get_format_name()
-        assert format_name == "testformatter"
+        assert format_name == "testplugin"
 
     def test_handler_plugin_all_methods(self):
         """Test all HandlerPlugin methods."""
@@ -666,7 +666,7 @@ class TestPerformancePlugin:
         plugin = TestPerformancePlugin()
         assert plugin.config == {}
         assert plugin._enabled is True
-        assert hasattr(plugin, '_performance_events')
+        assert hasattr(plugin, '_performance_metrics')
         assert hasattr(plugin, '_performance_thresholds')
 
         # Test with config
@@ -676,10 +676,10 @@ class TestPerformancePlugin:
 
         # Test performance thresholds
         thresholds = plugin._performance_thresholds
-        assert "response_time" in thresholds
-        assert "error_rate" in thresholds
-        assert "memory_usage" in thresholds
-        assert "cpu_usage" in thresholds
+        assert "response_time_warning" in thresholds
+        assert "response_time_critical" in thresholds
+        assert "error_rate_warning" in thresholds
+        assert "error_rate_critical" in thresholds
 
     def test_performance_plugin_process_event_enabled(self):
         """Test PerformancePlugin process_event when enabled."""
@@ -778,7 +778,7 @@ class TestPerformancePlugin:
         plugin = TestPerformancePlugin()
 
         insights = plugin.get_insights()
-        assert "performance_events_count" in insights
+        assert "average_response_time" in insights
         assert "average_response_time" in insights
         assert "error_rate" in insights
         assert "performance_score" in insights

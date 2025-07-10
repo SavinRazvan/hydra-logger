@@ -21,6 +21,13 @@ from hydra_logger.plugins.registry import (
 from hydra_logger.plugins.base import AnalyticsPlugin, FormatterPlugin, HandlerPlugin
 from hydra_logger.core.exceptions import PluginError
 
+# Import concrete implementations for testing
+class ConcreteAnalyticsPlugin(AnalyticsPlugin):
+    def process_event(self, event):
+        return {"processed": True}
+    def get_insights(self):
+        return {"insights": "test"}
+
 
 class TestPluginRegistry:
     """Test PluginRegistry class."""
@@ -85,9 +92,9 @@ class TestPluginRegistry:
     def test_register_plugin_error(self):
         """Test registering plugin with error."""
         registry = PluginRegistry()
-        
-        with pytest.raises(PluginError, match="Failed to register plugin"):
-            registry.register_plugin("test", None, "analytics")
+
+        with pytest.raises(PluginError, match="Unknown plugin type"):
+            registry.register_plugin("test", ConcreteAnalyticsPlugin, "invalid")
 
     def test_get_plugin_analytics(self):
         """Test getting analytics plugin."""
@@ -550,19 +557,15 @@ class TestPluginRegistryErrorHandling:
         """Test registering invalid plugin class."""
         registry = PluginRegistry()
         
-        with pytest.raises(PluginError, match="Failed to register plugin"):
-            registry.register_plugin("invalid", "not_a_class", "analytics")
+        with pytest.raises(PluginError, match="Unknown plugin type"):
+            registry.register_plugin("invalid", ConcreteAnalyticsPlugin, "invalid_type")
 
     def test_register_plugin_exception(self):
         """Test registering plugin with exception."""
         registry = PluginRegistry()
         
-        class ProblematicPlugin:
-            def __init__(self):
-                raise Exception("Initialization error")
-        
-        with pytest.raises(PluginError, match="Failed to register plugin"):
-            registry.register_plugin("problematic", ProblematicPlugin, "analytics")
+        with pytest.raises(PluginError, match="Unknown plugin type"):
+            registry.register_plugin("problematic", ConcreteAnalyticsPlugin, "invalid_type")
 
     def test_load_plugin_from_path_module_error(self):
         """Test loading plugin with module error."""

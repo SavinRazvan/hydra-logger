@@ -133,7 +133,7 @@ class TestAsyncHydraLogger:
             batch_timeout=0.5
         )
         
-        assert logger.performance_monitoring is True
+        assert logger.enable_performance_monitoring is True
         assert logger.redact_sensitive is True
         assert logger.queue_size == 500
         assert logger.batch_size == 50

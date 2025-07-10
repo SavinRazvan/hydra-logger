@@ -184,7 +184,7 @@ def validate_config(config: LoggingConfig) -> bool:
     """
     try:
         # This will raise ValidationError if invalid
-        LoggingConfig(**config.dict())
+        LoggingConfig(**config.model_dump())
         return True
     except ValidationError as e:
         raise ConfigurationError(f"Configuration validation failed: {e}")
@@ -201,7 +201,11 @@ def merge_configs(base_config: LoggingConfig, override_config: Dict[str, Any]) -
     Returns:
         LoggingConfig: Merged configuration
     """
-    base_dict = base_config.dict()
+    # Handle None or empty override
+    if override_config is None:
+        return base_config
+    
+    base_dict = base_config.model_dump()
     
     # Deep merge the configurations
     def deep_merge(base: Dict, override: Dict) -> Dict:

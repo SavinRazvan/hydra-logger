@@ -22,21 +22,22 @@ from hydra_logger.async_hydra.async_handlers import (
 )
 
 
+class TestAsyncHandler(AsyncLogHandler):
+    """Concrete test implementation of AsyncLogHandler."""
+    
+    async def _process_record_async(self, record: logging.LogRecord) -> None:
+        """Test implementation of abstract method."""
+        msg = self.format(record)
+        print(f"TEST_HANDLER: {msg}")
+
+
 class TestAsyncLogHandler:
     """Test AsyncLogHandler base class."""
-    
-    class TestAsyncHandler(AsyncLogHandler):
-        """Concrete test implementation of AsyncLogHandler."""
-        
-        async def _process_record_async(self, record: logging.LogRecord) -> None:
-            """Test implementation of abstract method."""
-            msg = self.format(record)
-            print(f"TEST_HANDLER: {msg}")
     
     @pytest.mark.asyncio
     async def test_async_handler_initialization(self):
         """Test AsyncLogHandler initialization."""
-        handler = self.TestAsyncHandler(level=logging.INFO, queue_size=100)
+        handler = TestAsyncHandler(level=logging.INFO, queue_size=100)
         
         assert handler.level == logging.INFO
         assert handler._queue.maxsize == 100
@@ -45,7 +46,7 @@ class TestAsyncLogHandler:
     @pytest.mark.asyncio
     async def test_async_handler_start_stop(self):
         """Test async handler start and stop operations."""
-        handler = self.TestAsyncHandler()
+        handler = TestAsyncHandler()
         
         # Start handler
         await handler.start()
@@ -58,7 +59,7 @@ class TestAsyncLogHandler:
     @pytest.mark.asyncio
     async def test_async_handler_double_start_stop(self):
         """Test double start and stop operations."""
-        handler = self.TestAsyncHandler()
+        handler = TestAsyncHandler()
         
         # Double start
         await handler.start()
@@ -73,7 +74,7 @@ class TestAsyncLogHandler:
     @pytest.mark.asyncio
     async def test_async_handler_emit_sync(self):
         """Test synchronous emit method."""
-        handler = self.TestAsyncHandler()
+        handler = TestAsyncHandler()
         await handler.start()
         
         try:
@@ -100,7 +101,7 @@ class TestAsyncLogHandler:
     @pytest.mark.asyncio
     async def test_async_handler_emit_async(self):
         """Test asynchronous emit method."""
-        handler = self.TestAsyncHandler()
+        handler = TestAsyncHandler()
         await handler.start()
         
         try:
@@ -124,7 +125,7 @@ class TestAsyncLogHandler:
     @pytest.mark.asyncio
     async def test_async_handler_worker_error_handling(self):
         """Test worker error handling."""
-        handler = self.TestAsyncHandler()
+        handler = TestAsyncHandler()
         await handler.start()
         
         try:
@@ -139,7 +140,7 @@ class TestAsyncLogHandler:
     @pytest.mark.asyncio
     async def test_async_handler_worker_cancellation(self):
         """Test worker task cancellation."""
-        handler = self.TestAsyncHandler()
+        handler = TestAsyncHandler()
         await handler.start()
         
         # Cancel worker task
@@ -153,7 +154,7 @@ class TestAsyncLogHandler:
     @pytest.mark.asyncio
     async def test_async_handler_no_event_loop(self):
         """Test handler behavior when no event loop is running."""
-        handler = self.TestAsyncHandler()
+        handler = TestAsyncHandler()
         
         # Test start without event loop
         with patch('asyncio.get_running_loop', side_effect=RuntimeError("No loop")):
@@ -163,7 +164,7 @@ class TestAsyncLogHandler:
     @pytest.mark.asyncio
     async def test_async_handler_close(self):
         """Test handler close method."""
-        handler = self.TestAsyncHandler()
+        handler = TestAsyncHandler()
         await handler.start()
         
         # Test close

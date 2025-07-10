@@ -210,6 +210,7 @@ config = {
                 },
                 {
                     "type": "file",
+                    "path": "logs/app.log",
                     "color_mode": "never"   # No colors for files
                 },
                 {
@@ -436,16 +437,27 @@ print(configs)
 
 ### **Minimal Features Mode**
 ```python
-# Optimized for maximum throughput (~20K msgs/sec)
+# Optimized for maximum throughput (~14K msgs/sec)
 logger = HydraLogger.for_minimal_features()
 logger.info("PERFORMANCE", "Fast log message")
 ```
 
 ### **Bare Metal Mode**
 ```python
-# Extreme performance optimization (~20K msgs/sec)
+# Extreme performance optimization (~14K msgs/sec)
 logger = HydraLogger.for_bare_metal()
 logger.info("PERFORMANCE", "Bare metal log message")
+```
+
+### **High-Performance Configurations**
+```python
+# Choose the right configuration for your use case
+logger = HydraLogger.for_development()        # 101K messages/sec
+logger = HydraLogger.for_background_worker()  # 101K messages/sec
+logger = HydraLogger.for_production()         # 99K messages/sec
+logger = HydraLogger.for_microservice()       # 99K messages/sec
+logger = HydraLogger.for_web_app()           # 98K messages/sec
+logger = HydraLogger.for_api_service()        # 87K messages/sec
 ```
 
 ### **Performance Monitoring**

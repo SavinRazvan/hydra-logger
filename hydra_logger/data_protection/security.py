@@ -33,22 +33,27 @@ class DataSanitizer:
             for name, pattern in self.redact_patterns.items()
         }
     
-    def sanitize_data(self, data: Any) -> Any:
+    def sanitize_data(self, data: Any, depth: int = 0) -> Any:
         """
         Sanitize data by redacting sensitive information.
         
         Args:
             data: Data to sanitize
+            depth: Current recursion depth (to prevent infinite recursion)
             
         Returns:
             Sanitized data
         """
+        # Prevent infinite recursion
+        if depth > 10:
+            return "[REDACTED_CIRCULAR_REFERENCE]"
+            
         if isinstance(data, str):
             return self._sanitize_string(data)
         elif isinstance(data, dict):
-            return self._sanitize_dict(data)
-        elif isinstance(data, list):
-            return self._sanitize_list(data)
+            return self._sanitize_dict(data, depth + 1)
+        elif isinstance(data, (list, tuple)):
+            return self._sanitize_list(data, depth + 1)
         else:
             return data
     
@@ -64,28 +69,32 @@ class DataSanitizer:
         
         return sanitized
     
-    def _sanitize_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _sanitize_dict(self, data: Dict[str, Any], depth: int = 0) -> Dict[str, Any]:
         """Sanitize a dictionary."""
         sanitized = {}
         
         for key, value in data.items():
-            # Skip sensitive keys
+            # Check if key is sensitive
             if self._is_sensitive_key(key):
                 sanitized[key] = "[REDACTED]"
             else:
-                sanitized[key] = self.sanitize_data(value)
+                # Recursively sanitize nested structures
+                sanitized[key] = self.sanitize_data(value, depth + 1)
         
         return sanitized
     
-    def _sanitize_list(self, data: List[Any]) -> List[Any]:
-        """Sanitize a list."""
-        return [self.sanitize_data(item) for item in data]
+    def _sanitize_list(self, data: Union[List[Any], tuple], depth: int = 0) -> Union[List[Any], tuple]:
+        """Sanitize a list or tuple."""
+        if isinstance(data, tuple):
+            return tuple(self.sanitize_data(item, depth + 1) for item in data)
+        else:
+            return [self.sanitize_data(item, depth + 1) for item in data]
     
     def _is_sensitive_key(self, key: str) -> bool:
         """Check if a key is sensitive."""
         sensitive_keywords = [
             "password", "secret", "token", "key", "auth", "credential",
-            "private", "sensitive", "confidential"
+            "private", "sensitive", "confidential", "session_id"
         ]
         
         key_lower = key.lower()
@@ -99,8 +108,12 @@ class DataSanitizer:
             name: Pattern name
             pattern: Regex pattern
         """
-        self.redact_patterns[name] = pattern
-        self._compiled_patterns[name] = re.compile(pattern, re.IGNORECASE)
+        try:
+            self.redact_patterns[name] = pattern
+            self._compiled_patterns[name] = re.compile(pattern, re.IGNORECASE)
+        except re.error:
+            # Silently ignore invalid regex patterns
+            pass
     
     def remove_pattern(self, name: str) -> bool:
         """
@@ -135,7 +148,7 @@ class SecurityValidator:
             "path_traversal": r"(\.\./|\.\.\\)",
             "command_injection": r"(;|\||`|\$\(|\$\{|\$\$|&&|\|\|)",
             "ldap_injection": r"(\*|\(|\)|\||&)",
-            "no_sql_injection": r"(\$where|\$ne|\$gt|\$lt|\$regex)",
+            "nosql_injection": r"(\$where|\$ne|\$gt|\$lt|\$regex)",
         }
     
     def _compile_threat_patterns(self) -> Dict[str, re.Pattern]:
@@ -213,11 +226,14 @@ class SecurityValidator:
         """Get severity level for a threat type."""
         high_severity = ["sql_injection", "command_injection", "xss"]
         medium_severity = ["path_traversal", "ldap_injection"]
+        low_severity = ["nosql_injection"]
         
         if threat_type in high_severity:
             return "high"
         elif threat_type in medium_severity:
             return "medium"
+        elif threat_type in low_severity:
+            return "low"
         else:
             return "low"
     
@@ -281,8 +297,16 @@ class DataHasher:
         hashed_data = data.copy()
         
         for field in fields:
-            if field in hashed_data and isinstance(hashed_data[field], str):
-                hashed_data[field] = self.hash_data(hashed_data[field])
+            if field in hashed_data:
+                field_value = hashed_data[field]
+                if isinstance(field_value, str):
+                    hashed_data[field] = self.hash_data(field_value)
+                elif isinstance(field_value, (dict, list)):
+                    # For complex structures, hash the string representation
+                    hashed_data[field] = self.hash_data(str(field_value))
+                else:
+                    # For other types, hash the string representation
+                    hashed_data[field] = self.hash_data(str(field_value))
         
         return hashed_data
     

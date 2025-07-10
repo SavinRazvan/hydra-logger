@@ -450,17 +450,11 @@ class TestAsyncContextIntegration:
         """Reset global state before each test."""
         # Clear async context
         clear_async_context()
-        # Reset context switcher
-        _async_context_switcher.reset_switch_count()
-        _async_context_switcher._last_context = None
     
     def teardown_method(self):
         """Clean up after each test."""
         # Clear async context
         clear_async_context()
-        # Reset context switcher
-        _async_context_switcher.reset_switch_count()
-        _async_context_switcher._last_context = None
     
     @pytest.mark.asyncio
     async def test_context_propagation_across_async_operations(self):

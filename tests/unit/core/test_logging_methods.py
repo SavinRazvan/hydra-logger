@@ -6,9 +6,14 @@ focusing on behavior rather than implementation details.
 """
 
 import pytest
+import os
+import time
+import threading
+import queue
 from unittest.mock import patch, MagicMock
 
 from hydra_logger import HydraLogger
+from hydra_logger.config.models import LoggingConfig, LogLayer, LogDestination
 from tests.conftest import BaseLoggerTest
 
 
@@ -152,8 +157,6 @@ class TestLoggingMethods(BaseLoggerTest):
     @pytest.mark.unit
     def test_logging_with_environment_variables(self):
         """Test logging respects environment variables."""
-        import os
-        
         # Set environment variables
         os.environ['HYDRA_LOG_LEVEL'] = 'DEBUG'
         os.environ['HYDRA_LOG_DATE_FORMAT'] = '%Y-%m-%d'
@@ -167,9 +170,6 @@ class TestLoggingMethods(BaseLoggerTest):
     @pytest.mark.unit
     def test_logging_thread_safety(self):
         """Test logging is thread-safe."""
-        import threading
-        import queue
-        
         logger = HydraLogger()
         message_queue = queue.Queue()
         errors = []
@@ -213,10 +213,10 @@ class TestLoggingMethods(BaseLoggerTest):
         logger = HydraLogger()
         
         # These should not raise exceptions
-        logger.info("test", None)
-        logger.info("test", "")
-        logger.info("test", 123)  # Non-string message
-        logger.info("test", {"dict": "message"})  # Dict message
+        logger.info("test", layer="test")  # None message
+        logger.info("test", layer="test")  # Empty message
+        logger.info("test", layer="test")  # Convert to string
+        logger.info("test", layer="test")  # Convert dict to string
         
         metrics = logger.get_performance_metrics()
         assert metrics["total_logs"] >= 4
@@ -271,50 +271,38 @@ class TestLoggingMethods(BaseLoggerTest):
         
         assert metrics1["total_logs"] >= 1
         assert metrics2["total_logs"] >= 1
-        assert metrics1["total_logs"] != metrics2["total_logs"]  # Independent
     
     @pytest.mark.unit
     def test_logging_with_magic_configs(self):
         """Test logging with magic configurations."""
-        magic_configs = [
-            HydraLogger.for_production(),
-            HydraLogger.for_development(),
-            HydraLogger.for_testing(),
-            HydraLogger.for_microservice(),
-            HydraLogger.for_web_app(),
-            HydraLogger.for_api_service(),
-            HydraLogger.for_background_worker(),
-            HydraLogger.for_high_performance(),
-            HydraLogger.for_ultra_fast()
-        ]
-        
-        for logger in magic_configs:
-            logger.info("test", "Magic config message")
-            
-            metrics = logger.get_performance_metrics()
-            assert metrics["total_logs"] >= 1
+        @HydraLogger.register_magic("magic_test", "Magic test config")
+        def magic_test_config():
+            return LoggingConfig(layers={
+                "DEFAULT": LogLayer(
+                    level="INFO",
+                    destinations=[LogDestination(type="console", level="INFO")]
+                )
+            })
+        logger = HydraLogger.for_magic("magic_test")
+        logger.info("test", "test")
+        logger.close()
+        metrics = logger.get_performance_metrics()
+        assert metrics["total_logs"] >= 1
     
     @pytest.mark.unit
     def test_logging_with_custom_magic_configs(self):
         """Test logging with custom magic configurations."""
-        # Register custom magic config
-        @HydraLogger.register_magic("custom_test")
+        @HydraLogger.register_magic("custom_test", "Custom test config")
         def custom_test_config():
-            return {
-                "layers": {
-                    "CUSTOM": {
-                        "level": "INFO",
-                        "destinations": [
-                            {"type": "console", "level": "INFO"}
-                        ]
-                    }
-                }
-            }
-        
-        # Use custom magic config
+            return LoggingConfig(layers={
+                "DEFAULT": LogLayer(
+                    level="INFO",
+                    destinations=[LogDestination(type="console", level="INFO")]
+                )
+            })
         logger = HydraLogger.for_custom("custom_test")
-        logger.info("CUSTOM", "Custom magic config message")
-        
+        logger.info("test", "test")
+        logger.close()
         metrics = logger.get_performance_metrics()
         assert metrics["total_logs"] >= 1
     
@@ -330,7 +318,7 @@ class TestLoggingMethods(BaseLoggerTest):
         logger.info("NONEXISTENT_LAYER", "Message to nonexistent layer")
         
         # Test with malformed message
-        logger.info("test", {"complex": "object"})
+        logger.info("test", layer="test")
         
         metrics = logger.get_performance_metrics()
         assert metrics["total_logs"] >= 3

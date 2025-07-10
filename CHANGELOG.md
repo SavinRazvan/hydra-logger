@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Format naming confusion (plain vs text)
 - Async method signatures and awaitable errors
 
-## [0.4.0] - 2025-07-06
+## [0.4.0] - Unreleased
 
 ### Added
 - Modular architecture foundation
@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Format naming confusion
 - Async method signatures
 
-## [0.2.0] - 2025-07-04
+## [0.2.0] - Unreleased
 
 ### Added
 - Enhanced JSON formatter with proper structured logging fields
@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced universal application support messaging
 - Improved configuration examples for different application types
 
-## [0.1.0] - 2025-07-03
+## [0.1.0] - Unreleased
 
 ### Added
 - Initial release of Hydra-Logger
@@ -143,7 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Version History
 
 ### Version 0.4.0 (Current)
-- **Release Date**: July 3, 2025
+- **Release Date**: Unreleased
 - **Status**: Stable release
 - **Features**: Complete multi-format logging system
 - **Coverage**: 97% test coverage
@@ -194,7 +194,7 @@ The JSON format has been enhanced with complete structured fields:
 
 # New JSON format
 {
-    "timestamp": "2025-07-03 14:30:15",
+    "timestamp": "2024-01-15 14:30:15",
     "level": "INFO", 
     "logger": "LAYER",
     "message": "Log message",

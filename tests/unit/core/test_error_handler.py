@@ -75,9 +75,9 @@ class TestErrorHandling:
         # Check that error was logged
         with open(self.error_log_file, 'r') as f:
             content = f.read()
-            assert "test_error" in content
+            assert "TEST_ERROR" in content
             assert "Test error message" in content
-            assert "test_component" in content
+            assert "[TEST_COMPONENT]" in content
         
         tracker.close()
 
@@ -94,7 +94,7 @@ class TestErrorHandling:
         # Check that error was logged
         with open(self.error_log_file, 'r') as f:
             content = f.read()
-            assert "hydra_logger_error" in content
+            assert "HYDRA_LOGGER_ERROR" in content
             assert "Hydra logger test error" in content
         
         tracker.close()
@@ -112,7 +112,7 @@ class TestErrorHandling:
         # Check that error was logged
         with open(self.error_log_file, 'r') as f:
             content = f.read()
-            assert "configuration_error" in content
+            assert "CONFIGURATION_ERROR" in content
             assert "Configuration test error" in content
             assert "config_key=config_value" in content
         
@@ -131,7 +131,7 @@ class TestErrorHandling:
         # Check that error was logged
         with open(self.error_log_file, 'r') as f:
             content = f.read()
-            assert "validation_error" in content
+            assert "VALIDATION_ERROR" in content
             assert "Validation test error" in content
         
         tracker.close()
@@ -149,7 +149,7 @@ class TestErrorHandling:
         # Check that error was logged
         with open(self.error_log_file, 'r') as f:
             content = f.read()
-            assert "plugin_error" in content
+            assert "PLUGIN_ERROR" in content
             assert "Plugin test error" in content
             assert "plugin_name=test_plugin" in content
         
@@ -168,7 +168,7 @@ class TestErrorHandling:
         # Check that error was logged
         with open(self.error_log_file, 'r') as f:
             content = f.read()
-            assert "runtime_error" in content
+            assert "RUNTIME_ERROR" in content
             assert "Runtime test error" in content
             assert "runtime_key=runtime_value" in content
         
@@ -190,7 +190,7 @@ class TestErrorHandling:
         # Check that error was logged
         with open(self.error_log_file, 'r') as f:
             content = f.read()
-            assert "context_error" in content
+            assert "CONTEXT_ERROR" in content
             assert "Context test error" in content
         
         tracker.close()
@@ -366,7 +366,7 @@ class TestErrorHandling:
         with open(self.error_log_file, 'r') as f:
             content = f.read()
             for severity in severities:
-                assert f"severity_test_{severity}" in content
+                assert f"SEVERITY_TEST_{severity.upper()}" in content
         
         tracker.close()
 

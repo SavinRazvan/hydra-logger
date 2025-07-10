@@ -62,13 +62,15 @@ class TestAsyncHydraLogger:
         self.test_logs_dir = "_tests_logs"
         os.makedirs(self.test_logs_dir, exist_ok=True)
         self.log_file = os.path.join(self.test_logs_dir, "test_async.log")
+        self.logger = None
 
     def teardown_method(self):
         """Cleanup test files and close loggers."""
-        if hasattr(self, 'logger') and self.logger is not None:
+        if self.logger is not None:
             try:
                 if asyncio.iscoroutinefunction(self.logger.close):
-                    asyncio.get_event_loop().run_until_complete(self.logger.close())
+                    loop = asyncio.get_event_loop()
+                    loop.run_until_complete(self.logger.close())
                 else:
                     self.logger.close()
             except Exception as e:
@@ -79,10 +81,10 @@ class TestAsyncHydraLogger:
     @pytest.mark.asyncio
     async def test_async_logger_initialization(self):
         """Test AsyncHydraLogger initialization."""
-        logger = AsyncHydraLogger()
-        assert logger is not None
-        assert hasattr(logger, 'config')
-        assert hasattr(logger, 'get_async_performance_statistics')
+        self.logger = AsyncHydraLogger()
+        assert self.logger is not None
+        assert hasattr(self.logger, 'config')
+        assert hasattr(self.logger, 'get_async_performance_statistics')
 
     @pytest.mark.asyncio
     async def test_async_logger_with_config(self):
@@ -97,26 +99,26 @@ class TestAsyncHydraLogger:
                 )
             }
         )
-        logger = AsyncHydraLogger(config=config)
-        assert logger is not None
+        self.logger = AsyncHydraLogger(config=config)
+        assert self.logger is not None
 
     @pytest.mark.asyncio
     async def test_async_logging_methods(self):
         """Test async logging methods."""
-        logger = AsyncHydraLogger()
+        self.logger = AsyncHydraLogger()
         
         # Initialize the logger
-        await logger.initialize()
+        await self.logger.initialize()
         
         # Test all async logging levels
-        await logger.debug("TEST", "Async debug message")
-        await logger.info("TEST", "Async info message")
-        await logger.warning("TEST", "Async warning message")
-        await logger.error("TEST", "Async error message")
-        await logger.critical("TEST", "Async critical message")
+        await self.logger.debug("TEST", "Async debug message")
+        await self.logger.info("TEST", "Async info message")
+        await self.logger.warning("TEST", "Async warning message")
+        await self.logger.error("TEST", "Async error message")
+        await self.logger.critical("TEST", "Async critical message")
         
         # Check that metrics were incremented
-        metrics = await logger.get_async_performance_statistics()
+        metrics = await self.logger.get_async_performance_statistics()
         assert metrics is not None
         assert metrics["message_count"] >= 5
 
@@ -133,31 +135,31 @@ class TestAsyncHydraLogger:
                 )
             }
         )
-        logger = AsyncHydraLogger(config=config)
+        self.logger = AsyncHydraLogger(config=config)
         
         # Initialize the logger
-        await logger.initialize()
+        await self.logger.initialize()
         
-        await logger.info("ASYNC_CUSTOM", "Async custom layer message")
+        await self.logger.info("ASYNC_CUSTOM", "Async custom layer message")
         
         # Check metrics
-        metrics = await logger.get_async_performance_statistics()
+        metrics = await self.logger.get_async_performance_statistics()
         assert metrics is not None
         assert metrics["message_count"] >= 1
 
     @pytest.mark.asyncio
     async def test_async_logging_with_extra_data(self):
         """Test async logging with extra data."""
-        logger = AsyncHydraLogger()
+        self.logger = AsyncHydraLogger()
         
         # Initialize the logger
-        await logger.initialize()
+        await self.logger.initialize()
         
         extra_data = {"user_id": "12345", "session_id": "abc123"}
-        await logger.info("TEST", "Async message with extra data")
+        await self.logger.info("TEST", "Async message with extra data")
         
         # Check metrics
-        metrics = await logger.get_async_performance_statistics()
+        metrics = await self.logger.get_async_performance_statistics()
         assert metrics is not None
         assert metrics["message_count"] >= 1
 
@@ -174,13 +176,13 @@ class TestAsyncHydraLogger:
                 )
             }
         )
-        logger = AsyncHydraLogger(config=config)
+        self.logger = AsyncHydraLogger(config=config)
         
         # Initialize the logger
-        await logger.initialize()
+        await self.logger.initialize()
         
         # Log message
-        await logger.info("ASYNC_FILE", "Async file log message")
+        await self.logger.info("ASYNC_FILE", "Async file log message")
         
         # Check that file was created
         assert os.path.exists(self.log_file)
@@ -193,37 +195,37 @@ class TestAsyncHydraLogger:
     @pytest.mark.asyncio
     async def test_async_performance_monitoring(self):
         """Test async performance monitoring."""
-        logger = AsyncHydraLogger(enable_performance_monitoring=True)
+        self.logger = AsyncHydraLogger(enable_performance_monitoring=True)
         
         # Initialize the logger
-        await logger.initialize()
+        await self.logger.initialize()
         
         # Log messages
-        await logger.info("TEST", "Async message 1")
-        await logger.info("TEST", "Async message 2")
+        await self.logger.info("TEST", "Async message 1")
+        await self.logger.info("TEST", "Async message 2")
         
         # Check performance metrics
-        metrics = await logger.get_async_performance_statistics()
+        metrics = await self.logger.get_async_performance_statistics()
         assert metrics is not None
         assert metrics["message_count"] >= 2
 
     @pytest.mark.asyncio
     async def test_async_logger_close(self):
         """Test async logger close functionality."""
-        logger = AsyncHydraLogger()
+        self.logger = AsyncHydraLogger()
         
         # Initialize the logger
-        await logger.initialize()
+        await self.logger.initialize()
         
         # Log some messages
-        await logger.info("TEST", "Async message 1")
-        await logger.info("TEST", "Async message 2")
+        await self.logger.info("TEST", "Async message 1")
+        await self.logger.info("TEST", "Async message 2")
         
         # Close logger
-        await logger.close()
+        await self.logger.close()
         
         # Logger should still be usable after close
-        await logger.info("TEST", "Async message after close")
+        await self.logger.info("TEST", "Async message after close")
 
 
 class TestAsyncHandlers:

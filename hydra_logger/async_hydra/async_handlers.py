@@ -425,7 +425,7 @@ class AsyncRotatingFileHandler(AsyncLogHandler):
     async def _write_to_file(self, data: bytes) -> None:
         """Write data to file asynchronously."""
         try:
-            if AIOFILES_AVAILABLE:
+            if AIOFILES_AVAILABLE and aiofiles is not None:
                 # Use aiofiles for async file operations
                 async with aiofiles.open(self.filename, mode='ab') as f:
                     await f.write(data)
@@ -654,7 +654,7 @@ class AsyncBufferedRotatingFileHandler(AsyncRotatingFileHandler):
             await self._rotate_file()
             
             # Write all buffered data in a single operation if possible
-            if AIOFILES_AVAILABLE:
+            if AIOFILES_AVAILABLE and aiofiles is not None:
                 async with aiofiles.open(self.filename, mode='ab') as f:
                     for data in self._buffer:
                         await f.write(data)

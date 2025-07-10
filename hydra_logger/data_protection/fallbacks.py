@@ -696,7 +696,8 @@ def get_performance_stats() -> Dict[str, Any]:
     """Get performance statistics for the module."""
     return {
         "sanitizer_cache_size": len(DataSanitizer._cache),
-        "corruption_cache_size": len(CorruptionDetector._cache)
+        "corruption_cache_size": len(CorruptionDetector._cache),
+        "file_locks_count": len(FallbackHandler._file_locks)
     }
 
 
@@ -882,7 +883,7 @@ class DataLossProtection:
         else:
             return {
                 "type": "generic",
-                "data": str(message),
+                "message": str(message),
                 "timestamp": timestamp
             }
     
@@ -914,7 +915,7 @@ class DataLossProtection:
                 return record
             else:
                 # Return generic message
-                return serialized["data"]
+                return serialized.get("data", serialized.get("message", "Unknown message"))
         except Exception as e:
             print(f"Error deserializing message: {e}", file=sys.stderr)
             return None
@@ -967,6 +968,7 @@ class DataLossProtection:
             "circuit_open": self._circuit_open,
             "failure_count": self._failure_count,
             "backup_files": len(list(self.backup_dir.glob("*.json"))),
+            "backup_count": len(list(self.backup_dir.glob("*.json"))),
             "stats": self._stats.copy()
         }
     

@@ -45,7 +45,7 @@ Please include the following information in your report:
 ### ⏱️ Response Timeline
 
 - **Initial Response**: Within 48 hours
-- **Status Update**: Within 1 week
+- **Status Update**: Within 7 days
 - **Fix Timeline**: Depends on severity and complexity
 - **Public Disclosure**: After fix is available
 

@@ -1,14 +1,14 @@
 Test Name,Duration (s),Messages/sec,Success,Memory Leak
-HydraLogger Sync Default Console,0.6111841209985869,16361.681621671452,True,False
-HydraLogger Sync Default File,0.2333670699990762,42850.94722250053,True,False
-HydraLogger Sync Minimal Features Console,0.4956659359995683,20174.878428621145,True,False
-HydraLogger Sync Minimal Features File,0.4913768850001361,20350.97764111804,True,False
-HydraLogger Sync Bare Metal Console,0.4936464860002161,20257.41149506658,True,False
-HydraLogger Sync Bare Metal File,0.505075785000372,19799.00897445051,True,False
-HydraLogger Sync Production Console,0.09334559700073441,107128.78080281947,True,False
-HydraLogger Sync Development Console,0.09260989699942002,107979.81991128472,True,False
-HydraLogger Sync Microservice Console,0.10194319800029916,98093.84241576033,True,False
-HydraLogger Sync Web App Console,0.11884599799850548,84142.50516139175,True,False
-HydraLogger Sync API Service Console,0.09392799799934437,106464.52828761241,True,False
-HydraLogger Sync Background Worker Console,0.10495839800023532,95275.84443483579,True,False
-HydraLogger Stress Test,2.545069653999235,3929.165547310795,True,False
+HydraLogger Sync Default Console,0.6174591079980019,16195.404473703806,True,False
+HydraLogger Sync Default File,0.29912490399874514,33430.8506791596,True,False
+HydraLogger Sync Minimal Features Console,0.7084599089976109,14115.124755822595,True,False
+HydraLogger Sync Minimal Features File,0.7032252099998004,14220.195547316682,True,False
+HydraLogger Sync Bare Metal Console,0.7298129000009794,13702.142014736351,True,False
+HydraLogger Sync Bare Metal File,0.7381850000019767,13546.739638401243,True,False
+HydraLogger Sync Production Console,0.10075699999651988,99248.68743953668,True,False
+HydraLogger Sync Development Console,0.09877869999763789,101236.40015751505,True,False
+HydraLogger Sync Microservice Console,0.1013481000009051,98669.83199399587,True,False
+HydraLogger Sync Web App Console,0.10235689999899478,97697.3706716226,True,False
+HydraLogger Sync API Service Console,0.11487430100169149,87051.67224349642,True,False
+HydraLogger Sync Background Worker Console,0.09896860100343474,101042.14769745959,True,False
+HydraLogger Stress Test,3.5727686259997427,2798.949791270564,True,False

@@ -22,19 +22,37 @@ class TestAnalyticsPlugin:
 
     def test_analytics_plugin_init_default(self):
         """Test AnalyticsPlugin initialization with default config."""
-        plugin = AnalyticsPlugin()
+        class TestAnalyticsPlugin(AnalyticsPlugin):
+            def process_event(self, event):
+                return {"processed": True}
+            def get_insights(self):
+                return {"insights": "test"}
+        
+        plugin = TestAnalyticsPlugin()
         assert plugin.config == {}
         assert plugin._enabled is True
 
     def test_analytics_plugin_init_custom(self):
         """Test AnalyticsPlugin initialization with custom config."""
+        class TestAnalyticsPlugin(AnalyticsPlugin):
+            def process_event(self, event):
+                return {"processed": True}
+            def get_insights(self):
+                return {"insights": "test"}
+        
         config = {"setting": "value"}
-        plugin = AnalyticsPlugin(config)
+        plugin = TestAnalyticsPlugin(config)
         assert plugin.config == config
 
     def test_analytics_plugin_enable_disable(self):
         """Test enabling and disabling plugin."""
-        plugin = AnalyticsPlugin()
+        class TestAnalyticsPlugin(AnalyticsPlugin):
+            def process_event(self, event):
+                return {"processed": True}
+            def get_insights(self):
+                return {"insights": "test"}
+        
+        plugin = TestAnalyticsPlugin()
         
         assert plugin.is_enabled() is True
         
@@ -46,7 +64,13 @@ class TestAnalyticsPlugin:
 
     def test_analytics_plugin_reset(self):
         """Test plugin reset."""
-        plugin = AnalyticsPlugin()
+        class TestAnalyticsPlugin(AnalyticsPlugin):
+            def process_event(self, event):
+                return {"processed": True}
+            def get_insights(self):
+                return {"insights": "test"}
+        
+        plugin = TestAnalyticsPlugin()
         plugin.reset()  # Should not raise any error
 
 
@@ -55,20 +79,32 @@ class TestFormatterPlugin:
 
     def test_formatter_plugin_init_default(self):
         """Test FormatterPlugin initialization with default config."""
-        plugin = FormatterPlugin()
+        class TestFormatterPlugin(FormatterPlugin):
+            def format(self, record):
+                return f"formatted: {record}"
+        
+        plugin = TestFormatterPlugin()
         assert plugin.config == {}
 
     def test_formatter_plugin_init_custom(self):
         """Test FormatterPlugin initialization with custom config."""
+        class TestFormatterPlugin(FormatterPlugin):
+            def format(self, record):
+                return f"formatted: {record}"
+        
         config = {"format": "json"}
-        plugin = FormatterPlugin(config)
+        plugin = TestFormatterPlugin(config)
         assert plugin.config == config
 
     def test_formatter_plugin_get_format_name(self):
         """Test getting format name."""
-        plugin = FormatterPlugin()
+        class TestFormatterPlugin(FormatterPlugin):
+            def format(self, record):
+                return f"formatted: {record}"
+        
+        plugin = TestFormatterPlugin()
         format_name = plugin.get_format_name()
-        assert format_name == "formatter"
+        assert format_name == "testplugin"
 
 
 class TestHandlerPlugin:
@@ -76,19 +112,31 @@ class TestHandlerPlugin:
 
     def test_handler_plugin_init_default(self):
         """Test HandlerPlugin initialization with default config."""
-        plugin = HandlerPlugin()
+        class TestHandlerPlugin(HandlerPlugin):
+            def emit(self, record):
+                pass
+        
+        plugin = TestHandlerPlugin()
         assert plugin.config == {}
         assert plugin._enabled is True
 
     def test_handler_plugin_init_custom(self):
         """Test HandlerPlugin initialization with custom config."""
+        class TestHandlerPlugin(HandlerPlugin):
+            def emit(self, record):
+                pass
+        
         config = {"level": "INFO"}
-        plugin = HandlerPlugin(config)
+        plugin = TestHandlerPlugin(config)
         assert plugin.config == config
 
     def test_handler_plugin_enable_disable(self):
         """Test enabling and disabling handler."""
-        plugin = HandlerPlugin()
+        class TestHandlerPlugin(HandlerPlugin):
+            def emit(self, record):
+                pass
+        
+        plugin = TestHandlerPlugin()
         
         assert plugin.is_enabled() is True
         
@@ -100,7 +148,11 @@ class TestHandlerPlugin:
 
     def test_handler_plugin_flush_close(self):
         """Test handler flush and close."""
-        plugin = HandlerPlugin()
+        class TestHandlerPlugin(HandlerPlugin):
+            def emit(self, record):
+                pass
+        
+        plugin = TestHandlerPlugin()
         plugin.flush()  # Should not raise any error
         plugin.close()  # Should not raise any error
 
@@ -318,13 +370,13 @@ class TestPluginIntegration:
         class CustomFormatterPlugin(FormatterPlugin):
             def format(self, record):
                 return f"CUSTOM: {record}"
-        
+
         plugin = CustomFormatterPlugin()
         result = plugin.format("test record")
         assert result == "CUSTOM: test record"
-        
+
         format_name = plugin.get_format_name()
-        assert format_name == "customformatter"
+        assert format_name == "customplugin"
 
     def test_handler_plugin_inheritance(self):
         """Test HandlerPlugin inheritance."""
@@ -412,17 +464,31 @@ class TestPluginIntegration:
     def test_plugin_config_persistence(self):
         """Test that plugin config persists through operations."""
         config = {"setting": "value", "enabled": True}
-        
+
         # Test AnalyticsPlugin
-        analytics_plugin = AnalyticsPlugin(config)
+        class TestAnalyticsPlugin(AnalyticsPlugin):
+            def process_event(self, event):
+                return {"processed": True}
+            def get_insights(self):
+                return {"insights": "test"}
+        
+        analytics_plugin = TestAnalyticsPlugin(config)
         assert analytics_plugin.config == config
         
         # Test FormatterPlugin
-        formatter_plugin = FormatterPlugin(config)
+        class TestFormatterPlugin(FormatterPlugin):
+            def format(self, record):
+                return f"formatted: {record}"
+        
+        formatter_plugin = TestFormatterPlugin(config)
         assert formatter_plugin.config == config
         
         # Test HandlerPlugin
-        handler_plugin = HandlerPlugin(config)
+        class TestHandlerPlugin(HandlerPlugin):
+            def emit(self, record):
+                pass
+        
+        handler_plugin = TestHandlerPlugin(config)
         assert handler_plugin.config == config
         
         # Test SecurityPlugin
@@ -436,7 +502,13 @@ class TestPluginIntegration:
     def test_plugin_state_management(self):
         """Test plugin state management."""
         # Test enable/disable cycle
-        plugin = AnalyticsPlugin()
+        class TestAnalyticsPlugin(AnalyticsPlugin):
+            def process_event(self, event):
+                return {"processed": True}
+            def get_insights(self):
+                return {"insights": "test"}
+        
+        plugin = TestAnalyticsPlugin()
         assert plugin.is_enabled() is True
         
         plugin.disable()
