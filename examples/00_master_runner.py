@@ -6,7 +6,7 @@ This script lists and can run all examples in the hierarchical structure.
 Each example demonstrates different features of Hydra-Logger.
 
 Features:
-- Comprehensive example discovery and validation
+- Example discovery and validation
 - Progress tracking with detailed reporting
 - Error categorization and reporting
 - Performance benchmarking
@@ -44,7 +44,7 @@ EXAMPLES = {
     "02_async": {
         "01_async_basic.py": "Minimal usage of AsyncHydraLogger",
         "02_async_colored_console.py": "Async logging with colored console output",
-        "03_async_file_output.py": "Async logging to files with high performance",
+        "03_async_file_output.py": "Async logging to files with optimized performance",
         "04_async_structured_logging.py": "Structured logging with JSON, XML, and correlation IDs",
         "05_async_convenience_methods.py": "Convenience methods for HTTP requests, user actions, and errors",
         "06_async_performance_features.py": "Performance optimizations with object pooling and high throughput",
@@ -93,7 +93,7 @@ class ExampleRunner:
         for category, examples in EXAMPLES.items():
             category_path = self.base_dir / category
             if not category_path.exists():
-                print(f"⚠️  Category directory not found: {category}")
+                print(f"Category directory not found: {category}")
                 continue
                 
             discovered[category] = {}
@@ -102,7 +102,7 @@ class ExampleRunner:
                 if filepath.exists():
                     discovered[category][filename] = description
                 else:
-                    print(f"⚠️  Example file not found: {filepath}")
+                    print(f"Example file not found: {filepath}")
         
         return discovered
     
@@ -118,7 +118,7 @@ class ExampleRunner:
                 if filepath.exists():
                     valid += 1
                 else:
-                    print(f"❌ Missing: {category}/{filename}")
+                    print(f"Missing: {category}/{filename}")
         
         return total, valid
     
@@ -182,14 +182,14 @@ class ExampleRunner:
         examples = self.discover_examples()
         total, valid = self.validate_examples(examples)
         
-        print(f"🚀 Running {valid}/{total} valid examples")
+        print(f"Running {valid}/{total} valid examples")
         print("=" * 60)
         
         self.total_examples = valid
         self.completed_examples = 0
         
         for category, category_examples in examples.items():
-            print(f"\n📁 Category: {category}")
+            print(f"\nCategory: {category}")
             print("-" * 40)
             
             for filename in category_examples.keys():

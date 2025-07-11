@@ -2,7 +2,7 @@
 """
 Format Customization Demo
 
-This example demonstrates the new format customization features:
+This example demonstrates the format customization features:
 - Custom date/time formats
 - Custom logger name formats
 - Custom message formats
@@ -16,11 +16,11 @@ from hydra_logger import HydraLogger
 def demo_format_customization():
     """Demonstrate format customization features."""
     
-    print("🎨 Hydra-Logger Format Customization Demo")
+    print("Hydra-Logger Format Customization Demo")
     print("=" * 50)
     
     # Example 1: Basic format customization
-    print("\n1️⃣ Basic Format Customization:")
+    print("\n1. Basic Format Customization:")
     logger1 = HydraLogger(
         date_format="%Y-%m-%d %H:%M:%S",
         logger_name_format="%(name)s",
@@ -30,7 +30,7 @@ def demo_format_customization():
     logger1.info("FRONTEND", "Custom format message")
     
     # Example 2: Color mode control
-    print("\n2️⃣ Color Mode Control:")
+    print("\n2. Color Mode Control:")
     config = {
         "layers": {
             "FRONTEND": {
@@ -51,7 +51,7 @@ def demo_format_customization():
     logger2.info("FRONTEND", "Forced color mode")
     
     # Example 3: Environment variable support
-    print("\n3️⃣ Environment Variable Support:")
+    print("\n3. Environment Variable Support:")
     # Set environment variables
     os.environ["HYDRA_LOG_DATE_FORMAT"] = "%Y-%m-%d %H:%M:%S"
     os.environ["HYDRA_LOG_LOGGER_NAME_FORMAT"] = "%(name)s"
@@ -61,7 +61,7 @@ def demo_format_customization():
     logger3.info("BACKEND", "Environment variable format")
     
     # Example 4: No colors for files
-    print("\n4️⃣ File Output (No Colors):")
+    print("\n4. File Output (No Colors):")
     config_no_colors = {
         "layers": {
             "DATABASE": {
@@ -83,7 +83,7 @@ def demo_format_customization():
     logger4.info("DATABASE", "File output without colors")
     
     # Example 5: Multiple destinations with different color modes
-    print("\n5️⃣ Multiple Destinations:")
+    print("\n5. Multiple Destinations:")
     config_multi = {
         "layers": {
             "PAYMENT": {
@@ -110,7 +110,7 @@ def demo_format_customization():
     logger5 = HydraLogger(config=config_multi)
     logger5.info("PAYMENT", "Multiple destinations with different color modes")
     
-    print("\n✅ Format customization demo completed!")
+    print("\nFormat customization demo completed!")
     print("Check the log files in examples/logs/ for file output examples.")
 
 if __name__ == "__main__":

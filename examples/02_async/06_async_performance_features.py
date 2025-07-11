@@ -2,7 +2,7 @@
 """
 Async Performance Features Example
 
-This example demonstrates all the performance optimizations:
+This example demonstrates performance optimizations:
 - Object pooling for LogRecord instances
 - Zero-copy batching
 - High-throughput logging
@@ -180,9 +180,9 @@ async def high_throughput_demo():
     print(f"Throughput: {throughput:.0f} messages/second")
     
     if throughput > 1000:
-        print("✅ High throughput achieved!")
+        print("High throughput achieved!")
     else:
-        print("⚠️  Throughput below target")
+        print("Throughput below target")
 
 
 async def memory_efficiency_demo():
@@ -217,9 +217,9 @@ async def memory_efficiency_demo():
     print(f"Memory increase: {memory_increase:.1f} MB")
     
     if memory_increase < 50:  # Less than 50MB increase
-        print("✅ Memory efficient!")
+        print("Memory efficient!")
     else:
-        print("⚠️  High memory usage")
+        print("High memory usage")
 
 
 async def batch_processing_demo():
@@ -392,11 +392,11 @@ async def stress_test():
     print(f"Throughput: {throughput:.0f} messages/second")
     
     if throughput > 5000:
-        print("✅ Excellent performance!")
+        print("Excellent performance!")
     elif throughput > 1000:
-        print("✅ Good performance!")
+        print("Good performance!")
     else:
-        print("⚠️  Performance needs improvement")
+        print("Performance needs improvement")
 
 
 async def main():

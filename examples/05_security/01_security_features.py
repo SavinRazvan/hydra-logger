@@ -14,7 +14,7 @@ from hydra_logger import HydraLogger
 def demo_security_features():
     """Demonstrate security features and data protection."""
     
-    print("🔒 Security Features Example")
+    print("Security Features Example")
     print("=" * 50)
     
     # Create logger with security features enabled
@@ -23,55 +23,41 @@ def demo_security_features():
         enable_sanitization=True
     )
     
-    print("🛡️ Security features enabled:")
+    print("Security features enabled:")
     print("   - PII detection and redaction")
     print("   - Data sanitization")
     print("   - Sensitive data protection")
     
-    print("\n📝 Logging with sensitive data (will be auto-masked):")
+    print("\nLogging with sensitive data (will be auto-masked):")
     
     # Log messages with sensitive data that will be automatically masked
     logger.info("AUTH", "User login attempt", 
-               email="user@example.com",
-               password="secret123",
-               session_token="abc123xyz789")
+               extra={"email": "user@example.com", "password": "secret123", "session_token": "abc123xyz789"})
     
     logger.info("PAYMENT", "Credit card transaction",
-               card_number="1234-5678-9012-3456",
-               cvv="123",
-               expiry="12/25")
+               extra={"card_number": "1234-5678-9012-3456", "cvv": "123", "expiry": "12/25"})
     
     logger.info("PERSONAL", "User profile update",
-               ssn="123-45-6789",
-               phone="+1-555-123-4567",
-               address="123 Main St, City, State 12345")
+               extra={"ssn": "123-45-6789", "phone": "+1-555-123-4567", "address": "123 Main St, City, State 12345"})
     
     logger.info("API", "API request with tokens",
-               api_key="sk_live_abc123def456ghi789",
-               access_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-               refresh_token="rt_1234567890abcdef")
+               extra={"api_key": "sk_live_abc123def456ghi789", "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", "refresh_token": "rt_1234567890abcdef"})
     
-    print("\n📝 Logging with non-sensitive data (will not be masked):")
+    print("\nLogging with non-sensitive data (will not be masked):")
     
     # Log messages with non-sensitive data
     logger.info("APP", "Application started", 
-               version="0.4.0",
-               environment="production",
-               uptime_seconds=3600)
+               extra={"version": "0.4.0", "environment": "production", "uptime_seconds": 3600})
     
     logger.info("PERF", "Performance metrics",
-               response_time_ms=150,
-               memory_usage_mb=512,
-               cpu_percent=25)
+               extra={"response_time_ms": 150, "memory_usage_mb": 512, "cpu_percent": 25})
     
     logger.info("CONFIG", "Configuration loaded",
-               config_size=1024,
-               config_version="0.4.0",
-               features_enabled=["async", "security", "plugins"])
+               extra={"config_size": 1024, "config_version": "0.4.0", "features_enabled": ["async", "security", "plugins"]})
     
-    print("\n✅ Security features example completed!")
-    print("💡 Notice how sensitive data is automatically masked in the output")
-    print("🔍 Check the console output to see the redaction in action")
+    print("\nSecurity features example completed!")
+    print("Notice how sensitive data is automatically masked in the output")
+    print("Check the console output to see the redaction in action")
 
 if __name__ == "__main__":
     demo_security_features() 

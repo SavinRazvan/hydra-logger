@@ -4,7 +4,7 @@ Async Colored Console Example
 
 This example demonstrates async logging with colored console output:
 - AsyncHydraLogger with colored console
-- High-performance async logging
+- Async logging with color mode control
 - Color mode control for async operations
 """
 
@@ -15,7 +15,7 @@ from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 async def demo_async_colored_console():
     """Demonstrate async logging with colored console output."""
     
-    print("⚡ Async Colored Console Example")
+    print("Async Colored Console Example")
     print("=" * 50)
     
     # Configuration for async colored console using LoggingConfig
@@ -41,7 +41,7 @@ async def demo_async_colored_console():
     # Initialize the async logger
     await logger.initialize()
     
-    print("🚀 Starting async logging with colors...")
+    print("Starting async logging with colors...")
     
     # Log messages asynchronously with colors
     await logger.info("ASYNC", "Async logger started")
@@ -50,7 +50,7 @@ async def demo_async_colored_console():
     await logger.error("ASYNC", "Network timeout")
     
     # Simulate concurrent logging
-    print("\n🔄 Simulating concurrent async logging...")
+    print("\nSimulating concurrent async logging...")
     
     # Create multiple concurrent log operations
     tasks = []
@@ -61,12 +61,12 @@ async def demo_async_colored_console():
     # Execute all tasks concurrently
     await asyncio.gather(*tasks)
     
-    print("\n✅ All concurrent tasks completed!")
+    print("\nAll concurrent tasks completed!")
     
     # Close the async logger
     await logger.close()
     
-    print("🎯 Async colored console example completed!")
+    print("Async colored console example completed!")
 
 if __name__ == "__main__":
     asyncio.run(demo_async_colored_console()) 
