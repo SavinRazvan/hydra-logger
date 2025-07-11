@@ -1,94 +1,100 @@
 # HydraLogger Configuration Quick Reference
 
-## 🚀 High-Performance Use Cases
+## High-Performance Use Cases
 
-### Production Systems (108K messages/sec)
-```python
-logger = HydraLogger.for_production()
-```
-**Best for**: Live production environments, enterprise applications
-
-### API Services (108K messages/sec)
-```python
-logger = HydraLogger.for_api_service()
-```
-**Best for**: REST APIs, GraphQL services, high-traffic endpoints
-
-### Background Workers (108K messages/sec)
-```python
-logger = HydraLogger.for_background_worker()
-```
-**Best for**: Queue processors, scheduled tasks, batch operations
-
-### Microservices (108K messages/sec)
-```python
-logger = HydraLogger.for_microservice()
-```
-**Best for**: Containerized services, distributed systems
-
-## 🏭 Production Use Cases
-
-### Development (108K messages/sec)
-```python
-logger = HydraLogger.for_development()
-```
-**Best for**: Development workflows, debugging, testing
-
-### Web Applications (108K messages/sec)
+### Web Applications (103K messages/sec)
 ```python
 logger = HydraLogger.for_web_app()
 ```
 **Best for**: Web applications, frontend logging
 
-## ⚡ Performance-Optimized Use Cases
+### Development (101K messages/sec)
+```python
+logger = HydraLogger.for_development()
+```
+**Best for**: Development workflows, debugging, testing
 
-### Bare Metal Mode (~20K messages/sec)
+### Microservices (101K messages/sec)
+```python
+logger = HydraLogger.for_microservice()
+```
+**Best for**: Containerized services, distributed systems
+
+### Background Workers (100K messages/sec)
+```python
+logger = HydraLogger.for_background_worker()
+```
+**Best for**: Queue processors, scheduled tasks, batch operations
+
+### Production Systems (98K messages/sec)
+```python
+logger = HydraLogger.for_production()
+```
+**Best for**: Live production environments, enterprise applications
+
+### API Services (82K messages/sec)
+```python
+logger = HydraLogger.for_api_service()
+```
+**Best for**: REST APIs, GraphQL services, high-traffic endpoints
+
+## Production Use Cases
+
+### File Logging (32K messages/sec)
+```python
+logger = HydraLogger()  # Default configuration
+```
+**Best for**: Standard file logging, persistent storage
+
+## Performance-Optimized Use Cases
+
+### Bare Metal Mode (~14K messages/sec)
 ```python
 logger = HydraLogger.for_bare_metal()
 ```
 **Best for**: Maximum throughput, minimal overhead
 **Trade-off**: Reduced features for speed
-**Performance**: 20,000 messages/sec (file), 20,000 messages/sec (console)
+**Performance**: 13,808 messages/sec (console), 13,836 messages/sec (file)
 
-### Minimal Features Mode (~20K messages/sec)
+### Minimal Features Mode (~14K messages/sec)
 ```python
 logger = HydraLogger.for_minimal_features()
 ```
 **Best for**: Balanced performance and features
 **Trade-off**: Good balance of speed and capabilities
-**Performance**: 20,000 messages/sec (file), 20,000 messages/sec (console)
+**Performance**: 13,796 messages/sec (console), 14,024 messages/sec (file)
 
-## 📁 File vs Console Logging
+## File vs Console Logging
 
-### Console Logging (16K - 108K messages/sec)
+### Console Logging (16K - 103K messages/sec)
 ```python
 # Use for real-time monitoring and debugging
 logger.info("DEFAULT", "Real-time log message")
 ```
 
-### File Logging (20K - 40K messages/sec)
+### File Logging (14K - 32K messages/sec)
 ```python
 # Use for persistent logging and audit trails
 logger.info("DEFAULT", "Persistent log message")
 ```
 
-## 🎯 Configuration Selection Guide
+## Configuration Selection Guide
 
 | Use Case | Recommended Configuration | Performance | Key Benefit |
 |----------|-------------------------|-------------|-------------|
-| **Production systems** | `for_production()` | 108K/sec | Enterprise-ready features |
-| **High-traffic APIs** | `for_api_service()` | 108K/sec | Optimized for request/response |
-| **Background jobs** | `for_background_worker()` | 108K/sec | Batch operation optimization |
-| **Microservices** | `for_microservice()` | 108K/sec | Lightweight, service-oriented |
-| **Development** | `for_development()` | 108K/sec | Enhanced debugging |
-| **Web applications** | `for_web_app()` | 108K/sec | Web request logging |
-| **Maximum speed** | `for_bare_metal()` | ~20K/sec | Minimal overhead |
-| **Balanced approach** | `for_minimal_features()` | ~20K/sec | Speed + features |
+| **Web applications** | `for_web_app()` | 103K/sec | Web request logging |
+| **Development** | `for_development()` | 101K/sec | Enhanced debugging |
+| **Microservices** | `for_microservice()` | 101K/sec | Lightweight, service-oriented |
+| **Background jobs** | `for_background_worker()` | 100K/sec | Batch operation optimization |
+| **Production systems** | `for_production()` | 98K/sec | Enterprise-ready features |
+| **High-traffic APIs** | `for_api_service()` | 82K/sec | Optimized for request/response |
+| **Maximum speed** | `for_bare_metal()` | ~14K/sec | Minimal overhead |
+| **Balanced approach** | `for_minimal_features()` | ~14K/sec | Speed + features |
 
-## 🔧 Performance Tips
+## Performance Tips
 
 ### For Maximum Throughput
-1. Use specialized configurations (API Service, Background Worker)
+1. Use specialized configurations (Web App, Development, Microservice)
 2. Prefer file logging over console
 3. Use Bare Metal mode for critical paths
 
@@ -102,37 +108,45 @@ logger.info("DEFAULT", "Persistent log message")
 2. Enable detailed logging
 3. Use console output for real-time debugging
 
-## 📊 Performance Comparison
+## Performance Comparison
 
 ### Console Logging Performance
-- **Production**: 107,980 messages/sec ⭐
-- **API Service**: 107,980 messages/sec ⭐
-- **Background Worker**: 107,980 messages/sec ⭐
-- **Microservice**: 107,980 messages/sec ⭐
-- **Development**: 107,980 messages/sec ⭐
-- **Web App**: 107,980 messages/sec ⭐
-- **Default**: 15,700 messages/sec
+- **Web App**: 103,344 messages/sec
+- **Development**: 100,655 messages/sec
+- **Microservice**: 100,743 messages/sec
+- **Background Worker**: 99,519 messages/sec
+- **Production**: 97,520 messages/sec
+- **API Service**: 81,831 messages/sec
+- **Default**: 16,140 messages/sec
 
 ### File Logging Performance
-- **Default File**: 39,600 messages/sec ⭐
-- **Minimal Features**: 20,000 messages/sec
-- **Bare Metal**: 20,000 messages/sec
+- **Default File**: 31,692 messages/sec
+- **Minimal Features**: 14,024 messages/sec
+- **Bare Metal**: 13,836 messages/sec
 
-## ⚠️ Important Notes
+## Important Notes
 
 - **Memory Management**: All configurations include memory leak detection
 - **Error Handling**: Comprehensive fallback mechanisms ensure message delivery
 - **Reliability**: Zero memory leaks detected in all tests
 - **Compatibility**: All configurations work with both sync and async logging
 
-## 🚀 Getting Started
+## Getting Started
 
 ```python
 from hydra_logger import HydraLogger
 
-# For API services
-logger = HydraLogger.for_api_service()
-logger.info("DEFAULT", "API request processed")
+# For web applications
+logger = HydraLogger.for_web_app()
+logger.info("DEFAULT", "Web request processed")
+
+# For development
+logger = HydraLogger.for_development()
+logger.info("DEFAULT", "Debug message")
+
+# For microservices
+logger = HydraLogger.for_microservice()
+logger.info("DEFAULT", "Service log message")
 
 # For background workers
 logger = HydraLogger.for_background_worker()

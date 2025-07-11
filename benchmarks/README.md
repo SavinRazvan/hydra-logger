@@ -30,37 +30,39 @@ The benchmark suite tests HydraLogger's performance across various configuration
 
 | Configuration | Messages/sec | Duration (s) | Use Case |
 |---------------|-------------|--------------|----------|
-| Development Console | 101,236.40 | 0.0988 | Development environments |
-| Background Worker Console | 101,236.40 | 0.0990 | Background processing |
-| Production Console | 99,248.00 | 0.1008 | Production systems |
-| Microservice Console | 98,670.00 | 0.1013 | Microservice applications |
-| Web App Console | 97,698.00 | 0.1024 | Web applications |
-| API Service Console | 87,045.00 | 0.1149 | High-throughput APIs |
-| Default File | 33,445.00 | 0.2991 | Standard file logging |
-| Minimal Features Console | 14,120.00 | 0.7085 | Optimized throughput |
-| Minimal Features File | 14,210.00 | 0.7032 | File logging (optimized) |
-| Bare Metal Console | 13,710.00 | 0.7298 | Maximum performance |
-| Bare Metal File | 13,550.00 | 0.7382 | File logging (maximum performance) |
-| Default Console | 16,200.00 | 0.6175 | Standard console logging |
-| Stress Test | 2,799.00 | 3.5728 | High-volume stress testing |
+| Web App Console | 103,344.13 | 0.0968 | Web applications |
+| Development Console | 100,655.18 | 0.0993 | Development environments |
+| Microservice Console | 100,743.30 | 0.0993 | Microservice applications |
+| Background Worker Console | 99,518.94 | 0.1005 | Background processing |
+| Production Console | 97,519.51 | 0.1025 | Production systems |
+| API Service Console | 81,830.72 | 0.1222 | High-throughput APIs |
+| Default File | 31,691.71 | 0.3155 | Standard file logging |
+| Default Console | 16,140.25 | 0.6196 | Standard console logging |
+| Minimal Features File | 14,023.91 | 0.7131 | File logging (optimized) |
+| Minimal Features Console | 13,795.73 | 0.7249 | Optimized throughput |
+| Bare Metal File | 13,835.61 | 0.7228 | File logging (maximum performance) |
+| Bare Metal Console | 13,807.84 | 0.7242 | Maximum performance |
+| Stress Test | 13,756.03 | 3.6348 | High-volume stress testing |
 
 ### Key Performance Insights
 
-#### 🚀 **Best Performers**
-- **Development/Background Worker**: ~101K messages/sec
-- **Production/Microservice/Web App**: ~98-99K messages/sec
-- **API Service**: ~87K messages/sec
-- **Default File**: ~33K messages/sec
+#### **Best Performers**
+- **Web App**: ~103K messages/sec
+- **Development/Microservice**: ~101K messages/sec
+- **Background Worker**: ~100K messages/sec
+- **Production**: ~98K messages/sec
+- **API Service**: ~82K messages/sec
+- **Default File**: ~32K messages/sec
 - **Default Console**: ~16K messages/sec
 - **Optimized Configurations**: ~14K messages/sec (Bare Metal/Minimal Features)
 
-#### 📊 **Performance Characteristics**
+#### **Performance Characteristics**
 - **Console vs File**: File logging is generally faster than console output for default configurations
 - **Optimized Configurations**: Bare Metal and Minimal Features modes show consistent performance across console and file
 - **Specialized Configurations**: Purpose-built configs (Production, Development, etc.) significantly outperform generic setups
 - **Stress Test Performance**: The stress test with 50,000 messages shows expected performance under high load
 
-#### 💾 **Memory Management**
+#### **Memory Management**
 - **Zero Memory Leaks**: All configurations passed memory leak detection
 - **Consistent Memory Usage**: Stable memory footprint across all tests
 - **Efficient Cleanup**: Proper resource management in all scenarios
@@ -69,52 +71,52 @@ The benchmark suite tests HydraLogger's performance across various configuration
 
 ### High-Performance Configurations
 
+#### Web App Configuration
+- **Performance**: 103,344.13 messages/sec
+- **Use Case**: Web applications
+- **Features**: Optimized for web request/response logging
+- **Recommendation**: Good for web frameworks and applications
+
 #### Development Configuration
-- **Performance**: 101,236.40 messages/sec
+- **Performance**: 100,655.18 messages/sec
 - **Use Case**: Development and testing environments
 - **Features**: Enhanced debugging capabilities with optimal performance
-- **Recommendation**: Ideal for development workflows and debugging
+- **Recommendation**: Good for development workflows and debugging
+
+#### Microservice Configuration
+- **Performance**: 100,743.30 messages/sec
+- **Use Case**: Distributed microservices
+- **Features**: Lightweight, service-oriented logging
+- **Recommendation**: Good for containerized microservices
 
 #### Background Worker Configuration
-- **Performance**: 101,236.40 messages/sec
+- **Performance**: 99,518.94 messages/sec
 - **Use Case**: Background job processing
 - **Features**: Optimized for batch operations and high throughput
-- **Recommendation**: Perfect for queue processors and scheduled tasks
+- **Recommendation**: Well-suited for queue processors and scheduled tasks
 
 #### Production Configuration
-- **Performance**: 99,248.00 messages/sec
+- **Performance**: 97,519.51 messages/sec
 - **Use Case**: Production environments
 - **Features**: Comprehensive error handling and monitoring
 - **Recommendation**: Default choice for production systems
 
-#### Microservice Configuration
-- **Performance**: 98,670.00 messages/sec
-- **Use Case**: Distributed microservices
-- **Features**: Lightweight, service-oriented logging
-- **Recommendation**: Excellent for containerized microservices
-
-#### Web App Configuration
-- **Performance**: 97,698.00 messages/sec
-- **Use Case**: Web applications
-- **Features**: Optimized for web request/response logging
-- **Recommendation**: Ideal for web frameworks and applications
-
 #### API Service Configuration
-- **Performance**: 87,045.00 messages/sec
+- **Performance**: 81,830.72 messages/sec
 - **Use Case**: High-throughput API endpoints
 - **Features**: Optimized for request/response logging
-- **Recommendation**: Ideal for REST APIs and GraphQL services
+- **Recommendation**: Good for REST APIs and GraphQL services
 
 ### Production-Ready Configurations
 
 #### Default File Configuration
-- **Performance**: 33,445.00 messages/sec
+- **Performance**: 31,691.71 messages/sec
 - **Use Case**: Standard file logging
 - **Features**: Balanced performance with file persistence
 - **Recommendation**: Good choice for general file logging needs
 
 #### Default Console Configuration
-- **Performance**: 16,200.00 messages/sec
+- **Performance**: 16,140.25 messages/sec
 - **Use Case**: Standard console logging
 - **Features**: Basic console output with error handling
 - **Recommendation**: Suitable for simple console logging
@@ -136,22 +138,22 @@ The benchmark suite tests HydraLogger's performance across various configuration
 ## File vs Console Performance
 
 ### Console Logging
-- **Range**: 16K - 101K messages/sec
-- **Best**: Development/Background Worker (~101K/sec)
+- **Range**: 16K - 103K messages/sec
+- **Best**: Web App (~103K/sec)
 - **Worst**: Default Console (~16K/sec)
 - **Use Case**: Real-time monitoring and debugging
 
 ### File Logging
-- **Range**: 14K - 33K messages/sec
-- **Best**: Default File (~33K/sec)
+- **Range**: 14K - 32K messages/sec
+- **Best**: Default File (~32K/sec)
 - **Worst**: Bare Metal/Minimal Features File (~14K/sec)
 - **Use Case**: Persistent logging and audit trails
 
 ## Stress Test Results
 
 The stress test with 50,000 messages demonstrates:
-- **Performance**: 2,799.00 messages/sec
-- **Duration**: 3.5728 seconds
+- **Performance**: 13,756.03 messages/sec
+- **Duration**: 3.6348 seconds
 - **Memory**: No leaks detected
 - **Stability**: Consistent performance under load
 - **Note**: This is the "worst" duration in our results, but it's from a stress test designed to push the system to its limits with 50,000 messages
@@ -159,21 +161,22 @@ The stress test with 50,000 messages demonstrates:
 ## Recommendations
 
 ### For High-Throughput Applications
-1. **Development/Background Processing**: Use Development or Background Worker configuration (~101K/sec)
-2. **Production Systems**: Use Production configuration (~99K/sec)
-3. **Microservices**: Use Microservice configuration (~99K/sec)
-4. **Web Applications**: Use Web App configuration (~98K/sec)
-5. **API Services**: Use API Service configuration (~87K/sec)
+1. **Web Applications**: Use Web App configuration (~103K/sec)
+2. **Development**: Use Development configuration (~101K/sec)
+3. **Microservices**: Use Microservice configuration (~101K/sec)
+4. **Background Processing**: Use Background Worker configuration (~100K/sec)
+5. **Production Systems**: Use Production configuration (~98K/sec)
+6. **API Services**: Use API Service configuration (~82K/sec)
 
 ### For Production Systems
-1. **General Production**: Use Production configuration (~99K/sec)
+1. **General Production**: Use Production configuration (~98K/sec)
 2. **Development**: Use Development configuration (~101K/sec)
-3. **File Logging**: Use Default File for persistence (~33K/sec)
+3. **File Logging**: Use Default File for persistence (~32K/sec)
 
 ### For Performance-Critical Scenarios
-1. **Maximum Speed**: Use Development or Background Worker configuration (~101K/sec)
-2. **Balanced Approach**: Use Production or Microservice configuration (~99K/sec)
-3. **File Output**: Prefer Default File logging (~33K/sec) over console for persistence
+1. **Maximum Speed**: Use Web App configuration (~103K/sec)
+2. **Balanced Approach**: Use Production or Microservice configuration (~98-101K/sec)
+3. **File Output**: Prefer Default File logging (~32K/sec) over console for persistence
 
 ## Technical Details
 
@@ -194,14 +197,16 @@ The stress test with 50,000 messages demonstrates:
 
 ## Conclusion
 
-HydraLogger demonstrates excellent performance across all configurations, with specialized setups showing significant advantages for specific use cases. The zero memory leaks and comprehensive error handling make it suitable for production environments where reliability is critical.
+HydraLogger demonstrates good performance across all configurations, with specialized setups showing advantages for specific use cases. The zero memory leaks and comprehensive error handling make it suitable for production environments where reliability is important.
 
 The benchmark results show that choosing the right configuration for your specific use case can provide 6-7x performance improvements over default settings:
-- **Development/Background Worker**: ~101K messages/sec (6.2x faster than default)
-- **Production/Microservice/Web App**: ~98-99K messages/sec (6x faster than default)
-- **API Service**: ~87K messages/sec (5.4x faster than default)
+- **Web App**: ~103K messages/sec (6.4x faster than default)
+- **Development/Microservice**: ~101K messages/sec (6.3x faster than default)
+- **Background Worker**: ~100K messages/sec (6.2x faster than default)
+- **Production**: ~98K messages/sec (6.1x faster than default)
+- **API Service**: ~82K messages/sec (5.1x faster than default)
 
-This makes HydraLogger an excellent choice for high-performance logging requirements, with the ability to handle over 100,000 log messages per second in optimized configurations.
+This makes HydraLogger a good choice for high-performance logging requirements, with the ability to handle over 100,000 log messages per second in optimized configurations.
 
 ---
 
