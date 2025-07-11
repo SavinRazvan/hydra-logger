@@ -16,7 +16,7 @@ from hydra_logger.async_hydra.async_context import (
     get_async_context, set_async_context, clear_async_context,
     get_trace_id, start_trace, set_correlation_id, get_correlation_id,
     detect_context_switch, get_context_switch_count,
-    async_context, trace_context
+    async_context, trace_context, reset_context_switcher
 )
 
 
@@ -369,6 +369,9 @@ class TestAsyncContextFunctions:
     
     def test_context_switch_functions(self):
         """Test context switch functions."""
+        # Reset context switcher to ensure clean state
+        reset_context_switcher()
+        
         # Test context switch detection
         context1 = AsyncContext(trace_id="trace-1")
         context2 = AsyncContext(trace_id="trace-2")
@@ -498,6 +501,9 @@ class TestAsyncContextIntegration:
     @pytest.mark.asyncio
     async def test_context_switching_detection(self):
         """Test context switching detection in async operations."""
+        # Reset context switcher to ensure clean state
+        reset_context_switcher()
+        
         switcher = AsyncContextSwitcher()
         
         async def operation_with_context(trace_id):

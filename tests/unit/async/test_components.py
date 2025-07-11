@@ -181,8 +181,14 @@ class TestAsyncHydraLogger:
         # Initialize the logger
         await self.logger.initialize()
         
+        # Wait a bit for handlers to start
+        await asyncio.sleep(0.1)
+        
         # Log message
         await self.logger.info("ASYNC_FILE", "Async file log message")
+        
+        # Wait for async processing
+        await asyncio.sleep(0.2)
         
         # Check that file was created
         assert os.path.exists(self.log_file)

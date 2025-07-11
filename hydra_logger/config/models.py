@@ -108,6 +108,9 @@ class LogDestination(BaseModel):
     retry_delay: Optional[float] = Field(default=1.0, description="Delay between retries in seconds")
     timeout: Optional[float] = Field(default=30.0, description="Timeout for async operations in seconds")
     max_connections: Optional[int] = Field(default=10, description="Maximum connections for async sinks")
+    
+    # Extra parameters for handler-specific configuration
+    extra: Optional[Dict[str, Any]] = Field(default=None, description="Extra parameters for handler configuration")
 
     @field_validator("path")
     @classmethod
