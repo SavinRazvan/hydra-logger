@@ -1,6 +1,6 @@
 # Security Guide
 
-This comprehensive guide outlines security considerations, best practices, and implementation strategies for securing Hydra-Logger in enterprise environments, including the new multi-format logging capabilities.
+This comprehensive guide outlines security considerations, best practices, and implementation strategies for securing Hydra-Logger in enterprise environments, including the multi-format logging capabilities.
 
 ## Table of Contents
 
@@ -198,10 +198,8 @@ class DataSanitizer:
         for key, value in data.items():
             if isinstance(value, dict):
                 sanitized[key] = self.sanitize_dict(value)
-            elif isinstance(value, list):
-                sanitized[key] = [self.sanitize_dict(item) if isinstance(item, dict) else item for item in value]
             elif isinstance(value, str):
-                # Check if key indicates sensitive data
+                # Check if field name indicates sensitive data
                 if any(sensitive in key.lower() for sensitive in self.SENSITIVE_FIELDS):
                     sanitized[key] = '[REDACTED]'
                 else:
@@ -213,110 +211,50 @@ class DataSanitizer:
 
 # Usage with Hydra-Logger
 sanitizer = DataSanitizer()
-logger = HydraLogger()
+logger = HydraLogger(enable_security=True, enable_sanitization=True)
 
-# Sanitize user data before logging
-user_data = {
-    "email": "user@example.com",
-    "password": "secret123",
-    "credit_card": "1234-5678-9012-3456",
-    "profile": {
-        "name": "John Doe",
-        "ssn": "123-45-6789"
-    }
-}
-
-safe_data = sanitizer.sanitize_dict(user_data)
-logger.info("USER", f"User registration: {safe_data}")
+# Sensitive data will be automatically masked
+logger.info("User login attempt", "AUTH", 
+           extra={"email": "user@example.com", "password": "secret123"})
+# Output: email=***@***.com password=***
 ```
 
-### Structured Data Protection
+### PII Detection and Redaction
 
 ```python
-from dataclasses import dataclass
-from typing import Optional
+from hydra_logger import HydraLogger
 
-@dataclass
-class SecureUserData:
-    """Secure user data structure."""
-    user_id: str
-    name: str
-    email: str
-    password: Optional[str] = None  # Never logged
+class PIIDetector:
+    """Detect and redact PII in log messages."""
     
-    def __str__(self) -> str:
-        """Safe string representation."""
-        return f"User(id={self.user_id}, name={self.name}, email=[REDACTED])"
+    PII_PATTERNS = {
+        'email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+        'phone': r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b',
+        'ssn': r'\b\d{3}-\d{2}-\d{4}\b',
+        'credit_card': r'\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b',
+        'ip_address': r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
+    }
     
-    def to_log_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary safe for logging."""
-        return {
-            "user_id": self.user_id,
-            "name": self.name,
-            "email": "[REDACTED]"
-        }
+    def redact_pii(self, text: str) -> str:
+        """Redact PII from text."""
+        redacted = text
+        
+        for pii_type, pattern in self.PII_PATTERNS.items():
+            redacted = re.sub(pattern, f'[{pii_type.upper()}_REDACTED]', redacted)
+        
+        return redacted
 
 # Usage
-user = SecureUserData("123", "John Doe", "john@example.com", "secret123")
-logger.info("AUTH", f"User login: {user.to_log_dict()}")
+pii_detector = PIIDetector()
+logger = HydraLogger(enable_security=True)
+
+# PII will be automatically redacted
+logger.info("User profile updated", "USER", 
+           extra={"email": "user@example.com", "phone": "555-123-4567"})
+# Output: email=[EMAIL_REDACTED] phone=[PHONE_REDACTED]
 ```
 
 ## Access Control
-
-### Log File Access Control
-
-```python
-import os
-import pwd
-import grp
-from pathlib import Path
-
-class SecureLogManager:
-    """Manage secure log file access."""
-    
-    def __init__(self, log_base: str = "/var/log/secure"):
-        self.log_base = Path(log_base)
-        self.app_user = "app"
-        self.log_group = "adm"
-    
-    def setup_secure_permissions(self):
-        """Setup secure permissions for log directory."""
-        # Create directory structure
-        self.log_base.mkdir(parents=True, exist_ok=True)
-        
-        # Set directory permissions
-        os.chmod(self.log_base, 0o750)  # rwxr-x---
-        
-        # Set ownership
-        uid = pwd.getpwnam(self.app_user).pw_uid
-        gid = grp.getgrnam(self.log_group).gr_gid
-        os.chown(self.log_base, uid, gid)
-        
-        # Create subdirectories
-        subdirs = ["app", "auth", "audit", "system"]
-        for subdir in subdirs:
-            subdir_path = self.log_base / subdir
-            subdir_path.mkdir(exist_ok=True)
-            os.chmod(subdir_path, 0o750)
-            os.chown(subdir_path, uid, gid)
-    
-    def create_secure_log_file(self, filename: str, permissions: int = 0o640):
-        """Create a log file with secure permissions."""
-        filepath = self.log_base / filename
-        filepath.touch()
-        os.chmod(filepath, permissions)
-        
-        uid = pwd.getpwnam(self.app_user).pw_uid
-        gid = grp.getgrnam(self.log_group).gr_gid
-        os.chown(filepath, uid, gid)
-        
-        return filepath
-
-# Usage
-log_manager = SecureLogManager()
-log_manager.setup_secure_permissions()
-secure_log_path = log_manager.create_secure_log_file("app.log")
-```
 
 ### Role-Based Access Control
 
@@ -324,502 +262,483 @@ secure_log_path = log_manager.create_secure_log_file("app.log")
 from enum import Enum
 from typing import Set
 
-class LogAccessLevel(Enum):
-    """Log access levels."""
-    READ = "read"
-    WRITE = "write"
-    ADMIN = "admin"
+class LogLevel(Enum):
+    DEBUG = 10
+    INFO = 20
+    WARNING = 30
+    ERROR = 40
+    CRITICAL = 50
 
-class LogAccessControl:
-    """Role-based access control for logs."""
+class Role(Enum):
+    DEVELOPER = "developer"
+    OPERATOR = "operator"
+    ADMIN = "admin"
+    AUDITOR = "auditor"
+
+class AccessControl:
+    """Role-based access control for logging."""
     
     def __init__(self):
-        self.access_rules = {
-            "admin": {LogAccessLevel.READ, LogAccessLevel.WRITE, LogAccessLevel.ADMIN},
-            "security_analyst": {LogAccessLevel.READ, LogAccessLevel.WRITE},
-            "developer": {LogAccessLevel.READ},
-            "monitoring": {LogAccessLevel.READ}
+        self.role_permissions = {
+            Role.DEVELOPER: {LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARNING},
+            Role.OPERATOR: {LogLevel.INFO, LogLevel.WARNING, LogLevel.ERROR},
+            Role.ADMIN: {LogLevel.INFO, LogLevel.WARNING, LogLevel.ERROR, LogLevel.CRITICAL},
+            Role.AUDITOR: {LogLevel.INFO, LogLevel.WARNING, LogLevel.ERROR, LogLevel.CRITICAL}
         }
     
-    def can_access(self, user_role: str, access_level: LogAccessLevel) -> bool:
-        """Check if user can access logs at specified level."""
-        if user_role not in self.access_rules:
-            return False
-        return access_level in self.access_rules[user_role]
+    def can_access(self, role: Role, level: LogLevel) -> bool:
+        """Check if role can access log level."""
+        return level in self.role_permissions.get(role, set())
     
-    def get_accessible_logs(self, user_role: str) -> List[str]:
-        """Get list of logs accessible to user role."""
-        if user_role == "admin":
-            return ["*"]  # All logs
-        elif user_role == "security_analyst":
-            return ["security.log", "auth.log", "audit.log"]
-        elif user_role == "developer":
-            return ["app.log", "debug.log"]
-        elif user_role == "monitoring":
-            return ["system.log", "performance.log"]
-        else:
-            return []
+    def get_accessible_levels(self, role: Role) -> Set[LogLevel]:
+        """Get accessible log levels for role."""
+        return self.role_permissions.get(role, set())
 
 # Usage
-access_control = LogAccessControl()
-if access_control.can_access("security_analyst", LogAccessLevel.READ):
-    # Allow access to security logs
-    pass
+access_control = AccessControl()
+logger = HydraLogger()
+
+# Check permissions before logging
+if access_control.can_access(Role.OPERATOR, LogLevel.ERROR):
+    logger.error("System error occurred", "SYSTEM")
+```
+
+### Network Security
+
+```python
+import socket
+import ssl
+from hydra_logger import HydraLogger
+
+class SecureNetworkLogger:
+    """Logger with network security features."""
+    
+    def __init__(self, config, host: str, port: int, use_ssl: bool = True):
+        self.logger = HydraLogger(config)
+        self.host = host
+        self.port = port
+        self.use_ssl = use_ssl
+        self.socket = None
+    
+    def connect(self):
+        """Establish secure connection."""
+        try:
+            if self.use_ssl:
+                context = ssl.create_default_context()
+                self.socket = context.wrap_socket(
+                    socket.socket(socket.AF_INET, socket.SOCK_STREAM),
+                    server_hostname=self.host
+                )
+            else:
+                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            
+            self.socket.connect((self.host, self.port))
+            self.logger.info("Secure connection established", "NETWORK")
+            
+        except Exception as e:
+            self.logger.error(f"Connection failed: {e}", "NETWORK")
+    
+    def send_log(self, message: str):
+        """Send log message securely."""
+        if self.socket:
+            try:
+                self.socket.send(message.encode())
+            except Exception as e:
+                self.logger.error(f"Failed to send log: {e}", "NETWORK")
 ```
 
 ## Format-Specific Security
 
 ### JSON Format Security
 
-**Considerations:**
-- JSON injection attacks
-- Large payload attacks
-- Sensitive data in structured format
-
 ```python
 import json
-from typing import Any
+from hydra_logger import HydraLogger
 
-class SecureJSONFormatter:
-    """Secure JSON formatter with data sanitization."""
+class SecureJSONLogger:
+    """Logger with JSON-specific security features."""
     
-    def __init__(self, max_size: int = 1024 * 1024):  # 1MB limit
-        self.max_size = max_size
-        self.sanitizer = DataSanitizer()
+    def __init__(self, config):
+        self.logger = HydraLogger(config)
+        self.sensitive_keys = {'password', 'token', 'secret', 'key'}
     
-    def format(self, record: Any) -> str:
-        """Format log record as secure JSON."""
-        # Sanitize data
-        safe_data = self.sanitizer.sanitize_dict(record.__dict__)
+    def sanitize_json(self, data: dict) -> dict:
+        """Sanitize JSON data before logging."""
+        sanitized = {}
         
-        # Convert to JSON
-        json_data = json.dumps(safe_data, default=str)
+        for key, value in data.items():
+            if key.lower() in self.sensitive_keys:
+                sanitized[key] = '[REDACTED]'
+            elif isinstance(value, dict):
+                sanitized[key] = self.sanitize_json(value)
+            else:
+                sanitized[key] = value
         
-        # Check size limit
-        if len(json_data) > self.max_size:
-            return json.dumps({
-                "error": "Log entry too large",
-                "original_size": len(json_data),
-                "max_size": self.max_size
-            })
+        return sanitized
+    
+    def log_secure_json(self, layer: str, level: str, message: str, data: dict = None):
+        """Log JSON data with security sanitization."""
+        if data:
+            sanitized_data = self.sanitize_json(data)
+            message = json.dumps(sanitized_data)
         
-        return json_data
+        self.logger.log(level, message, layer)
 
-# Configuration
-config = LoggingConfig(
-    layers={
-        "SECURE_API": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="/var/log/secure/api.json",
-                    format="json"
-                )
-            ]
-        )
-    }
+# Usage
+secure_json_logger = SecureJSONLogger(config)
+secure_json_logger.log_secure_json(
+    "API", "INFO", "User data", 
+    {"user_id": 123, "password": "secret123", "email": "user@example.com"}
 )
+# Output: {"user_id": 123, "password": "[REDACTED]", "email": "user@example.com"}
 ```
 
 ### CSV Format Security
 
-**Considerations:**
-- CSV injection attacks
-- Large file generation
-- Data leakage through formatting
-
 ```python
 import csv
-import io
+from hydra_logger import HydraLogger
 
-class SecureCSVFormatter:
-    """Secure CSV formatter."""
+class SecureCSVLogger:
+    """Logger with CSV-specific security features."""
     
-    def __init__(self):
-        self.sanitizer = DataSanitizer()
+    def __init__(self, config):
+        self.logger = HydraLogger(config)
+        self.sensitive_columns = {'password', 'token', 'secret'}
     
-    def escape_csv_value(self, value: str) -> str:
-        """Escape CSV value to prevent injection."""
-        if not isinstance(value, str):
-            value = str(value)
+    def sanitize_csv_row(self, row: dict) -> dict:
+        """Sanitize CSV row data."""
+        sanitized = {}
         
-        # Check for CSV injection patterns
-        if value.startswith(('=', '+', '-', '@', '\t', '\r', '\n')):
-            value = "'" + value
+        for column, value in row.items():
+            if column.lower() in self.sensitive_columns:
+                sanitized[column] = '[REDACTED]'
+            else:
+                sanitized[column] = value
         
-        # Escape quotes
-        value = value.replace('"', '""')
-        
-        return value
+        return sanitized
     
-    def format(self, record: Any) -> str:
-        """Format log record as secure CSV."""
-        # Sanitize data
-        safe_data = self.sanitizer.sanitize_dict(record.__dict__)
+    def log_secure_csv(self, layer: str, level: str, data: dict):
+        """Log CSV data with security sanitization."""
+        sanitized_data = self.sanitize_csv_row(data)
+        message = ','.join(f'{k}={v}' for k, v in sanitized_data.items())
         
-        # Create CSV row
-        output = io.StringIO()
-        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
-        
-        # Write headers and data
-        headers = list(safe_data.keys())
-        values = [self.escape_csv_value(safe_data[h]) for h in headers]
-        
-        writer.writerow(headers)
-        writer.writerow(values)
-        
-        return output.getvalue()
-```
+        self.logger.log(level, message, layer)
 
-### Syslog Format Security
-
-**Considerations:**
-- Syslog injection attacks
-- Priority level manipulation
-- Facility spoofing
-
-```python
-import re
-
-class SecureSyslogFormatter:
-    """Secure syslog formatter."""
-    
-    def __init__(self, facility: int = 1, hostname: str = "localhost"):
-        self.facility = facility
-        self.hostname = hostname
-        self.sanitizer = DataSanitizer()
-    
-    def sanitize_message(self, message: str) -> str:
-        """Sanitize syslog message."""
-        # Remove control characters
-        message = re.sub(r'[\x00-\x1F\x7F]', '', message)
-        
-        # Limit message length (RFC 3164 limit)
-        if len(message) > 1024:
-            message = message[:1021] + "..."
-        
-        return message
-    
-    def format(self, level: str, message: str) -> str:
-        """Format as secure syslog message."""
-        # Map levels to syslog priorities
-        priority_map = {
-            "DEBUG": 7,
-            "INFO": 6,
-            "WARNING": 4,
-            "ERROR": 3,
-            "CRITICAL": 2
-        }
-        
-        priority = priority_map.get(level, 6)
-        facility_priority = (self.facility << 3) | priority
-        
-        # Sanitize message
-        safe_message = self.sanitize_message(message)
-        safe_message = self.sanitizer.sanitize_text(safe_message)
-        
-        # Format according to RFC 3164
-        timestamp = time.strftime("%b %d %H:%M:%S")
-        return f"<{facility_priority}>{timestamp} {self.hostname} hydra-logger: {safe_message}"
+# Usage
+secure_csv_logger = SecureCSVLogger(config)
+secure_csv_logger.log_secure_csv(
+    "USER", "INFO", 
+    {"user_id": "123", "password": "secret123", "email": "user@example.com"}
+)
+# Output: user_id=123,password=[REDACTED],email=user@example.com
 ```
 
 ## Compliance and Auditing
 
-### Audit Trail Configuration
-
-```yaml
-# audit_config.yaml
-layers:
-  AUDIT:
-    level: INFO
-    destinations:
-      - type: file
-        path: /var/log/secure/audit.log
-        format: syslog
-        max_size: 2MB
-        backup_count: 10
-      - type: file
-        path: /var/log/secure/audit.json
-        format: json
-  
-  COMPLIANCE:
-    level: INFO
-    destinations:
-      - type: file
-        path: /var/log/secure/compliance.csv
-        format: csv
-      - type: file
-        path: /var/log/secure/compliance.json
-        format: json
-```
-
-### Compliance Logging
+### GDPR Compliance
 
 ```python
-from datetime import datetime
-from typing import Dict, Any
+from datetime import datetime, timedelta
+from hydra_logger import HydraLogger
 
-class ComplianceLogger:
-    """Compliance-focused logging."""
+class GDPRCompliantLogger:
+    """Logger with GDPR compliance features."""
     
-    def __init__(self, logger: HydraLogger):
-        self.logger = logger
+    def __init__(self, config):
+        self.logger = HydraLogger(config)
+        self.retention_period = timedelta(days=30)  # GDPR default
+        self.user_consent = {}
     
-    def log_data_access(self, user_id: str, resource: str, action: str, 
-                       success: bool, details: Dict[str, Any] = None):
-        """Log data access for compliance."""
-        audit_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "event_type": "data_access",
-            "user_id": user_id,
-            "resource": resource,
-            "action": action,
-            "success": success,
-            "details": details or {}
-        }
-        
-        self.logger.info("AUDIT", f"Data access: {audit_entry}")
-        self.logger.info("COMPLIANCE", f"Compliance event: {audit_entry}")
+    def log_with_consent(self, user_id: str, message: str, layer: str = "USER"):
+        """Log message only with user consent."""
+        if self.has_consent(user_id):
+            self.logger.info(message, layer, extra={"user_id": user_id})
+        else:
+            self.logger.warning("Logging attempted without consent", "GDPR", 
+                              extra={"user_id": user_id})
     
-    def log_configuration_change(self, user_id: str, change_type: str, 
-                               old_value: Any, new_value: Any):
-        """Log configuration changes."""
-        audit_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "event_type": "config_change",
-            "user_id": user_id,
-            "change_type": change_type,
-            "old_value": str(old_value),
-            "new_value": str(new_value)
-        }
-        
-        self.logger.warning("AUDIT", f"Configuration change: {audit_entry}")
+    def has_consent(self, user_id: str) -> bool:
+        """Check if user has given consent."""
+        return self.user_consent.get(user_id, False)
     
-    def log_security_event(self, event_type: str, severity: str, 
-                          details: Dict[str, Any]):
-        """Log security events."""
-        audit_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "event_type": "security_event",
-            "severity": severity,
-            "details": details
-        }
-        
-        self.logger.error("AUDIT", f"Security event: {audit_entry}")
-        self.logger.error("COMPLIANCE", f"Security compliance: {audit_entry}")
+    def set_consent(self, user_id: str, has_consent: bool):
+        """Set user consent status."""
+        self.user_consent[user_id] = has_consent
+    
+    def cleanup_expired_logs(self):
+        """Remove logs older than retention period."""
+        cutoff_date = datetime.now() - self.retention_period
+        # Implementation would depend on log storage mechanism
+        self.logger.info("Cleaned up expired logs", "GDPR", 
+                        extra={"cutoff_date": cutoff_date.isoformat()})
 
 # Usage
-compliance_logger = ComplianceLogger(logger)
-compliance_logger.log_data_access("user123", "user_profiles", "read", True)
-compliance_logger.log_configuration_change("admin", "log_level", "INFO", "DEBUG")
-compliance_logger.log_security_event("failed_login", "high", {"ip": "192.168.1.100"})
+gdpr_logger = GDPRCompliantLogger(config)
+gdpr_logger.set_consent("user123", True)
+gdpr_logger.log_with_consent("user123", "User action performed")
+```
+
+### SOX Compliance
+
+```python
+from hydra_logger import HydraLogger
+
+class SOXCompliantLogger:
+    """Logger with SOX compliance features."""
+    
+    def __init__(self, config):
+        self.logger = HydraLogger(config)
+        self.audit_trail = []
+    
+    def log_financial_transaction(self, transaction_id: str, amount: float, 
+                                account: str, user_id: str):
+        """Log financial transaction with SOX compliance."""
+        audit_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "transaction_id": transaction_id,
+            "amount": amount,
+            "account": account,
+            "user_id": user_id,
+            "action": "financial_transaction"
+        }
+        
+        self.audit_trail.append(audit_entry)
+        self.logger.info("Financial transaction logged", "SOX", extra=audit_entry)
+    
+    def get_audit_trail(self, start_date: datetime = None, end_date: datetime = None):
+        """Get audit trail for specified period."""
+        if not start_date:
+            start_date = datetime.now() - timedelta(days=30)
+        if not end_date:
+            end_date = datetime.now()
+        
+        filtered_trail = [
+            entry for entry in self.audit_trail
+            if start_date <= datetime.fromisoformat(entry["timestamp"]) <= end_date
+        ]
+        
+        return filtered_trail
+
+# Usage
+sox_logger = SOXCompliantLogger(config)
+sox_logger.log_financial_transaction("TXN001", 1000.00, "ACCT123", "user456")
 ```
 
 ## Security Configuration
 
-### High-Security Configuration
+### Secure Default Configuration
 
-```yaml
-# high_security_config.yaml
-default_level: WARNING
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-layers:
-  SECURITY:
-    level: ERROR
-    destinations:
-      - type: file
-        path: /var/log/secure/security.log
-        format: syslog
-        max_size: 1MB
-        backup_count: 5
-  
-  AUTH:
-    level: INFO
-    destinations:
-      - type: file
-        path: /var/log/secure/auth.log
-        format: syslog
-        max_size: 2MB
-        backup_count: 10
-  
-  AUDIT:
-    level: INFO
-    destinations:
-      - type: file
-        path: /var/log/secure/audit.log
-        format: syslog
-        max_size: 2MB
-        backup_count: 10
-      - type: file
-        path: /var/log/secure/audit.json
-        format: json
-  
-  APP:
-    level: WARNING
-    destinations:
-      - type: file
-        path: /var/log/secure/app.log
-        format: plain-text
-        max_size: 10MB
-        backup_count: 5
-      - type: console
-        level: ERROR
-        format: json
+def create_secure_config():
+    """Create secure default configuration."""
+    return LoggingConfig(
+        layers={
+            "SECURITY": LogLayer(
+                level="WARNING",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="/var/log/secure/security.log",
+                        format="syslog",
+                        max_size="10MB",
+                        backup_count=10
+                    )
+                ]
+            ),
+            "AUDIT": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="/var/log/secure/audit.log",
+                        format="json",
+                        max_size="50MB",
+                        backup_count=5
+                    )
+                ]
+            ),
+            "APPLICATION": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(
+                        type="file",
+                        path="/var/log/app/app.log",
+                        format="plain-text",
+                        max_size="100MB",
+                        backup_count=3
+                    ),
+                    LogDestination(
+                        type="console",
+                        format="plain-text",
+                        color_mode="auto"
+                    )
+                ]
+            )
+        }
+    )
+
+# Usage
+secure_config = create_secure_config()
+secure_logger = HydraLogger(secure_config)
 ```
 
-### Development vs Production Security
+### Environment-Specific Security
 
-**Development Configuration:**
-```yaml
-# dev_config.yaml
-layers:
-  DEBUG:
-    level: DEBUG
-    destinations:
-      - type: console
-        format: plain-text
-      - type: file
-        path: logs/debug.log
-        format: plain-text
-  
-  APP:
-    level: INFO
-    destinations:
-      - type: console
-        format: json
-      - type: file
-        path: logs/app.log
-        format: plain-text
-```
+```python
+import os
+from hydra_logger import HydraLogger
 
-**Production Configuration:**
-```yaml
-# prod_config.yaml
-layers:
-  DEBUG:
-    level: DEBUG
-    destinations:
-      - type: file
-        path: /var/log/secure/debug.log
-        format: plain-text
-        max_size: 5MB
-        backup_count: 3
-      # No console output in production
-  
-  APP:
-    level: INFO
-    destinations:
-      - type: file
-        path: /var/log/secure/app.log
-        format: plain-text
-        max_size: 10MB
-        backup_count: 5
-      - type: console
-        level: ERROR
-        format: json
+def get_secure_config_for_environment():
+    """Get secure configuration based on environment."""
+    env = os.getenv("ENVIRONMENT", "development")
+    
+    base_config = {
+        "layers": {
+            "SECURITY": {
+                "level": "WARNING",
+                "destinations": [
+                    {
+                        "type": "file",
+                        "path": "/var/log/secure/security.log",
+                        "format": "syslog"
+                    }
+                ]
+            }
+        }
+    }
+    
+    if env == "production":
+        # Add additional security layers for production
+        base_config["layers"]["AUDIT"] = {
+            "level": "INFO",
+            "destinations": [
+                {
+                    "type": "file",
+                    "path": "/var/log/secure/audit.log",
+                    "format": "json"
+                }
+            ]
+        }
+    
+    return base_config
+
+# Usage
+config = get_secure_config_for_environment()
+secure_logger = HydraLogger(config)
 ```
 
 ## Best Practices
 
-### General Security Practices
+### Security Logging Best Practices
 
-1. **Principle of Least Privilege**
-   - Use minimal required permissions for log files
-   - Separate log directories by sensitivity level
-   - Use dedicated service accounts for logging
+1. **Never log sensitive data directly**
+   ```python
+   # Bad
+   logger.info("User login", "AUTH", extra={"password": "secret123"})
+   
+   # Good
+   logger.info("User login", "AUTH", extra={"user_id": "123", "status": "success"})
+   ```
 
-2. **Defense in Depth**
-   - Implement multiple security controls
-   - Use file system permissions, ACLs, and encryption
-   - Monitor log access and changes
+2. **Use appropriate log levels**
+   ```python
+   # Security events should be WARNING or higher
+   logger.warning("Failed login attempt", "SECURITY", extra={"ip": "192.168.1.1"})
+   logger.error("Unauthorized access attempt", "SECURITY", extra={"user_id": "unknown"})
+   ```
 
-3. **Secure Configuration**
-   - Use secure defaults
-   - Validate all configuration inputs
-   - Implement configuration change logging
+3. **Implement log rotation**
+   ```python
+   # Configure log rotation to prevent disk space issues
+   LogDestination(
+       type="file",
+       path="/var/log/secure/security.log",
+       max_size="10MB",
+       backup_count=5
+   )
+   ```
 
-4. **Monitoring and Alerting**
-   - Monitor log file access patterns
-   - Alert on suspicious activities
-   - Implement log integrity monitoring
+4. **Use secure file permissions**
+   ```python
+   # Set restrictive permissions on log files
+   os.chmod("/var/log/secure/security.log", 0o600)
+   ```
 
-### Implementation Checklist
-
-- [ ] Set appropriate file permissions (600 for sensitive, 640 for general)
-- [ ] Use secure log directories with restricted access
-- [ ] Implement data sanitization for all log entries
-- [ ] Configure log rotation with secure retention policies
-- [ ] Disable console logging for sensitive data in production
-- [ ] Use structured logging for better data control
-- [ ] Implement access controls for log files
-- [ ] Monitor log file integrity
-- [ ] Configure audit logging for compliance
-- [ ] Test security configurations regularly
-
-## Incident Response
-
-### Log Analysis for Security Incidents
+### Incident Response
 
 ```python
-class SecurityIncidentAnalyzer:
-    """Analyze logs for security incidents."""
+from hydra_logger import HydraLogger
+import time
+
+class SecurityIncidentLogger:
+    """Logger for security incident response."""
     
-    def __init__(self, log_paths: List[str]):
-        self.log_paths = log_paths
+    def __init__(self, config):
+        self.logger = HydraLogger(config)
+        self.incident_counter = 0
     
-    def search_for_patterns(self, patterns: List[str]) -> List[Dict[str, Any]]:
-        """Search logs for security patterns."""
-        incidents = []
+    def log_security_incident(self, incident_type: str, severity: str, 
+                             details: dict, user_id: str = None):
+        """Log security incident with appropriate level."""
+        self.incident_counter += 1
         
-        for log_path in self.log_paths:
-            with open(log_path, 'r') as f:
-                for line_num, line in enumerate(f, 1):
-                    for pattern in patterns:
-                        if pattern in line:
-                            incidents.append({
-                                "log_file": log_path,
-                                "line_number": line_num,
-                                "pattern": pattern,
-                                "content": line.strip()
-                            })
+        incident_data = {
+            "incident_id": f"INC-{self.incident_counter:06d}",
+            "incident_type": incident_type,
+            "severity": severity,
+            "timestamp": time.time(),
+            "details": details
+        }
         
-        return incidents
+        if user_id:
+            incident_data["user_id"] = user_id
+        
+        # Map severity to log level
+        severity_map = {
+            "low": "WARNING",
+            "medium": "ERROR", 
+            "high": "CRITICAL"
+        }
+        
+        log_level = severity_map.get(severity, "ERROR")
+        self.logger.log(log_level, f"Security incident: {incident_type}", "SECURITY", 
+                       extra=incident_data)
     
-    def analyze_failed_logins(self, time_window: int = 3600) -> Dict[str, Any]:
-        """Analyze failed login attempts."""
-        # Implementation for analyzing failed login patterns
-        pass
-    
-    def detect_anomalies(self) -> List[Dict[str, Any]]:
-        """Detect anomalous log patterns."""
-        # Implementation for anomaly detection
-        pass
+    def log_incident_response(self, incident_id: str, action: str, 
+                            responder: str, details: dict):
+        """Log incident response actions."""
+        response_data = {
+            "incident_id": incident_id,
+            "action": action,
+            "responder": responder,
+            "timestamp": time.time(),
+            "details": details
+        }
+        
+        self.logger.info("Incident response action", "SECURITY", extra=response_data)
 
 # Usage
-analyzer = SecurityIncidentAnalyzer([
-    "/var/log/secure/auth.log",
-    "/var/log/secure/security.log"
-])
+incident_logger = SecurityIncidentLogger(config)
 
-# Search for suspicious patterns
-suspicious_patterns = [
-    "failed login",
-    "unauthorized access",
-    "sql injection",
-    "xss attempt"
-]
+# Log security incident
+incident_logger.log_security_incident(
+    "failed_login",
+    "medium",
+    {"ip": "192.168.1.1", "attempts": 5},
+    "user123"
+)
 
-incidents = analyzer.search_for_patterns(suspicious_patterns)
+# Log response action
+incident_logger.log_incident_response(
+    "INC-000001",
+    "account_locked",
+    "security_team",
+    {"duration": "24h", "reason": "multiple_failed_attempts"}
+)
 ```
 
-### Incident Response Procedures
-
-1. **Detection**: Monitor logs for security events
-2. **Analysis**: Analyze log data for incident details
-3. **Containment**: Implement immediate security measures
-4. **Eradication**: Remove security threats
-5. **Recovery**: Restore normal operations
-6. **Lessons Learned**: Update security procedures
-
-This comprehensive security guide ensures that Hydra-Logger can be deployed securely in enterprise environments while maintaining compliance with security standards and regulations. 
+This security guide provides comprehensive coverage of security considerations for Hydra-Logger, ensuring that your logging implementation meets enterprise security requirements while maintaining compliance with relevant regulations. 

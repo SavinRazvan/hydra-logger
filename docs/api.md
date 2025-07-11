@@ -57,83 +57,90 @@ logger = HydraLogger.from_config("hydra_logging.yaml")
 
 ### Instance Methods
 
-#### `log(layer: str, level: str, message: str) -> None`
+#### `log(level: str, message: str, layer: str = "DEFAULT", extra: Optional[Dict[str, Any]] = None) -> None`
 
 Log a message to a specific layer with the specified level.
 
 **Parameters:**
-- `layer` (str): The logging layer name
 - `level` (str): Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 - `message` (str): The log message
+- `layer` (str): The logging layer name (default: "DEFAULT")
+- `extra` (Optional[Dict[str, Any]]): Additional data to include in the log
 
 **Example:**
 ```python
-logger.log("API", "INFO", "Request processed successfully")
+logger.log("INFO", "Request processed successfully", "API")
+logger.log("ERROR", "Database connection failed", "DB", extra={"error_code": 500})
 ```
 
-#### `debug(layer: str, message: str) -> None`
+#### `debug(message: str, layer: str = "DEFAULT", **kwargs) -> None`
 
 Log a debug message to the specified layer.
 
 **Parameters:**
-- `layer` (str): The logging layer name
 - `message` (str): The debug message
+- `layer` (str): The logging layer name (default: "DEFAULT")
+- `**kwargs`: Additional data passed to the `extra` parameter
 
 **Example:**
 ```python
-logger.debug("AUTH", "User authentication attempt")
+logger.debug("User authentication attempt", "AUTH", extra={"user_id": 12345})
 ```
 
-#### `info(layer: str, message: str) -> None`
+#### `info(message: str, layer: str = "DEFAULT", **kwargs) -> None`
 
 Log an info message to the specified layer.
 
 **Parameters:**
-- `layer` (str): The logging layer name
 - `message` (str): The info message
+- `layer` (str): The logging layer name (default: "DEFAULT")
+- `**kwargs`: Additional data passed to the `extra` parameter
 
 **Example:**
 ```python
-logger.info("APP", "Application started successfully")
+logger.info("Application started successfully", "APP", extra={"version": "1.0.0"})
 ```
 
-#### `warning(layer: str, message: str) -> None`
+#### `warning(message: str, layer: str = "DEFAULT", **kwargs) -> None`
 
 Log a warning message to the specified layer.
 
 **Parameters:**
-- `layer` (str): The logging layer name
 - `message` (str): The warning message
+- `layer` (str): The logging layer name (default: "DEFAULT")
+- `**kwargs`: Additional data passed to the `extra` parameter
 
 **Example:**
 ```python
-logger.warning("PERF", "Response time exceeded threshold")
+logger.warning("Response time exceeded threshold", "PERF", extra={"response_time_ms": 1500})
 ```
 
-#### `error(layer: str, message: str) -> None`
+#### `error(message: str, layer: str = "DEFAULT", **kwargs) -> None`
 
 Log an error message to the specified layer.
 
 **Parameters:**
-- `layer` (str): The logging layer name
 - `message` (str): The error message
+- `layer` (str): The logging layer name (default: "DEFAULT")
+- `**kwargs`: Additional data passed to the `extra` parameter
 
 **Example:**
 ```python
-logger.error("DB", "Database connection failed")
+logger.error("Database connection failed", "DB", extra={"error_code": 500, "retry_count": 3})
 ```
 
-#### `critical(layer: str, message: str) -> None`
+#### `critical(message: str, layer: str = "DEFAULT", **kwargs) -> None`
 
 Log a critical message to the specified layer.
 
 **Parameters:**
-- `layer` (str): The logging layer name
 - `message` (str): The critical message
+- `layer` (str): The logging layer name (default: "DEFAULT")
+- `**kwargs`: Additional data passed to the `extra` parameter
 
 **Example:**
 ```python
-logger.critical("SYSTEM", "System shutdown required")
+logger.critical("System shutdown required", "SYSTEM", extra={"reason": "memory_exhaustion"})
 ```
 
 #### `get_logger(layer: str) -> logging.Logger`
@@ -151,6 +158,20 @@ Get the underlying Python logging.Logger for a specific layer.
 import logging
 logger_instance = logger.get_logger("API")
 logger_instance.setLevel(logging.DEBUG)
+```
+
+#### `get_performance_metrics() -> Dict[str, Any]`
+
+Get performance metrics for the logger.
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing performance metrics
+
+**Example:**
+```python
+metrics = logger.get_performance_metrics()
+print(f"Total logs: {metrics['total_logs']}")
+print(f"Average latency: {metrics['avg_latency_ms']}ms")
 ```
 
 ## Configuration Models
@@ -223,6 +244,7 @@ class LogDestination(BaseModel):
     max_size: Optional[str] = None
     backup_count: Optional[int] = None
     format: Optional[str] = None
+    color_mode: Optional[str] = None
 ```
 
 **Parameters:**
@@ -232,6 +254,7 @@ class LogDestination(BaseModel):
 - `max_size` (Optional[str]): Maximum file size (e.g., "10MB", "1GB")
 - `backup_count` (Optional[int]): Number of backup files to keep
 - `format` (Optional[str]): Log format ("plain-text", "json", "csv", "syslog", "gelf")
+- `color_mode` (Optional[str]): Color mode ("auto", "always", "never")
 
 **Example:**
 ```python
@@ -250,7 +273,8 @@ file_dest = LogDestination(
 console_dest = LogDestination(
     type="console",
     level="WARNING",
-    format="plain-text"
+    format="plain-text",
+    color_mode="always"
 )
 ```
 
@@ -264,7 +288,7 @@ Traditional plain text logging with timestamps and log levels.
 
 **Output Example:**
 ```
-INFO [API] Request processed successfully (logger.py:483)
+2024-01-15 10:30:45 - INFO - [API] Request processed successfully
 ```
 
 **Configuration:**
@@ -278,7 +302,14 @@ Structured JSON format for log aggregation and analysis. Each log entry is a val
 
 **Output Example:**
 ```json
-{"level": "INFO", "logger": "API", "message": "Request processed successfully", "filename": "logger.py", "lineno": 483}
+{
+  "timestamp": "2024-01-15T10:30:45.123Z",
+  "level": "INFO",
+  "logger": "API",
+  "message": "Request processed successfully",
+  "filename": "logger.py",
+  "lineno": 483
+}
 ```
 
 **Configuration:**
@@ -301,7 +332,7 @@ Comma-separated values for analytics and data processing.
 **Output Example:**
 ```csv
 timestamp,level,logger,message,filename,lineno
-INFO,API,Request processed successfully,logger.py,483
+2024-01-15T10:30:45.123Z,INFO,API,Request processed successfully,logger.py,483
 ```
 
 **Configuration:**
@@ -329,7 +360,13 @@ Graylog Extended Log Format for centralized logging systems.
 
 **Output Example:**
 ```json
-{"version": "1.1", "host": "hostname", "short_message": "Request processed successfully", "level": 6, "_logger": "API"}
+{
+  "version": "1.1",
+  "host": "hostname",
+  "short_message": "Request processed successfully",
+  "level": 6,
+  "_logger": "API"
+}
 ```
 
 **Configuration:**
@@ -414,7 +451,7 @@ logger = migrate_to_hydra(
 )
 
 # Use the new logger
-logger.info("DEFAULT", "Application started")
+logger.info("Application started", "DEFAULT")
 ```
 
 ## Examples
@@ -453,9 +490,9 @@ config = LoggingConfig(
 logger = HydraLogger(config)
 
 # Log to different layers
-logger.info("APP", "Application started")
-logger.debug("API", "API request received")
-logger.error("ERRORS", "Database connection failed")
+logger.info("Application started", "APP")
+logger.debug("API request received", "API")
+logger.error("Database connection failed", "ERRORS")
 ```
 
 ### Configuration File Example
@@ -495,9 +532,9 @@ from hydra_logger import HydraLogger
 
 logger = HydraLogger.from_config("hydra_logging.yaml")
 
-logger.info("APP", "Application loaded from configuration file")
-logger.debug("API", "API request processed")
-logger.info("ANALYTICS", "Performance metric recorded")
+logger.info("Application loaded from configuration file", "APP")
+logger.debug("API request processed", "API")
+logger.info("Performance metric recorded", "ANALYTICS")
 ```
 
 ### Advanced Format Configuration
@@ -543,18 +580,18 @@ config = LoggingConfig(
 logger = HydraLogger(config)
 
 # Single log message goes to all formats
-logger.info("STRUCTURED", "User action completed")
+logger.info("User action completed", "STRUCTURED")
 ```
 
 This will generate the same log message in four different formats, each optimized for its specific use case.
 
 ## Best Practices
 
-### 🎯 Configuration Best Practices
+### Configuration Best Practices
 
 #### Layer Organization
 ```python
-# ✅ Good: Meaningful layer names
+# Good: Meaningful layer names
 config = LoggingConfig(
     layers={
         "APP": LogLayer(...),      # Application logs
@@ -565,7 +602,7 @@ config = LoggingConfig(
     }
 )
 
-# ❌ Avoid: Generic names
+# Avoid: Generic names
 config = LoggingConfig(
     layers={
         "LOG1": LogLayer(...),
@@ -577,7 +614,7 @@ config = LoggingConfig(
 
 #### Format Selection
 ```python
-# ✅ Good: Choose formats based on use case
+# Good: Choose formats based on use case
 config = LoggingConfig(
     layers={
         "DEBUG": LogLayer(
@@ -601,7 +638,7 @@ config = LoggingConfig(
 
 #### File Management
 ```python
-# ✅ Good: Appropriate file sizes and backup counts
+# Good: Appropriate file sizes and backup counts
 config = LoggingConfig(
     layers={
         "HIGH_VOLUME": LogLayer(
@@ -628,7 +665,7 @@ config = LoggingConfig(
 )
 ```
 
-### 🔒 Security Best Practices
+### Security Best Practices
 
 #### Sensitive Data Handling
 ```python
@@ -657,7 +694,7 @@ class SecureLogger:
     def log(self, layer, level, message):
         """Log message with sensitive data filtering."""
         filtered_message = self._filter_sensitive_data(message)
-        self.logger.log(layer, level, filtered_message)
+        self.logger.log(level, filtered_message, layer)
 
 # Usage
 secure_logger = SecureLogger(config)
@@ -680,11 +717,11 @@ os.chmod(log_dir, 0o750)  # Owner read/write/execute, group read/execute
 logger = HydraLogger(config)
 ```
 
-### ⚡ Performance Best Practices
+### Performance Best Practices
 
 #### High-Throughput Logging
 ```python
-# ✅ Good: Use CSV format for high-volume data
+# Good: Use CSV format for high-volume data
 config = LoggingConfig(
     layers={
         "EVENTS": LogLayer(
@@ -705,7 +742,7 @@ config = LoggingConfig(
 
 #### Memory-Efficient Configuration
 ```python
-# ✅ Good: Use smaller files for memory-constrained environments
+# Good: Use smaller files for memory-constrained environments
 config = LoggingConfig(
     layers={
         "APP": LogLayer(
@@ -738,18 +775,18 @@ class ThreadSafeLogger:
     def log(self, layer, level, message):
         """Thread-safe logging."""
         with self._lock:
-            self.logger.log(layer, level, message)
+            self.logger.log(level, message, layer)
     
     def info(self, layer, message):
         """Thread-safe info logging."""
         with self._lock:
-            self.logger.info(layer, message)
+            self.logger.info(message, layer)
 
 # Usage in multi-threaded applications
 thread_safe_logger = ThreadSafeLogger(config)
 ```
 
-### 🏗️ Architecture Best Practices
+### Architecture Best Practices
 
 #### Environment-Specific Configuration
 ```python
@@ -836,7 +873,7 @@ config = LoggingConfig(
 logger = HydraLogger(config)
 ```
 
-### 🔍 Monitoring and Debugging Best Practices
+### Monitoring and Debugging Best Practices
 
 #### Configuration Validation
 ```python
@@ -846,10 +883,10 @@ def validate_config(config_dict):
     """Validate configuration before creating logger."""
     try:
         config = LoggingConfig(**config_dict)
-        print("✅ Configuration is valid")
+        print("Configuration is valid")
         return config
     except Exception as e:
-        print(f"❌ Configuration error: {e}")
+        print(f"Configuration error: {e}")
         return None
 
 # Test your configuration
@@ -877,7 +914,7 @@ if valid_config:
 ```python
 def debug_config(config):
     """Debug configuration by printing details."""
-    print("🔍 Configuration Debug:")
+    print("Configuration Debug:")
     print(f"  Default Level: {config.default_level}")
     print(f"  Layers: {len(config.layers)}")
     
@@ -900,7 +937,7 @@ debug_config(config)
 logger = HydraLogger(config)
 ```
 
-### 🚀 Production Deployment Best Practices
+### Production Deployment Best Practices
 
 #### Error Handling
 ```python
@@ -916,7 +953,7 @@ def create_logger_safely(config_path=None):
             logger = HydraLogger()  # Use defaults
         
         # Test the logger
-        logger.info("APP", "Logger initialized successfully")
+        logger.info("Logger initialized successfully", "APP")
         return logger
         
     except FileNotFoundError:
@@ -942,13 +979,13 @@ def check_logger_health(logger):
     try:
         # Test logging to each layer
         for layer_name in logger.config.layers.keys():
-            logger.info(layer_name, f"Health check for {layer_name}")
+            logger.info(f"Health check for {layer_name}", layer_name)
         
-        print("✅ Logger health check passed")
+        print("Logger health check passed")
         return True
         
     except Exception as e:
-        print(f"❌ Logger health check failed: {e}")
+        print(f"Logger health check failed: {e}")
         return False
 
 # Usage
@@ -957,7 +994,7 @@ if check_logger_health(logger):
     print("Logger is ready for production use")
 ```
 
-### 📊 Log Analysis Best Practices
+### Log Analysis Best Practices
 
 #### Structured Logging
 ```python
@@ -977,7 +1014,7 @@ class StructuredLogger:
             "data": kwargs
         }
         message = json.dumps(structured_message)
-        self.logger.log(layer, level, message)
+        self.logger.log(level, message, layer)
     
     def log_metric(self, layer, metric_name, value, unit=None):
         """Log performance metrics."""
@@ -987,7 +1024,7 @@ class StructuredLogger:
             "unit": unit
         }
         message = json.dumps(metric_data)
-        self.logger.info(layer, message)
+        self.logger.info(message, layer)
 
 # Usage
 structured_logger = StructuredLogger(config)
@@ -1025,7 +1062,7 @@ config = {
     }
 }
 logger = HydraLogger(config=config)
-logger.info("APP", "Colored console, plain file")
+logger.info("Colored console, plain file", "APP")
 ```
 
 ## Available Formats
@@ -1038,6 +1075,4 @@ logger.info("APP", "Colored console, plain file")
 ## Color Mode Options
 - `auto` - Automatic detection (default)
 - `always` - Force colors on
-- `never` - Force colors off
-
-# (Other sections remain unchanged, but all format/color examples and references are now up to date) 
+- `never` - Force colors off 

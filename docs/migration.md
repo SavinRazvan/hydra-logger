@@ -64,9 +64,9 @@ from hydra_logger import HydraLogger
 logger = HydraLogger()
 
 # Use the new API
-logger.info("DEFAULT", "Application started")
-logger.error("DEFAULT", "An error occurred")
-logger.debug("DEFAULT", "Debug information")
+logger.info("Application started", "DEFAULT")
+logger.error("An error occurred", "DEFAULT")
+logger.debug("Debug information", "DEFAULT")
 ```
 
 ### Advanced Migration with Multiple Formats
@@ -111,9 +111,9 @@ config = LoggingConfig(
 logger = HydraLogger(config)
 
 # Use different layers
-logger.info("DEFAULT", "Application started")
-logger.error("DEFAULT", "An error occurred")
-logger.debug("DEBUG", "Debug information")
+logger.info("Application started", "DEFAULT")
+logger.error("An error occurred", "DEFAULT")
+logger.debug("Debug information", "DEBUG")
 ```
 
 ## Migrating from Custom Logging Functions
@@ -170,7 +170,7 @@ logger = migrate_to_hydra(
 )
 
 # Use the new API
-logger.info("DEFAULT", "Application started")
+logger.info("Application started", "DEFAULT")
 ```
 
 #### Option 2: Create Equivalent Configuration
@@ -204,51 +204,7 @@ config = LoggingConfig(
 )
 
 logger = HydraLogger(config)
-logger.info("DEFAULT", "Application started")
-```
-
-#### Option 3: Enhanced Configuration with Multiple Formats
-
-```python
-from hydra_logger import HydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-
-# Enhanced configuration with multiple formats
-config = LoggingConfig(
-    default_level="INFO",
-    layers={
-        "APP": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/app.log",
-                    format="plain-text",
-                    max_size="10MB",
-                    backup_count=5
-                ),
-                LogDestination(
-                    type="file",
-                    path="logs/app.json",
-                    format="json"
-                )
-            ]
-        ),
-        "CONSOLE": LogLayer(
-            level="WARNING",
-            destinations=[
-                LogDestination(
-                    type="console",
-                    format="json"
-                )
-            ]
-        )
-    }
-)
-
-logger = HydraLogger(config)
-logger.info("APP", "Application started")
-logger.warning("CONSOLE", "Warning message")
+logger.info("Application started", "DEFAULT")
 ```
 
 ## Migrating from Multiple Loggers
@@ -258,51 +214,34 @@ logger.warning("CONSOLE", "Warning message")
 ```python
 import logging
 
-# Setup different loggers
-def setup_loggers():
-    # Main application logger
-    app_logger = logging.getLogger('app')
-    app_handler = logging.FileHandler('logs/app.log')
-    app_logger.addHandler(app_handler)
-    app_logger.setLevel(logging.INFO)
-    
-    # Error logger
-    error_logger = logging.getLogger('errors')
-    error_handler = logging.FileHandler('logs/errors.log')
-    error_logger.addHandler(error_handler)
-    error_logger.setLevel(logging.ERROR)
-    
-    # Debug logger
-    debug_logger = logging.getLogger('debug')
-    debug_handler = logging.FileHandler('logs/debug.log')
-    debug_logger.addHandler(debug_handler)
-    debug_logger.setLevel(logging.DEBUG)
-    
-    # API logger
-    api_logger = logging.getLogger('api')
-    api_handler = logging.FileHandler('logs/api.log')
-    api_logger.addHandler(api_handler)
-    api_logger.setLevel(logging.INFO)
-    
-    return app_logger, error_logger, debug_logger, api_logger
+# Multiple loggers for different components
+app_logger = logging.getLogger("app")
+api_logger = logging.getLogger("api")
+db_logger = logging.getLogger("database")
+
+# Configure each logger separately
+app_handler = logging.FileHandler("logs/app.log")
+api_handler = logging.FileHandler("logs/api.log")
+db_handler = logging.FileHandler("logs/database.log")
+
+app_logger.addHandler(app_handler)
+api_logger.addHandler(api_handler)
+db_logger.addHandler(db_handler)
 
 # Usage
-app_logger, error_logger, debug_logger, api_logger = setup_loggers()
 app_logger.info("Application started")
-error_logger.error("An error occurred")
-debug_logger.debug("Debug information")
-api_logger.info("API request processed")
+api_logger.info("API request received")
+db_logger.info("Database query executed")
 ```
 
-### Migrated Code with Multiple Formats
+### Migration to Hydra-Logger
 
 ```python
 from hydra_logger import HydraLogger
 from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-# Create configuration with multiple layers and formats
+# Create configuration with multiple layers
 config = LoggingConfig(
-    default_level="INFO",
     layers={
         "APP": LogLayer(
             level="INFO",
@@ -310,36 +249,6 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="logs/app.log",
-                    format="plain-text"
-                ),
-                LogDestination(
-                    type="file",
-                    path="logs/app.json",
-                    format="json"
-                )
-            ]
-        ),
-        "ERROR": LogLayer(
-            level="ERROR",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/errors.log",
-                    format="plain-text"
-                ),
-                LogDestination(
-                    type="file",
-                    path="logs/errors.json",
-                    format="json"
-                )
-            ]
-        ),
-        "DEBUG": LogLayer(
-            level="DEBUG",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/debug.log",
                     format="plain-text"
                 )
             ]
@@ -349,12 +258,17 @@ config = LoggingConfig(
             destinations=[
                 LogDestination(
                     type="file",
-                    path="logs/api/requests.json",
+                    path="logs/api.log",
                     format="json"
-                ),
+                )
+            ]
+        ),
+        "DATABASE": LogLayer(
+            level="INFO",
+            destinations=[
                 LogDestination(
                     type="file",
-                    path="logs/api/errors.log",
+                    path="logs/database.log",
                     format="plain-text"
                 )
             ]
@@ -362,76 +276,86 @@ config = LoggingConfig(
     }
 )
 
-# Create single logger instance
 logger = HydraLogger(config)
 
-# Use different layers (equivalent to different loggers)
-logger.info("APP", "Application started")
-logger.error("ERROR", "An error occurred")
-logger.debug("DEBUG", "Debug information")
-logger.info("API", "API request processed")
+# Use different layers for different components
+logger.info("Application started", "APP")
+logger.info("API request received", "API")
+logger.info("Database query executed", "DATABASE")
 ```
 
 ## Migrating from Configuration Files
 
-### Current Python Logging Configuration
+### Current Logging Configuration
 
 ```python
-# logging_config.py
-LOGGING_CONFIG = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-        },
-        'json': {
-            'format': '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}'
-        }
-    },
-    'handlers': {
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/app.log',
-            'maxBytes': 10485760,  # 10MB
-            'backupCount': 5,
-            'formatter': 'standard'
-        },
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'standard'
-        },
-        'json_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/app.json',
-            'maxBytes': 10485760,
-            'backupCount': 5,
-            'formatter': 'json'
-        }
-    },
-    'loggers': {
-        'app': {
-            'handlers': ['file', 'console'],
-            'level': 'INFO'
-        },
-        'api': {
-            'handlers': ['json_file'],
-            'level': 'INFO'
-        },
-        'errors': {
-            'handlers': ['file'],
-            'level': 'ERROR'
-        }
-    }
-}
+# logging.conf
+[loggers]
+keys=root,app,api,database
+
+[handlers]
+keys=consoleHandler,fileHandler,apiHandler,dbHandler
+
+[formatters]
+keys=normalFormatter,jsonFormatter
+
+[logger_root]
+level=INFO
+handlers=consoleHandler
+
+[logger_app]
+level=INFO
+handlers=fileHandler
+qualname=app
+propagate=0
+
+[logger_api]
+level=INFO
+handlers=apiHandler
+qualname=api
+propagate=0
+
+[logger_database]
+level=INFO
+handlers=dbHandler
+qualname=database
+propagate=0
+
+[handler_consoleHandler]
+class=StreamHandler
+level=INFO
+formatter=normalFormatter
+args=(sys.stdout,)
+
+[handler_fileHandler]
+class=FileHandler
+level=INFO
+formatter=normalFormatter
+args=('logs/app.log', 'a')
+
+[handler_apiHandler]
+class=FileHandler
+level=INFO
+formatter=jsonFormatter
+args=('logs/api.log', 'a')
+
+[handler_dbHandler]
+class=FileHandler
+level=INFO
+formatter=normalFormatter
+args=('logs/database.log', 'a')
+
+[formatter_normalFormatter]
+format=%(asctime)s - %(name)s - %(levelname)s - %(message)s
+
+[formatter_jsonFormatter]
+format={"timestamp": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}
 ```
 
-### Migrated Hydra-Logger Configuration
+### Migration to Hydra-Logger Configuration
 
 ```yaml
 # hydra_logging.yaml
-default_level: INFO
-
 layers:
   APP:
     level: INFO
@@ -439,8 +363,6 @@ layers:
       - type: file
         path: logs/app.log
         format: plain-text
-        max_size: 10MB
-        backup_count: 5
       - type: console
         format: plain-text
   
@@ -448,19 +370,15 @@ layers:
     level: INFO
     destinations:
       - type: file
-        path: logs/app.json
+        path: logs/api.log
         format: json
-        max_size: 10MB
-        backup_count: 5
   
-  ERROR:
-    level: ERROR
+  DATABASE:
+    level: INFO
     destinations:
       - type: file
-        path: logs/app.log
+        path: logs/database.log
         format: plain-text
-        max_size: 10MB
-        backup_count: 5
 ```
 
 ### Usage
@@ -468,16 +386,81 @@ layers:
 ```python
 from hydra_logger import HydraLogger
 
-# Load from configuration file
+# Load configuration from file
 logger = HydraLogger.from_config("hydra_logging.yaml")
 
-# Use the logger
-logger.info("APP", "Application started")
-logger.info("API", "API request processed")
-logger.error("ERROR", "An error occurred")
+# Use the new API
+logger.info("Application started", "APP")
+logger.info("API request received", "API")
+logger.info("Database query executed", "DATABASE")
 ```
 
 ## Migrating from Other Logging Libraries
+
+### Migrating from Loguru
+
+#### Current Loguru Code
+
+```python
+from loguru import logger
+
+# Configure loguru
+logger.add("logs/app.log", rotation="10 MB", retention="1 week")
+logger.add("logs/error.log", level="ERROR", rotation="5 MB")
+
+# Usage
+logger.info("Application started")
+logger.error("An error occurred")
+logger.debug("Debug information")
+```
+
+#### Migration to Hydra-Logger
+
+```python
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+# Create equivalent configuration
+config = LoggingConfig(
+    layers={
+        "DEFAULT": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/app.log",
+                    format="plain-text",
+                    max_size="10MB",
+                    backup_count=7  # 1 week retention
+                ),
+                LogDestination(
+                    type="console",
+                    format="plain-text"
+                )
+            ]
+        ),
+        "ERROR": LogLayer(
+            level="ERROR",
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/error.log",
+                    format="plain-text",
+                    max_size="5MB",
+                    backup_count=7
+                )
+            ]
+        )
+    }
+)
+
+logger = HydraLogger(config)
+
+# Use the new API
+logger.info("Application started", "DEFAULT")
+logger.error("An error occurred", "ERROR")
+logger.debug("Debug information", "DEFAULT")
+```
 
 ### Migrating from Structlog
 
@@ -505,23 +488,23 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 
-# Use structlog
 logger = structlog.get_logger()
+
+# Usage
 logger.info("Application started", user_id=123, action="login")
-logger.error("Database error", error="Connection failed", retry_count=3)
+logger.error("An error occurred", error_code=500, user_id=123)
 ```
 
-#### Migrated Hydra-Logger Code
+#### Migration to Hydra-Logger
 
 ```python
 from hydra_logger import HydraLogger
 from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-# Configure Hydra-Logger with JSON format
+# Create configuration with JSON format
 config = LoggingConfig(
-    default_level="INFO",
     layers={
-        "APP": LogLayer(
+        "DEFAULT": LogLayer(
             level="INFO",
             destinations=[
                 LogDestination(
@@ -540,76 +523,333 @@ config = LoggingConfig(
 
 logger = HydraLogger(config)
 
-# Use Hydra-Logger with structured data
-logger.info("APP", "Application started", extra={"user_id": 123, "action": "login"})
-logger.error("APP", "Database error", extra={"error": "Connection failed", "retry_count": 3})
+# Use the new API with structured data
+logger.info("Application started", "DEFAULT", extra={"user_id": 123, "action": "login"})
+logger.error("An error occurred", "DEFAULT", extra={"error_code": 500, "user_id": 123})
 ```
 
-### Migrating from Loguru
+## Advanced Migration Strategies
 
-#### Current Loguru Code
+### Gradual Migration Strategy
 
 ```python
-from loguru import logger
-import sys
+from hydra_logger import HydraLogger
+import logging
 
-# Configure loguru
-logger.remove()
-logger.add(
-    sys.stdout,
-    format="{time} | {level} | {name}:{function}:{line} | {message}",
-    level="INFO"
-)
-logger.add(
-    "logs/app.log",
-    rotation="10 MB",
-    retention="5 days",
-    format="{time} | {level} | {name}:{function}:{line} | {message}",
-    level="DEBUG"
-)
+class HybridLogger:
+    """Hybrid logger for gradual migration."""
+    
+    def __init__(self, hydra_config=None):
+        self.hydra_logger = HydraLogger(hydra_config) if hydra_config else None
+        self.legacy_logger = logging.getLogger(__name__)
+    
+    def info(self, message, layer="DEFAULT", **kwargs):
+        """Log info message to both systems."""
+        if self.hydra_logger:
+            self.hydra_logger.info(message, layer, **kwargs)
+        else:
+            self.legacy_logger.info(message)
+    
+    def error(self, message, layer="DEFAULT", **kwargs):
+        """Log error message to both systems."""
+        if self.hydra_logger:
+            self.hydra_logger.error(message, layer, **kwargs)
+        else:
+            self.legacy_logger.error(message)
+    
+    def migrate_to_hydra(self, config):
+        """Complete migration to Hydra-Logger."""
+        self.hydra_logger = HydraLogger(config)
+        return self.hydra_logger
 
-# Use loguru
-logger.info("Application started")
-logger.debug("Debug information")
-logger.error("An error occurred")
+# Usage for gradual migration
+hybrid_logger = HybridLogger()
+
+# Use legacy logging initially
+hybrid_logger.info("Application started")
+
+# Later, migrate to Hydra-Logger
+config = LoggingConfig(layers={...})
+hydra_logger = hybrid_logger.migrate_to_hydra(config)
 ```
 
-#### Migrated Hydra-Logger Code
+### Configuration Migration Tool
+
+```python
+import yaml
+import json
+from pathlib import Path
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+class ConfigMigrator:
+    """Migrate logging configurations to Hydra-Logger format."""
+    
+    def migrate_logging_conf(self, conf_path: str) -> LoggingConfig:
+        """Migrate Python logging.conf to Hydra-Logger config."""
+        # Parse logging.conf and convert to Hydra-Logger format
+        # Implementation would parse the INI-style config
+        pass
+    
+    def migrate_loguru_config(self, config_dict: dict) -> LoggingConfig:
+        """Migrate Loguru configuration to Hydra-Logger config."""
+        layers = {}
+        
+        # Convert Loguru sinks to Hydra-Logger destinations
+        for sink_name, sink_config in config_dict.get("sinks", {}).items():
+            layer_name = sink_name.upper()
+            
+            destinations = []
+            if "file" in sink_config:
+                destinations.append(LogDestination(
+                    type="file",
+                    path=sink_config["file"],
+                    format="json" if sink_config.get("serialize") else "plain-text"
+                ))
+            
+            if "console" in sink_config:
+                destinations.append(LogDestination(
+                    type="console",
+                    format="json" if sink_config.get("serialize") else "plain-text"
+                ))
+            
+            layers[layer_name] = LogLayer(
+                level=sink_config.get("level", "INFO"),
+                destinations=destinations
+            )
+        
+        return LoggingConfig(layers=layers)
+    
+    def migrate_structlog_config(self, config_dict: dict) -> LoggingConfig:
+        """Migrate Structlog configuration to Hydra-Logger config."""
+        # Convert Structlog processors to Hydra-Logger format
+        # Implementation would map processors to Hydra-Logger features
+        pass
+
+# Usage
+migrator = ConfigMigrator()
+
+# Migrate Loguru config
+loguru_config = {
+    "sinks": {
+        "app": {"file": "logs/app.log", "serialize": True},
+        "console": {"console": True, "serialize": False}
+    }
+}
+
+hydra_config = migrator.migrate_loguru_config(loguru_config)
+logger = HydraLogger(hydra_config)
+```
+
+## Testing Migration
+
+### Migration Testing Strategy
+
+```python
+import pytest
+from hydra_logger import HydraLogger
+from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
+
+class MigrationTester:
+    """Test migration from legacy logging to Hydra-Logger."""
+    
+    def __init__(self, legacy_logger, hydra_logger):
+        self.legacy_logger = legacy_logger
+        self.hydra_logger = hydra_logger
+        self.test_results = []
+    
+    def test_basic_logging(self):
+        """Test basic logging functionality."""
+        test_message = "Test message"
+        
+        # Test legacy logger
+        self.legacy_logger.info(test_message)
+        
+        # Test Hydra-Logger
+        self.hydra_logger.info(test_message, "DEFAULT")
+        
+        # Compare outputs (implementation would check log files)
+        return True
+    
+    def test_log_levels(self):
+        """Test all log levels."""
+        levels = ["debug", "info", "warning", "error", "critical"]
+        
+        for level in levels:
+            test_message = f"Test {level} message"
+            
+            # Test legacy logger
+            getattr(self.legacy_logger, level)(test_message)
+            
+            # Test Hydra-Logger
+            getattr(self.hydra_logger, level)(test_message, "DEFAULT")
+        
+        return True
+    
+    def test_structured_logging(self):
+        """Test structured logging capabilities."""
+        structured_data = {"user_id": 123, "action": "test"}
+        
+        # Test Hydra-Logger structured logging
+        self.hydra_logger.info("Structured test", "DEFAULT", extra=structured_data)
+        
+        return True
+    
+    def run_all_tests(self):
+        """Run all migration tests."""
+        tests = [
+            self.test_basic_logging,
+            self.test_log_levels,
+            self.test_structured_logging
+        ]
+        
+        for test in tests:
+            try:
+                result = test()
+                self.test_results.append({"test": test.__name__, "passed": result})
+            except Exception as e:
+                self.test_results.append({"test": test.__name__, "passed": False, "error": str(e)})
+        
+        return self.test_results
+
+# Usage
+import logging
+legacy_logger = logging.getLogger("test")
+hydra_logger = HydraLogger()
+
+tester = MigrationTester(legacy_logger, hydra_logger)
+results = tester.run_all_tests()
+
+for result in results:
+    status = "PASS" if result["passed"] else "FAIL"
+    print(f"{result['test']}: {status}")
+```
+
+### Performance Testing
+
+```python
+import time
+import statistics
+from hydra_logger import HydraLogger
+
+class PerformanceTester:
+    """Test performance of Hydra-Logger vs legacy logging."""
+    
+    def __init__(self, legacy_logger, hydra_logger):
+        self.legacy_logger = legacy_logger
+        self.hydra_logger = hydra_logger
+    
+    def benchmark_logging(self, iterations: int = 10000) -> dict:
+        """Benchmark logging performance."""
+        results = {
+            "legacy": [],
+            "hydra": []
+        }
+        
+        # Test legacy logger
+        start_time = time.time()
+        for i in range(iterations):
+            self.legacy_logger.info(f"Test message {i}")
+        legacy_time = time.time() - start_time
+        results["legacy"] = iterations / legacy_time
+        
+        # Test Hydra-Logger
+        start_time = time.time()
+        for i in range(iterations):
+            self.hydra_logger.info(f"Test message {i}", "DEFAULT")
+        hydra_time = time.time() - start_time
+        results["hydra"] = iterations / hydra_time
+        
+        return results
+    
+    def test_memory_usage(self, iterations: int = 10000) -> dict:
+        """Test memory usage during logging."""
+        import psutil
+        import os
+        
+        process = psutil.Process(os.getpid())
+        
+        # Test legacy logger memory usage
+        initial_memory = process.memory_info().rss
+        for i in range(iterations):
+            self.legacy_logger.info(f"Memory test {i}")
+        legacy_memory = process.memory_info().rss - initial_memory
+        
+        # Test Hydra-Logger memory usage
+        initial_memory = process.memory_info().rss
+        for i in range(iterations):
+            self.hydra_logger.info(f"Memory test {i}", "DEFAULT")
+        hydra_memory = process.memory_info().rss - initial_memory
+        
+        return {
+            "legacy_memory_mb": legacy_memory / 1024 / 1024,
+            "hydra_memory_mb": hydra_memory / 1024 / 1024
+        }
+
+# Usage
+import logging
+legacy_logger = logging.getLogger("perf_test")
+hydra_logger = HydraLogger()
+
+tester = PerformanceTester(legacy_logger, hydra_logger)
+
+# Benchmark performance
+perf_results = tester.benchmark_logging(10000)
+print(f"Legacy logger: {perf_results['legacy']:.0f} logs/sec")
+print(f"Hydra-Logger: {perf_results['hydra']:.0f} logs/sec")
+
+# Test memory usage
+memory_results = tester.test_memory_usage(10000)
+print(f"Legacy memory: {memory_results['legacy_memory_mb']:.2f} MB")
+print(f"Hydra memory: {memory_results['hydra_memory_mb']:.2f} MB")
+```
+
+## Troubleshooting
+
+### Common Migration Issues
+
+#### Issue 1: Missing Log Files
+
+**Problem**: Log files are not being created after migration.
+
+**Solution**: Check file permissions and directory structure.
+
+```python
+import os
+from pathlib import Path
+
+# Ensure log directory exists with proper permissions
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+os.chmod(log_dir, 0o755)
+
+# Test file creation
+logger = HydraLogger()
+logger.info("Test message", "DEFAULT")
+```
+
+#### Issue 2: Incorrect Log Levels
+
+**Problem**: Log levels are not working as expected.
+
+**Solution**: Verify configuration and layer setup.
 
 ```python
 from hydra_logger import HydraLogger
 from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-# Configure Hydra-Logger with similar settings
+# Create configuration with explicit levels
 config = LoggingConfig(
-    default_level="INFO",
     layers={
-        "DEFAULT": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="console",
-                    format="plain-text"
-                ),
-                LogDestination(
-                    type="file",
-                    path="logs/app.log",
-                    format="plain-text",
-                    max_size="10MB",
-                    backup_count=5
-                )
-            ]
-        ),
         "DEBUG": LogLayer(
             level="DEBUG",
             destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/app.log",
-                    format="plain-text",
-                    max_size="10MB",
-                    backup_count=5
-                )
+                LogDestination(type="console", format="plain-text")
+            ]
+        ),
+        "INFO": LogLayer(
+            level="INFO",
+            destinations=[
+                LogDestination(type="console", format="plain-text")
             ]
         )
     }
@@ -617,247 +857,47 @@ config = LoggingConfig(
 
 logger = HydraLogger(config)
 
-# Use Hydra-Logger
-logger.info("DEFAULT", "Application started")
-logger.debug("DEBUG", "Debug information")
-logger.error("DEFAULT", "An error occurred")
+# Test different levels
+logger.debug("Debug message", "DEBUG")  # Should appear
+logger.info("Info message", "INFO")     # Should appear
+logger.warning("Warning message", "INFO")  # Should appear
 ```
 
-## Advanced Migration Strategies
+#### Issue 3: Format Issues
 
-### Gradual Migration
+**Problem**: Log format is not as expected.
 
-For large applications, you can migrate gradually:
-
-```python
-from hydra_logger import HydraLogger
-import logging
-
-# Keep existing logging for some components
-logging.basicConfig(level=logging.INFO)
-legacy_logger = logging.getLogger(__name__)
-
-# Use Hydra-Logger for new components
-config = LoggingConfig(
-    layers={
-        "NEW_FEATURE": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/new_feature.json",
-                    format="json"
-                )
-            ]
-        )
-    }
-)
-new_logger = HydraLogger(config)
-
-# Use both during transition
-legacy_logger.info("Legacy component message")
-new_logger.info("NEW_FEATURE", "New feature message")
-```
-
-### Configuration Migration Script
+**Solution**: Check format configuration and color mode settings.
 
 ```python
-import yaml
-import json
-from pathlib import Path
-
-def migrate_logging_config(old_config_path, new_config_path):
-    """Migrate from old logging configuration to Hydra-Logger format."""
-    
-    # Load old configuration
-    with open(old_config_path, 'r') as f:
-        old_config = yaml.safe_load(f)
-    
-    # Convert to Hydra-Logger format
-    new_config = {
-        'default_level': 'INFO',
-        'layers': {}
-    }
-    
-    # Convert loggers to layers
-    for logger_name, logger_config in old_config.get('loggers', {}).items():
-        layer_name = logger_name.upper()
-        new_config['layers'][layer_name] = {
-            'level': logger_config.get('level', 'INFO'),
-            'destinations': []
-        }
-        
-        # Convert handlers to destinations
-        for handler_name in logger_config.get('handlers', []):
-            handler_config = old_config['handlers'][handler_name]
-            
-            if handler_config['class'] == 'logging.handlers.RotatingFileHandler':
-                destination = {
-                    'type': 'file',
-                    'path': handler_config['filename'],
-                    'max_size': f"{handler_config['maxBytes'] // (1024*1024)}MB",
-                    'backup_count': handler_config['backupCount'],
-                    'format': 'json' if 'json' in handler_name else 'plain-text'
-                }
-            elif handler_config['class'] == 'logging.StreamHandler':
-                destination = {
-                    'type': 'console',
-                    'format': 'plain-text'
-                }
-            
-            new_config['layers'][layer_name]['destinations'].append(destination)
-    
-    # Save new configuration
-    with open(new_config_path, 'w') as f:
-        yaml.dump(new_config, f, default_flow_style=False)
-    
-    print(f"Configuration migrated to {new_config_path}")
-
-# Usage
-migrate_logging_config('old_logging.yaml', 'hydra_logging.yaml')
-```
-
-## Testing Migration
-
-### Migration Testing Script
-
-```python
-import tempfile
-import os
-from hydra_logger import HydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-
-def test_migration():
-    """Test that migration produces equivalent logging behavior."""
-    
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Create test configuration
-        config = LoggingConfig(
-            layers={
-                "TEST": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(
-                            type="file",
-                            path=os.path.join(temp_dir, "test.log"),
-                            format="plain-text"
-                        ),
-                        LogDestination(
-                            type="file",
-                            path=os.path.join(temp_dir, "test.json"),
-                            format="json"
-                        )
-                    ]
-                )
-            }
-        )
-        
-        # Test logger
-        logger = HydraLogger(config)
-        
-        # Test different log levels
-        test_messages = [
-            ("INFO", "Test info message"),
-            ("DEBUG", "Test debug message"),
-            ("WARNING", "Test warning message"),
-            ("ERROR", "Test error message"),
-            ("CRITICAL", "Test critical message")
-        ]
-        
-        for level, message in test_messages:
-            if level == "INFO":
-                logger.info("TEST", message)
-            elif level == "DEBUG":
-                logger.debug("TEST", message)
-            elif level == "WARNING":
-                logger.warning("TEST", message)
-            elif level == "ERROR":
-                logger.error("TEST", message)
-            elif level == "CRITICAL":
-                logger.critical("TEST", message)
-        
-        # Verify files were created
-        assert os.path.exists(os.path.join(temp_dir, "test.log"))
-        assert os.path.exists(os.path.join(temp_dir, "test.json"))
-        
-        # Verify content
-        with open(os.path.join(temp_dir, "test.log"), 'r') as f:
-            log_content = f.read()
-            assert "Test info message" in log_content
-            assert "Test error message" in log_content
-        
-        with open(os.path.join(temp_dir, "test.json"), 'r') as f:
-            json_content = f.read()
-            assert "Test info message" in json_content
-            assert "Test error message" in json_content
-        
-        print("Migration test passed!")
-
-if __name__ == "__main__":
-    test_migration()
-```
-
-## Troubleshooting
-
-### Common Migration Issues
-
-#### Issue: Log files not created
-**Solution**: Ensure the log directory exists or use absolute paths.
-
-```python
-import os
-from pathlib import Path
-
-# Create log directory
-log_dir = Path("logs")
-log_dir.mkdir(exist_ok=True)
-
-# Use absolute paths
-config = LoggingConfig(
-    layers={
-        "APP": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path=str(log_dir / "app.log"),
-                    format="plain-text"
-                )
-            ]
-        )
-    }
-)
-```
-
-#### Issue: Format not working as expected
-**Solution**: Check format dependencies and fallback behavior.
-
-```python
-# Ensure required packages are installed
-# pip install python-json-logger graypy
-
-# Test format configuration
+# Test different formats
 config = LoggingConfig(
     layers={
         "TEST": LogLayer(
             level="INFO",
             destinations=[
                 LogDestination(
-                    type="file",
-                    path="test.json",
-                    format="json"  # Requires python-json-logger
+                    type="console",
+                    format="json",
+                    color_mode="never"
                 )
             ]
         )
     }
 )
+
+logger = HydraLogger(config)
+logger.info("Test message", "TEST", extra={"key": "value"})
 ```
 
-#### Issue: Performance degradation
-**Solution**: Optimize configuration for high-throughput scenarios.
+#### Issue 4: Performance Issues
+
+**Problem**: Logging performance is slower than expected.
+
+**Solution**: Optimize configuration for your use case.
 
 ```python
-# Use appropriate file sizes and backup counts
+# Optimize for high-throughput logging
 config = LoggingConfig(
     layers={
         "HIGH_VOLUME": LogLayer(
@@ -865,348 +905,48 @@ config = LoggingConfig(
             destinations=[
                 LogDestination(
                     type="file",
-                    path="logs/high_volume.csv",
-                    format="csv",
+                    path="logs/high_volume.log",
+                    format="plain-text",  # Fastest format
                     max_size="100MB",
-                    backup_count=2
-                )
-            ]
-        )
-    }
-)
-```
-
-#### Issue: Configuration validation errors
-**Solution**: Use proper validation and error handling.
-
-```python
-from hydra_logger import HydraLogger
-from pydantic import ValidationError
-
-try:
-    logger = HydraLogger.from_config("config.yaml")
-except FileNotFoundError:
-    print("Configuration file not found, using defaults")
-    logger = HydraLogger()
-except ValidationError as e:
-    print(f"Configuration validation error: {e}")
-    logger = HydraLogger()
-except Exception as e:
-    print(f"Unexpected error: {e}")
-    logger = HydraLogger()
-```
-
-#### Issue: Log levels not working as expected
-**Solution**: Check layer and destination level configuration.
-
-```python
-# Layer level controls overall logging for the layer
-# Destination level can override for specific destinations
-config = LoggingConfig(
-    layers={
-        "APP": LogLayer(
-            level="DEBUG",  # Layer level: DEBUG and above
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/app.log",
-                    level="INFO"  # Destination level: INFO and above only
-                ),
-                LogDestination(
-                    type="console",
-                    level="WARNING"  # Console: WARNING and above only
-                )
-            ]
-        )
-    }
-)
-```
-
-#### Issue: File rotation not working
-**Solution**: Check file size format and permissions.
-
-```python
-# Use proper size format
-config = LoggingConfig(
-    layers={
-        "APP": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/app.log",
-                    max_size="10MB",  # Use MB, KB, GB format
-                    backup_count=5
-                )
-            ]
-        )
-    }
-)
-```
-
-#### Issue: Multiple loggers conflicting
-**Solution**: Use proper logger naming and cleanup.
-
-```python
-# Clear existing handlers to avoid conflicts
-import logging
-
-# Clear root logger handlers
-root_logger = logging.getLogger()
-if root_logger.hasHandlers():
-    root_logger.handlers.clear()
-
-# Create Hydra-Logger
-logger = HydraLogger(config)
-```
-
-### Performance Optimization
-
-#### High-Throughput Logging
-
-```python
-# Use CSV format for high-volume data
-config = LoggingConfig(
-    layers={
-        "EVENTS": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/events.csv",
-                    format="csv",  # Fastest format for high volume
-                    max_size="500MB",
                     backup_count=1
                 )
             ]
         )
     }
 )
-```
 
-#### Memory-Efficient Configuration
-
-```python
-# Use smaller file sizes and fewer backups for memory-constrained environments
-config = LoggingConfig(
-    layers={
-        "APP": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/app.log",
-                    max_size="1MB",  # Smaller files
-                    backup_count=1   # Fewer backups
-                )
-            ]
-        )
-    }
-)
-```
-
-### Security Considerations
-
-#### Secure File Permissions
-
-```python
-import os
-from pathlib import Path
-
-# Set secure permissions for log files
-log_dir = Path("logs")
-log_dir.mkdir(exist_ok=True)
-
-# Set directory permissions (Unix-like systems)
-os.chmod(log_dir, 0o750)  # Owner read/write/execute, group read/execute
-
-# Log files will inherit secure permissions
 logger = HydraLogger(config)
-```
 
-#### Sensitive Data Filtering
-
-```python
-import re
-from hydra_logger import HydraLogger
-
-class SecureLogger:
-    """Logger with sensitive data filtering."""
-    
-    def __init__(self, config):
-        self.logger = HydraLogger(config)
-        self.sensitive_patterns = [
-            r'password["\']?\s*[:=]\s*["\'][^"\']*["\']',
-            r'api_key["\']?\s*[:=]\s*["\'][^"\']*["\']',
-            r'token["\']?\s*[:=]\s*["\'][^"\']*["\']'
-        ]
-    
-    def _filter_sensitive_data(self, message):
-        """Filter sensitive data from log messages."""
-        filtered_message = message
-        for pattern in self.sensitive_patterns:
-            filtered_message = re.sub(pattern, '[REDACTED]', filtered_message, flags=re.IGNORECASE)
-        return filtered_message
-    
-    def log(self, layer, level, message):
-        """Log message with sensitive data filtering."""
-        filtered_message = self._filter_sensitive_data(message)
-        self.logger.log(layer, level, filtered_message)
-
-# Usage
-secure_logger = SecureLogger(config)
-secure_logger.log("APP", "INFO", "User login: password=secret123")  # Will be filtered
-```
-
-### Debugging Configuration
-
-#### Configuration Validation
-
-```python
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-
-def validate_config(config_dict):
-    """Validate configuration before creating logger."""
-    try:
-        config = LoggingConfig(**config_dict)
-        print("✅ Configuration is valid")
-        return config
-    except Exception as e:
-        print(f"❌ Configuration error: {e}")
-        return None
-
-# Test your configuration
-test_config = {
-    "layers": {
-        "APP": {
-            "level": "INFO",
-            "destinations": [
-                {
-                    "type": "file",
-                    "path": "logs/app.log",
-                    "format": "plain-text"
-                }
-            ]
-        }
-    }
-}
-
-valid_config = validate_config(test_config)
-if valid_config:
-    logger = HydraLogger(valid_config)
-```
-
-#### Configuration Debugging
-
-```python
-import json
-from hydra_logger import HydraLogger
-
-def debug_config(config):
-    """Debug configuration by printing details."""
-    print("🔍 Configuration Debug:")
-    print(f"  Default Level: {config.default_level}")
-    print(f"  Layers: {len(config.layers)}")
-    
-    for layer_name, layer_config in config.layers.items():
-        print(f"  Layer '{layer_name}':")
-        print(f"    Level: {layer_config.level}")
-        print(f"    Destinations: {len(layer_config.destinations)}")
-        
-        for i, dest in enumerate(layer_config.destinations):
-            print(f"    Destination {i+1}:")
-            print(f"      Type: {dest.type}")
-            if dest.path:
-                print(f"      Path: {dest.path}")
-            print(f"      Format: {dest.format}")
-            print(f"      Level: {dest.level}")
-
-# Use with your configuration
-config = LoggingConfig(layers={...})  # Your config
-debug_config(config)
-logger = HydraLogger(config)
+# Test performance
+import time
+start_time = time.time()
+for i in range(10000):
+    logger.info(f"Performance test {i}", "HIGH_VOLUME")
+end_time = time.time()
+print(f"Performance: {10000 / (end_time - start_time):.0f} logs/sec")
 ```
 
 ### Migration Checklist
 
-- [ ] Install Hydra-Logger: `pip install hydra-logger`
-- [ ] Install format dependencies: `pip install python-json-logger graypy`
-- [ ] Create log directories
-- [ ] Test basic functionality
-- [ ] Migrate configuration files
-- [ ] Update import statements
-- [ ] Test all log levels and formats
-- [ ] Verify file rotation works
-- [ ] Check performance impact
-- [ ] Update documentation
+- [ ] **Backup existing logs** before migration
+- [ ] **Test migration** in development environment
+- [ ] **Verify log levels** are working correctly
+- [ ] **Check file permissions** for log directories
+- [ ] **Test all log formats** (plain-text, JSON, CSV, etc.)
+- [ ] **Verify performance** meets requirements
+- [ ] **Test error handling** and fallback mechanisms
+- [ ] **Update documentation** for new logging system
+- [ ] **Train team** on new logging API
+- [ ] **Monitor logs** after migration to production
 
-### Common Error Messages and Solutions
-
-| Error Message | Cause | Solution |
-|---------------|-------|----------|
-| `FileNotFoundError: Configuration file not found` | Config file doesn't exist | Check file path and create file |
-| `ValidationError: Invalid level` | Invalid log level | Use DEBUG, INFO, WARNING, ERROR, CRITICAL |
-| `ValueError: Path is required for file destinations` | Missing file path | Add `path` parameter for file destinations |
-| `OSError: Permission denied` | File permission issues | Check directory permissions |
-| `ImportError: No module named 'python_json_logger'` | Missing dependency | Run `pip install python-json-logger` |
-| `ValueError: Invalid format` | Unsupported format | Use plain-text, json, csv, syslog, or gelf |
-
-### Getting Help
+### Support and Resources
 
 If you encounter issues during migration:
 
-1. **Check the logs**: Look for error messages in console output
-2. **Validate configuration**: Use the validation examples above
-3. **Test incrementally**: Start with simple configuration and add complexity
-4. **Check dependencies**: Ensure all required packages are installed
-5. **Review examples**: Refer to the examples in this guide
-6. **Open an issue**: Report bugs on the GitHub repository
+1. **Check the documentation** for detailed API reference
+2. **Review examples** in the examples directory
+3. **Test with simple configuration** first
+4. **Use the migration helper functions** provided
+5. **Compare outputs** between legacy and new systems
 
-This comprehensive troubleshooting section ensures a smooth migration experience with solutions for common issues and best practices for production deployment.
-
-## Format System: `plain-text` and Color Mode
-
-Hydra-Logger now supports the `plain-text` format for human-readable output with color control:
-
-- **`plain-text`**: Human-readable text format with color control via `color_mode`
-- **Other formats**: `json`, `csv`, `syslog`, `gelf` (all support color_mode for future colored variants)
-
-**Color Mode** (`color_mode`):
-- `auto`: Detects if colors should be used (default)
-- `always`: Forces colors on
-- `never`: Forces colors off
-
-**Example:**
-```python
-config = {
-    "layers": {
-        "APP": {
-            "level": "INFO",
-            "destinations": [
-                {"type": "console", "format": "plain-text", "color_mode": "always"},  # Colored console
-                {"type": "file", "format": "plain-text", "color_mode": "never"}      # Plain file
-            ]
-        }
-    }
-}
-logger = HydraLogger(config=config)
-logger.info("APP", "Colored console, plain file")
-```
-
-## Available Formats
-- `plain-text` - Human-readable text (colored in console if color_mode allows)
-- `json` - JSON format (structured)
-- `csv` - CSV format (tabular)
-- `syslog` - Syslog format (system logging)
-- `gelf` - GELF format (Graylog)
-
-## Color Mode Options
-- `auto` - Automatic detection (default)
-- `always` - Force colors on
-- `never` - Force colors off
-
-## Migration Notes
-- If you previously used `format='text'`, it is now `format='plain-text'`.
-- `format='plain-text'` now works with `color_mode` for fine-grained color control.
-- All destinations now support `color_mode` for color control.
-- Validation errors now clearly explain the available formats and color_mode options. 
+This migration guide provides comprehensive coverage for transitioning from existing logging systems to Hydra-Logger, ensuring a smooth and successful migration process. 
