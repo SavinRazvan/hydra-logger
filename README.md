@@ -1,13 +1,13 @@
-# 🚀 Hydra-Logger
+# Hydra-Logger
 
-**A modular, enterprise-ready Python logging library with zero-configuration,  async support, multi-layer (to track AI in M.A.S.), plugins, and advanced formatting capabilities.**
+**A modular, enterprise-ready Python logging library with zero-configuration, comprehensive sync logging, plugins, and advanced formatting capabilities.**
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-white.svg)](https://opensource.org/licenses/MIT)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyPI Downloads](https://static.pepy.tech/badge/hydra-logger)](https://pepy.tech/projects/hydra-logger)
 
-## 📊 Performance Summary
+## Performance Summary
 
 **Benchmark results from comprehensive testing:**
 
@@ -19,7 +19,7 @@
 
 *See [benchmarks/README.md](benchmarks/README.md) for detailed performance analysis.*
 
-## ✨ Core Features
+## Core Features
 
 ### **Zero Configuration**
 ```python
@@ -84,7 +84,7 @@ config = {
 logger = HydraLogger(config=config)
 ```
 
-### **Async Logging**
+### **Async Logging (Experimental)**
 ```python
 from hydra_logger.async_hydra import AsyncHydraLogger
 import asyncio
@@ -98,6 +98,8 @@ async def main():
 
 asyncio.run(main())
 ```
+
+**Note**: Async logging is currently in development. File writing and some features may not work as expected. For production use, we recommend the sync HydraLogger.
 
 ### **Plugin System**
 ```python
@@ -151,7 +153,7 @@ logger = HydraLogger.for_bare_metal()
 logger.info("PERFORMANCE", "Bare metal log message")
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### **Installation**
 ```bash
@@ -239,7 +241,7 @@ logger.info("FRONTEND", "User interface updated")
 logger.debug("BACKEND", "API endpoint called")
 ```
 
-### **Async Logging**
+### **Async Logging (Experimental)**
 ```python
 from hydra_logger.async_hydra import AsyncHydraLogger
 import asyncio
@@ -253,20 +255,13 @@ async def main():
     await logger.info("ASYNC", "Async message")
     await logger.error("ERROR", "Async error")
     
-    # Structured logging with context
-    await logger.log_structured(
-        layer="REQUEST",
-        level="INFO",
-        message="HTTP request processed",
-        correlation_id="req-123",
-        context={"user_id": "456", "duration": 0.5}
-    )
-    
     # Close logger
     await logger.close()
 
 asyncio.run(main())
 ```
+
+**Note**: Async logging is currently in development. For production use, we recommend the sync HydraLogger.
 
 ### **Security Features**
 ```python
@@ -283,10 +278,8 @@ logger = HydraLogger(
 logger.info("AUTH", "Login attempt", 
            extra={"email": "user@example.com", "password": "secret123"})
 
-# Security events are tracked
-logger.security("SECURITY", "Suspicious activity detected")
-logger.audit("AUDIT", "User action logged")
-logger.compliance("COMPLIANCE", "GDPR compliance check")
+# Security features are enabled
+# Note: Security-specific logging methods are available in the async logger
 ```
 
 ### **Plugin System**
@@ -337,12 +330,12 @@ def my_app_config():
 logger = HydraLogger.for_my_app()
 ```
 
-## 📋 Detailed Features
+## Detailed Features
 
 ### **Modular Architecture**
 - **Core Module**: Main logging functionality with exceptions and constants
 - **Config Module**: Configuration loaders and Pydantic models
-- **Async Module**: Complete async logging system with queue, handlers, sinks, and context
+- **Async Module**: Async logging system (experimental)
 - **Plugin Module**: Extensible plugin architecture with registry and base classes
 - **Data Protection**: Security features and fallback mechanisms
 
@@ -364,7 +357,7 @@ logger = HydraLogger.for_my_app()
 - **PII Detection**: Email, password, API key, credit card, SSN, phone number patterns
 - **Automatic Redaction**: Configurable sensitive data masking
 - **Data Sanitization**: Input validation and output sanitization
-- **Security Logging**: Dedicated methods for security, audit, and compliance events
+- **Security Validation**: Built-in security checks and validation
 - **Thread Safety**: All security operations are thread-safe
 
 ### **Performance Optimization**
@@ -374,12 +367,12 @@ logger = HydraLogger.for_my_app()
 - **Memory Optimization**: Object pooling and efficient data structures
 - **Zero-Copy Logging**: Minimized data copying where possible
 
-### **Async Capabilities**
-- **AsyncHydraLogger**: Full async logging implementation
-- **Data Loss Protection**: Backup mechanisms for reliable logging
-- **Concurrent Logging**: Batching and queue management
-- **Graceful Shutdown**: Proper resource cleanup
-- **Error Handling**: Comprehensive async error recovery
+### **Async Capabilities (Experimental)**
+- **AsyncHydraLogger**: Async logging implementation (in development)
+- **Async Handlers**: Async-compatible handlers
+- **Async Queues**: Message queue system
+- **Async Sinks**: HTTP, database, queue, and cloud destinations
+- **Async Context**: Context propagation for async applications
 
 ### **Plugin Architecture**
 - **AnalyticsPlugin**: Custom analytics processing
@@ -391,7 +384,6 @@ logger = HydraLogger.for_my_app()
 ### **Magic Config System**
 - **Built-in Configs**: Production, development, testing, microservice, web app, API service, background worker
 - **Custom Registration**: `@HydraLogger.register_magic()` decorator
-- **Async Support**: Full async logger support
 - **Configuration Validation**: Error handling and validation
 - **Documentation**: Built-in help and examples
 
@@ -401,17 +393,17 @@ logger = HydraLogger.for_my_app()
 - **Fallback Chain**: Intelligent layer fallback mechanism
 - **Backward Compatibility**: Maintains compatibility with existing code
 
-## 🎯 Development Plan
+## Development Plan
 
 ### **Completed Features**
 - ✅ **Performance Optimization**: Comprehensive benchmarks and optimization
 - ✅ **Security Features**: PII detection, data sanitization, and compliance logging
 - ✅ **Magic Config System**: Extensible configuration system with built-in presets
-- ✅ **Async Logging**: Complete async implementation with data loss protection
 - ✅ **Plugin Architecture**: Extensible plugin system with registry and base classes
 - ✅ **Format Customization**: Complete control over log formats and color modes
 
 ### **In Progress**
+- 🔄 **Async Logging**: Complete async implementation with data loss protection
 - 🔄 **Enhanced Color System**: Colored formatters for JSON, CSV, and syslog formats
 - 🔄 **Smart Formatter Selection**: Intelligent formatter selection based on environment
 
@@ -426,18 +418,18 @@ logger = HydraLogger.for_my_app()
 ### **Future Vision**
 - **Community Growth**: Active contributor program and training materials
 - **Industry Recognition**: Conference presence and strategic partnerships
-- **Enterprise Adoption**: Widespread enterprise deployment and support
+- **Enterprise Adoption**: Enterprise deployment and support
 
-## 🎯 Performance Targets
+## Performance Targets
 
 **Current Performance Metrics:**
 - **Throughput**: 101,236 messages/sec (best configuration)
 - **Latency**: <0.1ms average
 - **Memory**: Zero memory leaks across all configurations
 - **Startup**: ~50ms initialization time
-- **Async**: High concurrent performance
+- **Async**: In development
 
-## 📚 Documentation
+## Documentation
 
 - [Usage Guide](USAGE_GUIDE.md) - Comprehensive usage examples
 - [Performance Summary](PERFORMANCE_SUMMARY.md) - Latest benchmark results and performance data
@@ -446,43 +438,39 @@ logger = HydraLogger.for_my_app()
 - [Error Handling](ERROR_HANDLING_SUMMARY.md) - Error handling guide
 - [Roadmap](ROADMAP.md) - Future development plans
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-
-
 ---
 
-**Hydra-Logger**: A modular, enterprise-ready Python logging library with zero-configuration, comprehensive async support, and advanced formatting capabilities.
+**Hydra-Logger**: A modular, enterprise-ready Python logging library with zero-configuration, comprehensive sync logging, and advanced formatting capabilities.
 
-## Performance Recommendations for Async Logging
+## Performance Recommendations
 
-To ensure optimal performance with Hydra-Logger's async logging system:
+To ensure good performance with Hydra-Logger:
 
 1. **Console Logging**
-   - Console logs are written immediately with no buffering or delay. No further tuning is needed for optimal performance.
+   - Console logs are written immediately with no buffering or delay. No further tuning is needed for good performance.
 
 2. **File Logging**
-   - For true async file logging, install the `aiofiles` package in your environment:
-     ```bash
-     pip install aiofiles
-     ```
-   - Without `aiofiles`, file logging will fall back to synchronous I/O, which is slower and may block the event loop.
+   - File logging uses high-performance buffered operations with automatic flushing
+   - No additional dependencies required for good performance
 
-3. **Network, Database, and Cloud Sinks**
-   - All network, database, and cloud sinks use high-performance async libraries (`aiohttp`, `asyncpg`, `aioredis`).
-   - Ensure these dependencies are installed for non-blocking logging.
+3. **Async Logging (Experimental)**
+   - Async logging is currently in development
+   - For production use, we recommend the sync HydraLogger
+   - When async logging is stable, it will support non-blocking operations
 
 4. **No Blocking Calls**
-   - The async logging pipeline is fully non-blocking. Avoid adding any synchronous I/O or `time.sleep` in your async code.
+   - The sync logging pipeline is fully optimized. Avoid adding any unnecessary I/O operations.
 
 5. **Error Handling**
-   - All exceptions in async handlers are caught and logged. Logging failures will not crash your application.
+   - All exceptions in handlers are caught and logged. Logging failures will not crash your application.
 
 6. **Initialization and Shutdown**
    - Handlers start and stop cleanly. No resource leaks or unawaited coroutines.
@@ -491,4 +479,4 @@ To ensure optimal performance with Hydra-Logger's async logging system:
    - Optional performance monitoring is available and adds minimal overhead.
 
 **Summary:**
-- Hydra-Logger's async logging is production-ready, robust, and highly performant. For best results, always use async-compatible dependencies in production environments.
+- Hydra-Logger's sync logging is production-ready, robust, and performant. Async logging is in development and should be used with caution in production environments.

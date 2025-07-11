@@ -1,8 +1,8 @@
-# 🚀 Hydra-Logger Usage Guide
+# Hydra-Logger Usage Guide
 
 **Complete guide to using Hydra-Logger with all features and capabilities.**
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Quick Start](#quick-start)
 2. [Basic Usage](#basic-usage)
@@ -20,7 +20,7 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### **Installation**
 ```bash
@@ -46,7 +46,7 @@ logger.info("DATABASE", "Query executed")
 
 ---
 
-## 📝 Basic Usage
+## Basic Usage
 
 ### **Log Levels**
 ```python
@@ -77,7 +77,7 @@ logger.error("Connection failed")
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### **Basic Configuration**
 ```python
@@ -129,7 +129,7 @@ logger = HydraLogger(config=config)
 
 ---
 
-## 🏗️ Layer System
+## Layer System
 
 ### **Custom Layer Names**
 ```python
@@ -163,7 +163,7 @@ The logger uses an intelligent fallback chain:
 
 ---
 
-## 🎨 Format Customization
+## Format Customization
 
 ### **Constructor Parameters**
 ```python
@@ -196,7 +196,7 @@ export HYDRA_LOG_MESSAGE_FORMAT="{level}: {message}"
 
 ---
 
-## 🌈 Color System
+## Color System
 
 ### **Color Mode Options**
 ```python
@@ -253,7 +253,7 @@ config = {
 
 ---
 
-## ⚡ Async Logging
+## Async Logging
 
 ### **Basic Async Usage**
 ```python
@@ -305,7 +305,7 @@ await logger.initialize()
 
 ---
 
-## 🔒 Security Features
+## Security Features
 
 ### **Enable Security**
 ```python
@@ -346,7 +346,7 @@ logger.compliance("COMPLIANCE", "GDPR compliance check")
 
 ---
 
-## 🔌 Plugin System
+## Plugin System
 
 ### **Custom Analytics Plugin**
 ```python
@@ -377,7 +377,7 @@ insights = logger.get_plugin_insights()
 
 ---
 
-## 🪄 Magic Configs
+## Magic Configs
 
 ### **Built-in Magic Configs**
 ```python
@@ -433,7 +433,7 @@ print(configs)
 
 ---
 
-## 🚀 Performance Modes
+## Performance Modes
 
 ### **Minimal Features Mode**
 ```python
@@ -444,7 +444,7 @@ logger.info("PERFORMANCE", "Fast log message")
 
 ### **Bare Metal Mode**
 ```python
-# Extreme performance optimization (~14K msgs/sec)
+# Maximum performance optimization (~14K msgs/sec)
 logger = HydraLogger.for_bare_metal()
 logger.info("PERFORMANCE", "Bare metal log message")
 ```
@@ -475,7 +475,7 @@ print(metrics)
 
 ---
 
-## 🌍 Environment Variables
+## Environment Variables
 
 ### **Format Customization**
 ```bash
@@ -503,7 +503,7 @@ export HYDRA_LOG_COLOR_CRITICAL="bright_red"
 
 ---
 
-## 🎯 Best Practices
+## Best Practices
 
 ### **Layer Organization**
 ```python
@@ -599,7 +599,7 @@ logger = HydraLogger.for_production_api()
 
 ---
 
-## 🚀 Progressive Complexity
+## Progressive Complexity
 
 ### **Level 1: Zero Configuration**
 ```python
@@ -694,7 +694,7 @@ logger = HydraLogger.for_my_app()
 
 ---
 
-## 🎯 Next Steps
+## Next Steps
 
 1. **Start Simple**: Use zero-configuration mode
 2. **Add Layers**: Organize logs by functionality (optional)
@@ -703,7 +703,7 @@ logger = HydraLogger.for_my_app()
 5. **Enable Security**: Protect sensitive data
 6. **Monitor Performance**: Track logging metrics
 7. **Extend with Plugins**: Add custom functionality
-8. **Go Async**: Use async logging for high performance
+8. **Go Async**: Use async logging for good performance
 9. **Use Magic Configs**: Create reusable logging configurations
 
 The modular architecture makes it easy to start simple and progressively add complexity as your needs grow! 
