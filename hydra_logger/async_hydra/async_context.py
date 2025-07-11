@@ -239,6 +239,7 @@ class AsyncContextSwitcher:
         try:
             with self._lock:
                 self._switch_count = 0
+                self._last_context = None  # Also reset the last context
         except Exception as e:
             print(f"Error resetting switch count: {e}", file=sys.stderr)
 
@@ -294,6 +295,11 @@ def get_context_switch_count() -> int:
     return _context_switcher.get_switch_count()
 
 
+def reset_context_switcher() -> None:
+    """Reset the context switcher state."""
+    _context_switcher.reset_switch_count()
+
+
 @asynccontextmanager
 async def async_context(context: Optional[AsyncContext] = None):
     """
@@ -309,7 +315,7 @@ async def async_context(context: Optional[AsyncContext] = None):
     manager = AsyncContextManager(context)
     try:
         async with manager:
-            yield manager
+            yield manager.context  # Return the context, not the manager
     except Exception as e:
         print(f"Error in async context: {e}", file=sys.stderr)
         raise
