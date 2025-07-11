@@ -13,7 +13,7 @@ from hydra_logger import HydraLogger
 def demo_multiple_destinations():
     """Demonstrate logging to multiple destinations."""
     
-    print("🎯 Multiple Destinations Example")
+    print("Multiple Destinations Example")
     print("=" * 50)
     
     # Configuration with multiple destinations
@@ -55,16 +55,16 @@ def demo_multiple_destinations():
     
     # Log messages that will go to multiple destinations
     logger.info("FRONTEND", "User interface updated")
-    logger.info("FRONTEND", "User logged in", user_id=12345, action="login")
-    logger.warning("FRONTEND", "High memory usage detected", memory_mb=512)
-    logger.error("FRONTEND", "Database connection failed", error_code=500)
+    logger.info("FRONTEND", "User logged in", extra={"user_id": 12345, "action": "login"})
+    logger.warning("FRONTEND", "High memory usage detected", extra={"memory_mb": 512})
+    logger.error("FRONTEND", "Database connection failed", extra={"error_code": 500})
     
     # Backend messages (only to backend file)
     logger.debug("BACKEND", "API endpoint called")
-    logger.debug("BACKEND", "Configuration loaded", config_size=1024)
+    logger.debug("BACKEND", "Configuration loaded", extra={"config_size": 1024})
     
-    print("\n✅ Multiple destinations example completed!")
-    print("📁 Check the following files:")
+    print("\nMultiple destinations example completed!")
+    print("Check the following files:")
     print("   - examples/logs/frontend.json (JSON format)")
     print("   - examples/logs/backend.log (Text format)")
     print("   - Console output (Colored text)")

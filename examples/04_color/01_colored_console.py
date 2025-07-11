@@ -20,7 +20,7 @@ def main():
     # Check what handlers and formatters are being used
     for layer_name, layer_logger in logger._layers.items():
         for handler in layer_logger.handlers:
-        print(f"Handler: {type(handler)} | Formatter: {type(handler.formatter)}")
+            print(f"Handler: {type(handler)} | Formatter: {type(handler.formatter)}")
     
     print("\nLogging with forced color output:")
     
@@ -31,7 +31,7 @@ def main():
     logger.error("DEFAULT", "This is an error message")
     logger.critical("DEFAULT", "This is a critical message")
     
-    print("\n✅ Colored console example completed!")
+    print("\nColored console example completed!")
     print("Notice how different log levels have different colors.")
 
 

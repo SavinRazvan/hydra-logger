@@ -14,7 +14,7 @@ from hydra_logger import HydraLogger
 def demo_color_mode_control():
     """Demonstrate color mode control for different destinations."""
     
-    print("🌈 Color Mode Control Example")
+    print("Color Mode Control Example")
     print("=" * 50)
     
     # Configuration with different color modes per destination
@@ -62,29 +62,29 @@ def demo_color_mode_control():
     # Create logger with color mode control
     logger = HydraLogger(config=config)
     
-    print("🎨 Color modes configured:")
+    print("Color modes configured:")
     print("   - Console: color_mode='always' (forced colors)")
     print("   - File: color_mode='never' (no colors)")
     print("   - Debug console: color_mode='auto' (auto-detect)")
     
-    print("\n📝 Logging with color mode control:")
+    print("\nLogging with color mode control:")
     
     # Log messages that will appear differently on console vs file
     logger.info("APP", "Application started")
-    logger.info("APP", "User logged in", user_id=12345)
-    logger.warning("APP", "High memory usage detected", memory_mb=512)
-    logger.error("APP", "Database connection failed", error_code=500)
+    logger.info("APP", "User logged in", extra={"user_id": 12345})
+    logger.warning("APP", "High memory usage detected", extra={"memory_mb": 512})
+    logger.error("APP", "Database connection failed", extra={"error_code": 500})
     
     # Debug messages (different color mode)
     logger.debug("DEBUG", "Detailed debug information")
-    logger.debug("DEBUG", "Configuration loaded", config_size=1024)
+    logger.debug("DEBUG", "Configuration loaded", extra={"config_size": 1024})
     
-    print("\n✅ Color mode control example completed!")
-    print("📁 Check the following files:")
+    print("\nColor mode control example completed!")
+    print("Check the following files:")
     print("   - examples/logs/app_plain.log (no colors)")
     print("   - examples/logs/debug_plain.log (no colors)")
     print("   - Console output (with colors)")
-    print("\n💡 Notice how console has colors but files are plain text")
+    print("\nNotice how console has colors but files are plain text")
 
 if __name__ == "__main__":
     demo_color_mode_control() 
