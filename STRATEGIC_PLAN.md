@@ -604,3 +604,9 @@ The Hydra-Logger v0.4.0 development has successfully achieved 95% of its strateg
 The sync logger is production-ready with good performance and comprehensive features. The async logger needs a comprehensive refactor to fix fundamental issues and achieve feature parity with the sync logger.
 
 The project is well-positioned for v0.4.0 release with strong technical foundations and comprehensive feature set for sync logging. The remaining work focuses on async logging refactor to complete the vision of reliable async logging with zero data loss. 
+
+
+---
+De facut:
+- plug in/out (should be an dynamic, modular bridge) to connect front end with backend (typescript <-> python) first sub-module and later A.I. agents from multiple sources to track them in Multi Agent System when they work together.
+- fix the garbage async queue.. need multiple fallbacks (performace tracking +  different strategies)
