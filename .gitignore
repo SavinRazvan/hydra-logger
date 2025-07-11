@@ -207,6 +207,7 @@ test.log
 *.log
 .cursorignore
 .cursorindexingignore
+.hydra_backup
 
 # Marimo
 marimo/_static/
