@@ -18,7 +18,7 @@ __author__ = "Savin Ionut Razvan"
 
 # Core imports
 from hydra_logger.core.logger import HydraLogger
-from hydra_logger.async_hydra.async_logger import AsyncHydraLogger
+# from hydra_logger.async_hydra.async_logger import AsyncHydraLogger  # Temporarily disabled during refactor
 from hydra_logger.core.constants import (
     LOG_LEVELS,
     VALID_FORMATS,
@@ -120,7 +120,7 @@ except ImportError:
 __all__ = [
     # Core
     "HydraLogger",
-    "AsyncHydraLogger",
+    # "AsyncHydraLogger",  # Temporarily disabled during refactor
     
     # Configuration
     "LoggingConfig",

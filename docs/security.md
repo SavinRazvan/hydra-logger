@@ -73,7 +73,7 @@ config = LoggingConfig(
                 LogDestination(
                     type="file",
                     path="/var/log/secure/app/security.log",
-                    format="syslog"
+                    format="plain-text"
                 )
             ]
         )
@@ -543,7 +543,7 @@ def create_secure_config():
                     LogDestination(
                         type="file",
                         path="/var/log/secure/security.log",
-                        format="syslog",
+                        format="plain-text",
                         max_size="10MB",
                         backup_count=10
                     )
@@ -604,7 +604,7 @@ def get_secure_config_for_environment():
                     {
                         "type": "file",
                         "path": "/var/log/secure/security.log",
-                        "format": "syslog"
+                        "format": "plain-text"
                     }
                 ]
             }

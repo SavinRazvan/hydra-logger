@@ -18,7 +18,7 @@ Built-in configurations include:
 - web_app: Web application logging with request/response tracking
 - api_service: API-specific logging with authentication tracking
 - background_worker: Task-specific logging for background jobs
-- high_performance: Ultra-fast logging optimized for maximum throughput
+- high_performance: High-performance logging optimized for maximum throughput
 
 Example usage:
     from hydra_logger import HydraLogger
@@ -517,7 +517,7 @@ def background_worker_config() -> LoggingConfig:
     )
 
 
-@MagicConfigRegistry.register("high_performance", "Ultra-fast logging configuration optimized for maximum throughput")
+@MagicConfigRegistry.register("high_performance", "High-performance logging configuration optimized for maximum throughput")
 def high_performance_config():
     """High-performance configuration optimized for maximum throughput."""
     from hydra_logger.config import LogLayer, LogDestination
@@ -723,7 +723,7 @@ def _register_builtin_magic_configs():
                 )
             }
         )
-    @MagicConfigRegistry.register("high_performance", "Ultra-fast logging configuration optimized for maximum throughput")
+    @MagicConfigRegistry.register("high_performance", "High-performance logging configuration optimized for maximum throughput")
     def high_performance_config():
         from hydra_logger.config import LogLayer, LogDestination
         return LoggingConfig(

@@ -1,107 +1,108 @@
 """
-Async logging components for Hydra-Logger.
+Professional Async Hydra-Logger Components.
 
-This package provides async-compatible logging functionality including
-async handlers, async queues, async sinks, async context propagation,
-and async framework integration for high-performance async applications.
+This package provides world-class async logging functionality with:
+- Professional async patterns and error handling
+- Comprehensive task tracking and cleanup
+- Memory monitoring and backpressure
+- Safe shutdown protocols with data integrity
+- Health monitoring and performance metrics
+- Bounded queues with configurable policies
+- Context management and distributed tracing
+- Multi-handler support with parallel execution
 
 Key Components:
-- AsyncHydraLogger: Main async logger class
-- AsyncLogHandler: Base async handler class
-- AsyncRotatingFileHandler: Async file handler with rotation
-- AsyncStreamHandler: Async console output handler
-- AsyncBufferedRotatingFileHandler: Async buffered file handler
-- AsyncLogQueue: Async message queue system
-- AsyncBatchProcessor: Async batch processing
-- AsyncBackpressureHandler: Async backpressure management
-- AsyncHttpSink: Async HTTP logging sink
-- AsyncDatabaseSink: Async database logging sink
-- AsyncQueueSink: Async message queue sink
-- AsyncCloudSink: Async cloud service sink
-- AsyncContextManager: Async context propagation
-- AsyncTraceManager: Async distributed tracing
-- QueueStats: Queue performance statistics
+- Core Components: CoroutineManager, EventLoopManager, BoundedAsyncQueue, etc.
+- Handlers: AsyncFileHandler, AsyncConsoleHandler, AsyncCompositeHandler
+- Context Management: AsyncContextManager, AsyncTraceManager
+- Main Logger: AsyncHydraLogger
+- Monitoring: HealthMonitor, ErrorTracker, PerformanceMonitor, etc.
+
+Example:
+    >>> from hydra_logger.async_hydra import AsyncHydraLogger, AsyncFileHandler, AsyncConsoleHandler
+    >>> logger = AsyncHydraLogger({
+    ...     'handlers': [
+    ...         {'type': 'file', 'filename': 'mylog.log'},
+    ...         {'type': 'console', 'use_colors': True}
+    ...     ]
+    ... })
+    >>> await logger.info("LAYER", "Professional async logging")
 """
 
-from hydra_logger.async_hydra.async_logger import AsyncHydraLogger, AsyncPerformanceMonitor, AsyncCompositeHandler
-from hydra_logger.async_hydra.async_handlers import (
-    AsyncLogHandler,
-    AsyncRotatingFileHandler,
-    AsyncStreamHandler,
-    AsyncBufferedRotatingFileHandler,
-)
-from hydra_logger.async_hydra.async_queue import (
-    AsyncLogQueue,
-    AsyncBatchProcessor,
-    AsyncBackpressureHandler,
-    QueueStats,
-)
-from hydra_logger.async_hydra.async_sinks import (
-    AsyncSink,
-    AsyncHttpSink,
-    AsyncDatabaseSink,
-    AsyncQueueSink,
-    AsyncCloudSink,
-    SinkStats,
-)
-from hydra_logger.async_hydra.async_context import (
-    AsyncContext,
-    AsyncContextManager,
-    AsyncTraceManager,
-    AsyncContextSwitcher,
-    get_async_context,
-    set_async_context,
-    clear_async_context,
-    get_trace_id,
-    start_trace,
-    set_correlation_id,
-    get_correlation_id,
-    detect_context_switch,
-    get_context_switch_count,
-    async_context,
-    trace_context,
+# Core components
+from .core import (
+    CoroutineManager,
+    EventLoopManager,
+    BoundedAsyncQueue,
+    MemoryMonitor,
+    SafeShutdownManager,
+    AsyncErrorTracker,
+    AsyncHealthMonitor
 )
 
+# Handlers
+from .handlers import (
+    BaseAsyncHandler,
+    AsyncFileHandler,
+    AsyncConsoleHandler,
+    AsyncCompositeHandler
+)
+
+# Context management
+from .context import (
+    AsyncContext,
+    AsyncContextManager,
+    AsyncContextSwitcher,
+    TraceContext,
+    AsyncTraceManager,
+    get_context_switcher,
+    get_trace_manager,
+    async_context,
+    trace_context,
+    span_context
+)
+
+# Performance monitoring
+from .performance import (
+    AsyncPerformanceMonitor,
+    get_performance_monitor,
+    async_timer,
+    performance_context
+)
+
+# Main logger
+from .logger import AsyncHydraLogger
+
 __all__ = [
-    # Core async logger
-    "AsyncHydraLogger",
-    "AsyncPerformanceMonitor",
+    # Core components
+    "CoroutineManager",
+    "EventLoopManager", 
+    "BoundedAsyncQueue",
+    "MemoryMonitor",
+    "SafeShutdownManager",
+    "AsyncErrorTracker",
+    "AsyncHealthMonitor",
+    # Handlers
+    "BaseAsyncHandler",
+    "AsyncFileHandler",
+    "AsyncConsoleHandler",
     "AsyncCompositeHandler",
-    
-    # Async handlers
-    "AsyncLogHandler",
-    "AsyncRotatingFileHandler",
-    "AsyncStreamHandler",
-    "AsyncBufferedRotatingFileHandler",
-    
-    # Async queue system
-    "AsyncLogQueue",
-    "AsyncBatchProcessor",
-    "AsyncBackpressureHandler",
-    "QueueStats",
-    
-    # Async sinks
-    "AsyncSink",
-    "AsyncHttpSink",
-    "AsyncDatabaseSink",
-    "AsyncQueueSink",
-    "AsyncCloudSink",
-    "SinkStats",
-    
-    # Async context
+    # Context management
     "AsyncContext",
     "AsyncContextManager",
-    "AsyncTraceManager",
     "AsyncContextSwitcher",
-    "get_async_context",
-    "set_async_context",
-    "clear_async_context",
-    "get_trace_id",
-    "start_trace",
-    "set_correlation_id",
-    "get_correlation_id",
-    "detect_context_switch",
-    "get_context_switch_count",
+    "TraceContext",
+    "AsyncTraceManager",
+    "get_context_switcher",
+    "get_trace_manager",
     "async_context",
     "trace_context",
+    "span_context",
+    # Performance monitoring
+    "AsyncPerformanceMonitor",
+    "get_performance_monitor",
+    "async_timer",
+    "performance_context",
+    # Main logger
+    "AsyncHydraLogger",
 ] 

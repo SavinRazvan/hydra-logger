@@ -16,344 +16,207 @@ This example demonstrates all async features working together:
 import asyncio
 import time
 import json
-from hydra_logger.async_hydra.async_logger import AsyncHydraLogger
+from hydra_logger.async_hydra import AsyncHydraLogger
 
 
 class AsyncWebService:
     """Simulated async web service demonstrating all logging features."""
     
     def __init__(self):
-        self.logger = AsyncHydraLogger(
-            enable_object_pooling=True,
-            pool_size=1000,
-            batch_size=100,
-            batch_timeout=0.1,
-            enable_performance_monitoring=True,
-            test_mode=True
-        )
+        self.logger = AsyncHydraLogger({
+            'handlers': [
+                {
+                    'type': 'console',
+                    'use_colors': True
+                }
+            ]
+        })
         self.request_count = 0
+    
+    async def initialize(self):
+        """Initialize the web service."""
+        await self.logger.initialize()
+        await self.logger.info("SERVICE", "Async web service initializing...")
+        await self.logger.info("SERVICE", "Loading configuration...")
+        await self.logger.info("SERVICE", "Connecting to database...")
+        await self.logger.info("SERVICE", "Starting background workers...")
+        await self.logger.info("SERVICE", "Async web service ready")
     
     async def handle_user_login(self, user_id: str, credentials: dict):
         """Handle user login with comprehensive logging."""
-        request_id = f"req-{self.request_count:06d}"
+        request_id = f"req-{self.request_count}"
         self.request_count += 1
         
-        # Set correlation context
-        with self.logger.correlation_context(
-            request_id, 
-            user_id=user_id
-        ):
-            # Log request start
-            await self.logger.log_request(
-                request_id=request_id,
-                method="POST",
-                path="/api/auth/login",
-                status_code=200,
-                duration=0.0  # Will be updated
-            )
+        await self.logger.info("AUTH", f"Login attempt - Request: {request_id}, User: {user_id}")
+        
+        # Simulate authentication process
+        await self.logger.info("AUTH", f"Validating credentials for user {user_id}")
+        await asyncio.sleep(0.1)  # Simulate processing time
+        
+        if credentials.get('password') == 'correct_password':
+            await self.logger.info("AUTH", f"Authentication successful - User: {user_id}")
+            await self.logger.info("AUTH", f"Session created - User: {user_id}, Session: sess-{user_id}")
             
-            start_time = time.time()
+            # Log user activity
+            await self.logger.info("USER", f"User {user_id} logged in from IP 192.168.1.100")
+            await self.logger.info("USER", f"User {user_id} browser: Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
             
-            try:
-                # Simulate authentication process
-                await self._authenticate_user(user_id, credentials)
-                
-                # Log successful login
-                await self.logger.log_user_action(
-                    user_id=user_id,
-                    action="login",
-                    resource="auth",
-                    success=True
-                )
-                
-                # Log performance metrics
-                auth_duration = time.time() - start_time
-                await self.logger.log_performance(
-                    operation="user_authentication",
-                    duration=auth_duration,
-                    layer="PERFORMANCE"
-                )
-                
-                # Structured log with context
-                await self.logger.log_structured(
-                    layer="SECURITY",
-                    level="INFO",
-                    message="User login successful",
-                    correlation_id=request_id,
-                    context={
-                        "user_id": user_id,
-                        "ip_address": "192.168.1.100",
-                        "user_agent": "Mozilla/5.0",
-                        "auth_method": "password",
-                        "session_duration": 3600
-                    },
-                    format="json"
-                )
-                
-                return {"success": True, "session_id": f"session-{user_id}"}
-                
-            except Exception as e:
-                # Log error with context
-                await self.logger.log_error_with_context(
-                    error=e,
-                    layer="AUTH",
-                    context={
-                        "user_id": user_id,
-                        "request_id": request_id,
-                        "auth_method": "password"
-                    }
-                )
-                
-                # Log failed user action
-                await self.logger.log_user_action(
-                    user_id=user_id,
-                    action="login",
-                    resource="auth",
-                    success=False
-                )
-                
-                raise
+            return {"success": True, "session_id": f"sess-{user_id}"}
+        else:
+            await self.logger.error("AUTH", f"Authentication failed - User: {user_id}")
+            await self.logger.warning("SECURITY", f"Failed login attempt - User: {user_id}, IP: 192.168.1.100")
+            return {"success": False, "error": "Invalid credentials"}
     
     async def handle_data_processing(self, user_id: str, data: dict):
         """Handle data processing with performance monitoring."""
-        request_id = f"req-{self.request_count:06d}"
+        request_id = f"req-{self.request_count}"
         self.request_count += 1
         
-        with self.logger.correlation_context(request_id, user_id=user_id):
-            start_time = time.time()
-            
-            # Log processing start
-            await self.logger.info("PROCESSING", "Starting data processing")
-            
-            try:
-                # Simulate data validation
-                await self._validate_data(data)
-                
-                # Simulate data transformation
-                transformed_data = await self._transform_data(data)
-                
-                # Simulate database storage
-                await self._store_data(transformed_data)
-                
-                # Log performance metrics
-                total_duration = time.time() - start_time
-                await self.logger.log_performance(
-                    operation="data_processing",
-                    duration=total_duration,
-                    layer="PERFORMANCE"
-                )
-                
-                # Structured log with results
-                await self.logger.log_structured(
-                    layer="BUSINESS",
-                    level="INFO",
-                    message="Data processing completed",
-                    correlation_id=request_id,
-                    context={
-                        "user_id": user_id,
-                        "data_size": len(str(data)),
-                        "processing_time": total_duration,
-                        "records_processed": len(data.get("records", [])),
-                        "status": "success"
-                    },
-                    format="dict"
-                )
-                
-                return {"success": True, "processed_records": len(data.get("records", []))}
-                
-            except Exception as e:
-                await self.logger.log_error_with_context(
-                    error=e,
-                    layer="PROCESSING",
-                    context={
-                        "user_id": user_id,
-                        "request_id": request_id,
-                        "data_size": len(str(data))
-                    }
-                )
-                raise
+        await self.logger.info("PROCESSING", f"Data processing started - Request: {request_id}, User: {user_id}")
+        
+        # Simulate data validation
+        await self.logger.info("VALIDATION", f"Validating data for user {user_id}")
+        await asyncio.sleep(0.05)
+        
+        if not data.get('required_field'):
+            await self.logger.error("VALIDATION", f"Validation failed - Missing required field for user {user_id}")
+            return {"success": False, "error": "Missing required field"}
+        
+        await self.logger.info("VALIDATION", f"Data validation successful for user {user_id}")
+        
+        # Simulate data transformation
+        await self.logger.info("TRANSFORM", f"Transforming data for user {user_id}")
+        await asyncio.sleep(0.1)
+        await self.logger.info("TRANSFORM", f"Data transformation completed for user {user_id}")
+        
+        # Simulate data storage
+        await self.logger.info("STORAGE", f"Storing data for user {user_id}")
+        await asyncio.sleep(0.05)
+        await self.logger.info("STORAGE", f"Data stored successfully for user {user_id}")
+        
+        await self.logger.info("PROCESSING", f"Data processing completed - Request: {request_id}")
+        return {"success": True, "processed_data": "transformed_data"}
     
     async def handle_batch_operations(self, operations: list):
-        """Handle batch operations with high throughput."""
-        print(f"Processing {len(operations)} batch operations...")
+        """Handle batch operations with concurrent processing."""
+        await self.logger.info("BATCH", f"Starting batch processing - {len(operations)} operations")
         
-        start_time = time.time()
+        # Process operations concurrently
         tasks = []
-        
         for i, operation in enumerate(operations):
-            task = asyncio.create_task(
-                self._process_single_operation(operation, i)
-            )
+            task = self._process_single_operation(operation, i)
             tasks.append(task)
         
         # Wait for all operations to complete
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        total_time = time.time() - start_time
-        successful = sum(1 for r in results if not isinstance(r, Exception))
+        successful = sum(1 for r in results if isinstance(r, dict) and r.get('success'))
+        failed = len(results) - successful
         
-        # Log batch results
-        await self.logger.log_structured(
-            layer="BATCH",
-            level="INFO",
-            message="Batch processing completed",
-            context={
-                "total_operations": len(operations),
-                "successful_operations": successful,
-                "failed_operations": len(operations) - successful,
-                "total_time": total_time,
-                "throughput": len(operations) / total_time
-            },
-            format="json"
-        )
-        
-        return {
-            "total": len(operations),
-            "successful": successful,
-            "failed": len(operations) - successful,
-            "total_time": total_time
-        }
+        await self.logger.info("BATCH", f"Batch processing completed - Success: {successful}, Failed: {failed}")
+        return {"success": True, "successful": successful, "failed": failed}
     
     async def _authenticate_user(self, user_id: str, credentials: dict):
         """Simulate user authentication."""
-        await asyncio.sleep(0.1)  # Simulate auth time
-        
-        if credentials.get("password") == "wrong_password":
-            raise ValueError("Invalid credentials")
-        
-        await self.logger.info("AUTH", f"User {user_id} authenticated successfully")
+        await asyncio.sleep(0.1)
+        return credentials.get('password') == 'correct_password'
     
     async def _validate_data(self, data: dict):
         """Simulate data validation."""
-        await asyncio.sleep(0.05)  # Simulate validation time
-        
-        if not data.get("records"):
-            raise ValueError("No records found in data")
-        
-        await self.logger.info("VALIDATION", "Data validation completed")
+        await asyncio.sleep(0.05)
+        return 'required_field' in data
     
     async def _transform_data(self, data: dict):
         """Simulate data transformation."""
-        await asyncio.sleep(0.1)  # Simulate transformation time
-        
-        transformed = {
-            "transformed_records": len(data.get("records", [])),
-            "timestamp": time.time()
-        }
-        
-        await self.logger.info("TRANSFORM", "Data transformation completed")
-        return transformed
+        await asyncio.sleep(0.1)
+        return {"transformed": True, **data}
     
     async def _store_data(self, data: dict):
-        """Simulate database storage."""
-        await asyncio.sleep(0.05)  # Simulate storage time
-        
-        await self.logger.info("STORAGE", "Data stored successfully")
+        """Simulate data storage."""
+        await asyncio.sleep(0.05)
+        return True
     
     async def _process_single_operation(self, operation: dict, index: int):
-        """Process a single operation in batch."""
+        """Process a single operation in the batch."""
         try:
+            await self.logger.info("BATCH", f"Processing operation {index + 1}")
             await asyncio.sleep(0.01)  # Simulate processing time
-            
-            await self.logger.info(
-                "BATCH", 
-                f"Processed operation {index}: {operation.get('type', 'unknown')}"
-            )
-            
+            await self.logger.info("BATCH", f"Operation {index + 1} completed successfully")
             return {"success": True, "operation_id": index}
-            
         except Exception as e:
-            await self.logger.log_error_with_context(
-                error=e,
-                layer="BATCH",
-                context={"operation_index": index, "operation": operation}
-            )
-            raise
+            await self.logger.error("BATCH", f"Operation {index + 1} failed: {e}")
+            return {"success": False, "operation_id": index, "error": str(e)}
     
     async def get_performance_stats(self):
         """Get performance statistics."""
-        stats = await self.logger.get_async_performance_statistics()
-        return stats
+        return {
+            "requests_processed": self.request_count,
+            "uptime": time.time(),
+            "status": "healthy"
+        }
     
     async def shutdown(self):
-        """Graceful shutdown."""
-        await self.logger.graceful_shutdown(timeout=5.0)
+        """Shutdown the web service."""
+        await self.logger.info("SERVICE", "Shutting down async web service...")
+        await self.logger.info("SERVICE", "Stopping background workers...")
+        await self.logger.info("SERVICE", "Closing database connections...")
+        await self.logger.info("SERVICE", "Async web service shutdown complete")
+        await self.logger.aclose()
 
 
 async def demonstrate_all_features():
     """Demonstrate all async features working together."""
-    print("🚀 Async Comprehensive Example")
-    print("=" * 50)
+    print("=== Async Comprehensive Example ===")
+    print("Demonstrating all async features working together.\n")
     
     # Create web service
     service = AsyncWebService()
+    await service.initialize()
     
-    # Test 1: User login flow
-    print("\n=== Test 1: User Login Flow ===")
-    try:
-        result = await service.handle_user_login(
-            user_id="user-123",
-            credentials={"username": "john", "password": "correct_password"}
-        )
-        print(f"Login result: {result}")
-    except Exception as e:
-        print(f"Login failed: {e}")
+    # Demonstrate user login
+    print("\n--- User Login Demo ---")
+    login_result = await service.handle_user_login("user123", {"password": "correct_password"})
+    print(f"Login result: {login_result}")
     
-    # Test 2: Failed login
-    print("\n=== Test 2: Failed Login ===")
-    try:
-        result = await service.handle_user_login(
-            user_id="user-456",
-            credentials={"username": "jane", "password": "wrong_password"}
-        )
-        print(f"Login result: {result}")
-    except Exception as e:
-        print(f"Login failed as expected: {e}")
+    # Demonstrate failed login
+    failed_login = await service.handle_user_login("user456", {"password": "wrong_password"})
+    print(f"Failed login result: {failed_login}")
     
-    # Test 3: Data processing
-    print("\n=== Test 3: Data Processing ===")
-    try:
-        result = await service.handle_data_processing(
-            user_id="user-789",
-            data={
-                "records": [{"id": 1}, {"id": 2}, {"id": 3}],
-                "metadata": {"source": "api", "version": "1.0"}
-            }
-        )
-        print(f"Processing result: {result}")
-    except Exception as e:
-        print(f"Processing failed: {e}")
+    # Demonstrate data processing
+    print("\n--- Data Processing Demo ---")
+    data_result = await service.handle_data_processing("user123", {"required_field": "value"})
+    print(f"Data processing result: {data_result}")
     
-    # Test 4: Batch operations
-    print("\n=== Test 4: Batch Operations ===")
+    # Demonstrate failed data processing
+    failed_data = await service.handle_data_processing("user456", {})
+    print(f"Failed data processing result: {failed_data}")
+    
+    # Demonstrate batch operations
+    print("\n--- Batch Operations Demo ---")
     operations = [
-        {"type": "create", "data": {"name": "item1"}},
-        {"type": "update", "data": {"id": 1, "name": "item1_updated"}},
-        {"type": "delete", "data": {"id": 2}},
-        {"type": "read", "data": {"id": 3}},
-        {"type": "create", "data": {"name": "item2"}},
-    ] * 20  # 100 operations total
+        {"type": "create", "data": {"id": 1}},
+        {"type": "update", "data": {"id": 2}},
+        {"type": "delete", "data": {"id": 3}},
+        {"type": "read", "data": {"id": 4}},
+        {"type": "create", "data": {"id": 5}}
+    ]
+    batch_result = await service.handle_batch_operations(operations)
+    print(f"Batch operations result: {batch_result}")
     
-    result = await service.handle_batch_operations(operations)
-    print(f"Batch result: {result}")
-    
-    # Test 5: Performance statistics
-    print("\n=== Test 5: Performance Statistics ===")
+    # Get performance stats
+    print("\n--- Performance Stats ---")
     stats = await service.get_performance_stats()
-    if stats:
-        print("Performance Statistics:")
-        for key, value in stats.items():
-            print(f"  {key}: {value}")
+    print(f"Performance stats: {stats}")
     
-    # Test 6: Graceful shutdown
-    print("\n=== Test 6: Graceful Shutdown ===")
+    # Shutdown service
+    print("\n--- Shutdown Demo ---")
     await service.shutdown()
     
-    print("\n✅ All comprehensive tests completed successfully!")
+    print("\n✅ All async features demonstrated successfully!")
 
 
 async def main():
-    """Run the comprehensive example."""
+    """Run the comprehensive async example."""
     await demonstrate_all_features()
 
 

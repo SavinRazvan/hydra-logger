@@ -120,8 +120,8 @@ class TestFallbackHandler:
         """Test FallbackHandler error handling."""
         handler = FallbackHandler()
         
-        # Test with invalid path
-        result = handler.safe_write_json({"test": "data"}, "/invalid/path/test.json")
+        # Test with invalid path that should definitely fail
+        result = handler.safe_write_json({"test": "data"}, "/root/invalid/path/test.json")
         assert result is False
 
     def test_fallback_handler_multiple_operations(self):
@@ -1230,9 +1230,9 @@ class TestFallbacksComprehensive:
             lines = f.readlines()
             assert len(lines) == 2
 
-    def test_async_functions(self):
+    @pytest.mark.asyncio
+    async def test_async_functions(self):
         """Test async fallback functions."""
-        import asyncio
         from hydra_logger.data_protection.fallbacks import (
             async_safe_write_json,
             async_safe_write_csv,
@@ -1240,30 +1240,26 @@ class TestFallbacksComprehensive:
             async_safe_read_csv
         )
         
-        async def test_async_functions():
-            # Test async_safe_write_json
-            test_data = {"key": "value"}
-            result = await async_safe_write_json(test_data, self.test_file)
-            assert result is True
-            
-            # Test async_safe_read_json
-            read_result = await async_safe_read_json(self.test_file)
-            assert read_result is not None
-            assert read_result["key"] == "value"
-            
-            # Test async_safe_write_csv
-            test_records = [{"name": "John", "age": 30}]
-            result = await async_safe_write_csv(test_records, self.test_file)
-            assert result is True
-            
-            # Test async_safe_read_csv
-            read_result = await async_safe_read_csv(self.test_file)
-            assert read_result is not None
-            assert len(read_result) == 1
-            assert read_result[0]["name"] == "John"
+        # Test async_safe_write_json
+        test_data = {"key": "value"}
+        result = await async_safe_write_json(test_data, self.test_file)
+        assert result is True
         
-        # Run async test
-        asyncio.run(test_async_functions())
+        # Test async_safe_read_json
+        read_result = await async_safe_read_json(self.test_file)
+        assert read_result is not None
+        assert read_result["key"] == "value"
+        
+        # Test async_safe_write_csv
+        test_records = [{"name": "John", "age": 30}]
+        result = await async_safe_write_csv(test_records, self.test_file)
+        assert result is True
+        
+        # Test async_safe_read_csv
+        read_result = await async_safe_read_csv(self.test_file)
+        assert read_result is not None
+        assert len(read_result) == 1
+        assert read_result[0]["name"] == "John"
 
     def test_clear_all_caches(self):
         """Test clear_all_caches function."""

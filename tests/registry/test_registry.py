@@ -6,8 +6,9 @@ including all edge cases, error conditions, and global functions.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, PropertyMock
 from typing import Type
+import re
 
 from hydra_logger.plugins.registry import (
     PluginRegistry,
@@ -23,8 +24,7 @@ from hydra_logger.core.exceptions import PluginError
 
 class TestPlugin:
     """Test plugin class for testing."""
-    def __init__(self):
-        pass
+    pass
 
 
 class TestAnalyticsPlugin:
@@ -250,24 +250,46 @@ class TestPluginRegistryComprehensive:
     def test_load_plugin_from_path_attribute_error(self):
         """Test loading plugin with attribute error."""
         with patch('importlib.import_module') as mock_import:
-            mock_module = MagicMock()
+            # Create a custom mock that raises AttributeError when getattr is called
+            class MockModule:
+                def __getattr__(self, name):
+                    raise AttributeError("No attribute")
+            
+            mock_module = MockModule()
             mock_import.return_value = mock_module
             
-            # Mock getattr to raise AttributeError
-            with patch('builtins.getattr', side_effect=AttributeError("No attribute")):
-                with pytest.raises(PluginError, match="Failed to load plugin 'TestPlugin' from 'test.module': No attribute"):
-                    self.registry.load_plugin_from_path("TestPlugin", "test.module")
+            with pytest.raises(PluginError, match="Failed to load plugin 'TestPlugin' from 'test.module': No attribute"):
+                self.registry.load_plugin_from_path("TestPlugin", "test.module")
     
     def test_load_plugin_from_path_general_exception(self):
         """Test loading plugin with general exception."""
         with patch('importlib.import_module') as mock_import:
-            mock_module = MagicMock()
+            # Create a custom mock that raises Exception when getattr is called
+            class MockModule:
+                def __getattr__(self, name):
+                    raise Exception("General error")
+            
+            mock_module = MockModule()
             mock_import.return_value = mock_module
             
-            # Mock getattr to raise general exception
-            with patch('builtins.getattr', side_effect=Exception("General error")):
-                with pytest.raises(PluginError, match="Failed to load plugin 'TestPlugin' from 'test.module': General error"):
-                    self.registry.load_plugin_from_path("TestPlugin", "test.module")
+            with pytest.raises(PluginError, match="Failed to load plugin 'TestPlugin' from 'test.module': General error"):
+                self.registry.load_plugin_from_path("TestPlugin", "test.module")
+    
+    def test_load_plugin_with_complex_exception(self):
+        """Test loading plugin with complex exception message."""
+        with patch('importlib.import_module') as mock_import:
+            complex_error = ValueError("Complex error with special chars: !@#$%^&*()")
+            
+            # Create a custom mock that raises the complex exception when getattr is called
+            class MockModule:
+                def __getattr__(self, name):
+                    raise complex_error
+            
+            mock_module = MockModule()
+            mock_import.return_value = mock_module
+            
+            with pytest.raises(PluginError, match=re.escape(f"Failed to load plugin 'TestPlugin' from 'test.module': {complex_error}")):
+                self.registry.load_plugin_from_path("TestPlugin", "test.module")
     
     def test_thread_safety(self):
         """Test thread safety of plugin registry."""
@@ -409,8 +431,16 @@ class TestRegistryEdgeCases:
     
     def test_register_plugin_with_exception_in_registration(self):
         """Test registration when an exception occurs during the registration process."""
-        # Mock the registry to simulate an exception during registration
-        with patch.object(self.registry, '_plugins', side_effect=Exception("Registration failed")):
+        # Create a mock that raises an exception when __setitem__ is called
+        original_dict = self.registry._analytics_plugins
+        mock_dict = MagicMock()
+        mock_dict.__setitem__ = MagicMock(side_effect=Exception("Registration failed"))
+        mock_dict.__getitem__ = original_dict.__getitem__
+        mock_dict.get = original_dict.get
+        mock_dict.copy = original_dict.copy
+        mock_dict.clear = original_dict.clear
+        
+        with patch.object(self.registry, '_analytics_plugins', mock_dict):
             with pytest.raises(PluginError, match="Failed to register plugin 'test': Registration failed"):
                 self.registry.register_plugin("test", TestPlugin, "analytics")
     
@@ -444,18 +474,6 @@ class TestRegistryEdgeCases:
         result = self.registry.unregister_plugin("test")
         assert result is True
         assert "test" not in self.registry._plugins
-    
-    def test_load_plugin_with_complex_exception(self):
-        """Test loading plugin with complex exception message."""
-        with patch('importlib.import_module') as mock_import:
-            mock_module = MagicMock()
-            # Create a complex exception
-            complex_error = ValueError("Complex error with special chars: !@#$%^&*()")
-            mock_module.TestPlugin = MagicMock(side_effect=complex_error)
-            mock_import.return_value = mock_module
-            
-            with pytest.raises(PluginError, match=f"Failed to load plugin 'TestPlugin' from 'test.module': {complex_error}"):
-                self.registry.load_plugin_from_path("TestPlugin", "test.module")
     
     def test_concurrent_access_simulation(self):
         """Test concurrent access simulation for thread safety."""

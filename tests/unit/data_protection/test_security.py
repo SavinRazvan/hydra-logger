@@ -307,17 +307,17 @@ class TestSecurityIntegration:
 
     def setup_method(self):
         """Setup test environment."""
-        self.test_logs_dir = "_tests_logs"
+        import tempfile
+        self.test_logs_dir = tempfile.mkdtemp(prefix="hydra_security_test_")
         import os
-        os.makedirs(self.test_logs_dir, exist_ok=True)
         self.log_file = os.path.join(self.test_logs_dir, "test_security.log")
 
     def teardown_method(self):
         """Cleanup test files."""
         import os
         import shutil
-        if os.path.exists(self.test_logs_dir):
-            shutil.rmtree(self.test_logs_dir)
+        if hasattr(self, 'test_logs_dir') and os.path.exists(self.test_logs_dir):
+            shutil.rmtree(self.test_logs_dir, ignore_errors=True)
 
     def test_logger_with_security_enabled(self):
         """Test logger with security features enabled."""

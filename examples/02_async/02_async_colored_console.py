@@ -2,71 +2,48 @@
 """
 Async Colored Console Example
 
-This example demonstrates async logging with colored console output:
-- AsyncHydraLogger with colored console
-- Async logging with color mode control
-- Color mode control for async operations
+This example demonstrates async logging with colored console output.
+Shows how to use AsyncHydraLogger with enhanced visual formatting.
 """
 
 import asyncio
 from hydra_logger.async_hydra import AsyncHydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-async def demo_async_colored_console():
-    """Demonstrate async logging with colored console output."""
+
+async def main():
+    print("=== Async Colored Console Example ===")
+    print("Async logging with colored console output.\n")
     
-    print("Async Colored Console Example")
-    print("=" * 50)
+    # Create async logger with colored console configuration
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Configuration for async colored console using LoggingConfig
-    config = LoggingConfig(
-        layers={
-            "ASYNC": LogLayer(
-                level="INFO",
-                destinations=[
-                    LogDestination(
-                        type="console",
-                        format="plain-text",
-                        level="INFO",
-                        color_mode="always"
-                    )
-                ]
-            )
-        }
-    )
-    
-    # Create async logger
-    logger = AsyncHydraLogger(config=config)
-    
-    # Initialize the async logger
+    logger = AsyncHydraLogger(config)
     await logger.initialize()
     
-    print("Starting async logging with colors...")
+    # Log messages with different levels (colors will be applied automatically)
+    await logger.info("APP", "Application started successfully")
+    await logger.debug("CONFIG", "Configuration loaded from environment")
+    await logger.warning("PERF", "Memory usage is approaching threshold")
+    await logger.error("SECURITY", "Failed login attempt detected")
+    await logger.critical("SYSTEM", "Critical system error - immediate attention required")
     
-    # Log messages asynchronously with colors
-    await logger.info("ASYNC", "Async logger started")
-    await logger.info("ASYNC", "Processing user request")
-    await logger.warning("ASYNC", "High CPU usage detected")
-    await logger.error("ASYNC", "Network timeout")
+    # Log some structured data
+    await logger.info("USER", "User john.doe@example.com logged in")
+    await logger.info("API", "API request to /api/users completed in 150ms")
+    await logger.info("DB", "Database query executed successfully")
     
-    # Simulate concurrent logging
-    print("\nSimulating concurrent async logging...")
+    await logger.aclose()
     
-    # Create multiple concurrent log operations
-    tasks = []
-    for i in range(5):
-        task = logger.info("ASYNC", f"Concurrent task {i+1}")
-        tasks.append(task)
-    
-    # Execute all tasks concurrently
-    await asyncio.gather(*tasks)
-    
-    print("\nAll concurrent tasks completed!")
-    
-    # Close the async logger
-    await logger.close()
-    
-    print("Async colored console example completed!")
+    print("\n✅ Colored console example completed!")
+    print("Check the console output above to see the colored async logs.")
+
 
 if __name__ == "__main__":
-    asyncio.run(demo_async_colored_console()) 
+    asyncio.run(main()) 

@@ -264,3 +264,4 @@ Thumbs.db
 config.local.yaml
 config.local.toml
 .env.local_tests_logs/
+.coveragerc

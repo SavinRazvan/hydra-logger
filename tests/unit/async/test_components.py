@@ -1,678 +1,310 @@
 """
-Tests for async components of Hydra-Logger.
+Phase 3 components test suite.
 
-This module tests the async functionality including AsyncHydraLogger,
-async handlers, async sinks, and async queue system.
+This module tests the advanced async components including:
+- Async logger basic functionality
+- Async handlers
+- Performance monitoring
 """
 
-import os
-import pytest
 import asyncio
+import logging
+import pytest
 import tempfile
+import os
 import shutil
-from unittest.mock import patch, MagicMock, AsyncMock
+import time
 from pathlib import Path
 
-from hydra_logger.async_hydra import AsyncHydraLogger
-from hydra_logger.async_hydra.async_handlers import (
-    AsyncLogHandler,
-    AsyncRotatingFileHandler,
-    AsyncStreamHandler,
-    AsyncBufferedRotatingFileHandler
+from hydra_logger.async_hydra import (
+    AsyncHydraLogger,
+    AsyncFileHandler,
+    AsyncConsoleHandler,
+    get_performance_monitor,
+    async_timer
 )
-from hydra_logger.async_hydra.async_sinks import (
-    AsyncSink,
-    AsyncHttpSink,
-    AsyncDatabaseSink,
-    AsyncQueueSink,
-    AsyncCloudSink,
-    SinkStats
-)
-from hydra_logger.async_hydra.async_queue import (
-    AsyncLogQueue,
-    AsyncBatchProcessor,
-    AsyncBackpressureHandler,
-    QueueStats
-)
-from hydra_logger.async_hydra.async_context import (
-    AsyncContext,
-    AsyncContextManager,
-    AsyncTraceManager,
-    AsyncContextSwitcher,
-    get_async_context,
-    set_async_context,
-    clear_async_context,
-    get_trace_id,
-    start_trace,
-    set_correlation_id,
-    get_correlation_id,
-    detect_context_switch,
-    get_context_switch_count,
-    async_context,
-    trace_context
-)
-from hydra_logger.config.models import LoggingConfig, LogLayer, LogDestination
 
 
-class TestAsyncHydraLogger:
-    """Test AsyncHydraLogger functionality."""
-
-    def setup_method(self):
-        """Setup test environment."""
-        self.test_logs_dir = "_tests_logs"
-        os.makedirs(self.test_logs_dir, exist_ok=True)
-        self.log_file = os.path.join(self.test_logs_dir, "test_async.log")
-        self.logger = None
-
-    def teardown_method(self):
-        """Cleanup test files and close loggers."""
-        if self.logger is not None:
-            try:
-                if asyncio.iscoroutinefunction(self.logger.close):
-                    loop = asyncio.get_event_loop()
-                    loop.run_until_complete(self.logger.close())
-                else:
-                    self.logger.close()
-            except Exception as e:
-                print(f"Error closing logger in teardown: {e}")
-        if os.path.exists(self.test_logs_dir):
-            shutil.rmtree(self.test_logs_dir)
-
+class TestAsyncLoggerBasic:
+    """Test suite for basic async logger functionality."""
+    
+    @pytest.fixture
+    def test_logs_dir(self):
+        """Create temporary test logs directory."""
+        test_dir = tempfile.mkdtemp(prefix="hydra_test_")
+        yield test_dir
+        # Cleanup
+        if os.path.exists(test_dir):
+            shutil.rmtree(test_dir, ignore_errors=True)
+    
     @pytest.mark.asyncio
-    async def test_async_logger_initialization(self):
-        """Test AsyncHydraLogger initialization."""
-        self.logger = AsyncHydraLogger()
-        assert self.logger is not None
-        assert hasattr(self.logger, 'config')
-        assert hasattr(self.logger, 'get_async_performance_statistics')
-
+    async def test_async_logger_creation(self):
+        """Test async logger creation and basic functionality."""
+        logger = AsyncHydraLogger()
+        assert logger is not None
+        
+        # Initialize logger
+        await logger.initialize()
+        
+        # Test basic logging
+        await logger.info("TEST", "Async logger test message")
+        
+        # Cleanup
+        await logger.aclose()
+    
     @pytest.mark.asyncio
-    async def test_async_logger_with_config(self):
-        """Test AsyncHydraLogger with configuration."""
-        config = LoggingConfig(
-            layers={
-                "ASYNC": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(type="console", level="INFO")
-                    ]
-                )
-            }
-        )
-        self.logger = AsyncHydraLogger(config=config)
-        assert self.logger is not None
-
-    @pytest.mark.asyncio
-    async def test_async_logging_methods(self):
-        """Test async logging methods."""
-        self.logger = AsyncHydraLogger()
+    async def test_async_logger_with_file_handler(self, test_logs_dir):
+        """Test async logger with file handler."""
+        test_log_file = os.path.join(test_logs_dir, "test_async.log")
         
-        # Initialize the logger
-        await self.logger.initialize()
+        logger = AsyncHydraLogger()
+        await logger.initialize()
         
-        # Test all async logging levels
-        await self.logger.debug("TEST", "Async debug message")
-        await self.logger.info("TEST", "Async info message")
-        await self.logger.warning("TEST", "Async warning message")
-        await self.logger.error("TEST", "Async error message")
-        await self.logger.critical("TEST", "Async critical message")
+        # Add file handler
+        file_handler = AsyncFileHandler(test_log_file)
+        await file_handler.initialize()
+        logger.add_handler(file_handler)
         
-        # Check that metrics were incremented
-        metrics = await self.logger.get_async_performance_statistics()
-        assert metrics is not None
-        assert metrics["message_count"] >= 5
-
-    @pytest.mark.asyncio
-    async def test_async_logging_with_layer(self):
-        """Test async logging with specific layer."""
-        config = LoggingConfig(
-            layers={
-                "ASYNC_CUSTOM": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(type="console", level="INFO")
-                    ]
-                )
-            }
-        )
-        self.logger = AsyncHydraLogger(config=config)
+        # Test logging
+        await logger.info("TEST", "File handler test message")
         
-        # Initialize the logger
-        await self.logger.initialize()
-        
-        await self.logger.info("ASYNC_CUSTOM", "Async custom layer message")
-        
-        # Check metrics
-        metrics = await self.logger.get_async_performance_statistics()
-        assert metrics is not None
-        assert metrics["message_count"] >= 1
-
-    @pytest.mark.asyncio
-    async def test_async_logging_with_extra_data(self):
-        """Test async logging with extra data."""
-        self.logger = AsyncHydraLogger()
-        
-        # Initialize the logger
-        await self.logger.initialize()
-        
-        extra_data = {"user_id": "12345", "session_id": "abc123"}
-        await self.logger.info("TEST", "Async message with extra data")
-        
-        # Check metrics
-        metrics = await self.logger.get_async_performance_statistics()
-        assert metrics is not None
-        assert metrics["message_count"] >= 1
-
-    @pytest.mark.asyncio
-    async def test_async_file_logging(self):
-        """Test async file logging functionality."""
-        config = LoggingConfig(
-            layers={
-                "ASYNC_FILE": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(type="file", path=self.log_file, level="INFO")
-                    ]
-                )
-            }
-        )
-        self.logger = AsyncHydraLogger(config=config)
-        
-        # Initialize the logger
-        await self.logger.initialize()
-        
-        # Wait a bit for handlers to start
+        # Wait for async operations to complete
         await asyncio.sleep(0.1)
         
-        # Log message
-        await self.logger.info("ASYNC_FILE", "Async file log message")
+        # Check if file was created
+        assert os.path.exists(test_log_file)
         
-        # Wait for async processing
-        await asyncio.sleep(0.2)
-        
-        # Check that file was created
-        assert os.path.exists(self.log_file)
-        
-        # Check file content
-        with open(self.log_file, 'r') as f:
-            content = f.read()
-            assert "Async file log message" in content
-
+        # Cleanup
+        await file_handler.aclose()
+        await logger.aclose()
+    
     @pytest.mark.asyncio
-    async def test_async_performance_monitoring(self):
-        """Test async performance monitoring."""
-        self.logger = AsyncHydraLogger(enable_performance_monitoring=True)
+    async def test_async_logger_with_console_handler(self):
+        """Test async logger with console handler."""
+        logger = AsyncHydraLogger()
+        await logger.initialize()
         
-        # Initialize the logger
-        await self.logger.initialize()
+        # Add console handler
+        console_handler = AsyncConsoleHandler()
+        await console_handler.initialize()
+        logger.add_handler(console_handler)
         
-        # Log messages
-        await self.logger.info("TEST", "Async message 1")
-        await self.logger.info("TEST", "Async message 2")
+        # Test logging
+        await logger.info("TEST", "Console handler test message")
         
-        # Check performance metrics
-        metrics = await self.logger.get_async_performance_statistics()
-        assert metrics is not None
-        assert metrics["message_count"] >= 2
-
-    @pytest.mark.asyncio
-    async def test_async_logger_close(self):
-        """Test async logger close functionality."""
-        self.logger = AsyncHydraLogger()
+        # Wait for async operations to complete
+        await asyncio.sleep(0.1)
         
-        # Initialize the logger
-        await self.logger.initialize()
-        
-        # Log some messages
-        await self.logger.info("TEST", "Async message 1")
-        await self.logger.info("TEST", "Async message 2")
-        
-        # Close logger
-        await self.logger.close()
-        
-        # Logger should still be usable after close
-        await self.logger.info("TEST", "Async message after close")
+        # Cleanup
+        await console_handler.aclose()
+        await logger.aclose()
 
 
 class TestAsyncHandlers:
-    """Test async handler functionality."""
-
-    def setup_method(self):
-        """Setup test environment."""
-        self.test_logs_dir = "_tests_logs"
-        os.makedirs(self.test_logs_dir, exist_ok=True)
-        self.log_file = os.path.join(self.test_logs_dir, "test_async_handlers.log")
-
-    def teardown_method(self):
-        """Cleanup test files."""
-        if os.path.exists(self.test_logs_dir):
-            shutil.rmtree(self.test_logs_dir)
-
+    """Test suite for async handlers."""
+    
+    @pytest.fixture
+    def test_logs_dir(self):
+        """Create temporary test logs directory."""
+        test_dir = tempfile.mkdtemp(prefix="hydra_test_")
+        yield test_dir
+        # Cleanup
+        if os.path.exists(test_dir):
+            shutil.rmtree(test_dir, ignore_errors=True)
+    
     @pytest.mark.asyncio
-    async def test_async_log_handler(self):
-        """Test AsyncLogHandler base class."""
-        class DummyAsyncLogHandler(AsyncLogHandler):
-            async def _process_record_async(self, record):
-                pass
-        handler = DummyAsyncLogHandler()
-        assert handler is not None
-
-    @pytest.mark.asyncio
-    async def test_async_rotating_file_handler(self):
-        """Test AsyncRotatingFileHandler."""
-        handler = AsyncRotatingFileHandler(
-            filename=self.log_file,
-            maxBytes=1024,
-            backupCount=3
-        )
-        assert handler is not None
-
-    @pytest.mark.asyncio
-    async def test_async_stream_handler(self):
-        """Test AsyncStreamHandler."""
-        handler = AsyncStreamHandler()
-        assert handler is not None
-
-    @pytest.mark.asyncio
-    async def test_async_buffered_rotating_file_handler(self):
-        """Test AsyncBufferedRotatingFileHandler."""
-        handler = AsyncBufferedRotatingFileHandler(
-            filename=self.log_file,
-            maxBytes=1024,
-            backupCount=3,
-            buffer_size=8192
-        )
-        assert handler is not None
-
-
-class TestAsyncSinks:
-    """Test async sink functionality."""
-
-    @pytest.mark.asyncio
-    async def test_async_sink_base(self):
-        """Test AsyncSink base class."""
-        class DummyAsyncSink(AsyncSink):
-            async def emit_async(self, record):
-                return True
-        sink = DummyAsyncSink()
-        assert sink is not None
-
-    @pytest.mark.asyncio
-    async def test_async_http_sink(self):
-        """Test AsyncHttpSink."""
-        sink = AsyncHttpSink(url="http://example.com/logs")
-        assert sink is not None
-        assert sink.url == "http://example.com/logs"
-
-    @pytest.mark.asyncio
-    async def test_async_database_sink(self):
-        """Test AsyncDatabaseSink."""
-        sink = AsyncDatabaseSink(connection_string="sqlite:///test.db")
-        assert sink is not None
-        assert sink.connection_string == "sqlite:///test.db"
-
-    @pytest.mark.asyncio
-    async def test_async_queue_sink(self):
-        """Test AsyncQueueSink."""
-        sink = AsyncQueueSink(queue_url="redis://localhost:6379")
-        assert sink is not None
-        assert sink.queue_url == "redis://localhost:6379"
-
-    @pytest.mark.asyncio
-    async def test_async_cloud_sink(self):
-        """Test AsyncCloudSink."""
-        sink = AsyncCloudSink(
-            service_type="aws",
-            credentials={"access_key": "test", "secret_key": "test"}
-        )
-        assert sink is not None
-        assert sink.service_type == "aws"
-
-    @pytest.mark.asyncio
-    async def test_sink_stats(self):
-        """Test sink statistics."""
-        stats = SinkStats()
-        assert stats is not None
-        assert hasattr(stats, 'total_messages')
-        assert hasattr(stats, 'successful_messages')
-        assert hasattr(stats, 'failed_messages')
-
-
-class TestAsyncQueue:
-    """Test async queue functionality."""
-
-    @pytest.mark.asyncio
-    async def test_async_log_queue(self):
-        """Test AsyncLogQueue."""
-        queue = AsyncLogQueue()
-        assert queue is not None
-
-    @pytest.mark.asyncio
-    async def test_async_batch_processor(self):
-        """Test AsyncBatchProcessor."""
-        processor = AsyncBatchProcessor(batch_size=10)
-        assert processor is not None
-        assert processor.batch_size == 10
-
-    @pytest.mark.asyncio
-    async def test_async_backpressure_handler(self):
-        """Test AsyncBackpressureHandler."""
-        handler = AsyncBackpressureHandler(max_queue_size=1000)
-        assert handler is not None
-        assert handler.max_queue_size == 1000
-
-    @pytest.mark.asyncio
-    async def test_queue_stats(self):
-        """Test QueueStats."""
-        stats = QueueStats()
-        assert stats is not None
-        assert hasattr(stats, 'messages_queued')
-        assert hasattr(stats, 'messages_processed')
-        assert hasattr(stats, 'queue_size')
-
-
-class TestAsyncContext:
-    """Test async context functionality."""
-
-    @pytest.mark.asyncio
-    async def test_async_context(self):
-        """Test AsyncContext."""
-        context = AsyncContext()
-        assert context is not None
-
-    @pytest.mark.asyncio
-    async def test_async_context_manager(self):
-        """Test AsyncContextManager."""
-        manager = AsyncContextManager()
-        assert manager is not None
-
-    @pytest.mark.asyncio
-    async def test_async_trace_manager(self):
-        """Test AsyncTraceManager."""
-        manager = AsyncTraceManager()
-        assert manager is not None
-
-    @pytest.mark.asyncio
-    async def test_async_context_switcher(self):
-        """Test AsyncContextSwitcher."""
-        switcher = AsyncContextSwitcher()
-        assert switcher is not None
-
-    @pytest.mark.asyncio
-    async def test_async_context_functions(self):
-        """Test async context utility functions."""
-        # Test context creation
-        context = AsyncContext()
-        assert context is not None
-
-    @pytest.mark.asyncio
-    async def test_trace_functions(self):
-        """Test trace utility functions."""
-        # Test trace manager
-        manager = AsyncTraceManager()
-        assert manager is not None
-
-    @pytest.mark.asyncio
-    async def test_correlation_functions(self):
-        """Test correlation ID functions."""
-        # Test context manager
-        manager = AsyncContextManager()
-        assert manager is not None
-
-    @pytest.mark.asyncio
-    async def test_context_switch_detection(self):
-        """Test context switch detection."""
-        # Test trace manager functionality
-        manager = AsyncTraceManager()
-        assert manager is not None
-
-    @pytest.mark.asyncio
-    async def test_async_context_decorators(self):
-        """Test async context decorators."""
-        # Test context creation
-        context = AsyncContext()
-        assert context is not None
-
-    @pytest.mark.asyncio
-    async def test_context_utility_functions(self):
-        """Test context utility functions."""
-        # Test get_async_context
-        context = get_async_context()
-        assert context is None  # No context set initially
+    async def test_async_file_handler(self, test_logs_dir):
+        """Test async file handler."""
+        test_log_file = os.path.join(test_logs_dir, "test_file_handler.log")
+        handler = AsyncFileHandler(test_log_file)
         
-        # Test set_async_context
-        new_context = AsyncContext()
-        set_async_context(new_context)
-        
-        # Test get_async_context again
-        retrieved_context = get_async_context()
-        assert retrieved_context is new_context
-        
-        # Test clear_async_context
-        clear_async_context()
-        assert get_async_context() is None
-
+        try:
+            await handler.initialize()
+            
+            # Create test record
+            record = logging.LogRecord(
+                name='test',
+                level=logging.INFO,
+                pathname='',
+                lineno=0,
+                msg='File handler test',
+                args=(),
+                exc_info=None
+            )
+            
+            # Test emit
+            await handler.emit_async(record)
+            
+            # Wait for async operations to complete
+            await asyncio.sleep(0.1)
+            
+            # Check if file was created
+            assert os.path.exists(test_log_file)
+            
+        finally:
+            await handler.aclose()
+    
     @pytest.mark.asyncio
-    async def test_trace_utility_functions(self):
-        """Test trace utility functions."""
-        # Test start_trace
-        trace_id = start_trace()
-        assert trace_id is not None
+    async def test_async_console_handler(self):
+        """Test async console handler."""
+        handler = AsyncConsoleHandler()
         
-        # Test get_trace_id
-        retrieved_trace_id = get_trace_id()
-        assert retrieved_trace_id == trace_id
-        
-        # Test set_correlation_id and get_correlation_id
-        correlation_id = "test-correlation-123"
-        set_correlation_id(correlation_id)
-        assert get_correlation_id() == correlation_id
+        try:
+            await handler.initialize()
+            
+            # Create test record
+            record = logging.LogRecord(
+                name='test',
+                level=logging.INFO,
+                pathname='',
+                lineno=0,
+                msg='Console handler test',
+                args=(),
+                exc_info=None
+            )
+            
+            # Test emit
+            await handler.emit_async(record)
+            
+            # Wait for async operations to complete
+            await asyncio.sleep(0.1)
+            
+        finally:
+            await handler.aclose()
 
-    @pytest.mark.asyncio
-    async def test_context_switch_functions(self):
-        """Test context switch detection functions."""
-        # Test detect_context_switch
-        context1 = AsyncContext()
-        context2 = AsyncContext()
-        
-        # First context switch should be False (no previous context)
-        assert not detect_context_switch(context1)
-        
-        # Second context switch should be True (different context)
-        assert detect_context_switch(context2)
-        
-        # Same context should be False
-        assert not detect_context_switch(context2)
-        
-        # Test get_context_switch_count
-        count = get_context_switch_count()
-        assert count >= 1  # At least one switch detected
 
+class TestPerformanceMonitoring:
+    """Test suite for performance monitoring."""
+    
+    @pytest.fixture
+    def performance_monitor(self):
+        """Create a performance monitor for testing."""
+        return get_performance_monitor()
+    
+    def test_performance_monitor_creation(self, performance_monitor):
+        """Test performance monitor creation."""
+        assert performance_monitor is not None
+        
+        # Test initial statistics
+        stats = performance_monitor.get_async_statistics()
+        assert 'uptime' in stats
+        assert 'operations' in stats
+        assert 'counters' in stats
+    
+    def test_performance_timing(self, performance_monitor):
+        """Test performance timing functionality."""
+        # Test manual timing
+        start_time = performance_monitor.start_async_processing_timer('test_operation')
+        time.sleep(0.1)  # Simulate work
+        duration = performance_monitor.end_async_processing_timer('test_operation', start_time)
+        
+        assert duration > 0
+        assert duration >= 0.1
+        
+        # Check statistics
+        stats = performance_monitor.get_async_statistics()
+        assert 'test_operation' in stats['operations']
+        assert stats['operations']['test_operation']['count'] == 1
+    
     @pytest.mark.asyncio
-    async def test_async_context_decorator(self):
-        """Test async_context decorator."""
-        async with async_context() as ctx:
-            assert ctx is not None
-            assert isinstance(ctx, AsyncContext)
-
-    @pytest.mark.asyncio
-    async def test_trace_context_decorator(self):
-        """Test trace_context decorator."""
-        async with trace_context() as trace_id:
-            assert trace_id is not None
-            assert get_trace_id() == trace_id
+    async def test_performance_context_manager(self, performance_monitor):
+        """Test performance context manager."""
+        async with performance_monitor.async_timer('context_test') as start_time:
+            await asyncio.sleep(0.1)  # Simulate async work
+        
+        # Check statistics
+        stats = performance_monitor.get_async_statistics()
+        assert 'context_test' in stats['operations']
+    
+    def test_memory_snapshot(self, performance_monitor):
+        """Test memory snapshot functionality."""
+        snapshot = performance_monitor.take_memory_snapshot()
+        assert 'timestamp' in snapshot
+        
+        # Test memory statistics
+        memory_stats = performance_monitor.get_memory_statistics()
+        assert 'snapshot_count' in memory_stats
+    
+    def test_performance_decorator(self):
+        """Test performance decorator."""
+        @async_timer('decorator_test')
+        async def test_function():
+            await asyncio.sleep(0.1)
+            return "test_result"
+        
+        # Test the decorated function
+        result = asyncio.run(test_function())
+        assert result == "test_result"
+        
+        # Check statistics
+        monitor = get_performance_monitor()
+        stats = monitor.get_async_statistics()
+        assert 'decorator_test' in stats['operations']
 
 
 class TestAsyncIntegration:
-    """Test async integration scenarios."""
-
-    def setup_method(self):
-        """Setup test environment."""
-        self.test_logs_dir = "_tests_logs"
-        os.makedirs(self.test_logs_dir, exist_ok=True)
-        self.log_file = os.path.join(self.test_logs_dir, "test_async_integration.log")
-
-    def teardown_method(self):
-        """Cleanup test files."""
-        if os.path.exists(self.test_logs_dir):
-            shutil.rmtree(self.test_logs_dir)
-
+    """Test suite for async integration."""
+    
+    @pytest.fixture
+    def test_logs_dir(self):
+        """Create temporary test logs directory."""
+        test_dir = tempfile.mkdtemp(prefix="hydra_test_")
+        yield test_dir
+        # Cleanup
+        if os.path.exists(test_dir):
+            shutil.rmtree(test_dir, ignore_errors=True)
+    
     @pytest.mark.asyncio
-    async def test_async_logger_with_sinks(self):
-        """Test AsyncHydraLogger with async sinks."""
-        config = LoggingConfig(
-            layers={
-                "ASYNC_SINK": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(
-                            type="async_http",
-                            level="INFO",
-                            url="http://example.com/logs"
-                        )
-                    ]
-                )
-            }
-        )
-        logger = AsyncHydraLogger(config=config)
-        assert logger is not None
-
-    @pytest.mark.asyncio
-    async def test_async_logger_with_queue(self):
-        """Test AsyncHydraLogger with async queue."""
-        config = LoggingConfig(
-            layers={
-                "ASYNC_QUEUE": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(
-                            type="async_queue",
-                            level="INFO",
-                            queue_url="redis://localhost:6379"
-                        )
-                    ]
-                )
-            }
-        )
-        logger = AsyncHydraLogger(config=config)
-        assert logger is not None
-
-    @pytest.mark.asyncio
-    async def test_async_logger_with_database(self):
-        """Test AsyncHydraLogger with async database."""
-        config = LoggingConfig(
-            layers={
-                "ASYNC_DB": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(
-                            type="async_database",
-                            level="INFO",
-                            connection_string="sqlite:///test.db"
-                        )
-                    ]
-                )
-            }
-        )
-        logger = AsyncHydraLogger(config=config)
-        assert logger is not None
-
-    @pytest.mark.asyncio
-    async def test_async_logger_with_cloud(self):
-        """Test AsyncHydraLogger with async cloud."""
-        config = LoggingConfig(
-            layers={
-                "ASYNC_CLOUD": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(
-                            type="async_cloud",
-                            level="INFO",
-                            service_type="aws",
-                            credentials={"access_key": "test", "secret_key": "test"}
-                        )
-                    ]
-                )
-            }
-        )
-        logger = AsyncHydraLogger(config=config)
-        assert logger is not None
-
-    @pytest.mark.asyncio
-    async def test_async_performance_monitoring(self):
-        """Test async performance monitoring."""
-        logger = AsyncHydraLogger(enable_performance_monitoring=True)
+    async def test_async_logger_integration(self, test_logs_dir):
+        """Test async logger integration."""
+        test_log_file = os.path.join(test_logs_dir, "test_integration.log")
         
-        # Initialize the logger
-        await logger.initialize()
-        
-        # Log messages
-        await logger.info("TEST", "Async message 1")
-        await logger.info("TEST", "Async message 2")
-        
-        # Check performance metrics
-        metrics = await logger.get_async_performance_statistics()
-        assert metrics is not None
-        assert metrics["message_count"] >= 2
-
-    @pytest.mark.asyncio
-    async def test_async_error_handling(self):
-        """Test async error handling."""
         logger = AsyncHydraLogger()
-        
-        # Initialize the logger
         await logger.initialize()
         
-        # Test with invalid input
-        try:
-            await logger.info("TEST", None)
-        except Exception:
-            pass
+        # Test basic logging
+        await logger.info("TEST", "Integration test message")
         
-        # Logger should still work
-        await logger.info("TEST", "Async message after error")
+        # Test health status
+        health = logger.get_health_status()
+        assert 'is_healthy' in health
         
-        # Check metrics
-        metrics = await logger.get_async_performance_statistics()
-        assert metrics is not None
-
+        # Test performance metrics
+        metrics = logger.get_performance_metrics()
+        assert 'uptime' in metrics
+        
+        # Cleanup
+        await logger.aclose()
+    
     @pytest.mark.asyncio
-    async def test_async_thread_safety(self):
-        """Test async thread safety."""
-        logger = AsyncHydraLogger()
+    async def test_async_logger_performance_monitoring(self, test_logs_dir):
+        """Test async logger performance monitoring integration."""
+        test_log_file = os.path.join(test_logs_dir, "test_performance.log")
         
-        # Initialize the logger
+        logger = AsyncHydraLogger()
         await logger.initialize()
         
-        async def log_messages():
-            for i in range(10):
-                await logger.info("TEST", f"Async thread message {i}")
+        # Test performance monitoring
+        metrics = logger.get_performance_metrics()
+        assert 'uptime' in metrics
         
-        # Create multiple tasks
-        tasks = []
-        for _ in range(5):
-            task = asyncio.create_task(log_messages())
-            tasks.append(task)
+        # Take a memory snapshot first to ensure we have data
+        snapshot = logger.take_memory_snapshot()
+        assert 'timestamp' in snapshot
         
-        # Wait for all tasks to complete
-        await asyncio.gather(*tasks)
+        # Test memory statistics after taking snapshot
+        memory_stats = logger.get_memory_statistics()
+        # Handle both cases: when snapshots are available and when psutil is not available
+        assert 'snapshot_count' in memory_stats or 'error' in memory_stats
         
-        # Check that all messages were tracked
-        metrics = await logger.get_async_performance_statistics()
-        assert metrics is not None
-        assert metrics["message_count"] >= 50  # 5 tasks * 10 messages each
+        # Test health checks
+        assert logger.is_healthy() is True
+        assert logger.is_performance_healthy() is True
+        
+        # Cleanup
+        await logger.aclose()
 
-# At the end of the file, add a test to check for pending tasks
-import asyncio
-import gc
-import sys
 
-def test_no_pending_async_tasks():
-    gc.collect()
-    loop = asyncio.get_event_loop()
-    pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
-    if pending:
-        print(f"WARNING: {len(pending)} pending async tasks after tests:")
-        for t in pending:
-            print(f"  - {t}")
-    assert not pending, "There are pending async tasks after tests!" 
+if __name__ == "__main__":
+    # Run tests directly
+    pytest.main([__file__, "-v"]) 

@@ -233,7 +233,7 @@ logger.info("AUTH", "Login attempt",
 **Performance Capabilities**
 
 - **High-Performance Mode**: Optimized for maximum throughput
-- **Ultra-Fast Mode**: Maximum performance optimization
+- **Bare Metal Mode**: Maximum performance optimization
 - **Buffered Operations**: Efficient file and network logging
 - **Async Capabilities**: Non-blocking concurrent logging
 - **Memory Optimization**: Reduced memory footprint

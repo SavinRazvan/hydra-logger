@@ -2,331 +2,260 @@
 """
 Async Convenience Methods Example
 
-This example demonstrates all the convenience methods for common logging patterns:
-- HTTP request logging
-- User action logging
-- Error logging with context
-- Performance logging
-- Context injection
+This example demonstrates convenience methods for common logging scenarios.
+Shows how to use AsyncHydraLogger for HTTP requests, user actions, and errors.
 """
 
 import asyncio
 import time
-from hydra_logger.async_hydra.async_logger import AsyncHydraLogger
+from hydra_logger.async_hydra import AsyncHydraLogger
 
 
 async def http_request_logging():
     """Demonstrate HTTP request logging."""
-    print("\n=== HTTP Request Logging ===")
+    print("=== HTTP Request Logging ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Successful GET request
-    await logger.log_request(
-        request_id="req-200",
-        method="GET",
-        path="/api/users",
-        status_code=200,
-        duration=0.15
-    )
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Successful POST request
-    await logger.log_request(
-        request_id="req-201",
-        method="POST",
-        path="/api/users",
-        status_code=201,
-        duration=0.25
-    )
+    # Simulate HTTP request logging
+    request_id = "req-12345"
+    user_id = "user-67890"
     
-    # Failed request
-    await logger.log_request(
-        request_id="req-404",
-        method="GET",
-        path="/api/nonexistent",
-        status_code=404,
-        duration=0.05
-    )
+    await logger.info("HTTP", f"Request started - ID: {request_id}, User: {user_id}")
+    await logger.info("HTTP", f"Request method: GET, Path: /api/users/{user_id}")
+    await logger.info("HTTP", f"Request headers: Content-Type=application/json, Authorization=Bearer ***")
     
-    # Slow request
-    await logger.log_request(
-        request_id="req-500",
-        method="POST",
-        path="/api/complex-operation",
-        status_code=500,
-        duration=2.5
-    )
+    # Simulate processing time
+    await asyncio.sleep(0.1)
+    
+    await logger.info("HTTP", f"Response status: 200 OK, Response time: 150ms")
+    await logger.info("HTTP", f"Response body size: 2.5KB, Cache hit: false")
+    await logger.info("HTTP", f"Request completed - ID: {request_id}")
+    
+    await logger.aclose()
 
 
 async def user_action_logging():
     """Demonstrate user action logging."""
     print("\n=== User Action Logging ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Successful user actions
-    await logger.log_user_action(
-        user_id="user-123",
-        action="login",
-        resource="auth",
-        success=True
-    )
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    await logger.log_user_action(
-        user_id="user-456",
-        action="create_account",
-        resource="user_management",
-        success=True
-    )
+    # Simulate user action logging
+    user_id = "user-12345"
+    session_id = "session-67890"
     
-    await logger.log_user_action(
-        user_id="user-789",
-        action="update_profile",
-        resource="profile",
-        success=True
-    )
+    await logger.info("USER", f"User {user_id} logged in - Session: {session_id}")
+    await logger.info("USER", f"User {user_id} navigated to /dashboard")
+    await logger.info("USER", f"User {user_id} updated profile information")
+    await logger.info("USER", f"User {user_id} uploaded file: document.pdf (2.3MB)")
+    await logger.info("USER", f"User {user_id} shared document with user-67890")
+    await logger.info("USER", f"User {user_id} logged out - Session: {session_id}")
     
-    # Failed user actions
-    await logger.log_user_action(
-        user_id="user-999",
-        action="login",
-        resource="auth",
-        success=False
-    )
-    
-    await logger.log_user_action(
-        user_id="user-888",
-        action="delete_account",
-        resource="user_management",
-        success=False
-    )
+    await logger.aclose()
 
 
 async def error_logging_with_context():
     """Demonstrate error logging with context."""
     print("\n=== Error Logging with Context ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
-    
-    # Database error
-    try:
-        raise ConnectionError("Database connection timeout")
-    except Exception as e:
-        await logger.log_error_with_context(
-            error=e,
-            layer="ERROR",
-            context={
-                "operation": "user_creation",
-                "database": "postgres",
-                "connection_pool": "main",
-                "retry_count": 3
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
             }
-        )
+        ]
+    }
     
-    # Validation error
-    try:
-        raise ValueError("Invalid email format")
-    except Exception as e:
-        await logger.log_error_with_context(
-            error=e,
-            layer="VALIDATION",
-            context={
-                "operation": "user_registration",
-                "field": "email",
-                "value": "invalid-email",
-                "validation_rule": "email_format"
-            }
-        )
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # External service error
+    # Simulate error scenarios with context
     try:
-        raise TimeoutError("Payment service timeout")
+        # Simulate a database error
+        await logger.error("DATABASE", "Connection timeout - Database: postgres, Pool: main")
+        await logger.error("DATABASE", "Query failed - SQL: SELECT * FROM users WHERE id = ?, Params: [12345]")
+        await logger.error("DATABASE", "Retry attempt 1/3 - Backoff: 1s")
+        
+        # Simulate an API error
+        await logger.error("API", "External API call failed - Service: payment-gateway, Endpoint: /charge")
+        await logger.error("API", "HTTP 500 Internal Server Error - Response: {'error': 'service_unavailable'}")
+        await logger.error("API", "Circuit breaker opened - Service: payment-gateway, Threshold: 5 failures")
+        
+        # Simulate a validation error
+        await logger.error("VALIDATION", "Invalid input data - Field: email, Value: invalid-email, Rule: email_format")
+        await logger.error("VALIDATION", "Missing required field - Field: password, Context: user_registration")
+        
     except Exception as e:
-        await logger.log_error_with_context(
-            error=e,
-            layer="EXTERNAL",
-            context={
-                "operation": "payment_processing",
-                "service": "stripe",
-                "endpoint": "/v1/charges",
-                "timeout_seconds": 30
-            }
-        )
+        await logger.critical("SYSTEM", f"Unexpected error: {e}")
+    
+    await logger.aclose()
 
 
 async def performance_logging():
     """Demonstrate performance logging."""
     print("\n=== Performance Logging ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Fast operations
-    await logger.log_performance(
-        operation="cache_lookup",
-        duration=0.005,
-        layer="PERFORMANCE"
-    )
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    await logger.log_performance(
-        operation="database_query",
-        duration=0.15,
-        layer="PERFORMANCE"
-    )
+    # Simulate performance metrics
+    await logger.info("PERFORMANCE", "Memory usage: 45% (1.2GB/2.7GB)")
+    await logger.info("PERFORMANCE", "CPU usage: 23% (4 cores, 2.4GHz)")
+    await logger.info("PERFORMANCE", "Database connections: 15/20 active")
+    await logger.info("PERFORMANCE", "Cache hit rate: 78% (1,234 hits, 345 misses)")
+    await logger.info("PERFORMANCE", "Average response time: 125ms (p95: 250ms)")
+    await logger.info("PERFORMANCE", "Requests per second: 150 (peak: 200)")
     
-    # Normal operations
-    await logger.log_performance(
-        operation="user_authentication",
-        duration=0.5,
-        layer="PERFORMANCE"
-    )
-    
-    await logger.log_performance(
-        operation="file_upload",
-        duration=1.2,
-        layer="PERFORMANCE"
-    )
-    
-    # Slow operations (will trigger warnings)
-    await logger.log_performance(
-        operation="complex_calculation",
-        duration=3.5,
-        layer="PERFORMANCE"
-    )
-    
-    # Very slow operations (will trigger errors)
-    await logger.log_performance(
-        operation="data_export",
-        duration=8.0,
-        layer="PERFORMANCE"
-    )
+    await logger.aclose()
 
 
 async def context_injection_example():
-    """Demonstrate automatic context injection."""
-    print("\n=== Context Injection ===")
+    """Demonstrate context injection in logging."""
+    print("\n=== Context Injection Example ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Set up correlation context
-    logger.set_correlation_context("req-300", user_id="user-300", session_id="session-300")
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Set up logger context
-    logger.set_logger_context(environment="production", service="user-service")
+    # Simulate context injection
+    request_context = {
+        "request_id": "req-abc123",
+        "user_id": "user-xyz789",
+        "session_id": "session-def456",
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
     
-    # Log with automatic context injection
-    await logger.log_with_context(
-        layer="API",
-        level="INFO",
-        message="Processing user request",
-        operation="user_authentication",
-        custom_field="custom_value"
-    )
+    await logger.info("CONTEXT", f"Request context: {request_context}")
+    await logger.info("CONTEXT", f"Processing request with ID: {request_context['request_id']}")
+    await logger.info("CONTEXT", f"User session: {request_context['session_id']}")
+    await logger.info("CONTEXT", f"Client IP: {request_context['ip_address']}")
     
-    # Log with additional context
-    await logger.log_with_context(
-        layer="DATABASE",
-        level="INFO",
-        message="Executing query",
-        table="users",
-        query_type="SELECT",
-        custom_field="another_value"
-    )
-    
-    # Clear contexts
-    logger.clear_correlation_context()
-    logger.clear_logger_context()
+    await logger.aclose()
 
 
 async def nested_context_example():
-    """Demonstrate nested context management."""
-    print("\n=== Nested Context Management ===")
+    """Demonstrate nested context logging."""
+    print("\n=== Nested Context Example ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Outer context
-    with logger.correlation_context("outer-req", user_id="outer-user"):
-        await logger.info("OUTER", "Outer context active")
-        
-        # Inner context
-        with logger.correlation_context("inner-req", session_id="inner-session"):
-            await logger.info("INNER", "Inner context active")
-            
-            # Deepest context
-            with logger.logger_context(operation="deep_operation"):
-                await logger.info("DEEP", "Deepest context active")
-                
-                # Use convenience methods in nested context
-                await logger.log_user_action(
-                    user_id="nested-user",
-                    action="nested_action",
-                    resource="nested_resource",
-                    success=True
-                )
-            
-            await logger.info("INNER", "Back to inner context")
-        
-        await logger.info("OUTER", "Back to outer context")
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    await logger.info("SYSTEM", "All contexts cleared")
+    # Simulate nested context
+    await logger.info("OUTER", "Starting outer operation")
+    
+    # Inner context 1
+    await logger.info("INNER1", "Starting inner operation 1")
+    await logger.info("INNER1", "Processing step 1.1")
+    await logger.info("INNER1", "Processing step 1.2")
+    await logger.info("INNER1", "Completed inner operation 1")
+    
+    # Inner context 2
+    await logger.info("INNER2", "Starting inner operation 2")
+    await logger.info("INNER2", "Processing step 2.1")
+    await logger.info("INNER2", "Processing step 2.2")
+    await logger.info("INNER2", "Completed inner operation 2")
+    
+    await logger.info("OUTER", "Completed outer operation")
+    
+    await logger.aclose()
 
 
 async def real_world_scenario():
-    """Demonstrate a real-world scenario using all features."""
+    """Demonstrate a real-world logging scenario."""
     print("\n=== Real-World Scenario ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Simulate a user login flow
-    request_id = "req-login-001"
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Start request
-    await logger.log_request(
-        request_id=request_id,
-        method="POST",
-        path="/api/auth/login",
-        status_code=200,
-        duration=0.8
-    )
+    # Simulate a complete user journey
+    user_id = "user-12345"
+    order_id = "order-67890"
     
-    # Set correlation context
-    with logger.correlation_context(request_id, user_id="user-123", session_id="session-456"):
-        # User action
-        await logger.log_user_action(
-            user_id="user-123",
-            action="login",
-            resource="auth",
-            success=True
-        )
-        
-        # Performance metrics
-        await logger.log_performance(
-            operation="password_verification",
-            duration=0.1,
-            layer="PERFORMANCE"
-        )
-        
-        await logger.log_performance(
-            operation="session_creation",
-            duration=0.05,
-            layer="PERFORMANCE"
-        )
-        
-        # Context injection
-        await logger.log_with_context(
-            layer="SECURITY",
-            level="INFO",
-            message="User login successful",
-            ip_address="192.168.1.100",
-            user_agent="Mozilla/5.0"
-        )
+    # User login
+    await logger.info("AUTH", f"User {user_id} attempting login")
+    await logger.info("AUTH", f"User {user_id} authenticated successfully")
     
-    print("✅ Real-world scenario completed successfully!")
+    # Browse products
+    await logger.info("USER", f"User {user_id} browsing products")
+    await logger.info("USER", f"User {user_id} viewed product: laptop-xyz")
+    await logger.info("USER", f"User {user_id} added product to cart: laptop-xyz")
+    
+    # Checkout process
+    await logger.info("ORDER", f"User {user_id} started checkout process")
+    await logger.info("PAYMENT", f"Processing payment for user {user_id}, order {order_id}")
+    await logger.info("PAYMENT", f"Payment successful for order {order_id}, amount: $999.99")
+    await logger.info("ORDER", f"Order {order_id} confirmed for user {user_id}")
+    
+    # Order fulfillment
+    await logger.info("FULFILLMENT", f"Order {order_id} queued for processing")
+    await logger.info("FULFILLMENT", f"Order {order_id} shipped via FedEx, tracking: 123456789")
+    await logger.info("USER", f"User {user_id} received shipping confirmation")
+    
+    await logger.aclose()
 
 
 async def main():
     """Run all convenience method examples."""
-    print("🚀 Async Convenience Methods Examples")
-    print("=" * 50)
+    print("=== Async Convenience Methods Examples ===")
+    print("Demonstrating various convenience methods for common scenarios.\n")
     
     await http_request_logging()
     await user_action_logging()
@@ -336,7 +265,8 @@ async def main():
     await nested_context_example()
     await real_world_scenario()
     
-    print("\n✅ All convenience method examples completed successfully!")
+    print("\n✅ All convenience method examples completed!")
+    print("Check the console output above to see the async logs.")
 
 
 if __name__ == "__main__":

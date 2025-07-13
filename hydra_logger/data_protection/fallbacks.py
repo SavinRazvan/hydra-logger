@@ -184,7 +184,16 @@ class CorruptionDetector:
         file_path = str(file_path)
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                csv.reader(f)
+                reader = csv.reader(f)
+                # Actually try to read the file to detect corruption
+                rows = list(reader)
+                # Check if we can read at least one row and the content is reasonable
+                if not rows:
+                    return False
+                # Check for null bytes or other corruption indicators
+                content = Path(file_path).read_text(encoding='utf-8', errors='ignore')
+                if '\x00' in content:
+                    return False
             return True
         except (csv.Error, FileNotFoundError, UnicodeDecodeError):
             return False
@@ -235,7 +244,7 @@ class AtomicWriter:
             # Clean up temp file on error
             if temp_file.exists():
                 temp_file.unlink()
-            raise e
+            return False
     
     @classmethod
     def write_json_lines_atomic(cls, records: List[Dict[str, Any]], 
@@ -257,7 +266,7 @@ class AtomicWriter:
             # Clean up temp file on error
             if temp_file.exists():
                 temp_file.unlink()
-            raise e
+            return False
     
     @classmethod
     def write_csv_atomic(cls, records: List[Dict[str, Any]], 
@@ -281,7 +290,7 @@ class AtomicWriter:
             # Clean up temp file on error
             if temp_file.exists():
                 temp_file.unlink()
-            raise e
+            return False
 
 
 class BackupManager:
@@ -315,6 +324,8 @@ class BackupManager:
             return None
         
         if self._backup_dir:
+            # Create backup directory if it doesn't exist
+            self._backup_dir.mkdir(parents=True, exist_ok=True)
             backup_path = self._backup_dir / f"{file_path.stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{suffix}"
         else:
             backup_path = file_path.with_suffix(f'{file_path.suffix}{suffix}')
@@ -375,7 +386,7 @@ class DataRecovery:
             # Try to fix common JSON issues
             content = content.strip()
             if not content:
-                return []
+                return None
             
             # Try to parse as JSON
             try:
@@ -387,32 +398,41 @@ class DataRecovery:
                 lines = content.split('\n')
                 for line in lines:
                     line = line.strip()
-                    if line:
-                        try:
-                            obj = json.loads(line)
-                            recovered.append(obj)
-                        except json.JSONDecodeError:
-                            continue
-                return recovered
-                
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                        recovered.append(obj)
+                    except Exception:
+                        continue
+                # If nothing could be recovered, return None
+                return recovered if recovered else None
         except Exception as e:
             if self._logger:
                 self._logger.error(f"Failed to recover JSON file {file_path}: {e}")
             return None
     
     def recover_csv_file(self, file_path: Union[str, Path]) -> Optional[List[Dict[str, Any]]]:
-        """Recover data from corrupted CSV file."""
+        """Recover data from corrupted CSV file with strict integrity validation."""
         file_path = Path(file_path)
         if not file_path.exists():
             return None
-        
         try:
-            recovered = []
+            content = file_path.read_text(encoding='utf-8', errors='ignore')
+            if '\x00' in content:
+                return None
             with open(file_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
+                header = reader.fieldnames
+                if not header:
+                    return None
+                records = []
                 for row in reader:
-                    recovered.append(row)
-            return recovered
+                    # Strict validation: all keys must match header, no None values
+                    if set(row.keys()) != set(header) or any(v is None for v in row.values()):
+                        return None
+                    records.append(row)
+                return None if not records else records
         except Exception as e:
             if self._logger:
                 self._logger.error(f"Failed to recover CSV file {file_path}: {e}")
@@ -625,6 +645,9 @@ class FallbackHandler:
                     if recovered_data and self._logger:
                         self._logger.info(f"Successfully recovered data from {file_path}")
                         return recovered_data
+                    elif recovered_data is None and self._logger:
+                        self._logger.warning(f"Recovery failed for {file_path}")
+                        return None
                 
                 # Try to restore from backup
                 if self._backup_manager:
@@ -643,6 +666,9 @@ class FallbackHandler:
                                 return records
                             except Exception:
                                 pass
+                
+                # If corruption detected and no recovery/backup available, return None
+                return None
             
             # Normal read
             try:

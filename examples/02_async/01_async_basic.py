@@ -28,7 +28,7 @@ async def main():
     await logger.critical("SYSTEM", "System shutdown initiated")
     
     # Close the logger
-    await logger.close()
+    await logger.aclose()
     
     print("\n✅ Basic async example completed!")
     print("Check the console output above to see the async logs.")

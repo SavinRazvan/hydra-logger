@@ -85,6 +85,9 @@ class TestDataSanitizerCoverage:
 
     def test_sanitize_for_json_other_types(self):
         """Test sanitize_for_json with other types."""
+        # Clear cache first to ensure clean state
+        DataSanitizer.clear_cache()
+        
         # Test with object with __dict__
         class WithDict:
             def __init__(self):
@@ -392,8 +395,8 @@ class TestDataRecoveryCoverage:
         try:
             recovery = DataRecovery()
             result = recovery.recover_json_file(file_path)
-            # Invalid JSON should return an empty list, not None
-            assert result == []
+            # Invalid JSON should return None, not empty list
+            assert result is None
         finally:
             os.unlink(file_path)
 

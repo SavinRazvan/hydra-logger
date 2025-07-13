@@ -1,72 +1,81 @@
+#!/usr/bin/env python3
 """
-Example: Custom Magic Config System (Sync & Async)
+Basic Magic Configs Example
 
-Demonstrates how to register, list, and use custom and built-in magic configs
-with both HydraLogger and AsyncHydraLogger.
+This example demonstrates how to use built-in magic configs with HydraLogger.
+Shows how to use production, development, and other pre-configured setups.
 """
 
-import asyncio
-from hydra_logger import HydraLogger, LoggingConfig
-from hydra_logger.config import LogLayer, LogDestination
-from hydra_logger.async_hydra import AsyncHydraLogger
+from hydra_logger import HydraLogger
 
-# --- Register a custom magic config for sync logger ---
-@HydraLogger.register_magic("my_sync_app", description="Custom config for my sync app")
-def my_sync_config():
-    return LoggingConfig(
-        layers={
-            "FRONTEND": LogLayer(
-                level="INFO",
-                destinations=[
-                    LogDestination(type="console", format="plain-text", color_mode="always")
-                ]
-            )
-        }
-    )
 
-# --- Register a custom magic config for async logger ---
-@AsyncHydraLogger.register_magic("my_async_app", description="Custom config for my async app")
-def my_async_config():
-    return LoggingConfig(
-        layers={
-            "BACKEND": LogLayer(
-                level="INFO",
-                destinations=[
-                    LogDestination(type="console", format="plain-text", color_mode="always")
-                ]
-            )
-        }
-    )
-
-print("\n=== List of Available Magic Configs ===")
-print(HydraLogger.list_magic_configs())
-
-# --- Using built-in magic configs (sync) ---
-print("\n=== Logging with Built-in Production Config (Sync) ===")
-logger_prod = HydraLogger.for_production()
-logger_prod.info("FRONTEND", "This is a production log message.")
-
-# --- Using custom magic config (sync) ---
-print("\n=== Logging with Custom Magic Config (Sync) ===")
-logger_custom = HydraLogger.for_custom("my_sync_app")
-logger_custom.info("FRONTEND", "This is a custom sync magic config log message.")
-
-# --- Async usage ---
-async def async_demo():
-    print("\n=== Logging with Built-in Development Config (Async) ===")
-    async_logger_dev = AsyncHydraLogger.for_development()
-    await async_logger_dev.initialize()
-    await async_logger_dev.info("BACKEND", "This is an async development log message.")
-
-    print("\n=== Logging with Custom Magic Config (Async) ===")
-    async_logger_custom = AsyncHydraLogger.for_custom("my_async_app")
-    await async_logger_custom.initialize()
-    await async_logger_custom.info("BACKEND", "This is a custom async magic config log message.")
+def demo_basic_magic_configs():
+    """Demonstrate basic magic config usage."""
     
-    # Close the loggers
-    await async_logger_dev.close()
-    await async_logger_custom.close()
+    print("=== Basic Magic Configs Example ===")
+    print("Demonstrating built-in magic configurations.\n")
+    
+    # List available magic configs
+    print("Available Magic Configs:")
+    configs = HydraLogger.list_magic_configs()
+    for name, description in configs.items():
+        print(f"  - {name}: {description}")
+    print()
+    
+    # Production configuration
+    print("--- Production Configuration ---")
+    logger_prod = HydraLogger.for_production()
+    logger_prod.info("APP", "Application started in production mode")
+    logger_prod.info("SECURITY", "Security monitoring enabled")
+    logger_prod.info("PERFORMANCE", "Performance tracking active")
+    logger_prod.close()
+    
+    # Development configuration
+    print("\n--- Development Configuration ---")
+    logger_dev = HydraLogger.for_development()
+    logger_dev.info("APP", "Application started in development mode")
+    logger_dev.debug("DEBUG", "Debug information available")
+    logger_dev.info("DEV", "Development features enabled")
+    logger_dev.close()
+    
+    # Testing configuration
+    print("\n--- Testing Configuration ---")
+    logger_test = HydraLogger.for_testing()
+    logger_test.info("TEST", "Test environment initialized")
+    logger_test.info("TEST", "Test logging active")
+    logger_test.close()
+    
+    # Microservice configuration
+    print("\n--- Microservice Configuration ---")
+    logger_micro = HydraLogger.for_microservice()
+    logger_micro.info("SERVICE", "Microservice started")
+    logger_micro.info("HEALTH", "Health checks enabled")
+    logger_micro.close()
+    
+    # Web app configuration
+    print("\n--- Web App Configuration ---")
+    logger_web = HydraLogger.for_web_app()
+    logger_web.info("WEB", "Web application started")
+    logger_web.info("REQUEST", "Request logging enabled")
+    logger_web.close()
+    
+    # API service configuration
+    print("\n--- API Service Configuration ---")
+    logger_api = HydraLogger.for_api_service()
+    logger_api.info("API", "API service started")
+    logger_api.info("AUTH", "Authentication logging enabled")
+    logger_api.close()
+    
+    # Background worker configuration
+    print("\n--- Background Worker Configuration ---")
+    logger_worker = HydraLogger.for_background_worker()
+    logger_worker.info("WORKER", "Background worker started")
+    logger_worker.info("TASK", "Task processing enabled")
+    logger_worker.close()
+    
+    print("\n✅ All magic config examples completed!")
+    print("Each configuration is optimized for its specific use case.")
+
 
 if __name__ == "__main__":
-    # Run async demo
-    asyncio.run(async_demo()) 
+    demo_basic_magic_configs() 

@@ -1,0 +1,277 @@
+{
+  "summary": {
+    "total_tests": 17,
+    "successful_tests": 17,
+    "failed_tests": 0,
+    "best_performance": 84752.77133713545,
+    "worst_performance": 3116.566332893549,
+    "average_performance": 27254.834224962266,
+    "best_duration": 0.11799024199717678,
+    "worst_duration": 4.072795153999323,
+    "average_duration": 1.0015183577056366
+  },
+  "results": {
+    "HydraLogger Sync Default Console": {
+      "duration": 1.1080546759985737,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Default Console",
+        "memory_before_mb": 38.44921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.25,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Default_Console_20250713_224806.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Default File": {
+      "duration": 0.3290408229986497,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Default File",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Default_File_20250713_224808.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Production Console": {
+      "duration": 0.9370973660006712,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Production Console",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Production_Console_20250713_224810.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Development Console": {
+      "duration": 0.9219779650011333,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Development Console",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Development_Console_20250713_224812.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Background Worker Console": {
+      "duration": 0.12290926900095656,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Background Worker Console",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Background_Worker_Console_20250713_224814.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Microservice Console": {
+      "duration": 0.11799024199717678,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Microservice Console",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Microservice_Console_20250713_224815.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Web App Console": {
+      "duration": 0.14142379099939717,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Web App Console",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Web_App_Console_20250713_224817.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync API Service Console": {
+      "duration": 0.14945538800020586,
+      "memory_info": {
+        "test_name": "HydraLogger Sync API Service Console",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_API_Service_Console_20250713_224818.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Minimal Features Console": {
+      "duration": 0.8024558360011724,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Minimal Features Console",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Minimal_Features_Console_20250713_224820.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Minimal Features File": {
+      "duration": 0.8071569989988348,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Minimal Features File",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Minimal_Features_File_20250713_224822.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Bare Metal Console": {
+      "duration": 0.8292393669980811,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Bare Metal Console",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Bare_Metal_Console_20250713_224824.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Bare Metal File": {
+      "duration": 0.8377931600007287,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Bare Metal File",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Bare_Metal_File_20250713_224826.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Security Features": {
+      "duration": 0.8437684550008271,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Security Features",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Security_Features_20250713_224828.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Multi-Layer": {
+      "duration": 3.2086594449974655,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Multi-Layer",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Multi_Layer_20250713_224830.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Centralized": {
+      "duration": 1.0020391370017023,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Centralized",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Centralized_20250713_224834.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Sync Large Messages": {
+      "duration": 0.7939550080009212,
+      "memory_info": {
+        "test_name": "HydraLogger Sync Large Messages",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Sync_Large_Messages_20250713_224836.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    },
+    "HydraLogger Stress Test": {
+      "duration": 4.072795153999323,
+      "memory_info": {
+        "test_name": "HydraLogger Stress Test",
+        "memory_before_mb": 38.69921875,
+        "memory_after_mb": 38.69921875,
+        "memory_diff_mb": 0.0,
+        "potential_leak": false,
+        "leak_threshold_mb": 10.0
+      },
+      "success": true,
+      "log_file": "benchmarks/logs/hydra_sync/HydraLogger_Stress_Test_20250713_224839.txt",
+      "logs_folder": "benchmarks/logs/hydra_sync",
+      "results_folder": "benchmarks/results/hydra_sync"
+    }
+  },
+  "memory_leaks": [],
+  "timestamp": 1752436124.1915991,
+  "test_config": {
+    "iterations": 10000,
+    "stress_iterations": 50000,
+    "warmup_iterations": 100
+  }
+}

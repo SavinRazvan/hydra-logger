@@ -2,195 +2,196 @@
 """
 Async Structured Logging Example
 
-This example demonstrates structured logging capabilities with:
-- JSON, XML, and custom formats
-- Correlation IDs and request tracing
-- Context management and injection
-- Rich metadata and context fields
+This example demonstrates structured logging with JSON, XML, and correlation IDs.
+Shows how to use AsyncHydraLogger for structured logging scenarios.
 """
 
 import asyncio
-import time
-from hydra_logger.async_hydra.async_logger import AsyncHydraLogger
+import json
+import uuid
+from datetime import datetime
+from hydra_logger.async_hydra import AsyncHydraLogger
 
 
 async def json_structured_logging():
     """Demonstrate JSON structured logging."""
-    print("\n=== JSON Structured Logging ===")
+    print("=== JSON Structured Logging ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Basic JSON structured log
-    await logger.log_structured(
-        layer="API",
-        level="INFO",
-        message="User authentication successful",
-        correlation_id="req-123",
-        context={
-            "user_id": "user-456",
-            "method": "oauth",
-            "provider": "google",
-            "ip_address": "192.168.1.100"
-        },
-        format="json"
-    )
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Error with context
-    await logger.log_structured(
-        layer="ERROR",
-        level="ERROR",
-        message="Database connection failed",
-        correlation_id="req-124",
-        context={
-            "database": "postgres",
-            "operation": "user_creation",
-            "retry_count": 3,
-            "error_code": "CONNECTION_TIMEOUT"
-        },
-        format="json"
-    )
+    # Log structured JSON data
+    user_data = {
+        "user_id": "12345",
+        "email": "john.doe@example.com",
+        "action": "login",
+        "timestamp": datetime.now().isoformat(),
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
     
-    # Performance metric
-    await logger.log_structured(
-        layer="PERFORMANCE",
-        level="INFO",
-        message="Database query executed",
-        correlation_id="req-125",
-        context={
-            "query": "SELECT * FROM users WHERE id = ?",
-            "duration_ms": 45.2,
-            "rows_returned": 1,
-            "cache_hit": False
-        },
-        format="json"
-    )
+    await logger.info("USER", json.dumps(user_data))
+    
+    # Log API request data
+    api_data = {
+        "request_id": str(uuid.uuid4()),
+        "method": "POST",
+        "endpoint": "/api/users",
+        "status_code": 201,
+        "response_time_ms": 150,
+        "request_size_bytes": 1024,
+        "response_size_bytes": 512
+    }
+    
+    await logger.info("API", json.dumps(api_data))
+    
+    await logger.aclose()
 
 
 async def xml_structured_logging():
     """Demonstrate XML structured logging."""
     print("\n=== XML Structured Logging ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': False
+            }
+        ]
+    }
     
-    # Security event in XML
-    await logger.log_structured(
-        layer="SECURITY",
-        level="WARNING",
-        message="Failed login attempt",
-        correlation_id="req-126",
-        context={
-            "ip": "192.168.1.101",
-            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            "attempt_count": 5,
-            "username": "admin",
-            "reason": "invalid_password"
-        },
-        format="xml"
-    )
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Audit trail in XML
-    await logger.log_structured(
-        layer="AUDIT",
-        level="INFO",
-        message="User permissions modified",
-        correlation_id="req-127",
-        context={
-            "admin_user": "admin-123",
-            "target_user": "user-789",
-            "permissions_added": ["read", "write"],
-            "permissions_removed": ["delete"],
-            "reason": "role_change"
-        },
-        format="xml"
-    )
+    # Log structured XML data
+    xml_data = f"""<log>
+        <timestamp>{datetime.now().isoformat()}</timestamp>
+        <level>INFO</level>
+        <layer>DATABASE</layer>
+        <message>Database connection established</message>
+        <details>
+            <connection_id>db_conn_001</connection_id>
+            <pool_size>10</pool_size>
+            <active_connections>3</active_connections>
+        </details>
+    </log>"""
+    
+    await logger.info("DATABASE", xml_data)
+    
+    await logger.aclose()
 
 
 async def dict_structured_logging():
-    """Demonstrate dict structured logging."""
-    print("\n=== Dict Structured Logging ===")
+    """Demonstrate dictionary structured logging."""
+    print("\n=== Dictionary Structured Logging ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Business event
-    await logger.log_structured(
-        layer="BUSINESS",
-        level="INFO",
-        message="Order placed successfully",
-        correlation_id="req-128",
-        context={
-            "order_id": "ORD-2024-001",
-            "customer_id": "CUST-456",
-            "total_amount": 299.99,
-            "currency": "USD",
-            "payment_method": "credit_card",
-            "items_count": 3
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
+    
+    # Log structured dictionary data
+    performance_data = {
+        "metric_type": "performance",
+        "component": "web_server",
+        "timestamp": datetime.now().isoformat(),
+        "metrics": {
+            "cpu_usage_percent": 45.2,
+            "memory_usage_mb": 1024,
+            "active_connections": 127,
+            "requests_per_second": 150.5,
+            "average_response_time_ms": 125.3
         },
-        format="dict"
-    )
+        "alerts": [
+            "High memory usage detected",
+            "Response time approaching threshold"
+        ]
+    }
     
-    # System health check
-    await logger.log_structured(
-        layer="SYSTEM",
-        level="INFO",
-        message="Health check completed",
-        correlation_id="req-129",
-        context={
-            "service": "user-service",
-            "status": "healthy",
-            "response_time_ms": 12.5,
-            "memory_usage_mb": 256.8,
-            "cpu_usage_percent": 15.2
-        },
-        format="dict"
-    )
+    await logger.info("PERFORMANCE", str(performance_data))
+    
+    await logger.aclose()
 
 
 async def correlation_context_example():
-    """Demonstrate correlation context management."""
-    print("\n=== Correlation Context Management ===")
+    """Demonstrate correlation context in structured logging."""
+    print("\n=== Correlation Context Example ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Set correlation context for a request
-    logger.set_correlation_context("req-130", user_id="user-456", session_id="session-789")
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # All logs in this context will have the correlation ID
-    await logger.info("API", "Processing user request")
-    await logger.info("DATABASE", "Executing user query")
-    await logger.info("CACHE", "Checking user cache")
-    await logger.info("EXTERNAL", "Calling payment service")
+    # Generate correlation ID for this request
+    correlation_id = str(uuid.uuid4())
     
-    # Clear context
-    logger.clear_correlation_context()
-    await logger.info("SYSTEM", "Request context cleared")
+    # Log messages with correlation context
+    await logger.info("REQUEST", f"Request started - Correlation ID: {correlation_id}")
+    await logger.info("AUTH", f"Authentication successful - Correlation ID: {correlation_id}")
+    await logger.info("DB", f"Database query executed - Correlation ID: {correlation_id}")
+    await logger.info("RESPONSE", f"Response sent - Correlation ID: {correlation_id}")
+    
+    await logger.aclose()
 
 
 async def context_manager_example():
-    """Demonstrate context managers."""
-    print("\n=== Context Managers ===")
+    """Demonstrate context manager usage."""
+    print("\n=== Context Manager Example ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Correlation context manager
-    with logger.correlation_context("req-131", user_id="user-789"):
-        await logger.info("API", "Request started")
-        
-        # Nested logger context
-        with logger.logger_context(session_id="session-abc", operation="data_processing"):
-            await logger.info("PROCESSING", "Processing user data")
-            await logger.info("VALIDATION", "Validating input data")
-            await logger.info("TRANSFORMATION", "Transforming data format")
-        
-        await logger.info("API", "Request completed")
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Context is automatically cleared
-    await logger.info("SYSTEM", "Outside context")
+    # Simulate a context manager pattern
+    try:
+        await logger.info("CONTEXT", "Entering critical section")
+        # Simulate some work
+        await asyncio.sleep(0.1)
+        await logger.info("CONTEXT", "Critical section completed successfully")
+    except Exception as e:
+        await logger.error("CONTEXT", f"Error in critical section: {e}")
+    finally:
+        await logger.info("CONTEXT", "Exiting critical section")
+    
+    await logger.aclose()
 
 
 async def main():
     """Run all structured logging examples."""
-    print("🚀 Async Structured Logging Examples")
-    print("=" * 50)
+    print("=== Async Structured Logging Examples ===")
+    print("Demonstrating various structured logging patterns.\n")
     
     await json_structured_logging()
     await xml_structured_logging()
@@ -198,7 +199,8 @@ async def main():
     await correlation_context_example()
     await context_manager_example()
     
-    print("\n✅ All structured logging examples completed successfully!")
+    print("\n✅ All structured logging examples completed!")
+    print("Check the console output above to see the structured async logs.")
 
 
 if __name__ == "__main__":

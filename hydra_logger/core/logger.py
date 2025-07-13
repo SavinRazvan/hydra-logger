@@ -24,7 +24,7 @@ from hydra_logger.core.exceptions import ConfigurationError, HydraLoggerError
 from hydra_logger.data_protection.fallbacks import FallbackHandler
 from hydra_logger.data_protection.security import DataSanitizer, SecurityValidator
 from hydra_logger.plugins.registry import get_plugin, list_plugins
-from hydra_logger.async_hydra.async_handlers import ColoredTextFormatter, PlainTextFormatter
+from hydra_logger.core.formatters import ColoredTextFormatter, PlainTextFormatter
 from hydra_logger.magic_configs import MagicConfigRegistry
 from hydra_logger.core.error_handler import (
     get_error_tracker, track_error, track_hydra_error, track_configuration_error,
@@ -94,7 +94,7 @@ class BufferedFileHandler(logging.FileHandler):
         try:
             # Always ensure stream is open before writing
             if self.stream is None:
-                self.stream = self._open()
+                self.stream = self._open()  # type: ignore  # pyright: ignore[reportAttributeAccessIssue]
                 if self.stream is None:
                     return
             msg = self.format(record)
@@ -573,9 +573,7 @@ class HydraLogger:
     
     def _create_formatter(self, format_type: str, color_mode: Optional[str] = None) -> logging.Formatter:
         """Create a formatter."""
-        if format_type == "colored-text":
-            return ColoredTextFormatter(color_mode=color_mode)
-        elif format_type == "plain-text":
+        if format_type == "plain-text":
             return PlainTextFormatter()
         else:
             # Default formatter

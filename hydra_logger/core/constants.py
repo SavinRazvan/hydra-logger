@@ -19,7 +19,7 @@ LOG_LEVELS = {
 }
 
 # Valid log formats
-VALID_FORMATS = ["plain", "text", "json", "csv", "syslog", "gelf"]
+VALID_FORMATS = ["plain-text", "json", "csv", "syslog", "gelf"]
 
 # Valid destination types
 VALID_DESTINATION_TYPES = ["file", "console", "async_http", "async_database", "async_queue", "async_cloud"]

@@ -1,0 +1,18 @@
+Test Name,Description,Duration (s),Messages/sec,Latency (ms),Success,Memory Leak
+HydraLogger Sync Default Console,Standard console logging - baseline performance,1.1080546759985737,9024.82541395175,0.11080546759985736,True,False
+HydraLogger Sync Default File,Standard file logging - persistent storage performance,0.3290408229986497,30391.365754762406,0.03290408229986497,True,False
+HydraLogger Sync Production Console,Production-optimized console logging - enterprise features,0.9370973660006712,10671.249715147356,0.09370973660006712,True,False
+HydraLogger Sync Development Console,Development-optimized console logging - debug-friendly features,0.9219779650011333,10846.246200675423,0.09219779650011332,True,False
+HydraLogger Sync Background Worker Console,Background worker console logging - batch processing optimization,0.12290926900095656,81360.82885597646,0.012290926900095655,True,False
+HydraLogger Sync Microservice Console,Microservice console logging - lightweight service optimization,0.11799024199717678,84752.77133713545,0.011799024199717678,True,False
+HydraLogger Sync Web App Console,Web app console logging - request/response optimization,0.14142379099939717,70709.46075856943,0.014142379099939716,True,False
+HydraLogger Sync API Service Console,API service console logging - high-traffic endpoint optimization,0.14945538800020586,66909.5984681812,0.014945538800020586,True,False
+HydraLogger Sync Minimal Features Console,Minimal features console logging - speed vs features trade-off,0.8024558360011724,12461.744997497146,0.08024558360011724,True,False
+HydraLogger Sync Minimal Features File,Minimal features file logging - optimized file operations,0.8071569989988348,12389.163461883623,0.08071569989988348,True,False
+HydraLogger Sync Bare Metal Console,Bare metal console logging - maximum performance,0.8292393669980811,12059.244167580795,0.0829239366998081,True,False
+HydraLogger Sync Bare Metal File,Bare metal file logging - maximum file performance,0.8377931600007287,11936.120366501085,0.08377931600007286,True,False
+HydraLogger Sync Security Features,Security features - PII detection and sanitization performance,0.8437684550008271,11851.592626783135,0.08437684550008272,True,False
+HydraLogger Sync Multi-Layer,Multi-layer logging - multiple functional layers performance,3.2086594449974655,3116.566332893549,0.3208659444997466,True,False
+HydraLogger Sync Centralized,Centralized logging - multiple destinations performance,1.0020391370017023,9979.650126163697,0.10020391370017023,True,False
+HydraLogger Sync Large Messages,Large message handling - big payload performance,0.7939550080009212,12595.172143543425,0.07939550080009213,True,False
+HydraLogger Stress Test,High-volume stress testing - 50K messages under load,4.072795153999323,12276.581097112628,0.08145590307998646,True,False

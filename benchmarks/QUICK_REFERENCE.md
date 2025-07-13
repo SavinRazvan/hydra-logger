@@ -124,12 +124,44 @@ logger.info("DEFAULT", "Persistent log message")
 - **Minimal Features**: 14,024 messages/sec
 - **Bare Metal**: 13,836 messages/sec
 
+## Running Benchmarks
+
+### Available Benchmark Files
+- **`hydra_sync_bench.py`** - Sync performance benchmarks
+- **`hydra_async_bench.py`** - Async performance benchmarks
+- **`hydra_s_vs_a_bench.py`** - Sync vs Async comparison
+
+### Running Benchmarks
+```bash
+# Sync benchmarks
+python benchmarks/hydra_sync_bench.py
+
+# Async benchmarks  
+python benchmarks/hydra_async_bench.py
+
+# Sync vs Async comparison
+python benchmarks/hydra_s_vs_a_bench.py
+```
+
+### Benchmark Results
+Results are saved to:
+- `benchmarks/results/sync_results.json` - Sync benchmark results
+- `benchmarks/results/sync_results.csv` - Sync benchmark CSV
+- `benchmarks/results/async_results.json` - Async benchmark results
+- `benchmarks/results/async_results.csv` - Async benchmark CSV
+- `benchmarks/results/sync_vs_async_results.json` - Comparison results
+- `benchmarks/results/sync_vs_async_results.csv` - Comparison CSV
+- `logs/` - Detailed log files
+
 ## Important Notes
 
 - **Memory Management**: All configurations include memory leak detection
 - **Error Handling**: Comprehensive fallback mechanisms ensure message delivery
 - **Reliability**: Zero memory leaks detected in all tests
 - **Compatibility**: All configurations work with both sync and async logging
+- **Async Implementation**: Async logging with bounded queues, memory monitoring, and shutdown handling
+- **Performance Tracking**: Internal performance monitoring for async operations
+- **Health Monitoring**: Health status and error tracking
 
 ## Getting Started
 
@@ -159,6 +191,16 @@ logger.info("DEFAULT", "Production log message")
 # For maximum performance
 logger = HydraLogger.for_bare_metal()
 logger.info("DEFAULT", "Bare metal log message")
+
+# For async logging
+from hydra_logger.async_hydra import AsyncHydraLogger
+async_logger = AsyncHydraLogger({
+    'handlers': [
+        {'type': 'console', 'use_colors': True},
+        {'type': 'file', 'filename': 'async.log'}
+    ]
+})
+await async_logger.info("DEFAULT", "Async log message")
 ```
 
 ---

@@ -90,7 +90,7 @@ config = {
             "destinations": [
                 {
                     "type": "console",
-                    "format": "text",
+                    "format": "plain-text",
                     "color_mode": "always"
                 }
             ]
@@ -110,7 +110,7 @@ config = {
             "destinations": [
                 {
                     "type": "console",
-                    "format": "text",
+                    "format": "plain-text",
                     "color_mode": "always"
                 },
                 {
@@ -187,8 +187,7 @@ export HYDRA_LOG_MESSAGE_FORMAT="{level}: {message}"
 ```
 
 ### **Available Formats**
-- `"text"` - Human-readable text (colored in console)
-- `"plain"` - Plain text (no color, best for files)
+- `"plain-text"` - Human-readable text (colored in console if color_mode allows)
 - `"json"` - JSON format (structured)
 - `"csv"` - CSV format (tabular)
 - `"syslog"` - Syslog format (system logging)
@@ -236,13 +235,13 @@ config = {
             "destinations": [
                 {
                     "type": "console",
-                    "format": "text",
+                    "format": "plain-text",
                     "color_mode": "always"  # Colored console
                 },
                 {
                     "type": "file",
                     "path": "logs/app.log",
-                    "format": "plain",
+                    "format": "plain-text",
                     "color_mode": "never"   # Plain file
                 }
             ]
@@ -294,12 +293,12 @@ asyncio.run(main())
 
 ### **Async Performance Modes**
 ```python
-# High-performance async logger
-logger = AsyncHydraLogger.for_high_performance()
+# Minimal features async logger
+logger = AsyncHydraLogger.for_minimal_features()
 await logger.initialize()
 
-# Ultra-fast async logger
-logger = AsyncHydraLogger.for_ultra_fast()
+# Bare metal async logger
+logger = AsyncHydraLogger.for_bare_metal()
 await logger.initialize()
 ```
 
@@ -414,7 +413,7 @@ def my_app_config():
             "APP": {
                 "level": "INFO",
                 "destinations": [
-                    {"type": "console", "format": "text"}
+                    {"type": "console", "format": "plain-text"}
                 ]
             }
         }
@@ -580,7 +579,7 @@ def production_api_config():
             "API": {
                 "level": "INFO",
                 "destinations": [
-                    {"type": "console", "format": "text"},
+                    {"type": "console", "format": "plain-text"},
                     {"type": "file", "path": "logs/api.log", "format": "json"}
                 ]
             },
@@ -621,7 +620,7 @@ config = {
     "layers": {
         "APP": {
             "destinations": [
-                {"type": "console", "format": "text"},
+                {"type": "console", "format": "plain-text"},
                 {"type": "file", "path": "logs/app.log", "format": "json"}
             ]
         }

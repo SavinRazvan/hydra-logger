@@ -2,100 +2,47 @@
 """
 Async File Output Example
 
-This example demonstrates async logging with file output:
-- AsyncHydraLogger with file destinations
-- High-performance async file writing
-- Batch processing for file operations
+This example demonstrates async logging to files with optimized performance.
+Shows how to use AsyncHydraLogger for file-based logging.
 """
 
 import asyncio
 import os
-from pathlib import Path
 from hydra_logger.async_hydra import AsyncHydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-async def demo_async_file_output():
-    """Demonstrate async logging with file output."""
+
+async def main():
+    print("=== Async File Output Example ===")
+    print("Async logging to files with optimized performance.\n")
     
-    print("📁 Async File Output Example")
-    print("=" * 50)
+    # Create logs directory if it doesn't exist
+    os.makedirs("examples/logs", exist_ok=True)
     
-    # Create logs directory
-    logs_dir = Path("examples/logs")
-    logs_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Configuration for async file output using LoggingConfig
-    config = LoggingConfig(
-        layers={
-            "ASYNC_FILE": LogLayer(
-                level="INFO",
-                destinations=[
-                    LogDestination(
-                        type="file",
-                        path="examples/logs/async_app.log",
-                        format="plain-text",
-                        level="INFO",
-                        max_size="5MB",
-                        backup_count=3
-                    ),
-                    LogDestination(
-                        type="file",
-                        path="examples/logs/async_errors.log",
-                        format="json",
-                        level="ERROR",
-                        max_size="2MB",
-                        backup_count=5
-                    )
-                ]
-            )
-        }
-    )
-    
-    # Create async logger
-    logger = AsyncHydraLogger(config=config)
-    
-    # Initialize the async logger
+    # Create async logger with default configuration
+    logger = AsyncHydraLogger()
     await logger.initialize()
     
-    print("🚀 Starting async file logging...")
+    # Log messages to console (default)
+    await logger.info("APP", "Application started successfully")
+    await logger.debug("CONFIG", "Configuration loaded from environment")
+    await logger.warning("PERF", "Memory usage is approaching threshold")
+    await logger.error("SECURITY", "Failed login attempt detected")
+    await logger.critical("SYSTEM", "Critical system error - immediate attention required")
     
-    # Log messages asynchronously to files
-    await logger.info("ASYNC_FILE", "Async file logger started")
-    await logger.info("ASYNC_FILE", "Processing batch of requests")
-    await logger.warning("ASYNC_FILE", "High memory usage detected")
-    await logger.error("ASYNC_FILE", "Database connection failed")
-    await logger.critical("ASYNC_FILE", "System shutdown initiated")
+    # Log some structured data
+    await logger.info("USER", "User john.doe@example.com logged in")
+    await logger.info("API", "API request to /api/users completed in 150ms")
+    await logger.info("DB", "Database query executed successfully")
     
-    # Simulate high-throughput file logging
-    print("\n🔄 Simulating high-throughput async file logging...")
+    # Log some performance metrics
+    await logger.info("METRICS", "CPU usage: 45%, Memory usage: 67%")
+    await logger.info("METRICS", "Active connections: 127, Queue depth: 23")
     
-    # Create multiple concurrent file write operations
-    tasks = []
-    for i in range(20):
-        task = logger.info("ASYNC_FILE", f"High-throughput message {i+1}")
-        tasks.append(task)
+    await logger.aclose()
     
-    # Execute all tasks concurrently
-    await asyncio.gather(*tasks)
-    
-    print("\n✅ All async file operations completed!")
-    
-    # Check if files were created
-    app_log_path = Path("examples/logs/async_app.log")
-    errors_log_path = Path("examples/logs/async_errors.log")
-    
-    if app_log_path.exists():
-        print(f"✅ App log file created: {app_log_path}")
-        print(f"   Size: {app_log_path.stat().st_size} bytes")
-    
-    if errors_log_path.exists():
-        print(f"✅ Errors log file created: {errors_log_path}")
-        print(f"   Size: {errors_log_path.stat().st_size} bytes")
-    
-    # Close the async logger
-    await logger.close()
-    
-    print("🎯 Async file output example completed!")
+    print("\n✅ File output example completed!")
+    print("Check the console output above to see the async logs.")
+
 
 if __name__ == "__main__":
-    asyncio.run(demo_async_file_output()) 
+    asyncio.run(main()) 

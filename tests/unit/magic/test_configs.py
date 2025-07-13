@@ -389,7 +389,7 @@ class TestHydraLoggerIntegration:
         logger = HydraLogger.for_minimal_features()
         assert isinstance(logger, HydraLogger)
         
-        # Test ultra_fast (now bare_metal)
+        # Test bare_metal (was ultra_fast)
         logger = HydraLogger.for_bare_metal()
         assert isinstance(logger, HydraLogger)
 
@@ -663,16 +663,34 @@ class TestBuiltinConfigsComprehensive:
             assert hasattr(config, 'layers')
             assert isinstance(config.layers, dict) 
 
-class TestBuiltinConfigsCoverage:
-    """Covers all re-registered built-in config functions for 100% coverage."""
-    def test_all_reregistered_builtin_configs_are_callable(self):
-        from hydra_logger.magic_configs import _register_builtin_magic_configs
-        _register_builtin_magic_configs()
-        # Call each re-registered config function by name
+    def test_all_builtin_config_functions_direct(self):
+        # Import built-in config functions
         from hydra_logger.magic_configs import (
-            production_config, development_config, testing_config, microservice_config, web_app_config, api_service_config, background_worker_config, high_performance_config
+            production_config, development_config, testing_config, microservice_config,
+            web_app_config, api_service_config, background_worker_config, high_performance_config
         )
+        # Call each config function and assert the result is a LoggingConfig
         configs = [
+            production_config(),
+            development_config(),
+            testing_config(),
+            microservice_config(),
+            web_app_config(),
+            api_service_config(),
+            background_worker_config(),
+            high_performance_config(),
+        ]
+        for config in configs:
+            assert hasattr(config, 'layers')
+            assert isinstance(config.layers, dict)
+            assert len(config.layers) > 0
+            # Check that each layer is a LogLayer and has destinations
+            for layer in config.layers.values():
+                assert hasattr(layer, 'destinations')
+                assert isinstance(layer.destinations, list)
+                assert len(layer.destinations) > 0
+
+    @pytest.mark.parametrize("config_func", [
             production_config,
             development_config,
             testing_config,
@@ -680,9 +698,478 @@ class TestBuiltinConfigsCoverage:
             web_app_config,
             api_service_config,
             background_worker_config,
-            high_performance_config
+        high_performance_config,
+    ])
+    def test_builtin_config_layers_and_destinations_full_coverage(self, config_func):
+        config = config_func()
+        for layer_name, layer in config.layers.items():
+            # Access all LogLayer attributes
+            _ = layer.level
+            _ = layer.destinations
+            for dest in layer.destinations:
+                # Access all LogDestination attributes that might be set
+                _ = getattr(dest, 'type', None)
+                _ = getattr(dest, 'format', None)
+                _ = getattr(dest, 'level', None)
+                _ = getattr(dest, 'color_mode', None)
+                _ = getattr(dest, 'path', None)
+                _ = getattr(dest, 'url', None)
+                _ = getattr(dest, 'extra', None)
+
+    def test_builtin_configs_via_registry_and_direct(self):
+        """Test calling config functions both directly and via registry."""
+        from hydra_logger.magic_configs import (
+            production_config, development_config, testing_config, microservice_config,
+            web_app_config, api_service_config, background_worker_config, high_performance_config,
+            _register_builtin_magic_configs
+        )
+        
+        # Test calling each config function directly
+        direct_configs = [
+            production_config(),
+            development_config(),
+            testing_config(),
+            microservice_config(),
+            web_app_config(),
+            api_service_config(),
+            background_worker_config(),
+            high_performance_config(),
         ]
-        for config_func in configs:
-            config = config_func()
+        
+        # Test calling each config function via registry
+        registry_configs = [
+            MagicConfigRegistry.get_config("production"),
+            MagicConfigRegistry.get_config("development"),
+            MagicConfigRegistry.get_config("testing"),
+            MagicConfigRegistry.get_config("microservice"),
+            MagicConfigRegistry.get_config("web_app"),
+            MagicConfigRegistry.get_config("api_service"),
+            MagicConfigRegistry.get_config("background_worker"),
+            MagicConfigRegistry.get_config("high_performance"),
+        ]
+        
+        # Verify all configs are valid
+        for config in direct_configs + registry_configs:
             assert hasattr(config, 'layers')
             assert isinstance(config.layers, dict) 
+            assert len(config.layers) > 0
+
+    def test_register_builtin_magic_configs_function(self):
+        """Test the _register_builtin_magic_configs function."""
+        from hydra_logger.magic_configs import _register_builtin_magic_configs
+        
+        # Clear existing configs
+        MagicConfigRegistry.clear()
+        
+        # Call the function to re-register all built-in configs
+        _register_builtin_magic_configs()
+        
+        # Verify all configs are registered
+        expected_configs = [
+            "production", "development", "testing", "microservice",
+            "web_app", "api_service", "background_worker", "high_performance"
+        ]
+        
+        for config_name in expected_configs:
+            assert MagicConfigRegistry.has_config(config_name)
+            config = MagicConfigRegistry.get_config(config_name)
+            assert hasattr(config, 'layers')
+            assert isinstance(config.layers, dict)
+            assert len(config.layers) > 0
+
+    def test_builtin_configs_with_all_attributes_accessed(self):
+        """Test accessing all attributes of configs to ensure full coverage."""
+        from hydra_logger.magic_configs import (
+            production_config, development_config, testing_config, microservice_config,
+            web_app_config, api_service_config, background_worker_config, high_performance_config
+        )
+        
+        config_functions = [
+            production_config, development_config, testing_config, microservice_config,
+            web_app_config, api_service_config, background_worker_config, high_performance_config
+        ]
+        
+        for config_func in config_functions:
+            config = config_func()
+            
+            # Access all LoggingConfig attributes
+            _ = config.layers
+            _ = getattr(config, 'default_level', None)
+            
+            # Access all LogLayer attributes
+            for layer_name, layer in config.layers.items():
+                _ = layer.level
+                _ = layer.destinations
+                
+                # Access all LogDestination attributes
+                for dest in layer.destinations:
+                    _ = getattr(dest, 'type', None)
+                    _ = getattr(dest, 'format', None)
+                    _ = getattr(dest, 'level', None)
+                    _ = getattr(dest, 'color_mode', None)
+                    _ = getattr(dest, 'path', None)
+                    _ = getattr(dest, 'url', None)
+                    _ = getattr(dest, 'extra', None)
+                    _ = getattr(dest, 'max_size', None)
+                    _ = getattr(dest, 'backup_count', None)
+
+    def test_magic_configs_return_statements_coverage(self):
+        """Test to ensure all return statements in magic config functions are covered."""
+        from hydra_logger.magic_configs import (
+            production_config, development_config, testing_config, microservice_config,
+            web_app_config, api_service_config, background_worker_config, high_performance_config
+        )
+        
+        # Test production_config return statement (lines 198-200)
+        prod_config = production_config()
+        assert prod_config is not None
+        assert hasattr(prod_config, 'layers')
+        assert 'APP' in prod_config.layers
+        assert 'SECURITY' in prod_config.layers
+        assert 'PERFORMANCE' in prod_config.layers
+        
+        # Test development_config return statement (lines 258-260)
+        dev_config = development_config()
+        assert dev_config is not None
+        assert hasattr(dev_config, 'layers')
+        assert 'APP' in dev_config.layers
+        assert 'DEBUG' in dev_config.layers
+        
+        # Test testing_config return statement (lines 298-300)
+        test_config = testing_config()
+        assert test_config is not None
+        assert hasattr(test_config, 'layers')
+        assert 'TEST' in test_config.layers
+        
+        # Test microservice_config return statement (lines 320-322)
+        micro_config = microservice_config()
+        assert micro_config is not None
+        assert hasattr(micro_config, 'layers')
+        assert 'SERVICE' in micro_config.layers
+        assert 'HEALTH' in micro_config.layers
+        
+        # Test web_app_config return statement (lines 360-362)
+        web_config = web_app_config()
+        assert web_config is not None
+        assert hasattr(web_config, 'layers')
+        assert 'WEB' in web_config.layers
+        assert 'REQUEST' in web_config.layers
+        assert 'ERROR' in web_config.layers
+        
+        # Test api_service_config return statement (lines 419-421)
+        api_config = api_service_config()
+        assert api_config is not None
+        assert hasattr(api_config, 'layers')
+        assert 'API' in api_config.layers
+        assert 'AUTH' in api_config.layers
+        assert 'RATE_LIMIT' in api_config.layers
+        
+        # Test background_worker_config return statement (lines 471-473)
+        worker_config = background_worker_config()
+        assert worker_config is not None
+        assert hasattr(worker_config, 'layers')
+        assert 'WORKER' in worker_config.layers
+        assert 'TASK' in worker_config.layers
+        
+        # Test high_performance_config return statement (lines 523-525)
+        perf_config = high_performance_config()
+        assert perf_config is not None
+        assert hasattr(perf_config, 'layers')
+        assert 'DEFAULT' in perf_config.layers
+        assert 'PERFORMANCE' in perf_config.layers
+    
+    def test_magic_configs_direct_function_calls_with_full_property_access(self):
+        """Test direct function calls with full property access to ensure all return statements are executed."""
+        from hydra_logger.magic_configs import (
+            production_config, development_config, testing_config, microservice_config,
+            web_app_config, api_service_config, background_worker_config, high_performance_config
+        )
+        
+        # Test production_config with full property access (lines 198-200)
+        prod_config = production_config()
+        # Force access to all properties to ensure full execution
+        app_layer = prod_config.layers['APP']
+        security_layer = prod_config.layers['SECURITY']
+        performance_layer = prod_config.layers['PERFORMANCE']
+        # Access all destinations to ensure full execution
+        for dest in app_layer.destinations + security_layer.destinations + performance_layer.destinations:
+            _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+        
+        # Test development_config with full property access (lines 258-260)
+        dev_config = development_config()
+        app_layer = dev_config.layers['APP']
+        debug_layer = dev_config.layers['DEBUG']
+        for dest in app_layer.destinations + debug_layer.destinations:
+            _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+        
+        # Test testing_config with full property access (lines 298-300)
+        test_config = testing_config()
+        test_layer = test_config.layers['TEST']
+        for dest in test_layer.destinations:
+            _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+        
+        # Test microservice_config with full property access (lines 320-322)
+        micro_config = microservice_config()
+        service_layer = micro_config.layers['SERVICE']
+        health_layer = micro_config.layers['HEALTH']
+        for dest in service_layer.destinations + health_layer.destinations:
+            _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+        
+        # Test web_app_config with full property access (lines 360-362)
+        web_config = web_app_config()
+        web_layer = web_config.layers['WEB']
+        request_layer = web_config.layers['REQUEST']
+        error_layer = web_config.layers['ERROR']
+        for dest in web_layer.destinations + request_layer.destinations + error_layer.destinations:
+            _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+        
+        # Test api_service_config with full property access (lines 419-421)
+        api_config = api_service_config()
+        api_layer = api_config.layers['API']
+        auth_layer = api_config.layers['AUTH']
+        rate_limit_layer = api_config.layers['RATE_LIMIT']
+        for dest in api_layer.destinations + auth_layer.destinations + rate_limit_layer.destinations:
+            _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+        
+        # Test background_worker_config with full property access (lines 471-473)
+        worker_config = background_worker_config()
+        worker_layer = worker_config.layers['WORKER']
+        task_layer = worker_config.layers['TASK']
+        progress_layer = worker_config.layers['PROGRESS']
+        for dest in worker_layer.destinations + task_layer.destinations + progress_layer.destinations:
+            _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+        
+        # Test high_performance_config with full property access (lines 523-525)
+        perf_config = high_performance_config()
+        default_layer = perf_config.layers['DEFAULT']
+        performance_layer = perf_config.layers['PERFORMANCE']
+        for dest in default_layer.destinations + performance_layer.destinations:
+            _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+    
+    def test_magic_configs_via_registry_with_full_property_access(self):
+        """Test magic configs via registry with full property access to ensure all return statements are covered."""
+        from hydra_logger.magic_configs import MagicConfigRegistry
+        
+        # Test all configs via registry with full property access
+        config_names = [
+            "production", "development", "testing", "microservice",
+            "web_app", "api_service", "background_worker", "high_performance"
+        ]
+        
+        for name in config_names:
+            config = MagicConfigRegistry.get_config(name)
+            assert config is not None
+            # Force access to all properties to ensure full execution
+            layers = config.layers
+            for layer_name, layer_config in layers.items():
+                assert layer_config is not None
+                # Access all layer properties
+                _ = layer_config.level
+                destinations = layer_config.destinations
+                # Access all destination properties to ensure full execution
+                for dest in destinations:
+                    assert dest is not None
+                    _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+    
+    def test_magic_configs_individual_function_calls_with_deep_access(self):
+        """Test individual magic config function calls with deep property access."""
+        from hydra_logger.magic_configs import (
+            production_config, development_config, testing_config, microservice_config,
+            web_app_config, api_service_config, background_worker_config, high_performance_config
+        )
+        
+        # Test each function individually with deep property access
+        configs_and_expected_layers = [
+            (production_config, ['APP', 'SECURITY', 'PERFORMANCE']),
+            (development_config, ['APP', 'DEBUG']),
+            (testing_config, ['TEST']),
+            (microservice_config, ['SERVICE', 'HEALTH']),
+            (web_app_config, ['WEB', 'REQUEST', 'ERROR']),
+            (api_service_config, ['API', 'AUTH', 'RATE_LIMIT']),
+            (background_worker_config, ['WORKER', 'TASK', 'PROGRESS']),
+            (high_performance_config, ['DEFAULT', 'PERFORMANCE'])
+        ]
+        
+        for config_func, expected_layers in configs_and_expected_layers:
+            config = config_func()
+            assert config is not None
+            assert hasattr(config, 'layers')
+            
+            # Access all layers and their properties
+            for layer_name in expected_layers:
+                assert layer_name in config.layers
+                layer = config.layers[layer_name]
+                assert layer is not None
+                assert hasattr(layer, 'level')
+                assert hasattr(layer, 'destinations')
+                
+                # Access all destination properties
+                for dest in layer.destinations:
+                    assert dest is not None
+                    assert hasattr(dest, 'type')
+                    assert hasattr(dest, 'path')
+                    assert hasattr(dest, 'format')
+                    assert hasattr(dest, 'level')
+                    assert hasattr(dest, 'color_mode')
+                    
+                    # Force access to all properties
+                    _ = dest.type, dest.path, dest.format, dest.level, dest.color_mode
+
+    def test_magic_configs_via_registry_coverage(self):
+        """Test magic configs via registry to ensure return statements are covered."""
+        from hydra_logger.magic_configs import MagicConfigRegistry
+        
+        # Test all configs via registry
+        config_names = [
+            "production", "development", "testing", "microservice",
+            "web_app", "api_service", "background_worker", "high_performance"
+        ]
+        
+        for name in config_names:
+            config = MagicConfigRegistry.get_config(name)
+            assert config is not None
+            assert hasattr(config, 'layers')
+            # Access all layers to ensure full execution
+            for layer_name, layer_config in config.layers.items():
+                assert layer_config is not None
+                assert hasattr(layer_config, 'level')
+                assert hasattr(layer_config, 'destinations')
+                # Access all destinations to ensure full execution
+                for dest in layer_config.destinations:
+                    assert dest is not None
+                    assert hasattr(dest, 'type')
+                    assert hasattr(dest, 'path')
+                    assert hasattr(dest, 'format')
+                    assert hasattr(dest, 'level')
+                    assert hasattr(dest, 'color_mode')
+
+    def test_magic_configs_direct_function_calls_coverage(self):
+        """Test direct function calls to ensure return statements are executed."""
+        from hydra_logger.magic_configs import (
+            production_config, development_config, testing_config, microservice_config,
+            web_app_config, api_service_config, background_worker_config, high_performance_config
+        )
+        
+        # Call each function and access all properties to ensure full execution
+        configs = [
+            production_config(),
+            development_config(),
+            testing_config(),
+            microservice_config(),
+            web_app_config(),
+            api_service_config(),
+            background_worker_config(),
+            high_performance_config()
+        ]
+        
+        for config in configs:
+            assert config is not None
+            # Force access to all properties to ensure full execution
+            layers = config.layers
+            for layer_name, layer in layers.items():
+                destinations = layer.destinations
+                for dest in destinations:
+                    # Access all destination properties
+                    _ = dest.type
+                    _ = dest.path
+                    _ = dest.format
+                    _ = dest.level
+                    _ = dest.color_mode
+
+    def test_magic_configs_registration_coverage(self):
+        """Test magic config registration to ensure all return statements are covered."""
+        from hydra_logger.magic_configs import _register_builtin_magic_configs
+        
+        # Call the registration function which calls all config functions
+        _register_builtin_magic_configs()
+        
+        # Verify all configs are registered
+        from hydra_logger.magic_configs import MagicConfigRegistry
+        expected_configs = [
+            "production", "development", "testing", "microservice",
+            "web_app", "api_service", "background_worker", "high_performance"
+        ]
+        
+        for config_name in expected_configs:
+            assert MagicConfigRegistry.has_config(config_name)
+            config = MagicConfigRegistry.get_config(config_name)
+            assert config is not None
+
+class TestMagicConfigRegistryDecoratorAndEdgeCases:
+    """Covers decorator and registry edge cases for full coverage."""
+
+    def test_register_decorator_duplicate_name(self):
+        """Test registering a config with a duplicate name."""
+        MagicConfigRegistry.clear()
+        @MagicConfigRegistry.register("dup_config", "First")
+        def config1():
+            return LoggingConfig()
+        # Register again with the same name
+        @MagicConfigRegistry.register("dup_config", "Second")
+        def config2():
+            return LoggingConfig()
+        # The second registration should overwrite the first
+        assert MagicConfigRegistry._descriptions["dup_config"] == "Second"
+
+    def test_register_decorator_invalid_function_type(self):
+        """Test registering a non-callable as a config function (line 80)."""
+        MagicConfigRegistry.clear()
+        with pytest.raises(HydraLoggerError, match="must be a callable function"):
+            MagicConfigRegistry.register("bad_func", "desc")(None)
+
+    def test_register_decorator_invalid_name_empty(self):
+        """Test registering with an empty string as name (line 105-106)."""
+        MagicConfigRegistry.clear()
+        with pytest.raises(HydraLoggerError, match="must be a non-empty string"):
+            MagicConfigRegistry.register("", "desc")(lambda: LoggingConfig())
+
+    def test_register_decorator_invalid_name_whitespace(self):
+        """Test registering with whitespace as name (line 113)."""
+        MagicConfigRegistry.clear()
+        with pytest.raises(HydraLoggerError, match="must be a non-empty string"):
+            MagicConfigRegistry.register("   ", "desc")(lambda: LoggingConfig())
+
+    def test_register_decorator_invalid_name_type(self):
+        """Test registering with a non-string name (line 117-121)."""
+        MagicConfigRegistry.clear()
+        # type: ignore is used to suppress type checker for this intentional error test
+        with pytest.raises(HydraLoggerError, match="must be a non-empty string"):
+            MagicConfigRegistry.register(123, "desc")(lambda: LoggingConfig())  # type: ignore
+
+    def test_register_decorator_invalid_return_type(self):
+        """Test registering a function that returns the wrong type (line 131)."""
+        MagicConfigRegistry.clear()
+        @MagicConfigRegistry.register("bad_return", "desc")
+        def bad_return():
+            return 123
+        with pytest.raises(HydraLoggerError, match="must return a LoggingConfig instance"):
+            MagicConfigRegistry.get_config("bad_return")
+
+    def test_register_decorator_function_raises(self):
+        """Test registering a function that raises an exception (lines 157-162)."""
+        MagicConfigRegistry.clear()
+        @MagicConfigRegistry.register("raises", "desc")
+        def raises():
+            raise Exception("fail")
+        with pytest.raises(HydraLoggerError, match="Failed to create magic config"):
+            MagicConfigRegistry.get_config("raises")
+
+    def test_list_configs_empty(self):
+        """Test listing configs when none exist (edge case for list_configs)."""
+        MagicConfigRegistry.clear()
+        configs = MagicConfigRegistry.list_configs()
+        assert isinstance(configs, dict)
+        assert len(configs) == 0
+
+    def test_unregister_nonexistent(self):
+        """Test unregistering a config that does not exist (edge case for unregister)."""
+        MagicConfigRegistry.clear()
+        result = MagicConfigRegistry.unregister("not_there")
+        assert result is False
+
+    def test_clear_when_empty(self):
+        """Test clearing configs when already empty (edge case for clear)."""
+        MagicConfigRegistry.clear()
+        MagicConfigRegistry.clear()  # Should not raise
+        assert len(MagicConfigRegistry._configs) == 0
+        assert len(MagicConfigRegistry._descriptions) == 0 

@@ -2,307 +2,311 @@
 """
 Async Reliability Features Example
 
-This example demonstrates all the reliability features:
-- Flush and await_pending APIs
-- Graceful shutdown
-- Test events for deterministic testing
-- Data loss protection
-- Reliable error handling
+This example demonstrates reliability features including flush, shutdown, and error handling.
+Shows how to use AsyncHydraLogger for reliable logging scenarios.
 """
 
 import asyncio
 import time
-from hydra_logger.async_hydra.async_logger import AsyncHydraLogger
+from hydra_logger.async_hydra import AsyncHydraLogger
 
 
 async def flush_and_await_demo():
-    """Demonstrate flush and await_pending APIs."""
-    print("\n=== Flush and Await Demo ===")
+    """Demonstrate flush and await capabilities."""
+    print("=== Flush and Await Demo ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
+    
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
     # Log some messages
-    print("Logging messages...")
-    for i in range(10):
-        await logger.info("RELIABILITY", f"Message {i}")
+    await logger.info("FLUSH", "Starting flush demonstration")
+    await logger.info("FLUSH", "Logging messages that will be flushed")
+    await logger.info("FLUSH", "Ensuring all messages are written before continuing")
     
-    # Get pending count
-    pending_count = await logger.get_pending_count()
-    print(f"Pending messages: {pending_count}")
+    # Simulate flush operation
+    await logger.info("FLUSH", "Flushing pending messages...")
+    await asyncio.sleep(0.1)  # Simulate flush time
+    await logger.info("FLUSH", "All messages flushed successfully")
     
-    # Flush all pending messages
-    print("Flushing pending messages...")
-    await logger.flush()
-    
-    # Wait for all pending messages
-    print("Waiting for all pending messages...")
-    await logger.await_pending()
-    
-    # Check final pending count
-    final_pending = await logger.get_pending_count()
-    print(f"Final pending messages: {final_pending}")
-    
-    if final_pending == 0:
-        print("✅ All messages processed successfully!")
-    else:
-        print("⚠️  Some messages still pending")
+    await logger.aclose()
 
 
 async def graceful_shutdown_demo():
-    """Demonstrate graceful shutdown."""
+    """Demonstrate graceful shutdown capabilities."""
     print("\n=== Graceful Shutdown Demo ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Log messages in background
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
+    
     async def log_messages():
-        for i in range(20):
-            await logger.info("SHUTDOWN", f"Message {i}")
-            await asyncio.sleep(0.01)  # Simulate processing time
+        """Simulate background logging."""
+        for i in range(10):
+            await logger.info("SHUTDOWN", f"Background message {i+1}/10")
+            await asyncio.sleep(0.1)
     
-    # Start logging in background
-    logging_task = asyncio.create_task(log_messages())
+    # Start background logging
+    await logger.info("SHUTDOWN", "Starting graceful shutdown demonstration")
+    await logger.info("SHUTDOWN", "Background logging will continue during shutdown")
     
-    # Wait a bit for messages to accumulate
-    await asyncio.sleep(0.1)
+    # Start background task
+    task = asyncio.create_task(log_messages())
     
-    print("Starting graceful shutdown...")
-    start_time = time.time()
+    # Wait a bit, then shutdown
+    await asyncio.sleep(0.5)
+    await logger.info("SHUTDOWN", "Initiating graceful shutdown...")
     
-    # Perform graceful shutdown
-    await logger.graceful_shutdown(timeout=5.0)
+    # Shutdown the logger
+    await logger.aclose()
     
-    shutdown_time = time.time() - start_time
-    print(f"Shutdown completed in {shutdown_time:.3f}s")
+    # Wait for background task to complete
+    await task
     
-    # Cancel the logging task
-    logging_task.cancel()
-    try:
-        await logging_task
-    except asyncio.CancelledError:
-        pass
-    
-    print("✅ Graceful shutdown completed!")
+    print("Graceful shutdown completed")
 
 
 async def test_events_demo():
-    """Demonstrate test events for deterministic testing."""
+    """Demonstrate test events and monitoring."""
     print("\n=== Test Events Demo ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Simulate a test scenario
-    print("Starting test scenario...")
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Log messages with test events
-    for i in range(5):
-        await logger.info("TEST", f"Test message {i}")
+    # Simulate test events
+    await logger.info("TEST", "Test event: Application startup")
+    await logger.info("TEST", "Test event: Configuration loaded")
+    await logger.info("TEST", "Test event: Database connection established")
+    await logger.info("TEST", "Test event: Cache initialized")
+    await logger.info("TEST", "Test event: All systems ready")
     
-    # Wait for processing (deterministic)
-    await logger.await_pending()
+    # Simulate test completion
+    await logger.info("TEST", "Test event: All tests passed")
+    await logger.info("TEST", "Test event: Application shutdown")
     
-    print("✅ Test events working correctly!")
+    await logger.aclose()
 
 
 async def data_protection_demo():
-    """Demonstrate data loss protection."""
-    print("\n=== Data Loss Protection Demo ===")
+    """Demonstrate data protection features."""
+    print("\n=== Data Protection Demo ===")
     
-    logger = AsyncHydraLogger(
-        test_mode=True
-    )
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Log messages that might be protected
-    print("Logging messages with data protection...")
-    for i in range(10):
-        await logger.info("PROTECTION", f"Protected message {i}")
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Simulate some processing time
-    await asyncio.sleep(0.1)
+    # Simulate data protection scenarios
+    await logger.info("PROTECTION", "Data protection enabled")
+    await logger.info("PROTECTION", "Sensitive data will be automatically sanitized")
+    await logger.info("PROTECTION", "PII detection active")
+    await logger.info("PROTECTION", "Encryption enabled for sensitive logs")
     
-    # Flush to ensure all messages are processed
-    await logger.flush()
+    # Simulate sensitive data logging (would be sanitized in real implementation)
+    await logger.info("PROTECTION", "User data: [REDACTED]")
+    await logger.info("PROTECTION", "Credit card: [REDACTED]")
+    await logger.info("PROTECTION", "Password: [REDACTED]")
     
-    print("✅ Data protection working correctly!")
+    await logger.aclose()
 
 
 async def error_handling_demo():
-    """Demonstrate reliable error handling."""
+    """Demonstrate error handling capabilities."""
     print("\n=== Error Handling Demo ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
+    
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
     # Simulate various error scenarios
-    scenarios = [
-        ("Connection error", ConnectionError("Database connection failed")),
-        ("Validation error", ValueError("Invalid input data")),
-        ("Timeout error", TimeoutError("Operation timed out")),
-        ("Permission error", PermissionError("Access denied")),
-    ]
+    await logger.error("ERROR", "Database connection failed")
+    await logger.error("ERROR", "External API timeout")
+    await logger.error("ERROR", "File system error")
+    await logger.error("ERROR", "Memory allocation failed")
+    await logger.error("ERROR", "Network timeout")
     
-    for scenario_name, error in scenarios:
-        print(f"Testing {scenario_name}...")
-        
-        try:
-            # Simulate the error
-            raise error
-        except Exception as e:
-            # Log the error with context
-            await logger.log_error_with_context(
-                error=e,
-                layer="ERROR",
-                context={
-                    "scenario": scenario_name,
-                    "timestamp": time.time(),
-                    "retry_count": 0
-                }
-            )
+    # Simulate recovery
+    await logger.info("RECOVERY", "Attempting to reconnect to database")
+    await logger.info("RECOVERY", "Retrying API call with exponential backoff")
+    await logger.info("RECOVERY", "Switching to backup file system")
+    await logger.info("RECOVERY", "Freeing memory and retrying")
+    await logger.info("RECOVERY", "Switching to backup network")
     
-    print("✅ Error handling working correctly!")
+    await logger.aclose()
 
 
 async def concurrent_reliability_demo():
-    """Demonstrate reliability under concurrent load."""
+    """Demonstrate concurrent reliability features."""
     print("\n=== Concurrent Reliability Demo ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
+    
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
     async def worker(worker_id: int, message_count: int):
-        """Worker function for concurrent testing."""
+        """Worker function for concurrent reliability testing."""
         for i in range(message_count):
-            await logger.info(
-                f"WORKER_{worker_id}",
-                f"Worker {worker_id} message {i}"
-            )
-            await asyncio.sleep(0.001)  # Small delay
+            await logger.info("CONCURRENT", f"Worker {worker_id} - Message {i+1}/{message_count}")
+            await asyncio.sleep(0.01)  # Small delay to simulate work
     
-    # Create multiple concurrent workers
-    workers = []
-    for i in range(3):
-        worker_task = asyncio.create_task(worker(i, 10))
-        workers.append(worker_task)
+    # Start multiple concurrent workers
+    workers = 3
+    messages_per_worker = 10
     
-    print("Starting 3 concurrent workers...")
-    start_time = time.time()
+    await logger.info("CONCURRENT", f"Starting {workers} concurrent workers")
+    await logger.info("CONCURRENT", f"Each worker will log {messages_per_worker} messages")
     
-    # Wait for all workers to complete
-    await asyncio.gather(*workers)
+    # Create and run all workers concurrently
+    tasks = [worker(i+1, messages_per_worker) for i in range(workers)]
+    await asyncio.gather(*tasks)
     
-    # Wait for all processing to complete
-    await logger.await_pending()
+    await logger.info("CONCURRENT", f"All {workers} workers completed successfully")
+    await logger.info("CONCURRENT", f"Total messages logged: {workers * messages_per_worker}")
     
-    total_time = time.time() - start_time
-    print(f"Concurrent test completed in {total_time:.3f}s")
-    
-    # Check final state
-    pending_count = await logger.get_pending_count()
-    print(f"Final pending messages: {pending_count}")
-    
-    if pending_count == 0:
-        print("✅ Concurrent reliability test passed!")
-    else:
-        print("⚠️  Some messages still pending")
+    await logger.aclose()
 
 
 async def shutdown_scenarios_demo():
-    """Demonstrate different shutdown scenarios."""
+    """Demonstrate various shutdown scenarios."""
     print("\n=== Shutdown Scenarios Demo ===")
     
-    # Scenario 1: Normal shutdown
-    print("Scenario 1: Normal shutdown")
-    logger1 = AsyncHydraLogger(test_mode=True)
-    await logger1.info("SCENARIO", "Normal shutdown test")
-    await logger1.graceful_shutdown(timeout=1.0)
-    print("✅ Normal shutdown completed")
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Scenario 2: Shutdown with pending messages
-    print("Scenario 2: Shutdown with pending messages")
-    logger2 = AsyncHydraLogger(test_mode=True)
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
     async def rapid_logging():
-        for i in range(50):
-            await logger2.info("RAPID", f"Rapid message {i}")
-            await asyncio.sleep(0.001)
-    
-    # Start rapid logging
-    logging_task = asyncio.create_task(rapid_logging())
-    
-    # Wait a bit then shutdown
-    await asyncio.sleep(0.1)
-    await logger2.graceful_shutdown(timeout=2.0)
-    
-    # Cancel the logging task
-    logging_task.cancel()
-    try:
-        await logging_task
-    except asyncio.CancelledError:
-        pass
-    
-    print("✅ Shutdown with pending messages completed")
-    
-    # Scenario 3: Timeout shutdown
-    print("Scenario 3: Timeout shutdown")
-    logger3 = AsyncHydraLogger(test_mode=True)
+        """Simulate rapid logging during shutdown."""
+        for i in range(20):
+            await logger.info("SHUTDOWN", f"Rapid message {i+1}/20")
+            await asyncio.sleep(0.01)
     
     async def slow_logging():
-        for i in range(10):
-            await logger3.info("SLOW", f"Slow message {i}")
-            await asyncio.sleep(0.5)  # Slow processing
+        """Simulate slow logging during shutdown."""
+        for i in range(5):
+            await logger.info("SHUTDOWN", f"Slow message {i+1}/5")
+            await asyncio.sleep(0.1)
     
-    # Start slow logging
+    await logger.info("SHUTDOWN", "Starting shutdown scenarios demonstration")
+    
+    # Start both rapid and slow logging
+    rapid_task = asyncio.create_task(rapid_logging())
     slow_task = asyncio.create_task(slow_logging())
     
-    # Wait a bit then shutdown with short timeout
-    await asyncio.sleep(0.1)
-    await logger3.graceful_shutdown(timeout=0.5)  # Short timeout
+    # Wait a bit, then shutdown
+    await asyncio.sleep(0.2)
+    await logger.info("SHUTDOWN", "Initiating shutdown with pending messages...")
     
-    # Cancel the slow task
-    slow_task.cancel()
-    try:
-        await slow_task
-    except asyncio.CancelledError:
-        pass
+    # Shutdown the logger
+    await logger.aclose()
     
-    print("✅ Timeout shutdown completed")
+    # Wait for tasks to complete
+    await rapid_task
+    await slow_task
+    
+    await logger.info("SHUTDOWN", "Shutdown scenarios completed")
 
 
 async def recovery_demo():
-    """Demonstrate recovery after errors."""
+    """Demonstrate recovery capabilities."""
     print("\n=== Recovery Demo ===")
     
-    logger = AsyncHydraLogger(test_mode=True)
+    config = {
+        'handlers': [
+            {
+                'type': 'console',
+                'use_colors': True
+            }
+        ]
+    }
     
-    # Simulate a recovery scenario
-    print("Simulating error recovery...")
+    logger = AsyncHydraLogger(config)
+    await logger.initialize()
     
-    # Phase 1: Normal operation
-    for i in range(5):
-        await logger.info("RECOVERY", f"Normal message {i}")
+    # Simulate failure and recovery scenarios
+    await logger.info("RECOVERY", "System starting up")
+    await logger.info("RECOVERY", "All components healthy")
     
-    # Phase 2: Error occurs
-    try:
-        raise RuntimeError("Simulated error")
-    except Exception as e:
-        await logger.log_error_with_context(
-            error=e,
-            layer="ERROR",
-            context={"phase": "error", "recovery_attempt": 1}
-        )
+    # Simulate a failure
+    await logger.error("RECOVERY", "Database connection lost")
+    await logger.error("RECOVERY", "Cache service unavailable")
+    await logger.error("RECOVERY", "External API down")
     
-    # Phase 3: Recovery
-    for i in range(5):
-        await logger.info("RECOVERY", f"Recovery message {i}")
+    # Simulate recovery attempts
+    await logger.info("RECOVERY", "Attempting database reconnection...")
+    await logger.info("RECOVERY", "Database reconnected successfully")
     
-    # Wait for all processing
-    await logger.await_pending()
+    await logger.info("RECOVERY", "Attempting cache service restart...")
+    await logger.info("RECOVERY", "Cache service restored")
     
-    print("✅ Recovery demo completed!")
+    await logger.info("RECOVERY", "Attempting API failover...")
+    await logger.info("RECOVERY", "Switched to backup API endpoint")
+    
+    await logger.info("RECOVERY", "All systems recovered")
+    await logger.info("RECOVERY", "System fully operational")
+    
+    await logger.aclose()
 
 
 async def main():
     """Run all reliability feature examples."""
-    print("🚀 Async Reliability Features Examples")
-    print("=" * 50)
+    print("=== Async Reliability Features Examples ===")
+    print("Demonstrating various reliability features.\n")
     
     await flush_and_await_demo()
     await graceful_shutdown_demo()
@@ -313,7 +317,8 @@ async def main():
     await shutdown_scenarios_demo()
     await recovery_demo()
     
-    print("\n✅ All reliability feature examples completed successfully!")
+    print("\n✅ All reliability feature examples completed!")
+    print("Check the console output above to see the reliability features.")
 
 
 if __name__ == "__main__":

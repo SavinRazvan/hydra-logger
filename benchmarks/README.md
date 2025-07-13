@@ -6,6 +6,16 @@ This document provides a comprehensive analysis of HydraLogger's performance acr
 
 The benchmark suite tests HydraLogger's performance across various configurations to provide insights into optimal usage patterns for different scenarios. All tests were conducted with comprehensive error handling and memory leak detection to ensure reliable results.
 
+## Benchmark Files
+
+### Core Benchmark Files
+- **`hydra_sync_bench.py`** - Sync HydraLogger performance benchmarks
+- **`hydra_async_bench.py`** - Async HydraLogger performance benchmarks  
+- **`hydra_s_vs_a_bench.py`** - Sync vs Async comparison benchmarks
+
+### Results Directory
+- **`results/`** - Contains benchmark results in JSON and CSV formats
+
 ## Test Methodology
 
 ### Test Configuration
@@ -18,11 +28,31 @@ The benchmark suite tests HydraLogger's performance across various configuration
 ### Test Categories
 1. **Default Configuration**: Standard logging setup
 2. **High Performance Mode**: Optimized for maximum throughput
-3. **Ultra Fast Mode**: Minimal overhead configuration
+3. **Bare Metal Mode**: Minimal overhead configuration
 4. **Production Configuration**: Enterprise-ready setup
 5. **Development Configuration**: Debug-friendly setup
 6. **Specialized Configurations**: Microservice, Web App, API Service, Background Worker
 7. **Stress Testing**: High-volume logging scenarios
+8. **Async Configurations**: Professional async logging with comprehensive monitoring
+
+## Running Benchmarks
+
+### Sync Benchmarks
+```bash
+python benchmarks/hydra_sync_bench.py
+```
+
+### Async Benchmarks
+```bash
+python benchmarks/hydra_async_bench.py
+```
+
+### Sync vs Async Comparison
+```bash
+python benchmarks/hydra_s_vs_a_bench.py
+```
+
+
 
 ## Results Summary
 
@@ -158,6 +188,43 @@ The stress test with 50,000 messages demonstrates:
 - **Stability**: Consistent performance under load
 - **Note**: This is the "worst" duration in our results, but it's from a stress test designed to push the system to its limits with 50,000 messages
 
+## Async Implementation
+
+### Async Architecture
+The async implementation provides async logging with:
+
+- **CoroutineManager**: Task tracking and cleanup
+- **EventLoopManager**: Event loop safety and fallback management
+- **BoundedAsyncQueue**: Queue with backpressure
+- **MemoryMonitor**: Memory usage monitoring and backpressure
+- **SafeShutdownManager**: Shutdown protocol with data integrity
+- **AsyncErrorTracker**: Error tracking and monitoring
+- **AsyncHealthMonitor**: System health monitoring and alerting
+
+### Async Components
+- **AsyncHydraLogger**: Main async logger with monitoring
+- **AsyncFileHandler**: Async file handler with async I/O
+- **AsyncConsoleHandler**: Async console output with color support
+- **AsyncCompositeHandler**: Multi-handler support with parallel execution
+- **FastAsyncHydraLogger**: High-performance async logger
+
+## Async vs Sync Performance
+
+### Performance Comparison
+- **Sync Best**: ~103K messages/sec (Web App)
+- **Async Best**: ~41K messages/sec (Default File)
+- **Performance Ratio**: Sync is ~2.5x faster than async
+- **Memory Management**: Both sync and async show zero memory leaks
+
+### Async Performance Characteristics
+- **File Logging**: Generally faster than console in async mode
+- **Queue Management**: Bounded queues prevent memory issues
+- **Concurrent Access**: Async handles concurrent logging well
+- **Error Handling**: Comprehensive fallback mechanisms
+- **Implementation**: Async patterns with CoroutineManager, EventLoopManager, BoundedAsyncQueue
+- **Health Monitoring**: Health status and performance metrics
+- **Safe Shutdown**: Multi-phase shutdown with data integrity
+
 ## Recommendations
 
 ### For High-Throughput Applications
@@ -178,6 +245,13 @@ The stress test with 50,000 messages demonstrates:
 2. **Balanced Approach**: Use Production or Microservice configuration (~98-101K/sec)
 3. **File Output**: Prefer Default File logging (~32K/sec) over console for persistence
 
+### For Async Applications
+1. **High-Throughput Async**: Use async file logging (~41K/sec)
+2. **Real-Time Async**: Use async console logging (~20K/sec)
+3. **Concurrent Async**: Use async with bounded queues for stability
+4. **Async**: Use AsyncHydraLogger with monitoring
+5. **Fast Async**: Use FastAsyncHydraLogger for high async performance
+
 ## Technical Details
 
 ### Error Handling
@@ -194,6 +268,10 @@ The stress test with 50,000 messages demonstrates:
 - Layer fallback mechanisms
 - Sync fallback for async failures
 - Last resort stderr output
+- Async patterns with CoroutineManager
+- Bounded queues with backpressure handling
+- Memory monitoring and shutdown protocols
+- Error tracking and health monitoring
 
 ## Conclusion
 
@@ -207,6 +285,8 @@ The benchmark results show that choosing the right configuration for your specif
 - **API Service**: ~82K messages/sec (5.1x faster than default)
 
 This makes HydraLogger a good choice for high-performance logging requirements, with the ability to handle over 100,000 log messages per second in optimized configurations.
+
+The async implementation provides async logging with monitoring and data delivery, making it suitable for async applications.
 
 ---
 

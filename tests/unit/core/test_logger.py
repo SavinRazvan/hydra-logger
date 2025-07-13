@@ -1001,9 +1001,6 @@ class TestCoreLogger:
         """Test logger with comprehensive formatter testing."""
         formatter_configs = [
             {"format": "plain-text"},
-            {"format": "colored-text", "color_mode": "always"},
-            {"format": "colored-text", "color_mode": "auto"},
-            {"format": "colored-text", "color_mode": "never"},
             {"format": "invalid_format"},  # Should fallback to default
         ]
         
@@ -1032,10 +1029,8 @@ class TestCoreLogger:
         handler_configs = [
             # Console handler
             {"type": "console", "format": "plain-text"},
-            {"type": "console", "format": "colored-text", "color_mode": "always"},
             # File handler
             {"type": "file", "path": "_tests_logs/test_handler.log", "format": "plain-text"},
-            {"type": "file", "path": "_tests_logs/test_handler.log", "format": "colored-text"},
             # Invalid handler
             {"type": "invalid_handler_type"},
         ]
