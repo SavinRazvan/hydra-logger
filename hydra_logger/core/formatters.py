@@ -8,6 +8,9 @@ including colored text formatters and plain text formatters.
 import logging
 import sys
 from typing import Optional
+import json
+import csv
+import io
 
 from hydra_logger.core.constants import Colors, DEFAULT_COLORS
 
@@ -90,4 +93,102 @@ class PlainTextFormatter(logging.Formatter):
     
     def format(self, record):
         """Format the record without colors."""
-        return super().format(record) 
+        return super().format(record)
+
+
+class JsonFormatter(logging.Formatter):
+    """Formatter for JSON log output (valid JSON array)."""
+    def __init__(self, fmt=None, datefmt=None):
+        super().__init__(fmt, datefmt)
+        self._records = []
+    
+    def format(self, record):
+        # Build a dict with standard log fields
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        
+        # Add any custom attributes that might be present
+        for key, value in record.__dict__.items():
+            if (
+                key not in log_record and 
+                not key.startswith('_') and 
+                key not in (
+                    "args", "msg", "exc_info", "exc_text", "stack_info", 
+                    "lineno", "pathname", "funcName", "created", "msecs", 
+                    "relativeCreated", "thread", "threadName", "processName", 
+                    "process", "levelno", "levelname", "name"
+                )
+            ):
+                log_record[key] = value
+        
+        self._records.append(log_record)
+        return json.dumps(self._records, ensure_ascii=False, indent=2)
+    
+    def format_all(self):
+        """Format all records as a JSON array."""
+        return json.dumps(self._records, ensure_ascii=False, indent=2)
+
+
+class JsonLinesFormatter(logging.Formatter):
+    """Formatter for JSON Lines output (one JSON object per line)."""
+    def format(self, record):
+        # Build a dict with standard log fields
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        
+        # Add any custom attributes that might be present
+        for key, value in record.__dict__.items():
+            if (
+                key not in log_record and 
+                not key.startswith('_') and 
+                key not in (
+                    "args", "msg", "exc_info", "exc_text", "stack_info", 
+                    "lineno", "pathname", "funcName", "created", "msecs", 
+                    "relativeCreated", "thread", "threadName", "processName", 
+                    "process", "levelno", "levelname", "name"
+                )
+            ):
+                log_record[key] = value
+        
+        return json.dumps(log_record, ensure_ascii=False)
+
+
+class CsvFormatter(logging.Formatter):
+    """Formatter for CSV log output (one row per log record)."""
+    def __init__(self, fmt=None, datefmt=None):
+        super().__init__(fmt, datefmt)
+        self.fieldnames = ["timestamp", "level", "logger", "message"]
+    def format(self, record):
+        output = io.StringIO()
+        writer = csv.writer(output)
+        row = [
+            self.formatTime(record, self.datefmt),
+            record.levelname,
+            record.name,
+            record.getMessage()
+        ]
+        writer.writerow(row)
+        return output.getvalue().strip()
+
+
+class SyslogFormatter(logging.Formatter):
+    """Formatter for syslog output."""
+    def format(self, record):
+        # Example: APP[12345]: INFO: Application started successfully
+        process_id = getattr(record, 'process', None) or '-'
+        return f"{record.name}[{process_id}]: {record.levelname}: {record.getMessage()}"
+
+
+class GelfFormatter(logging.Formatter):
+    """Formatter for GELF (Graylog Extended Log Format)."""
+    def format(self, record):
+        # Minimal GELF: just the message
+        return record.getMessage() 

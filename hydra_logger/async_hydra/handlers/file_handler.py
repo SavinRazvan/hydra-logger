@@ -258,9 +258,10 @@ class AsyncFileHandler(BaseAsyncHandler):
                 # Handle any other exceptions during task cleanup
                 pass
             finally:
-                # Ensure task is marked as done and properly cleaned up
+                # Ensure task is properly cleaned up
                 if not self._writer_task.done():
                     try:
+                        # Set exception to prevent "coroutine ignored" warning
                         self._writer_task.set_exception(asyncio.CancelledError())
                     except Exception:
                         pass

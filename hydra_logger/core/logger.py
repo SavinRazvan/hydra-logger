@@ -24,7 +24,7 @@ from hydra_logger.core.exceptions import ConfigurationError, HydraLoggerError
 from hydra_logger.data_protection.fallbacks import FallbackHandler
 from hydra_logger.data_protection.security import DataSanitizer, SecurityValidator
 from hydra_logger.plugins.registry import get_plugin, list_plugins
-from hydra_logger.core.formatters import ColoredTextFormatter, PlainTextFormatter
+from hydra_logger.core.formatters import ColoredTextFormatter, PlainTextFormatter, JsonLinesFormatter, CsvFormatter, SyslogFormatter, GelfFormatter
 from hydra_logger.magic_configs import MagicConfigRegistry
 from hydra_logger.core.error_handler import (
     get_error_tracker, track_error, track_hydra_error, track_configuration_error,
@@ -71,15 +71,14 @@ class BufferedFileHandler(logging.FileHandler):
         self.total_bytes_written = 0
         
         super().__init__(filename, mode, encoding, delay=True)
-        # Ensure file is created on initialization
-        if not os.path.exists(filename):
-            with open(filename, mode, encoding=encoding) as f:
-                f.write("")
-                f.flush()
-        # Write a test log line to guarantee file creation (for test reliability)
-        with open(filename, mode, encoding=encoding) as f:
-            f.write("")
-            f.flush()
+        # Ensure filename attribute is set for compatibility
+        self.filename = filename
+        
+        # Ensure the directory exists
+        import os
+        dirname = os.path.dirname(filename)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
     
     def _open(self):
         """Open file with custom buffering."""
@@ -423,9 +422,11 @@ class HydraLogger:
         try:
             available_plugins = list_plugins()
             for plugin_name in available_plugins:
-                plugin = get_plugin(plugin_name)
-                if plugin:
-                    self._plugins[plugin_name] = plugin
+                plugin_class = get_plugin(plugin_name)
+                if plugin_class:
+                    # Create plugin instance
+                    plugin_instance = plugin_class()
+                    self._plugins[plugin_name] = plugin_instance
         except Exception as e:
             # Log error but don't fail initialization
             print(f"Warning: Failed to load plugins: {e}", file=sys.stderr)
@@ -499,6 +500,21 @@ class HydraLogger:
         else:
             color_mode = None
             
+        # Get level from destination
+        if hasattr(destination, 'level'):
+            level = destination.level
+        elif hasattr(destination, 'get'):
+            level = destination.get('level', 'INFO')
+        else:
+            level = 'INFO'
+        
+        # Ensure level is a string and convert to uppercase
+        if not isinstance(level, str):
+            level = 'INFO'
+        
+        # Set handler level
+        handler.setLevel(getattr(logging, level.upper(), logging.INFO))
+        
         formatter = self._create_formatter(format_type, color_mode)
         handler.setFormatter(formatter)
         return handler
@@ -528,6 +544,18 @@ class HydraLogger:
             else:
                 format_type = 'plain-text'
             
+            # Get level from destination
+            if hasattr(destination, 'level'):
+                level = destination.level
+            elif hasattr(destination, 'get'):
+                level = destination.get('level', 'INFO')
+            else:
+                level = 'INFO'
+            
+            # Ensure level is a string and convert to uppercase
+            if not isinstance(level, str):
+                level = 'INFO'
+            
             # Ensure directory exists
             dirname = os.path.dirname(path)
             if dirname:  # Only create directory if there is a directory component
@@ -539,6 +567,10 @@ class HydraLogger:
                 buffer_size=self.buffer_size,
                 flush_interval=self.flush_interval
             )
+            
+            # Set handler level
+            handler.setLevel(getattr(logging, level.upper(), logging.INFO))
+            
             formatter = self._create_formatter(format_type)
             handler.setFormatter(formatter)
             return handler
@@ -575,6 +607,14 @@ class HydraLogger:
         """Create a formatter."""
         if format_type == "plain-text":
             return PlainTextFormatter()
+        elif format_type == "json":
+            return JsonLinesFormatter()
+        elif format_type == "csv":
+            return CsvFormatter()
+        elif format_type == "syslog":
+            return SyslogFormatter()
+        elif format_type == "gelf":
+            return GelfFormatter()
         else:
             # Default formatter
             return logging.Formatter(
@@ -646,10 +686,10 @@ class HydraLogger:
                 
                 # Plugin processing
                 if self.enable_plugins:
-                    for plugin_name, plugin in self._plugins.items():
+                    for plugin_name, plugin_instance in self._plugins.items():
                         try:
-                            if hasattr(plugin, 'process_event'):
-                                plugin.process_event({
+                            if hasattr(plugin_instance, 'process_event'):
+                                plugin_instance.process_event({
                                     "level": level,
                                     "message": message,
                                     "layer": layer,
@@ -767,15 +807,20 @@ class HydraLogger:
     def get_plugin_insights(self) -> Dict[str, Any]:
         """Get plugin insights."""
         insights = {}
-        for name, plugin in self._plugins.items():
-            if hasattr(plugin, 'get_insights'):
-                insights[name] = plugin.get_insights()
+        for name, plugin_instance in self._plugins.items():
+            if hasattr(plugin_instance, 'get_insights'):
+                insights[name] = plugin_instance.get_insights()
         return insights
     
     def add_plugin(self, name: str, plugin: Any) -> None:
         """Add a plugin."""
         if not self._closed:
-            self._plugins[name] = plugin
+            # Create plugin instance if it's a class
+            if isinstance(plugin, type):
+                plugin_instance = plugin()
+            else:
+                plugin_instance = plugin
+            self._plugins[name] = plugin_instance
     
     def remove_plugin(self, name: str) -> bool:
         """Remove a plugin."""

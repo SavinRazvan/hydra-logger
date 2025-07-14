@@ -41,14 +41,21 @@ class ErrorTracker:
     to a dedicated error log file for debugging and monitoring.
     """
     
-    def __init__(self, log_file: str = "logs/hydra_logs.log", enable_console: bool = True):
+    def __init__(self, log_file: str = None, enable_console: bool = True, enable_logging: bool = True):
         """
         Initialize error tracker.
         
         Args:
-            log_file: Path to error log file
+            log_file: Path to error log file (auto-detected if None)
             enable_console: Whether to also log to console
+            enable_logging: Whether to actually log errors (can be disabled for tests)
         """
+        self.enable_logging = enable_logging
+        
+        # Auto-detect log file based on environment
+        if log_file is None:
+            log_file = self._detect_log_file()
+        
         self.log_file = log_file
         self.enable_console = enable_console
         self._lock = threading.Lock()
@@ -57,6 +64,37 @@ class ErrorTracker:
         self._last_error_time = None
         self._setup_error_logger()
         self._install_exception_hooks()
+    
+    def _detect_log_file(self) -> str:
+        """Detect appropriate log file based on environment."""
+        # Check if we're in a test environment
+        if self._is_test_environment():
+            return "test_logs/test_errors.log"
+        elif self._is_example_environment():
+            return "examples/logs/example_errors.log"
+        else:
+            return "logs/hydra_logs.log"
+    
+    def _is_test_environment(self) -> bool:
+        """Check if we're running in a test environment."""
+        import sys
+        # Check for pytest, unittest, or test-related environment variables
+        return (
+            'pytest' in sys.modules or
+            'unittest' in sys.modules or
+            'PYTEST_CURRENT_TEST' in os.environ or
+            'TESTING' in os.environ or
+            any('test' in arg.lower() for arg in sys.argv)
+        )
+    
+    def _is_example_environment(self) -> bool:
+        """Check if we're running in an example environment."""
+        import sys
+        # Check if we're running example scripts
+        return (
+            'examples' in sys.argv[0] if sys.argv else False or
+            any('example' in arg.lower() for arg in sys.argv)
+        )
     
     def _setup_error_logger(self) -> None:
         """Setup dedicated error logger."""
@@ -153,6 +191,10 @@ class ErrorTracker:
             component: Component where error occurred
             severity: Error severity (debug, info, warning, error, critical)
         """
+        # Skip logging if disabled
+        if not self.enable_logging:
+            return
+        
         if self.error_logger is None:
             return
         
@@ -350,14 +392,13 @@ _error_tracker_lock = threading.Lock()
 
 
 def get_error_tracker() -> ErrorTracker:
-    """Get or create global error tracker."""
+    """Get global error tracker instance."""
     global _error_tracker
-    
     if _error_tracker is None:
-        with _error_tracker_lock:
-            if _error_tracker is None:
-                _error_tracker = ErrorTracker()
-    
+        # For tests, we want error tracking to work but use test-specific log files
+        # The enable_logging parameter controls whether errors are actually logged
+        # In tests, we want to track errors but use test log files
+        _error_tracker = ErrorTracker()
     return _error_tracker
 
 

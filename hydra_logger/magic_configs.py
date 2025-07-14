@@ -528,14 +528,6 @@ def high_performance_config():
                 level="INFO",
                 destinations=[
                     LogDestination(
-                        type="file",
-                        path="logs/high_performance.log",
-                        format="plain-text",
-                        color_mode="never",
-                        max_size="10MB",
-                        backup_count=2
-                    ),
-                    LogDestination(
                         type="console",
                         format="plain-text", 
                         color_mode="never"
@@ -731,7 +723,6 @@ def _register_builtin_magic_configs():
                 "DEFAULT": LogLayer(
                     level="INFO",
                     destinations=[
-                        LogDestination(type="file", path="logs/high_performance.log", format="plain-text", color_mode="never", max_size="10MB", backup_count=2),
                         LogDestination(type="console", format="plain-text", color_mode="never")
                     ]
                 ),
