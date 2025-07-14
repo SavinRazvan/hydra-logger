@@ -33,7 +33,11 @@ class TestErrorHandling:
         """Setup test environment."""
         self.test_logs_dir = "_test_error_logs"
         os.makedirs(self.test_logs_dir, exist_ok=True)
-        self.error_log_file = os.path.join(self.test_logs_dir, "hydra_logs.log")
+        self.error_log_file = os.path.join(self.test_logs_dir, "test_errors.log")
+        
+        # Use a separate error tracker for tests
+        from hydra_logger.core.error_handler import close_error_tracker
+        close_error_tracker()  # Clear any existing tracker
 
     def teardown_method(self):
         """Cleanup test files."""

@@ -46,9 +46,29 @@ class TestBufferedFileHandlerCoverage:
         handler.close()
     
     def test_buffered_handler_file_creation(self):
-        """Test handler file creation on initialization."""
+        """Test handler file creation when first log is written."""
         handler = BufferedFileHandler(filename=self.log_file)
+        
+        # File should not exist during initialization
+        assert not os.path.exists(self.log_file)
+        
+        # Create a log record and emit it
+        record = logging.LogRecord(
+            name="test_logger",
+            level=logging.INFO,
+            pathname="test.py",
+            lineno=1,
+            msg="Test message",
+            args=(),
+            exc_info=None
+        )
+        
+        # Emit the record - this should create the file
+        handler.emit(record)
+        
+        # Now the file should exist
         assert os.path.exists(self.log_file)
+        
         handler.close()
     
     def test_buffered_handler_open_when_closed(self):

@@ -49,7 +49,12 @@ class TestErrorTracker:
     def setup_method(self):
         """Set up test fixtures."""
         self.temp_dir = tempfile.mkdtemp()
-        self.test_log_file = os.path.join(self.temp_dir, "test_errors.log")
+        self.test_log_file = os.path.join(self.temp_dir, "test_coverage_errors.log")
+        # Use a separate error tracker for tests with logging disabled
+        self.tracker = ErrorTracker(
+            log_file=self.test_log_file,
+            enable_logging=False  # Disable logging for intentional test errors
+        )
     
     def teardown_method(self):
         """Clean up test fixtures."""
@@ -62,7 +67,8 @@ class TestErrorTracker:
         """Test ErrorTracker initialization with default parameters."""
         tracker = ErrorTracker()
         
-        assert tracker.log_file == "logs/hydra_logs.log"
+        # In test environment, the default log file should be test_logs/test_errors.log
+        assert tracker.log_file == "test_logs/test_errors.log"
         assert tracker.enable_console is True
         assert tracker._error_count == 0
         assert tracker._error_types == {}
@@ -497,7 +503,9 @@ class TestGlobalFunctions:
     def setup_method(self):
         """Set up test fixtures."""
         self.temp_dir = tempfile.mkdtemp()
-        self.test_log_file = os.path.join(self.temp_dir, "test_global.log")
+        self.test_log_file = os.path.join(self.temp_dir, "test_global_errors.log")
+        # Clear any existing global tracker
+        close_error_tracker()
     
     def teardown_method(self):
         """Clean up test fixtures."""
@@ -686,7 +694,9 @@ class TestErrorHandlerIntegration:
     def setup_method(self):
         """Set up test fixtures."""
         self.temp_dir = tempfile.mkdtemp()
-        self.test_log_file = os.path.join(self.temp_dir, "integration.log")
+        self.test_log_file = os.path.join(self.temp_dir, "integration_errors.log")
+        # Clear any existing global tracker
+        close_error_tracker()
     
     def teardown_method(self):
         """Clean up test fixtures."""
