@@ -5,6 +5,8 @@ This document provides a comprehensive reference for the Hydra-Logger API, inclu
 ## Table of Contents
 
 - [HydraLogger](#hydralogger)
+- [create_logger](#create_logger)
+- [AsyncHydraLogger](#asynchydralogger)
 - [Configuration Models](#configuration-models)
 - [Log Formats](#log-formats)
 - [Compatibility Functions](#compatibility-functions)
@@ -174,6 +176,210 @@ print(f"Total logs: {metrics['total_logs']}")
 print(f"Average latency: {metrics['avg_latency_ms']}ms")
 ```
 
+## create_logger
+
+A convenience function for creating HydraLogger instances with default configuration.
+
+### Function Signature
+
+```python
+create_logger(
+    config: Optional[dict] = None,
+    enable_security: bool = True,
+    enable_sanitization: bool = True,
+    enable_plugins: bool = True
+) -> HydraLogger
+```
+
+**Parameters:**
+- `config` (Optional[dict]): Optional configuration dictionary
+- `enable_security` (bool): Enable security validation (default: True)
+- `enable_sanitization` (bool): Enable data sanitization (default: True)
+- `enable_plugins` (bool): Enable plugin system (default: True)
+
+**Returns:**
+- `HydraLogger`: Configured logger instance
+
+**Example:**
+```python
+from hydra_logger import create_logger
+
+# Simplest way to get started
+logger = create_logger()
+logger.info("Application started")
+
+# Disable security features for performance
+logger = create_logger(enable_security=False)
+
+# Disable plugins for simpler setup
+logger = create_logger(enable_plugins=False)
+
+# Custom configuration with some features disabled
+logger = create_logger(
+    config={"layers": {"app": {"level": "DEBUG"}}},
+    enable_sanitization=False,
+    enable_plugins=False
+)
+```
+
+## AsyncHydraLogger
+
+Professional async logger with world-class reliability and context management.
+
+### Constructor
+
+```python
+AsyncHydraLogger(config=None, **kwargs)
+```
+
+**Parameters:**
+- `config`: Logging configuration (dict or None)
+- `**kwargs`: Additional configuration options
+
+**Example:**
+```python
+from hydra_logger.async_hydra import AsyncHydraLogger
+
+logger = AsyncHydraLogger({
+    'handlers': [
+        {'type': 'file', 'filename': 'mylog.log'},
+        {'type': 'console', 'use_colors': True}
+    ]
+})
+```
+
+### Async Methods
+
+#### `async log(layer: str, level: str, message: str, extra: Optional[Dict[str, Any]] = None) -> None`
+
+Log a message asynchronously to a specific layer.
+
+**Parameters:**
+- `layer` (str): The logging layer name
+- `level` (str): Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `message` (str): The log message
+- `extra` (Optional[Dict[str, Any]]): Additional data to include in the log
+
+**Example:**
+```python
+await logger.log("API", "INFO", "Request processed successfully")
+await logger.log("DB", "ERROR", "Database connection failed", extra={"error_code": 500})
+```
+
+#### `async info(layer_or_message: str, message: Optional[str] = None) -> None`
+
+Log an info message asynchronously.
+
+**Parameters:**
+- `layer_or_message` (str): Layer name or message (if message is None)
+- `message` (Optional[str]): The info message (if layer_or_message is layer)
+
+**Example:**
+```python
+await logger.info("API", "Request processed successfully")
+await logger.info("Application started")  # Uses default layer
+```
+
+#### `async debug(layer_or_message: str, message: Optional[str] = None) -> None`
+
+Log a debug message asynchronously.
+
+**Parameters:**
+- `layer_or_message` (str): Layer name or message (if message is None)
+- `message` (Optional[str]): The debug message (if layer_or_message is layer)
+
+**Example:**
+```python
+await logger.debug("AUTH", "User authentication attempt")
+await logger.debug("Debug information")  # Uses default layer
+```
+
+#### `async warning(layer_or_message: str, message: Optional[str] = None) -> None`
+
+Log a warning message asynchronously.
+
+**Parameters:**
+- `layer_or_message` (str): Layer name or message (if message is None)
+- `message` (Optional[str]): The warning message (if layer_or_message is layer)
+
+**Example:**
+```python
+await logger.warning("PERF", "Response time exceeded threshold")
+await logger.warning("Performance warning")  # Uses default layer
+```
+
+#### `async error(layer_or_message: str, message: Optional[str] = None) -> None`
+
+Log an error message asynchronously.
+
+**Parameters:**
+- `layer_or_message` (str): Layer name or message (if message is None)
+- `message` (Optional[str]): The error message (if layer_or_message is layer)
+
+**Example:**
+```python
+await logger.error("DB", "Database connection failed")
+await logger.error("Critical error occurred")  # Uses default layer
+```
+
+#### `async critical(layer_or_message: str, message: Optional[str] = None) -> None`
+
+Log a critical message asynchronously.
+
+**Parameters:**
+- `layer_or_message` (str): Layer name or message (if message is None)
+- `message` (Optional[str]): The critical message (if layer_or_message is layer)
+
+**Example:**
+```python
+await logger.critical("SYSTEM", "System shutdown required")
+await logger.critical("System failure")  # Uses default layer
+```
+
+#### `async initialize() -> None`
+
+Initialize the async logger.
+
+**Example:**
+```python
+await logger.initialize()
+```
+
+#### `async aclose() -> None`
+
+Close the async logger gracefully.
+
+**Example:**
+```python
+await logger.aclose()
+```
+
+#### `get_health_status() -> Dict[str, Any]`
+
+Get health status of the async logger.
+
+**Returns:**
+- `Dict[str, Any]`: Health status information
+
+**Example:**
+```python
+health = logger.get_health_status()
+print(f"Healthy: {health['is_healthy']}")
+```
+
+#### `get_performance_metrics() -> Dict[str, Any]`
+
+Get performance metrics for the async logger.
+
+**Returns:**
+- `Dict[str, Any]`: Performance metrics
+
+**Example:**
+```python
+metrics = logger.get_performance_metrics()
+print(f"Total async logs: {metrics['total_logs']}")
+```
+
 ## Configuration Models
 
 ### LoggingConfig
@@ -211,868 +417,307 @@ Configuration for a single logging layer.
 
 ```python
 class LogLayer(BaseModel):
-    level: str
-    destinations: List[LogDestination]
-```
-
-**Parameters:**
-- `level` (str): Log level for this layer (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-- `destinations` (List[LogDestination]): List of destinations for this layer
-
-**Example:**
-```python
-from hydra_logger.config import LogLayer, LogDestination
-
-layer = LogLayer(
-    level="INFO",
-    destinations=[
-        LogDestination(type="file", path="logs/app.log", format="plain-text"),
-        LogDestination(type="console", format="json")
-    ]
-)
+    level: str = Field(default="INFO", description="Default level for this layer")
+    destinations: List[LogDestination] = Field(
+        default_factory=list, description="Destinations for this layer"
+    )
 ```
 
 ### LogDestination
 
-Configuration for a single logging destination.
+Configuration for a single log destination.
 
 ```python
 class LogDestination(BaseModel):
-    type: str
-    path: Optional[str] = None
-    level: Optional[str] = None
-    max_size: Optional[str] = None
-    backup_count: Optional[int] = None
-    format: Optional[str] = None
-    color_mode: Optional[str] = None
-```
-
-**Parameters:**
-- `type` (str): Destination type ("file" or "console")
-- `path` (Optional[str]): File path for file destinations
-- `level` (Optional[str]): Override log level for this destination
-- `max_size` (Optional[str]): Maximum file size (e.g., "10MB", "1GB")
-- `backup_count` (Optional[int]): Number of backup files to keep
-- `format` (Optional[str]): Log format ("plain-text", "json", "csv", "syslog", "gelf")
-- `color_mode` (Optional[str]): Color mode ("auto", "always", "never")
-
-**Example:**
-```python
-from hydra_logger.config import LogDestination
-
-# File destination with JSON format
-file_dest = LogDestination(
-    type="file",
-    path="logs/api/requests.json",
-    max_size="10MB",
-    backup_count=5,
-    format="json"
-)
-
-# Console destination with plain-text format
-console_dest = LogDestination(
-    type="console",
-    level="WARNING",
-    format="plain-text",
-    color_mode="always"
-)
+    type: Literal["file", "console", "async_http", "async_database", "async_queue", "async_cloud"]
+    level: str = Field(default="INFO", description="Logging level for this destination")
+    path: Optional[str] = Field(default=None, description="File path (required for file type)")
+    format: str = Field(default="plain-text", description="Log format")
+    color_mode: Literal["auto", "always", "never"] = Field(default="auto", description="Color mode")
 ```
 
 ## Log Formats
 
-Hydra-Logger supports multiple log formats for different use cases:
+Hydra-Logger supports multiple log formats:
 
-### Plain-Text Format (Default)
-
-Traditional plain text logging with timestamps and log levels.
-
-**Output Example:**
-```
-2024-01-15 10:30:45 - INFO - [API] Request processed successfully
-```
-
-**Configuration:**
+### Plain Text Format
 ```python
-LogDestination(type="file", path="logs/app.log", format="plain-text")
+config = {
+    "layers": {
+        "APP": {
+            "destinations": [
+                {"type": "console", "format": "plain-text"}
+            ]
+        }
+    }
+}
 ```
 
 ### JSON Format
-
-Structured JSON format for log aggregation and analysis. Each log entry is a valid JSON object.
-
-**Output Example:**
-```json
-{
-  "timestamp": "2024-01-15T10:30:45.123Z",
-  "level": "INFO",
-  "logger": "API",
-  "message": "Request processed successfully",
-  "filename": "logger.py",
-  "lineno": 483
+```python
+config = {
+    "layers": {
+        "APP": {
+            "destinations": [
+                {"type": "file", "path": "logs/app.json", "format": "json"}
+            ]
+        }
+    }
 }
 ```
 
-**Configuration:**
-```python
-LogDestination(type="file", path="logs/api/requests.json", format="json")
-```
-
-**Fields:**
-- `timestamp`: ISO format timestamp
-- `level`: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-- `logger`: Logger name with layer prefix
-- `message`: The log message
-- `filename`: Source file name
-- `lineno`: Line number in source file
-
 ### CSV Format
-
-Comma-separated values for analytics and data processing.
-
-**Output Example:**
-```csv
-timestamp,level,logger,message,filename,lineno
-2024-01-15T10:30:45.123Z,INFO,API,Request processed successfully,logger.py,483
-```
-
-**Configuration:**
 ```python
-LogDestination(type="file", path="logs/analytics/metrics.csv", format="csv")
+config = {
+    "layers": {
+        "APP": {
+            "destinations": [
+                {"type": "file", "path": "logs/app.csv", "format": "csv"}
+            ]
+        }
+    }
+}
 ```
 
 ### Syslog Format
-
-Standard syslog format for system integration.
-
-**Output Example:**
-```
-<134>hostname API: Request processed successfully
-```
-
-**Configuration:**
 ```python
-LogDestination(type="file", path="logs/system/app.log", format="syslog")
-```
-
-### GELF Format
-
-Graylog Extended Log Format for centralized logging systems.
-
-**Output Example:**
-```json
-{
-  "version": "1.1",
-  "host": "hostname",
-  "short_message": "Request processed successfully",
-  "level": 6,
-  "_logger": "API"
+config = {
+    "layers": {
+        "APP": {
+            "destinations": [
+                {"type": "file", "path": "logs/app.log", "format": "syslog"}
+            ]
+        }
+    }
 }
 ```
 
-**Configuration:**
+### GELF Format
 ```python
-LogDestination(type="file", path="logs/monitoring/alerts.gelf", format="gelf")
+config = {
+    "layers": {
+        "APP": {
+            "destinations": [
+                {"type": "file", "path": "logs/app.gelf", "format": "gelf"}
+            ]
+        }
+    }
+}
 ```
 
 ## Compatibility Functions
 
-### setup_logging
+### Magic Configuration Methods
 
-Original flexiai setup_logging function for backward compatibility.
+#### `for_production(**kwargs) -> HydraLogger`
 
-```python
-def setup_logging(
-    enable_file_logging: bool = True,
-    console_level: int = logging.INFO,
-    file_level: int = logging.DEBUG,
-    log_file_path: str = "app.log",
-    max_size: str = "10MB",
-    backup_count: int = 5
-) -> None
-```
-
-**Parameters:**
-- `enable_file_logging` (bool): Whether to enable file logging
-- `console_level` (int): Console log level
-- `file_level` (int): File log level
-- `log_file_path` (str): Path to log file
-- `max_size` (str): Maximum file size
-- `backup_count` (int): Number of backup files
+Create a production-ready logger.
 
 **Example:**
 ```python
-from hydra_logger import setup_logging
-import logging
-
-setup_logging(
-    enable_file_logging=True,
-    console_level=logging.INFO,
-    file_level=logging.DEBUG,
-    log_file_path="logs/app.log"
-)
+logger = HydraLogger.for_production()
 ```
 
-### migrate_to_hydra
+#### `for_development(**kwargs) -> HydraLogger`
 
-Migration helper function to convert from setup_logging to HydraLogger.
+Create a development-friendly logger.
 
+**Example:**
 ```python
-def migrate_to_hydra(
-    enable_file_logging: bool = True,
-    console_level: int = logging.INFO,
-    file_level: int = logging.DEBUG,
-    log_file_path: str = "app.log",
-    max_size: str = "10MB",
-    backup_count: int = 5
-) -> HydraLogger
+logger = HydraLogger.for_development()
 ```
+
+#### `for_testing(**kwargs) -> HydraLogger`
+
+Create a testing-focused logger.
+
+**Example:**
+```python
+logger = HydraLogger.for_testing()
+```
+
+#### `for_microservice(**kwargs) -> HydraLogger`
+
+Create a microservice-optimized logger.
+
+**Example:**
+```python
+logger = HydraLogger.for_microservice()
+```
+
+#### `for_web_app(**kwargs) -> HydraLogger`
+
+Create a web application logger.
+
+**Example:**
+```python
+logger = HydraLogger.for_web_app()
+```
+
+#### `for_api_service(**kwargs) -> HydraLogger`
+
+Create an API service logger.
+
+**Example:**
+```python
+logger = HydraLogger.for_api_service()
+```
+
+#### `for_background_worker(**kwargs) -> HydraLogger`
+
+Create a background worker logger.
+
+**Example:**
+```python
+logger = HydraLogger.for_background_worker()
+```
+
+#### `for_minimal_features(**kwargs) -> HydraLogger`
+
+Create a logger with minimal features for maximum performance.
+
+**Example:**
+```python
+logger = HydraLogger.for_minimal_features()
+```
+
+#### `for_bare_metal(**kwargs) -> HydraLogger`
+
+Create a bare metal logger for maximum performance.
+
+**Example:**
+```python
+logger = HydraLogger.for_bare_metal()
+```
+
+### Plugin System
+
+#### `add_plugin(name: str, plugin: Any) -> None`
+
+Add a plugin to the logger.
 
 **Parameters:**
-- `enable_file_logging` (bool): Whether to enable file logging
-- `console_level` (int): Console log level
-- `file_level` (int): File log level
-- `log_file_path` (str): Path to log file
-- `max_size` (str): Maximum file size
-- `backup_count` (int): Number of backup files
+- `name` (str): Plugin name
+- `plugin` (Any): Plugin instance
+
+**Example:**
+```python
+from hydra_logger import HydraLogger, AnalyticsPlugin
+
+class CustomAnalytics(AnalyticsPlugin):
+    def process_event(self, event):
+        return {"processed": True}
+
+logger = HydraLogger(enable_plugins=True)
+logger.add_plugin("custom_analytics", CustomAnalytics())
+```
+
+#### `remove_plugin(name: str) -> bool`
+
+Remove a plugin from the logger.
+
+**Parameters:**
+- `name` (str): Plugin name
 
 **Returns:**
-- `HydraLogger`: Configured logger instance
+- `bool`: True if plugin was removed
 
 **Example:**
 ```python
-from hydra_logger import migrate_to_hydra
-import logging
+removed = logger.remove_plugin("custom_analytics")
+```
 
-logger = migrate_to_hydra(
-    enable_file_logging=True,
-    console_level=logging.INFO,
-    file_level=logging.DEBUG,
-    log_file_path="logs/custom/app.log"
-)
+#### `get_plugin_insights() -> Dict[str, Any]`
 
-# Use the new logger
-logger.info("Application started", "DEFAULT")
+Get insights from all plugins.
+
+**Returns:**
+- `Dict[str, Any]`: Plugin insights
+
+**Example:**
+```python
+insights = logger.get_plugin_insights()
 ```
 
 ## Examples
 
-### Basic Multi-Layer Configuration
+### Basic Usage
 
 ```python
 from hydra_logger import HydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
 
-config = LoggingConfig(
-    layers={
-        "APP": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(type="file", path="logs/app.log", format="plain-text"),
-                LogDestination(type="console", format="json")
-            ]
-        ),
-        "API": LogLayer(
-            level="DEBUG",
-            destinations=[
-                LogDestination(type="file", path="logs/api/requests.json", format="json")
-            ]
-        ),
-        "ERRORS": LogLayer(
-            level="ERROR",
-            destinations=[
-                LogDestination(type="file", path="logs/errors.log", format="plain-text"),
-                LogDestination(type="console", level="CRITICAL", format="gelf")
-            ]
-        )
-    }
-)
+# Create logger with default configuration
+logger = HydraLogger()
 
-logger = HydraLogger(config)
-
-# Log to different layers
-logger.info("Application started", "APP")
-logger.debug("API request received", "API")
-logger.error("Database connection failed", "ERRORS")
+# Log messages to different layers
+logger.info("APP", "Application started")
+logger.info("API", "Request received")
+logger.info("DB", "Query executed")
 ```
 
-### Configuration File Example
+### Advanced Configuration
 
-**hydra_logging.yaml:**
-```yaml
-layers:
-  APP:
-    level: INFO
-    destinations:
-      - type: file
-        path: "logs/app.log"
-        format: plain-text
-      - type: console
-        format: json
-  
-  API:
-    level: DEBUG
-    destinations:
-      - type: file
-        path: "logs/api/requests.json"
-        max_size: "10MB"
-        backup_count: 5
-        format: json
-  
-  ANALYTICS:
-    level: INFO
-    destinations:
-      - type: file
-        path: "logs/analytics/metrics.csv"
-        format: csv
-```
-
-**Usage:**
 ```python
 from hydra_logger import HydraLogger
 
-logger = HydraLogger.from_config("hydra_logging.yaml")
-
-logger.info("Application loaded from configuration file", "APP")
-logger.debug("API request processed", "API")
-logger.info("Performance metric recorded", "ANALYTICS")
-```
-
-### Advanced Format Configuration
-
-```python
-from hydra_logger import HydraLogger
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-
-config = LoggingConfig(
-    layers={
-        "STRUCTURED": LogLayer(
-            level="INFO",
-            destinations=[
-                # JSON format for log aggregation
-                LogDestination(
-                    type="file",
-                    path="logs/structured/events.json",
-                    format="json"
-                ),
-                # CSV format for analytics
-                LogDestination(
-                    type="file",
-                    path="logs/structured/metrics.csv",
-                    format="csv"
-                ),
-                # Syslog format for system monitoring
-                LogDestination(
-                    type="file",
-                    path="logs/structured/system.log",
-                    format="syslog"
-                ),
-                # GELF format for Graylog
-                LogDestination(
-                    type="file",
-                    path="logs/structured/graylog.gelf",
-                    format="gelf"
-                )
-            ]
-        )
-    }
-)
-
-logger = HydraLogger(config)
-
-# Single log message goes to all formats
-logger.info("User action completed", "STRUCTURED")
-```
-
-This will generate the same log message in four different formats, each optimized for its specific use case.
-
-## Best Practices
-
-### Configuration Best Practices
-
-#### Layer Organization
-```python
-# Good: Meaningful layer names
-config = LoggingConfig(
-    layers={
-        "APP": LogLayer(...),      # Application logs
-        "API": LogLayer(...),      # API request logs
-        "DB": LogLayer(...),       # Database logs
-        "SECURITY": LogLayer(...), # Security events
-        "PERFORMANCE": LogLayer(...) # Performance metrics
-    }
-)
-
-# Avoid: Generic names
-config = LoggingConfig(
-    layers={
-        "LOG1": LogLayer(...),
-        "LOG2": LogLayer(...),
-        "LOG3": LogLayer(...)
-    }
-)
-```
-
-#### Format Selection
-```python
-# Good: Choose formats based on use case
-config = LoggingConfig(
-    layers={
-        "DEBUG": LogLayer(
-            destinations=[
-                LogDestination(type="file", path="logs/debug.log", format="plain-text")  # Human-readable
-            ]
-        ),
-        "ANALYTICS": LogLayer(
-            destinations=[
-                LogDestination(type="file", path="logs/analytics.csv", format="csv")  # Data analysis
-            ]
-        ),
-        "MONITORING": LogLayer(
-            destinations=[
-                LogDestination(type="file", path="logs/monitoring.json", format="json")  # Log aggregation
-            ]
-        )
-    }
-)
-```
-
-#### File Management
-```python
-# Good: Appropriate file sizes and backup counts
-config = LoggingConfig(
-    layers={
-        "HIGH_VOLUME": LogLayer(
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/high_volume.csv",
-                    max_size="100MB",    # Large files for high volume
-                    backup_count=2       # Few backups to save space
-                )
-            ]
-        ),
-        "CRITICAL": LogLayer(
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/critical.log",
-                    max_size="1MB",      # Small files for critical logs
-                    backup_count=20      # Many backups for retention
-                )
-            ]
-        )
-    }
-)
-```
-
-### Security Best Practices
-
-#### Sensitive Data Handling
-```python
-import re
-from hydra_logger import HydraLogger
-
-class SecureLogger:
-    """Logger with sensitive data filtering."""
-    
-    def __init__(self, config):
-        self.logger = HydraLogger(config)
-        self.sensitive_patterns = [
-            r'password["\']?\s*[:=]\s*["\'][^"\']*["\']',
-            r'api_key["\']?\s*[:=]\s*["\'][^"\']*["\']',
-            r'token["\']?\s*[:=]\s*["\'][^"\']*["\']',
-            r'secret["\']?\s*[:=]\s*["\'][^"\']*["\']'
-        ]
-    
-    def _filter_sensitive_data(self, message):
-        """Filter sensitive data from log messages."""
-        filtered_message = message
-        for pattern in self.sensitive_patterns:
-            filtered_message = re.sub(pattern, '[REDACTED]', filtered_message, flags=re.IGNORECASE)
-        return filtered_message
-    
-    def log(self, layer, level, message):
-        """Log message with sensitive data filtering."""
-        filtered_message = self._filter_sensitive_data(message)
-        self.logger.log(level, filtered_message, layer)
-
-# Usage
-secure_logger = SecureLogger(config)
-secure_logger.log("APP", "INFO", "User login: password=secret123")  # Will be filtered
-```
-
-#### File Permissions
-```python
-import os
-from pathlib import Path
-
-# Set secure permissions for log directories
-log_dir = Path("logs")
-log_dir.mkdir(exist_ok=True)
-
-# Set directory permissions (Unix-like systems)
-os.chmod(log_dir, 0o750)  # Owner read/write/execute, group read/execute
-
-# Log files will inherit secure permissions
-logger = HydraLogger(config)
-```
-
-### Performance Best Practices
-
-#### High-Throughput Logging
-```python
-# Good: Use CSV format for high-volume data
-config = LoggingConfig(
-    layers={
-        "EVENTS": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/events.csv",
-                    format="csv",  # Fastest format for high volume
-                    max_size="500MB",
-                    backup_count=1
-                )
-            ]
-        )
-    }
-)
-```
-
-#### Memory-Efficient Configuration
-```python
-# Good: Use smaller files for memory-constrained environments
-config = LoggingConfig(
-    layers={
-        "APP": LogLayer(
-            level="INFO",
-            destinations=[
-                LogDestination(
-                    type="file",
-                    path="logs/app.log",
-                    max_size="1MB",  # Smaller files
-                    backup_count=1   # Fewer backups
-                )
-            ]
-        )
-    }
-)
-```
-
-#### Thread-Safe Logging
-```python
-import threading
-from hydra_logger import HydraLogger
-
-class ThreadSafeLogger:
-    """Thread-safe wrapper for HydraLogger."""
-    
-    def __init__(self, config):
-        self.logger = HydraLogger(config)
-        self._lock = threading.Lock()
-    
-    def log(self, layer, level, message):
-        """Thread-safe logging."""
-        with self._lock:
-            self.logger.log(level, message, layer)
-    
-    def info(self, layer, message):
-        """Thread-safe info logging."""
-        with self._lock:
-            self.logger.info(message, layer)
-
-# Usage in multi-threaded applications
-thread_safe_logger = ThreadSafeLogger(config)
-```
-
-### Architecture Best Practices
-
-#### Environment-Specific Configuration
-```python
-import os
-from hydra_logger import HydraLogger
-
-def get_environment_config():
-    """Get configuration based on environment."""
-    env = os.getenv("ENVIRONMENT", "development")
-    
-    configs = {
-        "development": {
-            "layers": {
-                "APP": {
-                    "level": "DEBUG",
-                    "destinations": [
-                        {"type": "file", "path": "logs/dev/app.log", "format": "plain-text"},
-                        {"type": "console", "level": "DEBUG", "format": "plain-text"}
-                    ]
-                }
-            }
-        },
-        "production": {
-            "layers": {
-                "APP": {
-                    "level": "INFO",
-                    "destinations": [
-                        {"type": "file", "path": "logs/prod/app.log", "format": "json"},
-                        {"type": "console", "level": "ERROR", "format": "json"}
-                    ]
-                }
-            }
-        }
-    }
-    
-    return configs.get(env, configs["development"])
-
-# Load environment-specific configuration
-config = LoggingConfig(**get_environment_config())
-logger = HydraLogger(config)
-```
-
-#### Modular Configuration
-```python
-from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-
-def create_app_layer():
-    """Create application layer configuration."""
-    return LogLayer(
-        level="INFO",
-        destinations=[
-            LogDestination(type="file", path="logs/app.log", format="plain-text"),
-            LogDestination(type="console", format="json")
-        ]
-    )
-
-def create_api_layer():
-    """Create API layer configuration."""
-    return LogLayer(
-        level="DEBUG",
-        destinations=[
-            LogDestination(type="file", path="logs/api/requests.json", format="json")
-        ]
-    )
-
-def create_security_layer():
-    """Create security layer configuration."""
-    return LogLayer(
-        level="WARNING",
-        destinations=[
-            LogDestination(type="file", path="logs/security/events.log", format="syslog")
-        ]
-    )
-
-# Combine layers into configuration
-config = LoggingConfig(
-    layers={
-        "APP": create_app_layer(),
-        "API": create_api_layer(),
-        "SECURITY": create_security_layer()
-    }
-)
-
-logger = HydraLogger(config)
-```
-
-### Monitoring and Debugging Best Practices
-
-#### Configuration Validation
-```python
-from hydra_logger.config import LoggingConfig
-
-def validate_config(config_dict):
-    """Validate configuration before creating logger."""
-    try:
-        config = LoggingConfig(**config_dict)
-        print("Configuration is valid")
-        return config
-    except Exception as e:
-        print(f"Configuration error: {e}")
-        return None
-
-# Test your configuration
-test_config = {
-    "layers": {
-        "APP": {
-            "level": "INFO",
-            "destinations": [
-                {
-                    "type": "file",
-                    "path": "logs/app.log",
-                    "format": "plain-text"
-                }
-            ]
-        }
-    }
-}
-
-valid_config = validate_config(test_config)
-if valid_config:
-    logger = HydraLogger(valid_config)
-```
-
-#### Configuration Debugging
-```python
-def debug_config(config):
-    """Debug configuration by printing details."""
-    print("Configuration Debug:")
-    print(f"  Default Level: {config.default_level}")
-    print(f"  Layers: {len(config.layers)}")
-    
-    for layer_name, layer_config in config.layers.items():
-        print(f"  Layer '{layer_name}':")
-        print(f"    Level: {layer_config.level}")
-        print(f"    Destinations: {len(layer_config.destinations)}")
-        
-        for i, dest in enumerate(layer_config.destinations):
-            print(f"    Destination {i+1}:")
-            print(f"      Type: {dest.type}")
-            if dest.path:
-                print(f"      Path: {dest.path}")
-            print(f"      Format: {dest.format}")
-            print(f"      Level: {dest.level}")
-
-# Use with your configuration
-config = LoggingConfig(layers={...})  # Your config
-debug_config(config)
-logger = HydraLogger(config)
-```
-
-### Production Deployment Best Practices
-
-#### Error Handling
-```python
-from hydra_logger import HydraLogger
-from pydantic import ValidationError
-
-def create_logger_safely(config_path=None):
-    """Create logger with comprehensive error handling."""
-    try:
-        if config_path:
-            logger = HydraLogger.from_config(config_path)
-        else:
-            logger = HydraLogger()  # Use defaults
-        
-        # Test the logger
-        logger.info("Logger initialized successfully", "APP")
-        return logger
-        
-    except FileNotFoundError:
-        print("Configuration file not found, using defaults")
-        return HydraLogger()
-        
-    except ValidationError as e:
-        print(f"Configuration validation error: {e}")
-        return HydraLogger()
-        
-    except Exception as e:
-        print(f"Unexpected error creating logger: {e}")
-        return HydraLogger()
-
-# Usage
-logger = create_logger_safely("config/logging.yaml")
-```
-
-#### Health Checks
-```python
-def check_logger_health(logger):
-    """Check if logger is working properly."""
-    try:
-        # Test logging to each layer
-        for layer_name in logger.config.layers.keys():
-            logger.info(f"Health check for {layer_name}", layer_name)
-        
-        print("Logger health check passed")
-        return True
-        
-    except Exception as e:
-        print(f"Logger health check failed: {e}")
-        return False
-
-# Usage
-logger = HydraLogger(config)
-if check_logger_health(logger):
-    print("Logger is ready for production use")
-```
-
-### Log Analysis Best Practices
-
-#### Structured Logging
-```python
-import json
-from hydra_logger import HydraLogger
-
-class StructuredLogger:
-    """Logger that ensures structured data in logs."""
-    
-    def __init__(self, config):
-        self.logger = HydraLogger(config)
-    
-    def log_event(self, layer, level, event_type, **kwargs):
-        """Log structured event data."""
-        structured_message = {
-            "event_type": event_type,
-            "data": kwargs
-        }
-        message = json.dumps(structured_message)
-        self.logger.log(level, message, layer)
-    
-    def log_metric(self, layer, metric_name, value, unit=None):
-        """Log performance metrics."""
-        metric_data = {
-            "metric": metric_name,
-            "value": value,
-            "unit": unit
-        }
-        message = json.dumps(metric_data)
-        self.logger.info(message, layer)
-
-# Usage
-structured_logger = StructuredLogger(config)
-
-# Log structured events
-structured_logger.log_event("API", "INFO", "user_login", user_id=123, ip="192.168.1.1")
-
-# Log metrics
-structured_logger.log_metric("PERFORMANCE", "response_time", 150, "ms")
-```
-
-## Format System: `plain-text` and Color Mode
-
-Hydra-Logger supports the `plain-text` format for human-readable output with color control:
-
-- **`plain-text`**: Human-readable text format with color control via `color_mode`
-- **Other formats**: `json`, `csv`, `syslog`, `gelf` (all support color_mode for future colored variants)
-
-**Color Mode** (`color_mode`):
-- `auto`: Detects if colors should be used (default)
-- `always`: Forces colors on
-- `never`: Forces colors off
-
-**Example:**
-```python
 config = {
     "layers": {
         "APP": {
             "level": "INFO",
             "destinations": [
-                {"type": "console", "format": "plain-text", "color_mode": "always"},  # Colored console
-                {"type": "file", "format": "plain-text", "color_mode": "never"}      # Plain file
+                {"type": "console", "format": "plain-text", "color_mode": "always"},
+                {"type": "file", "path": "logs/app.log", "format": "json"}
+            ]
+        },
+        "API": {
+            "level": "DEBUG",
+            "destinations": [
+                {"type": "file", "path": "logs/api/requests.json", "format": "json"}
             ]
         }
     }
 }
+
 logger = HydraLogger(config=config)
-logger.info("Colored console, plain file", "APP")
 ```
 
-## Available Formats
-- `plain-text` - Human-readable text (colored in console if color_mode allows)
-- `json` - JSON format (structured)
-- `csv` - CSV format (tabular)
-- `syslog` - Syslog format (system logging)
-- `gelf` - GELF format (Graylog)
+### Async Logging
 
-## Color Mode Options
-- `auto` - Automatic detection (default)
-- `always` - Force colors on
-- `never` - Force colors off 
+```python
+from hydra_logger.async_hydra import AsyncHydraLogger
+from hydra_logger.async_hydra.context import async_context, trace_context
+
+async with AsyncHydraLogger() as logger:
+    async with async_context(context_id="request-123"):
+        await logger.info("REQUEST", "Processing request")
+    
+    async with trace_context(trace_id="trace-456"):
+        await logger.info("TRACE", "Request traced")
+```
+
+### Performance Monitoring
+
+```python
+from hydra_logger.async_hydra.performance import get_performance_monitor
+
+monitor = get_performance_monitor()
+async with monitor.async_timer("operation"):
+    await logger.info("PERF", "Operation completed")
+
+stats = monitor.get_async_statistics()
+print(f"Average operation time: {stats['average_duration']}ms")
+```
+
+### Data Protection
+
+```python
+from hydra_logger.data_protection import FallbackHandler, DataLossProtection
+
+# Atomic file operations
+handler = FallbackHandler()
+handler.safe_write_json(data, "logs/critical.json")
+
+# Data loss protection
+protection = DataLossProtection()
+await protection.backup_message("critical message", "error_queue")
+``` 

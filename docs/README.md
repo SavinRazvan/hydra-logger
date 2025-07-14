@@ -31,6 +31,7 @@ hydra_logger/
 ├── config/         # Configuration system with Pydantic models
 ├── plugins/        # Plugin architecture with registry
 ├── data_protection/ # Security features and fallback mechanisms
+├── async_hydra/    # Async logging with context management
 └── __init__.py     # Main API and exports
 ```
 
@@ -43,6 +44,28 @@ from hydra_logger import HydraLogger
 # Works immediately without configuration
 logger = HydraLogger()
 logger.info("APP", "Application started")
+```
+
+### **Quick Setup with create_logger**
+```python
+from hydra_logger import create_logger
+
+# Simplest way to get started
+logger = create_logger()
+logger.info("Application started")
+
+# Disable security features for performance
+logger = create_logger(enable_security=False)
+
+# Disable plugins for simpler setup
+logger = create_logger(enable_plugins=False)
+
+# Custom configuration with some features disabled
+logger = create_logger(
+    config={"layers": {"app": {"level": "DEBUG"}}},
+    enable_sanitization=False,
+    enable_plugins=False
+)
 ```
 
 ### **Format Customization**
@@ -92,6 +115,65 @@ logger.info("AUTH", "Login attempt",
 # Output: email=***@***.com password=***
 ```
 
+### **Async Logging with Context Management**
+```python
+from hydra_logger.async_hydra import AsyncHydraLogger
+from hydra_logger.async_hydra.context import async_context, trace_context
+
+# Async logging with context
+async with AsyncHydraLogger() as logger:
+    async with async_context(context_id="request-123"):
+        await logger.info("REQUEST", "Processing request")
+    
+    async with trace_context(trace_id="trace-456"):
+        await logger.info("TRACE", "Request traced")
+```
+
+### **Distributed Tracing**
+```python
+from hydra_logger.async_hydra.context import get_trace_manager, span_context
+
+trace_manager = get_trace_manager()
+async with span_context("database_query", {"table": "users"}):
+    await logger.info("DB", "Query executed")
+```
+
+### **Performance Monitoring**
+```python
+from hydra_logger.async_hydra.performance import get_performance_monitor
+
+monitor = get_performance_monitor()
+async with monitor.async_timer("operation"):
+    await logger.info("PERF", "Operation completed")
+
+stats = monitor.get_async_statistics()
+print(f"Average operation time: {stats['average_duration']}ms")
+```
+
+### **Data Loss Protection**
+```python
+from hydra_logger.data_protection import DataLossProtection
+
+protection = DataLossProtection(backup_dir=".hydra_backup")
+await protection.backup_message("critical log message", "error_queue")
+
+# Restore messages after failure
+restored_messages = await protection.restore_messages("error_queue")
+```
+
+### **Atomic File Operations**
+```python
+from hydra_logger.data_protection import FallbackHandler
+
+handler = FallbackHandler()
+handler.safe_write_json(data, "logs/data.json")
+handler.safe_write_csv(records, "logs/data.csv")
+
+# Safe reading with corruption detection
+data = handler.safe_read_json("logs/data.json")
+records = handler.safe_read_csv("logs/data.csv")
+```
+
 ## Performance Metrics
 
 **Current Performance Results:**
@@ -111,13 +193,20 @@ logger = HydraLogger()
 logger.info("APP", "Works immediately!")
 ```
 
-### **Level 2: Basic Customization**
+### **Level 2: Quick Setup**
+```python
+from hydra_logger import create_logger
+logger = create_logger()
+logger.info("Application started")
+```
+
+### **Level 3: Basic Customization**
 ```python
 config = {"layers": {"APP": {"level": "INFO", "destinations": [{"type": "console"}]}}}
 logger = HydraLogger(config=config)
 ```
 
-### **Level 3: Multiple Destinations**
+### **Level 4: Multiple Destinations**
 ```python
 config = {
     "layers": {
@@ -131,7 +220,7 @@ config = {
 }
 ```
 
-### **Level 4: Format Customization**
+### **Level 5: Format Customization**
 ```python
 logger = HydraLogger(
     date_format="%Y-%m-%d",
@@ -140,7 +229,7 @@ logger = HydraLogger(
 )
 ```
 
-### **Level 5: Color Mode Control**
+### **Level 6: Color Mode Control**
 ```python
 config = {
     "layers": {
@@ -154,13 +243,13 @@ config = {
 }
 ```
 
-### **Level 6: Security & Performance**
+### **Level 7: Security & Performance**
 ```python
 logger = HydraLogger(enable_security=True, enable_sanitization=True)
 metrics = logger.get_performance_metrics()
 ```
 
-### **Level 7: Plugin System**
+### **Level 8: Plugin System**
 ```python
 from hydra_logger import HydraLogger, AnalyticsPlugin
 
@@ -171,6 +260,29 @@ class CustomAnalytics(AnalyticsPlugin):
 
 logger = HydraLogger(enable_plugins=True)
 logger.add_plugin("custom_analytics", CustomAnalytics())
+```
+
+### **Level 9: Async Logging**
+```python
+from hydra_logger.async_hydra import AsyncHydraLogger
+
+async with AsyncHydraLogger() as logger:
+    await logger.info("ASYNC", "Async logging")
+```
+
+### **Level 10: Advanced Async Features**
+```python
+from hydra_logger.async_hydra import AsyncHydraLogger
+from hydra_logger.async_hydra.context import async_context, trace_context
+from hydra_logger.async_hydra.performance import get_performance_monitor
+
+async with AsyncHydraLogger() as logger:
+    monitor = get_performance_monitor()
+    
+    async with async_context(context_id="request-123"):
+        async with trace_context(trace_id="trace-456"):
+            async with monitor.async_timer("operation"):
+                await logger.info("ADVANCED", "Advanced async logging")
 ```
 
 ## Documentation Structure
@@ -247,6 +359,33 @@ config = {
         }
     }
 }
+```
+
+### **Async Best Practices**
+```python
+# Use context managers for async logging
+async with AsyncHydraLogger() as logger:
+    async with async_context(context_id="request-123"):
+        await logger.info("REQUEST", "Processing request")
+    
+    # Use tracing for distributed systems
+    async with trace_context(trace_id="trace-456"):
+        await logger.info("TRACE", "Request traced")
+```
+
+### **Data Protection**
+```python
+# Use atomic operations for critical data
+from hydra_logger.data_protection import FallbackHandler
+
+handler = FallbackHandler()
+handler.safe_write_json(critical_data, "logs/critical.json")
+
+# Use data loss protection for critical logs
+from hydra_logger.data_protection import DataLossProtection
+
+protection = DataLossProtection()
+await protection.backup_message("critical message", "error_queue")
 ```
 
 ## Environment Variables
