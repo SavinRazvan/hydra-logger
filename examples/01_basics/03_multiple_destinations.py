@@ -8,6 +8,7 @@ This example demonstrates logging to multiple destinations with different format
 - Different log levels for each destination
 """
 
+import os
 from hydra_logger import HydraLogger
 
 def demo_multiple_destinations():
@@ -15,6 +16,9 @@ def demo_multiple_destinations():
     
     print("Multiple Destinations Example")
     print("=" * 50)
+    
+    # Create logs directory if it doesn't exist
+    os.makedirs("examples/logs", exist_ok=True)
     
     # Configuration with multiple destinations
     config = {
@@ -54,14 +58,14 @@ def demo_multiple_destinations():
     logger = HydraLogger(config=config)
     
     # Log messages that will go to multiple destinations
-    logger.info("FRONTEND", "User interface updated")
-    logger.info("FRONTEND", "User logged in", extra={"user_id": 12345, "action": "login"})
-    logger.warning("FRONTEND", "High memory usage detected", extra={"memory_mb": 512})
-    logger.error("FRONTEND", "Database connection failed", extra={"error_code": 500})
+    logger.info("User interface updated", "FRONTEND")
+    logger.info("User logged in", "FRONTEND", extra={"user_id": 12345, "action": "login"})
+    logger.warning("High memory usage detected", "FRONTEND", extra={"memory_mb": 512})
+    logger.error("Database connection failed", "FRONTEND", extra={"error_code": 500})
     
     # Backend messages (only to backend file)
-    logger.debug("BACKEND", "API endpoint called")
-    logger.debug("BACKEND", "Configuration loaded", extra={"config_size": 1024})
+    logger.debug("API endpoint called", "BACKEND")
+    logger.debug("Configuration loaded", "BACKEND", extra={"config_size": 1024})
     
     print("\nMultiple destinations example completed!")
     print("Check the following files:")

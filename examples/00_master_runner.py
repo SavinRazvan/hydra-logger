@@ -19,7 +19,7 @@ import subprocess
 import time
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -39,7 +39,9 @@ EXAMPLES = {
     "01_basics": {
         "01_basic_usage.py": "Zero-configuration, minimal usage of HydraLogger",
         "02_layered_usage.py": "Layered logging with configuration dictionary",
-        "03_multiple_destinations.py": "Logging to multiple destinations with different formats"
+        "03_multiple_destinations.py": "Logging to multiple destinations with different formats",
+        "04_multi_layer_same_file.py": "Multiple layers writing to the same file",
+        "05_mixed_formats.py": "Multiple layers with different formats writing to different files"
     },
     "02_async": {
         "01_async_basic.py": "Minimal usage of AsyncHydraLogger",
@@ -53,7 +55,10 @@ EXAMPLES = {
     },
     "03_format": {
         "01_format_customization.py": "Complete format customization demonstration",
-        "02_environment_variables.py": "Format customization using environment variables"
+        "02_environment_variables.py": "Format customization using environment variables",
+        "03_csv_format.py": "CSV format logging for data analysis and spreadsheet integration",
+        "04_syslog_format.py": "Syslog format for system monitoring and enterprise logging",
+        "05_gelf_format.py": "GELF format for Graylog integration and centralized logging"
     },
     "04_color": {
         "01_colored_console.py": "Colored console output with format customization",
@@ -208,7 +213,7 @@ class ExampleRunner:
         
         return self.results
     
-    def generate_report(self) -> Dict[str, any]:
+    def generate_report(self) -> Dict[str, Any]:
         """Generate comprehensive report."""
         successful = [r for r in self.results if r.success]
         failed = [r for r in self.results if not r.success]

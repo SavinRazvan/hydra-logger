@@ -9,6 +9,7 @@ This example demonstrates color mode control for different destinations:
 - Per-destination color control
 """
 
+import os
 from hydra_logger import HydraLogger
 
 def demo_color_mode_control():
@@ -16,6 +17,9 @@ def demo_color_mode_control():
     
     print("Color Mode Control Example")
     print("=" * 50)
+    
+    # Create logs directory if it doesn't exist
+    os.makedirs("examples/logs", exist_ok=True)
     
     # Configuration with different color modes per destination
     config = {
@@ -70,14 +74,14 @@ def demo_color_mode_control():
     print("\nLogging with color mode control:")
     
     # Log messages that will appear differently on console vs file
-    logger.info("APP", "Application started")
-    logger.info("APP", "User logged in", extra={"user_id": 12345})
-    logger.warning("APP", "High memory usage detected", extra={"memory_mb": 512})
-    logger.error("APP", "Database connection failed", extra={"error_code": 500})
+    logger.info("Application started", "APP")
+    logger.info("User logged in", "APP", extra={"user_id": 12345})
+    logger.warning("High memory usage detected", "APP", extra={"memory_mb": 512})
+    logger.error("Database connection failed", "APP", extra={"error_code": 500})
     
     # Debug messages (different color mode)
-    logger.debug("DEBUG", "Detailed debug information")
-    logger.debug("DEBUG", "Configuration loaded", extra={"config_size": 1024})
+    logger.debug("Detailed debug information", "DEBUG")
+    logger.debug("Configuration loaded", "DEBUG", extra={"config_size": 1024})
     
     print("\nColor mode control example completed!")
     print("Check the following files:")

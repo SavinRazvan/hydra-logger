@@ -4,9 +4,10 @@ Comprehensive Error Handling Example
 
 This example demonstrates how to use Hydra-Logger's comprehensive error handling
 system to track all types of errors (internal, runtime, configuration, etc.)
-and save them to logs/hydra_logs.log for debugging and monitoring.
+and save them to examples/logs/hydra_logs.log for debugging and monitoring.
 """
 
+import os
 import time
 import threading
 from hydra_logger import (
@@ -27,6 +28,7 @@ from hydra_logger import (
 from hydra_logger.core.exceptions import (
     HydraLoggerError, ConfigurationError, ValidationError, PluginError, AsyncError, PerformanceError
 )
+from hydra_logger.core.error_handler import ErrorTracker
 
 
 def demo_basic_error_tracking():
@@ -35,33 +37,44 @@ def demo_basic_error_tracking():
     print("🔍 Basic Error Tracking Demo")
     print("=" * 50)
     
-    # Create logger
+    # Create logs directory if it doesn't exist
+    os.makedirs("examples/logs", exist_ok=True)
+    
+    # Create logger with separate error log file
     logger = HydraLogger()
     
-    # Track different types of errors
+    # Create a separate error tracker for examples
+    example_error_tracker = ErrorTracker(
+        log_file="examples/logs/example_errors.log",
+        enable_logging=True  # Enable for demonstration
+    )
+    
+    # Track different types of errors using the example tracker
     print("\n1️⃣ Tracking General Errors:")
-    track_error("test_error", ValueError("This is a test error"))
-    track_error("runtime_error", RuntimeError("Runtime error occurred"))
+    example_error_tracker.track_error("test_error", ValueError("This is a test error"))
+    example_error_tracker.track_error("runtime_error", RuntimeError("Runtime error occurred"))
     
     print("\n2️⃣ Tracking Hydra-Logger Specific Errors:")
-    track_hydra_error(HydraLoggerError("Hydra logger specific error"))
+    example_error_tracker.track_hydra_error(HydraLoggerError("Hydra logger specific error"))
     
     print("\n3️⃣ Tracking Configuration Errors:")
-    track_configuration_error(
+    example_error_tracker.track_configuration_error(
         ConfigurationError("Configuration error"),
         {"config_file": "config.yaml", "line": 42}
     )
     
     print("\n4️⃣ Tracking Validation Errors:")
-    track_validation_error(
+    example_error_tracker.track_validation_error(
         ValidationError("Validation failed"),
         {"field": "email", "value": "invalid-email"}
     )
     
-    # Get error statistics
-    stats = get_error_stats()
+    # Get error statistics from the example tracker
+    stats = example_error_tracker.get_error_stats()
     print(f"\n📊 Error Statistics: {stats}")
     
+    # Clean up
+    example_error_tracker.close()
     logger.close()
 
 
@@ -70,6 +83,12 @@ def demo_error_context():
     
     print("\n🔍 Error Context Manager Demo")
     print("=" * 50)
+    
+    # Create a separate error tracker for examples
+    example_error_tracker = ErrorTracker(
+        log_file="examples/logs/example_errors.log",
+        enable_logging=True
+    )
     
     # Use error context for operations
     with error_context("database", "user_query"):
@@ -86,8 +105,10 @@ def demo_error_context():
         print("Error was caught and tracked!")
     
     # Get updated statistics
-    stats = get_error_stats()
+    stats = example_error_tracker.get_error_stats()
     print(f"Updated Error Statistics: {stats}")
+    
+    example_error_tracker.close()
 
 
 def demo_thread_safety():
@@ -96,10 +117,16 @@ def demo_thread_safety():
     print("\n🔍 Thread Safety Demo")
     print("=" * 50)
     
+    # Create a separate error tracker for examples
+    example_error_tracker = ErrorTracker(
+        log_file="examples/logs/example_errors.log",
+        enable_logging=True
+    )
+    
     def worker(worker_id):
         """Worker function that generates errors."""
         for i in range(5):
-            track_error(f"thread_error_{worker_id}", ValueError(f"Thread {worker_id} error {i}"))
+            example_error_tracker.track_error(f"thread_error_{worker_id}", ValueError(f"Thread {worker_id} error {i}"))
             time.sleep(0.01)
     
     # Create multiple threads
@@ -116,8 +143,10 @@ def demo_thread_safety():
     print("All threads completed!")
     
     # Check final statistics
-    stats = get_error_stats()
+    stats = example_error_tracker.get_error_stats()
     print(f"Final Error Statistics: {stats}")
+    
+    example_error_tracker.close()
 
 
 def demo_logger_error_handling():
@@ -156,23 +185,31 @@ def demo_error_statistics():
     print("\n🔍 Error Statistics Demo")
     print("=" * 50)
     
+    # Create a separate error tracker for examples
+    example_error_tracker = ErrorTracker(
+        log_file="examples/logs/example_errors.log",
+        enable_logging=True
+    )
+    
     # Clear previous statistics
-    clear_error_stats()
+    example_error_tracker.clear_error_stats()
     
     # Track various errors
-    track_error("type_a", ValueError("Error A1"))
-    track_error("type_a", ValueError("Error A2"))
-    track_error("type_b", RuntimeError("Error B1"))
-    track_error("type_c", TypeError("Error C1"))
+    example_error_tracker.track_error("type_a", ValueError("Error A1"))
+    example_error_tracker.track_error("type_a", ValueError("Error A2"))
+    example_error_tracker.track_error("type_b", RuntimeError("Error B1"))
+    example_error_tracker.track_error("type_c", TypeError("Error C1"))
     
     # Get statistics
-    stats = get_error_stats()
+    stats = example_error_tracker.get_error_stats()
     print(f"Error Statistics: {stats}")
     
     # Clear statistics
-    clear_error_stats()
-    stats = get_error_stats()
+    example_error_tracker.clear_error_stats()
+    stats = example_error_tracker.get_error_stats()
     print(f"After Clearing: {stats}")
+    
+    example_error_tracker.close()
 
 
 def demo_error_severity_levels():
@@ -181,11 +218,17 @@ def demo_error_severity_levels():
     print("\n🔍 Error Severity Levels Demo")
     print("=" * 50)
     
+    # Create a separate error tracker for examples
+    example_error_tracker = ErrorTracker(
+        log_file="examples/logs/example_errors.log",
+        enable_logging=True
+    )
+    
     # Track errors with different severity levels
     severities = ["debug", "info", "warning", "error", "critical"]
     
     for severity in severities:
-        track_error(
+        example_error_tracker.track_error(
             f"severity_{severity}",
             ValueError(f"Test error with {severity} severity"),
             severity=severity
@@ -193,6 +236,8 @@ def demo_error_severity_levels():
         print(f"Tracked {severity} level error")
     
     print("All severity levels tracked!")
+    
+    example_error_tracker.close()
 
 
 def demo_comprehensive_error_scenarios():
@@ -201,27 +246,33 @@ def demo_comprehensive_error_scenarios():
     print("\n🔍 Comprehensive Error Scenarios Demo")
     print("=" * 50)
     
+    # Create a separate error tracker for examples
+    example_error_tracker = ErrorTracker(
+        log_file="examples/logs/example_errors.log",
+        enable_logging=True
+    )
+    
     # Scenario 1: Plugin error
-    track_plugin_error(
+    example_error_tracker.track_plugin_error(
         PluginError("Plugin initialization failed"),
         "custom_plugin",
         {"plugin_version": "1.0.0", "operation": "init"}
     )
     
     # Scenario 2: Async error
-    track_async_error(
+    example_error_tracker.track_async_error(
         AsyncError("Async operation timeout"),
         {"timeout_ms": 5000, "operation": "http_request"}
     )
     
     # Scenario 3: Performance error
-    track_performance_error(
+    example_error_tracker.track_performance_error(
         PerformanceError("Performance threshold exceeded"),
         {"threshold": "100ms", "actual": "150ms", "operation": "database_query"}
     )
     
     # Scenario 4: Runtime error with rich context
-    track_runtime_error(
+    example_error_tracker.track_runtime_error(
         ConnectionError("Database connection failed"),
         "database",
         {
@@ -234,6 +285,8 @@ def demo_comprehensive_error_scenarios():
     )
     
     print("All error scenarios tracked!")
+    
+    example_error_tracker.close()
 
 
 def main():
@@ -242,7 +295,7 @@ def main():
     print("🚀 Hydra-Logger Comprehensive Error Handling Demo")
     print("=" * 60)
     print("This demo shows how to track all types of errors in Hydra-Logger.")
-    print("All errors are logged to logs/hydra_logs.log")
+    print("All errors are logged to examples/logs/example_errors.log")
     print("=" * 60)
     
     try:
@@ -256,17 +309,22 @@ def main():
         demo_comprehensive_error_scenarios()
         
         print("\n✅ All error handling demos completed successfully!")
-        print("📁 Check logs/hydra_logs.log for detailed error logs")
+        print("📁 Check examples/logs/example_errors.log for detailed error logs")
         
-        # Final statistics
-        final_stats = get_error_stats()
+        # Final statistics from a fresh tracker
+        final_tracker = ErrorTracker(
+            log_file="examples/logs/example_errors.log",
+            enable_logging=True
+        )
+        final_stats = final_tracker.get_error_stats()
         print(f"📊 Final Error Statistics: {final_stats}")
+        final_tracker.close()
         
     except Exception as e:
         print(f"❌ Demo error: {e}")
     finally:
-        # Clean up
-        close_error_tracker()
+        # No need to close global tracker since we're using separate ones
+        pass
 
 
 if __name__ == "__main__":
