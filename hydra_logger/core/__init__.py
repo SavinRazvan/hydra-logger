@@ -67,7 +67,7 @@ Performance Optimization:
 
 from .constants import Colors, QueuePolicy, ShutdownPhase
 from ..types.levels import LogLevel
-from .layer_manager import LayerManager, LayerConfiguration
+from .layer_management import LayerManager, LayerConfiguration
 from .exceptions import (
     HydraLoggerError, ConfigurationError, ValidationError,
     HandlerError, FormatterError, PluginError, SecurityError

@@ -126,7 +126,7 @@ PERFORMANCE FEATURES:
 
 from typing import Optional, Union, Dict, Any
 from ..config.models import LoggingConfig
-from ..config.magic_configs import magic_configs
+from ..config.configuration_templates import magic_configs
 # Setup module removed - simplified architecture
 from ..loggers.sync_logger import SyncLogger
 from ..loggers.async_logger import AsyncLogger

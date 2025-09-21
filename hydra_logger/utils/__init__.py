@@ -33,7 +33,7 @@ USAGE:
     info = FileUtils.get_file_info("/path/to/file")
 """
 
-from .text import (
+from .text_utility import (
     TextProcessor,
     TextFormatter,
     TextValidator,
@@ -41,7 +41,7 @@ from .text import (
     TextAnalyzer
 )
 
-from .time import (
+from .time_utility import (
     TimeUtility,
     TimestampFormatter,
     TimestampFormat,
@@ -53,7 +53,7 @@ from .time import (
     TimeInterval
 )
 
-from .file import (
+from .file_utility import (
     FileUtility,
     PathUtility,
     FileValidator,

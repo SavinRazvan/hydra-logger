@@ -226,7 +226,7 @@ class BaseLogger(ABC):
     
     def for_production(self) -> 'BaseLogger':
         """Apply production configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("production"):
             self._config = magic_configs.get_config("production")
             self._initialize_from_config(self._config)
@@ -234,7 +234,7 @@ class BaseLogger(ABC):
     
     def for_development(self) -> 'BaseLogger':
         """Apply development configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("development"):
             self._config = magic_configs.get_config("development")
             self._initialize_from_config(self._config)
@@ -242,7 +242,7 @@ class BaseLogger(ABC):
     
     def for_testing(self) -> 'BaseLogger':
         """Apply testing configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("testing"):
             self._config = magic_configs.get_config("testing")
             self._initialize_from_config(self._config)
@@ -250,7 +250,7 @@ class BaseLogger(ABC):
     
     def for_microservice(self) -> 'BaseLogger':
         """Apply microservice configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("microservice"):
             self._config = magic_configs.get_config("microservice")
             self._initialize_from_config(self._config)
@@ -258,7 +258,7 @@ class BaseLogger(ABC):
     
     def for_web_app(self) -> 'BaseLogger':
         """Apply web application configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("web_app"):
             self._config = magic_configs.get_config("web_app")
             self._initialize_from_config(self._config)
@@ -266,7 +266,7 @@ class BaseLogger(ABC):
     
     def for_api_service(self) -> 'BaseLogger':
         """Apply API service configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("api_service"):
             self._config = magic_configs.get_config("api_service")
             self._initialize_from_config(self._config)
@@ -274,7 +274,7 @@ class BaseLogger(ABC):
     
     def for_background_worker(self) -> 'BaseLogger':
         """Apply background worker configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("background_worker"):
             self._config = magic_configs.get_config("background_worker")
             self._initialize_from_config(self._config)
@@ -282,7 +282,7 @@ class BaseLogger(ABC):
     
     def for_high_performance(self) -> 'BaseLogger':
         """Apply high performance configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("high_performance"):
             self._config = magic_configs.get_config("high_performance")
             self._initialize_from_config(self._config)
@@ -290,7 +290,7 @@ class BaseLogger(ABC):
     
     def for_minimal(self) -> 'BaseLogger':
         """Apply minimal configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("minimal"):
             self._config = magic_configs.get_config("minimal")
             self._initialize_from_config(self._config)
@@ -298,7 +298,7 @@ class BaseLogger(ABC):
     
     def for_debug(self) -> 'BaseLogger':
         """Apply debug configuration."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config("debug"):
             self._config = magic_configs.get_config("debug")
             self._initialize_from_config(self._config)
@@ -306,7 +306,7 @@ class BaseLogger(ABC):
     
     def with_magic_config(self, config_name: str) -> 'BaseLogger':
         """Apply a custom magic configuration by name."""
-        from ..config.magic_configs import magic_configs
+        from ..config.configuration_templates import magic_configs
         if magic_configs.has_config(config_name):
             self._config = magic_configs.get_config(config_name)
             self._initialize_from_config(self._config)

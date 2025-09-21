@@ -56,7 +56,7 @@ Basic JSON Formatting:
     formatter = JsonLinesFormatter(ensure_ascii=False)
 
 With Timestamp Configuration:
-    from hydra_logger.utils.time import TimestampConfig, TimestampFormat, TimestampPrecision
+    from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
     
     config = TimestampConfig(
         format_type=TimestampFormat.RFC3339_MICRO,

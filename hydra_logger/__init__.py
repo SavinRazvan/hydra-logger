@@ -61,10 +61,10 @@ from .factories.logger_factory import (
 )
 
 # Logger Manager (Python logging style)
-from .core.logger_manager import getLogger, getSyncLogger, getAsyncLogger
+from .core.logger_management import getLogger, getSyncLogger, getAsyncLogger
 
 # Configuration
-from .config.magic_configs import ConfigurationTemplates
+from .config.configuration_templates import ConfigurationTemplates
 from .config.models import LoggingConfig, LogDestination, LogLayer
 
 # Core types

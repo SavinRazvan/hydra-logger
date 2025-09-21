@@ -897,6 +897,7 @@ hydra_logger/
 - **Phase 5**: Removed over-engineered types (events, metadata, etc.) ✅
 - **Phase 6**: Updated README with current architecture ✅
 - **Phase 7**: Standardized class naming conventions ✅
+- **Phase 8**: Standardized file naming conventions ✅
 
 ### **🎯 CURRENT ARCHITECTURE**
 - **30 Essential Files**: Down from 100+ files (70% reduction)
@@ -907,12 +908,21 @@ hydra_logger/
 - **Standardized Naming**: Consistent class naming conventions throughout
 
 ### **📝 NAMING CONVENTIONS IMPLEMENTED**
+
+**Class Naming:**
 - **ConfigurationTemplates**: Renamed from MagicConfigs for clarity
 - **TextFormatter**: Renamed from StringFormatter for consistency
 - **TimeUtility**: Renamed from TimeUtils for consistency
 - **FileUtility**: Renamed from FileUtils for consistency
 - **PathUtility**: Renamed from PathManager for consistency
 - **TimeZoneUtility**: Renamed from TimeZoneManager for consistency
+
+**File Naming:**
+- **Handlers**: `*_handler.py` (console_handler.py, file_handler.py, network_handler.py)
+- **Formatters**: `*_formatter.py` (text_formatter.py, json_formatter.py, structured_formatter.py)
+- **Managers**: `*_management.py` (logger_management.py, layer_management.py)
+- **Templates**: `*_templates.py` (configuration_templates.py)
+- **Utilities**: `*_utility.py` (file_utility.py, text_utility.py, time_utility.py)
 
 ### **🔧 READY FOR USE**
 ```python

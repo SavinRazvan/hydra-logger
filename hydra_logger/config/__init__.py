@@ -100,7 +100,7 @@ from .defaults import (
     templates
 )
 
-from .magic_configs import (
+from .configuration_templates import (
     ConfigurationTemplates,
     magic_configs,
     register_magic_config,

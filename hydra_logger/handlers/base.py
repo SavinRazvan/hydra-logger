@@ -86,7 +86,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 from ..types.records import LogRecord
 from ..formatters.base import BaseFormatter
-from ..utils.time import TimestampConfig, TimestampFormat, TimestampPrecision
+from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
 
 
 class BaseHandler(ABC):
