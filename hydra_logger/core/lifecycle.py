@@ -84,7 +84,7 @@ State Monitoring:
     print(f"Running components: {running_components}")
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from .base import BaseComponent
 
 
@@ -231,7 +231,7 @@ class LifecycleManager:
         return {name: lifecycle.get_state() 
                 for name, lifecycle in self._components.items()}
     
-    def get_components_by_state(self, state: str) -> list[str]:
+    def get_components_by_state(self, state: str) -> List[str]:
         """Get all components in a specific state."""
         return [name for name, lifecycle in self._components.items()
                 if lifecycle.get_state() == state]

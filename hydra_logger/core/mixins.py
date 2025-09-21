@@ -125,7 +125,7 @@ Metrics Collection:
             return self.get_metrics_summary()
 """
 
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Optional, Callable, List
 import time
 import threading
 
@@ -294,12 +294,12 @@ class EventMixin:
                 # Log error but don't stop other handlers
                 print(f"Error in event handler for {event_name}: {e}")
     
-    def get_event_handlers(self, event_name: str) -> list[Callable]:
+    def get_event_handlers(self, event_name: str) -> List[Callable]:
         """Get all handlers for a specific event."""
         with self._event_lock:
             return self._event_handlers.get(event_name, []).copy()
     
-    def list_events(self) -> list[str]:
+    def list_events(self) -> List[str]:
         """List all registered event names."""
         with self._event_lock:
             return list(self._event_handlers.keys())
@@ -417,7 +417,7 @@ class MetricsMixin:
             if len(self._metrics_history[name]) > self._max_history:
                 self._metrics_history[name] = self._metrics_history[name][-self._max_history:]
     
-    def get_metric_history(self, name: str) -> list[Dict[str, Any]]:
+    def get_metric_history(self, name: str) -> List[Dict[str, Any]]:
         """Get metric history."""
         with self._metrics_lock:
             return self._metrics_history.get(name, []).copy()
