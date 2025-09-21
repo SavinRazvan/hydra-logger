@@ -25,6 +25,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.cursorignore
+.cursor
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -265,3 +267,5 @@ config.local.yaml
 config.local.toml
 .env.local_tests_logs/
 .coveragerc
+
+_old_implementation-knowledge

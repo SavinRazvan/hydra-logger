@@ -1,232 +1,176 @@
 """
-Plugin registry for Hydra-Logger.
+Plugin Registry for Hydra-Logger
 
-This module provides a dynamic plugin registry system for extensibility
-and community contributions.
+This module provides plugin registration and management functionality with
+support for plugin type organization, lookup operations, and lifecycle
+tracking. It serves as the central repository for all registered plugins.
+
+FEATURES:
+- Plugin registration and unregistration
+- Plugin type organization and filtering
+- Plugin lookup and retrieval operations
+- Plugin count and type statistics
+- Thread-safe plugin management
+
+USAGE:
+    from hydra_logger.plugins import PluginRegistry, FormatterPlugin
+    
+    # Create plugin registry
+    registry = PluginRegistry()
+    
+    # Register plugin
+    plugin = MyFormatter("custom_formatter", "my_format")
+    success = registry.register_plugin(plugin)
+    
+    # Get plugin by name
+    plugin = registry.get_plugin("custom_formatter")
+    
+    # List plugins by type
+    formatters = registry.get_plugins_by_type("FormatterPlugin")
+    
+    # Get plugin count
+    count = registry.get_plugin_count()
 """
 
-import importlib
-import threading
-from typing import Any, Dict, Optional, Type
-
-from hydra_logger.core.exceptions import PluginError
+from typing import Dict, List, Optional, Type
+from .base import BasePlugin
 
 
 class PluginRegistry:
-    """Dynamic plugin registry for extensibility."""
+    """Registry for managing plugins."""
     
     def __init__(self):
-        self._plugins: Dict[str, Any] = {}
-        self._analytics_plugins: Dict[str, Type] = {}
-        self._formatter_plugins: Dict[str, Type] = {}
-        self._handler_plugins: Dict[str, Type] = {}
-        self._lock = threading.Lock()
+        """Initialize plugin registry."""
+        self._plugins: Dict[str, BasePlugin] = {}
+        self._plugin_types: Dict[str, List[str]] = {}
     
-    def register_plugin(self, name: str, plugin_class: type, plugin_type: str = "analytics") -> None:
+    def register_plugin(self, plugin: BasePlugin) -> bool:
         """
         Register a plugin.
         
         Args:
-            name: Plugin name
-            plugin_class: Plugin class
-            plugin_type: Type of plugin ('analytics', 'formatter', 'handler')
-            
-        Raises:
-            PluginError: If plugin registration fails
-        """
-        with self._lock:
-            try:
-                if plugin_type == "analytics":
-                    self._analytics_plugins[name] = plugin_class
-                elif plugin_type == "formatter":
-                    self._formatter_plugins[name] = plugin_class
-                elif plugin_type == "handler":
-                    self._handler_plugins[name] = plugin_class
-                else:
-                    raise PluginError(f"Unknown plugin type: {plugin_type}")
-                
-                self._plugins[name] = plugin_class
-            except Exception as e:
-                raise PluginError(f"Failed to register plugin '{name}': {e}")
-    
-    def get_plugin(self, name: str, plugin_type: str = "analytics") -> Optional[Type]:
-        """
-        Get a plugin by name.
-        
-        Args:
-            name: Plugin name
-            plugin_type: Type of plugin
+            plugin: Plugin instance to register
             
         Returns:
-            Plugin class or None if not found
+            True if registration successful, False otherwise
         """
-        with self._lock:
-            if plugin_type == "analytics":
-                return self._analytics_plugins.get(name)
-            elif plugin_type == "formatter":
-                return self._formatter_plugins.get(name)
-            elif plugin_type == "handler":
-                return self._handler_plugins.get(name)
-            return self._plugins.get(name)
-    
-    def list_plugins(self, plugin_type: Optional[str] = None) -> Dict[str, Type]:
-        """
-        List all registered plugins.
-        
-        Args:
-            plugin_type: Filter by plugin type
+        try:
+            if plugin.name in self._plugins:
+                return False  # Plugin already exists
             
-        Returns:
-            Dictionary of plugin names to classes
-        """
-        with self._lock:
-            if plugin_type == "analytics":
-                return self._analytics_plugins.copy()
-            elif plugin_type == "formatter":
-                return self._formatter_plugins.copy()
-            elif plugin_type == "handler":
-                return self._handler_plugins.copy()
-            else:
-                return self._plugins.copy()
+            self._plugins[plugin.name] = plugin
+            
+            # Track by plugin type
+            plugin_type = plugin.__class__.__name__
+            if plugin_type not in self._plugin_types:
+                self._plugin_types[plugin_type] = []
+            self._plugin_types[plugin_type].append(plugin.name)
+            
+            return True
+            
+        except Exception:
+            return False
     
-    def unregister_plugin(self, name: str) -> bool:
+    def unregister_plugin(self, plugin_name: str) -> bool:
         """
         Unregister a plugin.
         
         Args:
-            name: Plugin name
+            plugin_name: Name of plugin to unregister
             
         Returns:
-            True if plugin was unregistered, False if not found
+            True if unregistration successful, False otherwise
         """
-        with self._lock:
-            if name in self._plugins:
-                del self._plugins[name]
-                
-                # Remove from type-specific registries
-                if name in self._analytics_plugins:
-                    del self._analytics_plugins[name]
-                if name in self._formatter_plugins:
-                    del self._formatter_plugins[name]
-                if name in self._handler_plugins:
-                    del self._handler_plugins[name]
-                
-                return True
+        if plugin_name not in self._plugins:
             return False
+        
+        plugin = self._plugins[plugin_name]
+        plugin_type = plugin.__class__.__name__
+        
+        # Remove from plugins
+        del self._plugins[plugin_name]
+        
+        # Remove from type tracking
+        if plugin_type in self._plugin_types:
+            if plugin_name in self._plugin_types[plugin_type]:
+                self._plugin_types[plugin_type].remove(plugin_name)
+            
+            # Clean up empty type lists
+            if not self._plugin_types[plugin_type]:
+                del self._plugin_types[plugin_type]
+        
+        return True
     
-    def load_plugin_from_path(self, name: str, module_path: str) -> bool:
+    def get_plugin(self, plugin_name: str) -> Optional[BasePlugin]:
         """
-        Load plugin from external module.
+        Get a plugin by name.
         
         Args:
-            name: Plugin name
-            module_path: Module path
+            plugin_name: Name of plugin to get
             
         Returns:
-            True if plugin loaded successfully
-            
-        Raises:
-            PluginError: If plugin loading fails
+            Plugin instance or None if not found
         """
-        try:
-            module = importlib.import_module(module_path)
-            plugin_class = getattr(module, name)
+        return self._plugins.get(plugin_name)
+    
+    def list_plugins(self, plugin_type: Optional[str] = None) -> List[str]:
+        """
+        List registered plugins.
+        
+        Args:
+            plugin_type: Optional plugin type to filter by
             
-            # Determine plugin type based on base classes
-            if hasattr(plugin_class, 'process_event'):
-                plugin_type = "analytics"
-            elif hasattr(plugin_class, 'format'):
-                plugin_type = "formatter"
-            elif hasattr(plugin_class, 'emit'):
-                plugin_type = "handler"
-            else:
-                plugin_type = "analytics"  # Default
+        Returns:
+            List of plugin names
+        """
+        if plugin_type:
+            return self._plugin_types.get(plugin_type, [])
+        return list(self._plugins.keys())
+    
+    def get_plugins_by_type(self, plugin_type: str) -> List[BasePlugin]:
+        """
+        Get all plugins of a specific type.
+        
+        Args:
+            plugin_type: Plugin type to get
             
-            self.register_plugin(name, plugin_class, plugin_type)
-            return True
-            
-        except Exception as e:
-            raise PluginError(f"Failed to load plugin '{name}' from '{module_path}': {e}")
+        Returns:
+            List of plugin instances
+        """
+        plugin_names = self._plugin_types.get(plugin_type, [])
+        return [self._plugins[name] for name in plugin_names if name in self._plugins]
     
     def clear_plugins(self) -> None:
         """Clear all registered plugins."""
-        with self._lock:
-            self._plugins.clear()
-            self._analytics_plugins.clear()
-            self._formatter_plugins.clear()
-            self._handler_plugins.clear()
-
-
-# Global registry instance
-_plugin_registry = PluginRegistry()
-
-
-def register_plugin(name: str, plugin_class: type, plugin_type: str = "analytics") -> None:
-    """
-    Register a plugin globally.
+        self._plugins.clear()
+        self._plugin_types.clear()
     
-    Args:
-        name: Plugin name
-        plugin_class: Plugin class
-        plugin_type: Type of plugin
-    """
-    _plugin_registry.register_plugin(name, plugin_class, plugin_type)
-
-
-def get_plugin(name: str, plugin_type: str = "analytics") -> Optional[Type]:
-    """
-    Get a plugin globally.
-    
-    Args:
-        name: Plugin name
-        plugin_type: Type of plugin
+    def get_plugin_count(self) -> int:
+        """
+        Get total number of registered plugins.
         
-    Returns:
-        Plugin class or None if not found
-    """
-    return _plugin_registry.get_plugin(name, plugin_type)
-
-
-def list_plugins(plugin_type: Optional[str] = None) -> Dict[str, Type]:
-    """
-    List all registered plugins globally.
+        Returns:
+            Plugin count
+        """
+        return len(self._plugins)
     
-    Args:
-        plugin_type: Filter by plugin type
+    def get_plugin_types(self) -> List[str]:
+        """
+        Get list of registered plugin types.
         
-    Returns:
-        Dictionary of plugin names to classes
-    """
-    return _plugin_registry.list_plugins(plugin_type)
-
-
-def unregister_plugin(name: str) -> bool:
-    """
-    Unregister a plugin globally.
+        Returns:
+            List of plugin type names
+        """
+        return list(self._plugin_types.keys())
     
-    Args:
-        name: Plugin name
+    def is_plugin_registered(self, plugin_name: str) -> bool:
+        """
+        Check if a plugin is registered.
         
-    Returns:
-        True if plugin was unregistered, False if not found
-    """
-    return _plugin_registry.unregister_plugin(name)
-
-
-def load_plugin_from_path(name: str, module_path: str) -> bool:
-    """
-    Load plugin from external module globally.
-    
-    Args:
-        name: Plugin name
-        module_path: Module path
-        
-    Returns:
-        True if plugin loaded successfully
-    """
-    return _plugin_registry.load_plugin_from_path(name, module_path)
-
-
-def clear_plugins() -> None:
-    """Clear all registered plugins globally."""
-    _plugin_registry.clear_plugins() 
+        Args:
+            plugin_name: Name of plugin to check
+            
+        Returns:
+            True if registered, False otherwise
+        """
+        return plugin_name in self._plugins

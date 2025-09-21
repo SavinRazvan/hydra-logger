@@ -32,20 +32,37 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: System :: Logging",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.11",
     install_requires=[
         "pydantic>=2.0.0",
         "pyyaml>=6.0",
+        "aiofiles>=23.0.0",
         "python-json-logger>=2.0.0",
         "graypy>=2.1.0",
+        "pytz>=2025.0",
+        "toml>=0.10.0",
+        "msgpack>=1.1.1",
+        "psutil>=5.8.0",
+        # Database handlers
+        "psycopg2-binary>=2.9.0",  # PostgreSQL
+        "pymongo>=4.0.0",          # MongoDB
+        "redis>=4.0.0",            # Redis
+        # Message queue handlers
+        "pika>=1.3.0",             # RabbitMQ
+        "kafka-python>=2.0.0",     # Kafka
+        # Cloud service handlers
+        "boto3>=1.26.0",           # AWS CloudWatch
+        "elasticsearch>=8.0.0",    # Elasticsearch
+        # Network handlers
+        "websockets>=11.0.0",      # WebSocket support
+        # System handlers (Windows only - will be skipped on other platforms)
+        "pywin32>=306; sys_platform == 'win32'",  # Windows Event Log
     ],
     extras_require={
         "dev": [
@@ -54,6 +71,36 @@ setup(
             "black>=23.0.0",
             "flake8>=6.0.0",
             "mypy>=1.0.0",
+        ],
+        "database": [
+            "psycopg2-binary>=2.9.0",
+            "pymongo>=4.0.0",
+            "redis>=4.0.0",
+        ],
+        "cloud": [
+            "boto3>=1.26.0",
+            "elasticsearch>=8.0.0",
+        ],
+        "queues": [
+            "pika>=1.3.0",
+            "kafka-python>=2.0.0",
+        ],
+        "network": [
+            "websockets>=11.0.0",
+        ],
+        "system": [
+            "pywin32>=306; sys_platform == 'win32'",
+        ],
+        "full": [
+            "psycopg2-binary>=2.9.0",
+            "pymongo>=4.0.0",
+            "redis>=4.0.0",
+            "pika>=1.3.0",
+            "kafka-python>=2.0.0",
+            "boto3>=1.26.0",
+            "elasticsearch>=8.0.0",
+            "websockets>=11.0.0",
+            "pywin32>=306; sys_platform == 'win32'",
         ],
     },
     include_package_data=True,

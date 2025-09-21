@@ -1,83 +1,166 @@
 """
-Base classes for Hydra-Logger plugins.
+Base Plugin Classes for Hydra-Logger
 
-This module defines abstract base classes for different types of plugins
-that can be used to extend Hydra-Logger functionality.
+This module provides the foundational base classes for all plugin types in the
+Hydra-Logger system. It defines the common interface and behavior patterns
+that all plugins must implement, ensuring consistency and interoperability.
+
+PLUGIN TYPES:
+- BasePlugin: Abstract base class for all plugins
+- AnalyticsPlugin: Base class for analytics and insights plugins
+- FormatterPlugin: Base class for custom log formatters
+- HandlerPlugin: Base class for custom log handlers
+- SecurityPlugin: Base class for security and threat detection plugins
+- PerformancePlugin: Base class for performance monitoring plugins
+
+FEATURES:
+- Standardized plugin lifecycle (initialize, enable/disable)
+- Common configuration and metadata handling
+- Type-specific method requirements
+- Plugin validation and compatibility checking
+
+USAGE:
+    from hydra_logger.plugins import FormatterPlugin
+    
+    # Create custom formatter plugin
+    class MyFormatter(FormatterPlugin):
+        def __init__(self, name: str, format_name: str):
+            super().__init__(name, format_name)
+        
+        def initialize(self) -> bool:
+            # Plugin initialization logic
+            return True
+        
+        def format(self, record) -> str:
+            # Custom formatting logic
+            return f"[{record.level}] {record.message}"
 """
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
+from ..types.records import LogRecord
 
-from hydra_logger.core.exceptions import PluginError
 
-
-class AnalyticsPlugin(ABC):
-    """Base class for analytics plugins."""
+class BasePlugin(ABC):
+    """Abstract base class for all plugins."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str, enabled: bool = True):
         """
-        Initialize analytics plugin.
+        Initialize base plugin.
         
         Args:
-            config: Plugin configuration
+            name: Plugin name
+            enabled: Whether plugin is enabled
         """
-        self.config = config or {}
-        self._enabled = True
+        self.name = name
+        self.enabled = enabled
+        self._initialized = False
     
     @abstractmethod
-    def process_event(self, event: Any) -> Dict[str, Any]:
+    def initialize(self) -> bool:
         """
-        Process a log event.
+        Initialize the plugin.
         
-        Args:
-            event: Log event to process
-            
         Returns:
-            Dictionary of insights from the event
+            True if initialization successful, False otherwise
         """
-        pass
+        raise NotImplementedError("Subclasses must implement initialize method")
     
-    @abstractmethod
-    def get_insights(self) -> Dict[str, Any]:
+    def is_enabled(self) -> bool:
         """
-        Get current insights.
+        Check if plugin is enabled.
         
         Returns:
-            Dictionary of current insights
+            True if enabled, False otherwise
         """
-        pass
+        return self.enabled
+    
+    def is_initialized(self) -> bool:
+        """
+        Check if plugin is initialized.
+        
+        Returns:
+            True if initialized, False otherwise
+        """
+        return self._initialized
     
     def enable(self) -> None:
         """Enable the plugin."""
-        self._enabled = True
+        self.enabled = True
     
     def disable(self) -> None:
         """Disable the plugin."""
-        self._enabled = False
+        self.enabled = False
     
-    def is_enabled(self) -> bool:
-        """Check if plugin is enabled."""
-        return self._enabled
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Get plugin configuration.
+        
+        Returns:
+            Configuration dictionary
+        """
+        return {
+            "name": self.name,
+            "enabled": self.enabled,
+            "initialized": self._initialized,
+            "type": self.__class__.__name__
+        }
+
+
+class AnalyticsPlugin(BasePlugin):
+    """Base class for analytics plugins."""
+    
+    def __init__(self, name: str, enabled: bool = True):
+        """Initialize analytics plugin."""
+        super().__init__(name, enabled)
+        self._analytics_data = {}
+    
+    def process_event(self, event_type: str, data: Dict[str, Any]) -> None:
+        """
+        Process an analytics event.
+        
+        Args:
+            event_type: Type of event
+            data: Event data
+        """
+        if not self.enabled or not self._initialized:
+            return
+        
+        if event_type not in self._analytics_data:
+            self._analytics_data[event_type] = []
+        
+        self._analytics_data[event_type].append(data)
+    
+    def get_insights(self) -> Dict[str, Any]:
+        """
+        Get analytics insights.
+        
+        Returns:
+            Analytics insights dictionary
+        """
+        return self._analytics_data.copy()
     
     def reset(self) -> None:
-        """Reset plugin state."""
-        pass
+        """Reset analytics data."""
+        self._analytics_data.clear()
 
 
-class FormatterPlugin(ABC):
+class FormatterPlugin(BasePlugin):
     """Base class for formatter plugins."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str, format_name: str):
         """
         Initialize formatter plugin.
         
         Args:
-            config: Plugin configuration
+            name: Plugin name
+            format_name: Format name provided by this plugin
         """
-        self.config = config or {}
+        super().__init__(name)
+        self.format_name = format_name
     
     @abstractmethod
-    def format(self, record: Any) -> str:
+    def format(self, record: LogRecord) -> str:
         """
         Format a log record.
         
@@ -85,234 +168,181 @@ class FormatterPlugin(ABC):
             record: Log record to format
             
         Returns:
-            Formatted log message
+            Formatted string
         """
-        pass
+        raise NotImplementedError("Subclasses must implement format method")
     
     def get_format_name(self) -> str:
-        """Get the format name for this formatter."""
-        return self.__class__.__name__.lower().replace('formatter', '')
+        """
+        Get the format name provided by this plugin.
+        
+        Returns:
+            Format name
+        """
+        return self.format_name
 
 
-class HandlerPlugin(ABC):
+class HandlerPlugin(BasePlugin):
     """Base class for handler plugins."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str, handler_type: str):
         """
         Initialize handler plugin.
         
         Args:
-            config: Plugin configuration
+            name: Plugin name
+            handler_type: Handler type provided by this plugin
         """
-        self.config = config or {}
-        self._enabled = True
+        super().__init__(name)
+        self.handler_type = handler_type
     
     @abstractmethod
-    def emit(self, record: Any) -> None:
+    def emit(self, record: LogRecord) -> None:
         """
         Emit a log record.
         
         Args:
             record: Log record to emit
         """
-        pass
+        raise NotImplementedError("Subclasses must implement emit method")
     
-    def enable(self) -> None:
-        """Enable the handler."""
-        self._enabled = True
-    
-    def disable(self) -> None:
-        """Disable the handler."""
-        self._enabled = False
-    
-    def is_enabled(self) -> bool:
-        """Check if handler is enabled."""
-        return self._enabled
-    
-    def flush(self) -> None:
-        """Flush any buffered data."""
-        pass
-    
-    def close(self) -> None:
-        """Close the handler."""
-        pass
-
-
-class SecurityPlugin(AnalyticsPlugin):
-    """Base class for security-focused analytics plugins."""
-    
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def get_handler_type(self) -> str:
         """
-        Initialize security plugin.
+        Get the handler type provided by this plugin.
         
-        Args:
-            config: Plugin configuration
+        Returns:
+            Handler type
         """
-        super().__init__(config)
-        self._security_events = []
-        self._threat_patterns = self._get_threat_patterns()
+        return self.handler_type
+
+
+class SecurityPlugin(BasePlugin):
+    """Base class for security plugins."""
     
-    def _get_threat_patterns(self) -> Dict[str, str]:
-        """Get threat detection patterns."""
-        return {
-            "sql_injection": r"(\b(union|select|insert|update|delete|drop)\b)",
-            "xss": r"(<script|javascript:|on\w+\s*=)",
-            "path_traversal": r"(\.\./|\.\.\\)",
-            "command_injection": r"(;|\||`|\$\(|\$\{|\$\$)",
+    def __init__(self, name: str, enabled: bool = True):
+        """Initialize security plugin."""
+        super().__init__(name, enabled)
+        self._threat_patterns = []
+        self._security_stats = {
+            "threats_detected": 0,
+            "suspicious_activities": 0,
+            "security_score": 100
         }
     
-    def process_event(self, event: Any) -> Dict[str, Any]:
+    def add_threat_pattern(self, pattern: str) -> None:
         """
-        Process event for security insights.
+        Add a threat detection pattern.
         
         Args:
-            event: Log event to process
+            pattern: Threat pattern to detect
+        """
+        self._threat_patterns.append(pattern)
+    
+    def detect_threats(self, data: str) -> bool:
+        """
+        Detect threats in data.
+        
+        Args:
+            data: Data to analyze
             
         Returns:
-            Security insights from the event
+            True if threat detected, False otherwise
         """
-        if not self._enabled:
-            return {}
+        if not self.enabled or not self._initialized:
+            return False
         
-        security_insights = {
-            "threats_detected": self._detect_threats(event),
-            "suspicious_patterns": self._find_suspicious_patterns(event),
-            "security_score": self._calculate_security_score(event)
-        }
+        for pattern in self._threat_patterns:
+            if pattern in data:
+                self._security_stats["threats_detected"] += 1
+                return True
         
-        if security_insights["threats_detected"]:
-            self._security_events.append(event)
-        
-        return security_insights
+        return False
     
-    def get_insights(self) -> Dict[str, Any]:
+    def get_security_score(self) -> int:
         """
-        Get security insights.
+        Get current security score.
         
         Returns:
-            Current security insights
+            Security score (0-100)
         """
-        return {
-            "security_events_count": len(self._security_events),
-            "threat_level": self._calculate_threat_level(),
-            "security_recommendations": self._get_security_recommendations()
-        }
+        return self._security_stats["security_score"]
     
-    def _detect_threats(self, event: Any) -> list:
-        """Detect threats in the event."""
-        # Implementation would check event message against threat patterns
-        return []
-    
-    def _find_suspicious_patterns(self, event: Any) -> list:
-        """Find suspicious patterns in the event."""
-        # Implementation would identify suspicious patterns
-        return []
-    
-    def _calculate_security_score(self, event: Any) -> float:
-        """Calculate security score for the event."""
-        # Implementation would calculate security score
-        return 0.0
-    
-    def _calculate_threat_level(self) -> str:
-        """Calculate overall threat level."""
-        # Implementation would calculate threat level based on events
-        return "LOW"
-    
-    def _get_security_recommendations(self) -> list:
-        """Get security recommendations."""
-        # Implementation would provide security recommendations
-        return []
+    def get_security_stats(self) -> Dict[str, Any]:
+        """
+        Get security statistics.
+        
+        Returns:
+            Security statistics dictionary
+        """
+        return self._security_stats.copy()
 
 
-class PerformancePlugin(AnalyticsPlugin):
-    """Base class for performance-focused analytics plugins."""
+class PerformancePlugin(BasePlugin):
+    """Base class for performance plugins."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """
-        Initialize performance plugin.
-        
-        Args:
-            config: Plugin configuration
-        """
-        super().__init__(config)
-        self._performance_metrics = {}
-        self._performance_thresholds = self._get_performance_thresholds()
-    
-    def _get_performance_thresholds(self) -> Dict[str, float]:
-        """Get performance thresholds."""
-        return {
-            "response_time_warning": 1000.0,  # ms
-            "response_time_critical": 5000.0,  # ms
-            "error_rate_warning": 0.05,  # 5%
-            "error_rate_critical": 0.10,  # 10%
+    def __init__(self, name: str, enabled: bool = True):
+        """Initialize performance plugin."""
+        super().__init__(name, enabled)
+        self._performance_thresholds = {}
+        self._performance_stats = {
+            "operations_tracked": 0,
+            "slow_operations": 0,
+            "average_response_time": 0.0
         }
     
-    def process_event(self, event: Any) -> Dict[str, Any]:
+    def initialize(self) -> bool:
         """
-        Process event for performance insights.
-        
-        Args:
-            event: Log event to process
-            
-        Returns:
-            Performance insights from the event
-        """
-        if not self._enabled:
-            return {}
-        
-        performance_insights = {
-            "response_time_analysis": self._analyze_response_time(event),
-            "error_rate_analysis": self._analyze_error_rate(event),
-            "performance_alerts": self._check_performance_alerts(event)
-        }
-        
-        return performance_insights
-    
-    def get_insights(self) -> Dict[str, Any]:
-        """
-        Get performance insights.
+        Initialize the performance plugin.
         
         Returns:
-            Current performance insights
+            True if initialization successful, False otherwise
         """
-        return {
-            "average_response_time": self._calculate_average_response_time(),
-            "error_rate": self._calculate_error_rate(),
-            "performance_score": self._calculate_performance_score(),
-            "performance_alerts": self._get_performance_alerts()
-        }
+        try:
+            self._initialized = True
+            return True
+        except Exception:
+            return False
     
-    def _analyze_response_time(self, event: Any) -> Dict[str, Any]:
-        """Analyze response time from event."""
-        # Implementation would analyze response time
-        return {}
+    def set_threshold(self, metric: str, threshold: float) -> None:
+        """
+        Set performance threshold.
+        
+        Args:
+            metric: Metric name
+            threshold: Threshold value
+        """
+        self._performance_thresholds[metric] = threshold
     
-    def _analyze_error_rate(self, event: Any) -> Dict[str, Any]:
-        """Analyze error rate from event."""
-        # Implementation would analyze error rate
-        return {}
+    def track_operation(self, operation: str, duration: float) -> None:
+        """
+        Track operation performance.
+        
+        Args:
+            operation: Operation name
+            duration: Operation duration
+        """
+        if not self.enabled or not self._initialized:
+            return
+        
+        self._performance_stats["operations_tracked"] += 1
+        
+        # Update average response time
+        current_avg = self._performance_stats["average_response_time"]
+        total_ops = self._performance_stats["operations_tracked"]
+        self._performance_stats["average_response_time"] = (
+            (current_avg * (total_ops - 1) + duration) / total_ops
+        )
+        
+        # Check thresholds
+        if operation in self._performance_thresholds:
+            if duration > self._performance_thresholds[operation]:
+                self._performance_stats["slow_operations"] += 1
     
-    def _check_performance_alerts(self, event: Any) -> list:
-        """Check for performance alerts."""
-        # Implementation would check for performance alerts
-        return []
-    
-    def _calculate_average_response_time(self) -> float:
-        """Calculate average response time."""
-        # Implementation would calculate average response time
-        return 0.0
-    
-    def _calculate_error_rate(self) -> float:
-        """Calculate error rate."""
-        # Implementation would calculate error rate
-        return 0.0
-    
-    def _calculate_performance_score(self) -> float:
-        """Calculate performance score."""
-        # Implementation would calculate performance score
-        return 0.0
-    
-    def _get_performance_alerts(self) -> list:
-        """Get performance alerts."""
-        # Implementation would get performance alerts
-        return [] 
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """
+        Get performance statistics.
+        
+        Returns:
+            Performance statistics dictionary
+        """
+        return self._performance_stats.copy()

@@ -1,171 +1,113 @@
 """
-Hydra-Logger: Advanced Python Logging with Data Protection and Analytics
+Hydra-Logger: Advanced Modular Logging Framework
 
-A comprehensive logging library with built-in data protection, security validation,
-plugin support, and analytics capabilities.
+A comprehensive, extensible logging system with unified sync/async support,
+modular architecture, and intelligent configuration management. Built for
+performance, flexibility, and ease of use in modern Python applications.
 
-Features:
-- Multi-layered logging system
-- Data sanitization and security validation
-- Plugin architecture for extensibility
-- Performance monitoring and analytics
-- Fallback mechanisms for data protection
-- Async support for high-performance applications
+FEATURES:
+- Unified sync/async logging interface
+- Modular handler and formatter system
+- Intelligent configuration management
+- Performance-optimized logging operations
+- Comprehensive monitoring and analytics
+- Security and compliance features
+- Plugin system for extensibility
+- Multiple output formats and destinations
+
+CORE COMPONENTS:
+- Loggers: SyncLogger, AsyncLogger, CompositeLogger
+- Handlers: Console, file, network, database, cloud handlers
+- Formatters: JSON, plain text, CSV, syslog formatters
+- Configuration: MagicConfigs, LoggingConfig, LogDestination
+- Types: LogRecord, LogLevel, LogContext
+- Utilities: Text processing, time management, file operations
+
+USAGE:
+    from hydra_logger import SyncLogger, AsyncLogger, create_logger
+    
+    # Simple usage
+    logger = SyncLogger("my_app")
+    logger.info("Application started")
+    
+    # Async usage
+    async_logger = AsyncLogger("my_app")
+    await async_logger.info("Async operation completed")
+    
+    # Factory pattern
+    logger = create_logger("my_app", level="INFO")
+    
+    # Python logging style
+    from hydra_logger import getLogger
+    logger = getLogger("my_app")
 """
 
-__version__ = "0.4.0"
+__version__ = "1.0.0"
 __author__ = "Savin Ionut Razvan"
+__license__ = "MIT"
 
-# Core imports
-from hydra_logger.core.logger import HydraLogger
-# from hydra_logger.async_hydra.async_logger import AsyncHydraLogger  # Temporarily disabled during refactor
-from hydra_logger.core.constants import (
-    LOG_LEVELS,
-    VALID_FORMATS,
-    VALID_DESTINATION_TYPES,
-    DEFAULT_CONFIG,
-    Colors,
-    NAMED_COLORS,
-    DEFAULT_COLORS,
-    PERFORMANCE_SETTINGS,
-    FILE_SETTINGS,
-    ASYNC_SETTINGS,
-    PLUGIN_SETTINGS,
-    ANALYTICS_SETTINGS,
-    ENV_VARS,
-    DEFAULT_FORMATS,
-    PII_PATTERNS,
-    FRAMEWORK_PATTERNS,
-    CLOUD_PROVIDER_PATTERNS
-)
+# Main public API
+from .loggers.sync_logger import SyncLogger
+from .loggers.async_logger import AsyncLogger
+from .loggers.composite_logger import CompositeLogger, CompositeAsyncLogger
 
-# Configuration imports
-from hydra_logger.config.loaders import (
-    load_config,
-    load_config_from_dict,
-    load_config_from_env,
-    get_default_config,
-    get_async_default_config,
-    create_log_directories,
-    validate_config,
-    merge_configs
-)
+# High-performance loggers
+from .factories.logger_factory import create_logger, create_sync_logger, create_async_logger, create_composite_logger, create_composite_async_logger
 
-# Plugin system imports
-from hydra_logger.plugins.registry import (
-    register_plugin,
-    get_plugin,
-    list_plugins,
-    unregister_plugin,
-    load_plugin_from_path,
-    clear_plugins
-)
+# Logger Manager (Python logging style)
+from .core.logger_manager import getLogger, getSyncLogger, getAsyncLogger
 
-from hydra_logger.plugins.base import (
-    AnalyticsPlugin,
-    FormatterPlugin,
-    HandlerPlugin,
-    SecurityPlugin,
-    PerformancePlugin
-)
+# Configuration
+from .config.magic_configs import MagicConfigs
+from .config.models import LoggingConfig, LogDestination, LogLayer
 
-# Data protection imports
-from hydra_logger.data_protection.fallbacks import FallbackHandler
-from hydra_logger.data_protection.security import (
-    DataSanitizer,
-    SecurityValidator,
-    DataHasher
-)
+# Core types
+from .types.records import LogRecord
+from .types.levels import LogLevel
+from .types.context import LogContext
 
-# Error handling imports
-from hydra_logger.core.error_handler import (
-    get_error_tracker,
-    track_error,
-    track_hydra_error,
-    track_configuration_error,
-    track_validation_error,
-    track_plugin_error,
-    track_async_error,
-    track_performance_error,
-    track_runtime_error,
-    error_context,
-    get_error_stats,
-    clear_error_stats,
-    close_error_tracker
-)
-
-# Exception imports
-from hydra_logger.core.exceptions import (
+# Exception classes
+from .core.exceptions import (
     HydraLoggerError,
     ConfigurationError,
     ValidationError,
     HandlerError,
     FormatterError,
-    AsyncError,
     PluginError,
-    DataProtectionError,
-    AnalyticsError,
-    CompatibilityError,
-    PerformanceError
+    SecurityError,
+    MonitoringError
 )
 
-# Backward compatibility imports
-try:
-    from hydra_logger.config.models import LoggingConfig
-except ImportError:
-    # Fallback for older versions
-    LoggingConfig = None
-
-# Main logger class for easy access
+# Public API
 __all__ = [
-    # Core
-    "HydraLogger",
-    # "AsyncHydraLogger",  # Temporarily disabled during refactor
+    # Main loggers
+    "SyncLogger", 
+    "AsyncLogger",
+    "CompositeLogger",
+    "CompositeAsyncLogger",
+    
+    # Factory functions
+    "create_logger",
+    "create_sync_logger",
+    "create_async_logger",
+    "create_composite_logger",
+    "create_composite_async_logger",
+    
+    # Logger Manager (Python logging style)
+    "getLogger",
+    "getSyncLogger", 
+    "getAsyncLogger",
     
     # Configuration
     "LoggingConfig",
-    "load_config",
-    "load_config_from_dict",
-    "load_config_from_env",
-    "get_default_config",
-    "get_async_default_config",
-    "create_log_directories",
-    "validate_config",
-    "merge_configs",
+    "LogDestination",
+    "LogLayer",
+    "MagicConfigs",
     
-    # Plugin system
-    "register_plugin",
-    "get_plugin",
-    "list_plugins",
-    "unregister_plugin",
-    "load_plugin_from_path",
-    "clear_plugins",
-    "AnalyticsPlugin",
-    "FormatterPlugin",
-    "HandlerPlugin",
-    "SecurityPlugin",
-    "PerformancePlugin",
-    
-    # Data protection
-    "FallbackHandler",
-    "DataSanitizer",
-    "SecurityValidator",
-    "DataHasher",
-    
-    # Error handling
-    "get_error_tracker",
-    "track_error",
-    "track_hydra_error",
-    "track_configuration_error",
-    "track_validation_error",
-    "track_plugin_error",
-    "track_async_error",
-    "track_performance_error",
-    "track_runtime_error",
-    "error_context",
-    "get_error_stats",
-    "clear_error_stats",
-    "close_error_tracker",
+    # Core types
+    "LogRecord",
+    "LogLevel",
+    "LogContext",
     
     # Exceptions
     "HydraLoggerError",
@@ -173,59 +115,22 @@ __all__ = [
     "ValidationError",
     "HandlerError",
     "FormatterError",
-    "AsyncError",
     "PluginError",
-    "DataProtectionError",
-    "AnalyticsError",
-    "CompatibilityError",
-    "PerformanceError",
+    "SecurityError",
+    "MonitoringError",
     
-    # Constants
-    "LOG_LEVELS",
-    "VALID_FORMATS",
-    "VALID_DESTINATION_TYPES",
-    "DEFAULT_CONFIG",
-    "Colors",
-    "NAMED_COLORS",
-    "DEFAULT_COLORS",
-    "PERFORMANCE_SETTINGS",
-    "FILE_SETTINGS",
-    "ASYNC_SETTINGS",
-    "PLUGIN_SETTINGS",
-    "ANALYTICS_SETTINGS",
-    "ENV_VARS",
-    "DEFAULT_FORMATS",
-    "PII_PATTERNS",
-    "FRAMEWORK_PATTERNS",
-    "CLOUD_PROVIDER_PATTERNS"
+    # Version
+    "__version__",
+    "__author__",
+    "__license__"
 ]
 
-# Convenience function for quick setup
-from typing import Optional
-def create_logger(
-    config: Optional[dict] = None,
-    enable_security: bool = True,
-    enable_sanitization: bool = True,
-    enable_plugins: bool = True
-) -> HydraLogger:
-    """
-    Create a HydraLogger instance with default configuration.
-    
-    Args:
-        config: Optional configuration dictionary
-        enable_security: Enable security validation
-        enable_sanitization: Enable data sanitization
-        enable_plugins: Enable plugin system
-        
-    Returns:
-        HydraLogger instance
-    """
-    return HydraLogger(
-        config=config,
-        enable_security=enable_security,
-        enable_sanitization=enable_sanitization,
-        enable_plugins=enable_plugins
-    )
+# Backward compatibility aliases
+HydraLogger = SyncLogger  # Main logger alias
+AsyncHydraLogger = AsyncLogger
 
-# Add convenience function to __all__
-__all__.append("create_logger")
+# Add to __all__ for backward compatibility
+__all__.extend([
+    "HydraLogger",
+    "AsyncHydraLogger"
+])

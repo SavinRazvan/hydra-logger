@@ -1,7 +1,0 @@
-Test Name,Description,Duration (s),Messages/sec,Latency (ms),Success,Total Messages,Memory Leak
-AsyncHydraLogger Console,Standard async console logging - single-threaded,2.596106767654419,3851.9217023708907,0.25961067676544186,True,10000,False
-AsyncHydraLogger Concurrent,Concurrent async logging - proper message counting,28.556961059570312,3501.773168069189,0.2855696105957031,True,100000,False
-AsyncHydraLogger Console (Optimized),Optimized async console logging - minimal overhead,2.6971049308776855,3707.679254713247,0.26971049308776857,True,10000,False
-AsyncHydraLogger Security Features,Async security features - PII detection and sanitization,2.568113327026367,3893.9091568747303,0.25681133270263673,True,10000,False
-AsyncHydraLogger Multi-Layer,Async multi-layer logging - multiple functional layers,10.791484355926514,3706.6263250460656,0.2697871088981629,True,40000,False
-AsyncHydraLogger Large Messages,Async large message handling - big payload performance,2.526456594467163,3958.112726693818,0.25264565944671635,True,10000,False

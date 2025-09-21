@@ -1,9 +1,8 @@
-# Core dependencies
-pydantic>=2.0.0
-pyyaml>=6.0
-tomli>=2.0.0; python_version < '3.11'
-python-json-logger>=2.0.0
-graypy>=2.1.0
+# Core dependencies for Hydra-Logger
+aiofiles>=23.0.0  # True async file I/O
+psutil>=5.9.0     # System memory monitoring for adaptive concurrency
+toml>=0.10.0      # TOML configuration parsing
 
-# Performance monitoring (optional)
-psutil>=5.8.0 
+# Development dependencies (optional)
+pytest>=7.0.0     # Testing framework
+pytest-asyncio>=0.21.0  # Async testing support

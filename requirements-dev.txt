@@ -18,4 +18,14 @@ safety>=2.3.0
 
 # Build tools
 build
-twine 
+twine
+
+tomli-w>=1.2.0
+
+# Note: Optional runtime dependencies are included in requirements.txt
+# Install only what you need for your use case:
+# - Database: psycopg2-binary, pymongo, redis
+# - Queues: pika, kafka-python  
+# - Cloud: boto3, elasticsearch
+# - Network: websockets
+# - System: pywin32 (Windows only) 
