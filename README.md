@@ -69,10 +69,10 @@ hydra_logger/
 │   ├── null.py             # NullHandler (testing)
 │   └── rotating_handler.py # RotatingFileHandler (renamed from rotating.py)
 ├── formatters/             # ESSENTIAL FORMATTERS (5 modules)
-│   ├── base.py             # BaseFormatter
-│   ├── text_formatter.py   # PlainTextFormatter (renamed from text.py)
-│   ├── json_formatter.py   # JsonLinesFormatter (renamed from json.py)
-│   ├── structured_formatter.py # CsvFormatter, SyslogFormatter, GelfFormatter, LogstashFormatter (renamed from structured.py)
+│   ├── base.py             # BaseFormatter (abstract base class)
+│   ├── text_formatter.py   # PlainTextFormatter (customizable format strings)
+│   ├── json_formatter.py   # JsonLinesFormatter (structured JSON logging)
+│   ├── structured_formatter.py # CsvFormatter, SyslogFormatter, GelfFormatter, LogstashFormatter
 │   └── __init__.py         # Formatter registry and factory functions
 ├── security/               # CORE SECURITY (6 modules)
 │   ├── access_control.py   # AccessController
@@ -574,10 +574,45 @@ def create_logger(name=None, config=None, **kwargs):
 - **Utility**: NullHandler (for testing)
 
 #### **6 ESSENTIAL FORMATTERS** (Simplified from 14+)
-- **Text Formatters**: PlainTextFormatter (default format includes timestamp)
-- **JSON Formatters**: JsonLinesFormatter (complete structured data support)
-- **Structured Formatters**: CsvFormatter, SyslogFormatter, GelfFormatter, LogstashFormatter
-- **Note**: All formatters support structured data (extra and context fields)
+
+**Text Formatters:**
+- **PlainTextFormatter**: Clean text output with customizable format strings
+  - Default format: `"{timestamp} {level_name} {layer} {message}"`
+  - Features: F-string optimization, custom format strings
+  - Extension: `.log`
+  - Structured data: Basic fields only (by design)
+
+**JSON Formatters:**
+- **JsonLinesFormatter**: JSON Lines format for structured logging
+  - Features: Complete structured data support (extra + context)
+  - Extension: `.jsonl`
+  - Industry standard: RFC 7464 compliant
+
+**Structured Formatters:**
+- **CsvFormatter**: CSV format with proper headers and quoting
+  - Features: CSV headers, structured data merging
+  - Extension: `.csv`
+  - Structured data: Merged extra + context fields
+
+- **SyslogFormatter**: RFC 3164 compliant syslog format
+  - Features: Facility/severity mapping, priority calculation
+  - Extension: `.log`
+  - Structured data: Basic fields only (protocol compliance)
+
+- **GelfFormatter**: Graylog Extended Log Format
+  - Features: GELF compliance, structured data as _extra/_context
+  - Extension: `.gelf`
+  - Structured data: Complete support
+
+- **LogstashFormatter**: Elasticsearch integration format
+  - Features: Logstash format, structured data in fields
+  - Extension: `.log`
+  - Structured data: Complete support
+
+**Formatter Registry:**
+- **Function**: `get_formatter(format_type, use_colors=False)`
+- **Available Types**: `plain-text`, `json-lines`, `json`, `csv`, `syslog`, `gelf`, `logstash`
+- **Default**: Returns `PlainTextFormatter` for unknown types
 
 #### **SIMPLE CONFIGURATION** (Simplified from 8+)
 - **LoggingConfig**: Root configuration with Pydantic validation
@@ -959,6 +994,47 @@ hydra_logger/
 - ✅ **GelfFormatter**: Graylog Extended Log Format with structured data
 - ✅ **LogstashFormatter**: Elasticsearch integration with structured data
 - ✅ **All Formatters**: Support for `extra` and `context` fields for complex logging scenarios
+
+### **🏗️ FORMATTER ARCHITECTURE DETAILS**
+
+**File Structure:**
+```
+hydra_logger/formatters/
+├── __init__.py              # Formatter registry and factory (150 lines)
+├── base.py                  # BaseFormatter + FormatterError (414 lines)
+├── text_formatter.py        # PlainTextFormatter (199 lines)
+├── json_formatter.py        # JsonLinesFormatter (198 lines)
+└── structured_formatter.py  # 4 formatters (530 lines)
+```
+
+**Class Hierarchy:**
+- **BaseFormatter** (Abstract Base Class)
+  - **PlainTextFormatter** (Text output)
+  - **JsonLinesFormatter** (JSON Lines format)
+  - **CsvFormatter** (CSV format)
+  - **SyslogFormatter** (Syslog format)
+  - **GelfFormatter** (GELF format)
+  - **LogstashFormatter** (Logstash format)
+
+**Constructor Parameters:**
+- **PlainTextFormatter**: `(format_string, timestamp_config)`
+- **JsonLinesFormatter**: `(ensure_ascii, timestamp_config)`
+- **CsvFormatter**: `(include_headers, timestamp_config)`
+- **SyslogFormatter**: `(facility, app_name)`
+- **GelfFormatter**: `(host, version)`
+- **LogstashFormatter**: `(type_name, tags)`
+
+**File Extensions:**
+- **PlainTextFormatter**: `.log`
+- **JsonLinesFormatter**: `.jsonl`
+- **CsvFormatter**: `.csv`
+- **SyslogFormatter**: `.log`
+- **GelfFormatter**: `.gelf`
+- **LogstashFormatter**: `.log`
+
+**Structured Data Support:**
+- **Full Support**: JsonLinesFormatter, CsvFormatter, GelfFormatter, LogstashFormatter
+- **Basic Support**: PlainTextFormatter, SyslogFormatter (by design)
 
 ### **📝 NAMING CONVENTIONS IMPLEMENTED**
 
