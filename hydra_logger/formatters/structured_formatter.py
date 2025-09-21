@@ -220,14 +220,20 @@ class CsvFormatter(BaseFormatter):
             str(record.line_number or ""),
         ]
         
-        # Handle extra fields efficiently - avoid JSON if possible
+        # Handle structured data fields efficiently - avoid JSON if possible
+        structured_data = {}
         if record.extra:
-            # Simple string representation for better performance
-            extra_str = str(record.extra)
-        else:
-            extra_str = ""
+            structured_data.update(record.extra)
+        if record.context:
+            structured_data.update(record.context)
         
-        row_parts.append(extra_str)
+        if structured_data:
+            # Simple string representation for better performance
+            structured_str = str(structured_data)
+        else:
+            structured_str = ""
+        
+        row_parts.append(structured_str)
         
         # Ultra-fast CSV formatting - avoid io.StringIO overhead
         # Use direct string manipulation for maximum speed
@@ -343,9 +349,9 @@ class SyslogFormatter(BaseFormatter):
         
         # Build message with minimal string operations
         if record.file_name and record.function_name:
-            return f"<{priority}> {timestamp} {self.app_name} [{record.level_name}] [{record.layer}] {record.message} [{record.file_name}:{record.function_name}:{record.line_number}]"
+            return f"<{priority}> {timestamp} {self.app_name} {record.level_name} {record.layer} {record.message} {record.file_name}:{record.function_name}:{record.line_number}"
         else:
-            return f"<{priority}> {timestamp} {self.app_name} [{record.level_name}] [{record.layer}] {record.message}"
+            return f"<{priority}> {timestamp} {self.app_name} {record.level_name} {record.layer} {record.message}"
 
     def get_required_extension(self) -> str:
         """
@@ -417,9 +423,11 @@ class GelfFormatter(BaseFormatter):
             "_line_number": record.line_number or 0,
         }
         
-        # Add extra fields efficiently
+        # Add structured data fields efficiently
         if record.extra:
             gelf_msg["_extra"] = record.extra
+        if record.context:
+            gelf_msg["_context"] = record.context
         
         return json.dumps(gelf_msg, separators=(',', ':'))
 
@@ -473,7 +481,7 @@ class LogstashFormatter(BaseFormatter):
         import json
         
         # Pre-format timestamp once
-        timestamp = datetime.fromtimestamp(record.timestamp).isoformat()
+        timestamp = self.format_timestamp(record)
         
         # Build Logstash message with minimal dictionary operations
         fields = {
@@ -482,9 +490,11 @@ class LogstashFormatter(BaseFormatter):
             "line_number": record.line_number or 0,
         }
         
-        # Add extra fields efficiently
+        # Add structured data fields efficiently
         if record.extra:
             fields.update(record.extra)
+        if record.context:
+            fields.update(record.context)
         
         logstash_msg = {
             "@timestamp": timestamp,

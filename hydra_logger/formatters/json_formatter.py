@@ -181,9 +181,11 @@ class JsonLinesFormatter(BaseFormatter):
             "line_number": record.line_number if record.line_number else 0,
         }
         
-        # Only add extra if it exists and is not empty
+        # Add structured data fields
         if record.extra:
             record_dict["extra"] = record.extra
+        if record.context:
+            record_dict["context"] = record.context
 
         return record_dict
 
