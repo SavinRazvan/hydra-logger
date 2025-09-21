@@ -253,7 +253,6 @@ class AsyncLogger(BaseLogger):
         
         # Core system integration
         self._security_engine = None
-        self._plugin_engine = None
         
         # Feature components
         self._plugin_manager = None
@@ -299,26 +298,12 @@ class AsyncLogger(BaseLogger):
         else:
             self._security_engine = None
         
-        # ✅ CRITICAL FIX: Only initialize plugin engine if plugins are enabled
-        if hasattr(self, '_enable_plugins') and self._enable_plugins:
-            try:
-                # Plugin engine
-                from ..loggers.engines.plugin_engine import PluginEngine
-                self._plugin_engine = PluginEngine()
-            except ImportError:
-                pass
-        else:
-            self._plugin_engine = None
-        
+        # Plugin system removed - simplified architecture
     
     def _setup_plugins(self):
         """Setup plugin system."""
-        if self._enable_plugins:
-            try:
-                from ..plugins.manager import PluginManager
-                self._plugin_manager = PluginManager()
-            except ImportError:
-                pass
+        # Plugin system removed - simplified architecture
+        self._plugin_manager = None
     
     def _get_optimal_concurrency(self) -> int:
         """Get optimal concurrency based on available system memory."""
@@ -527,9 +512,7 @@ class AsyncLogger(BaseLogger):
                     # Emit to handlers
                     await self._emit_to_handlers(record)
                     
-                    # ✅ INTEGRATION: Execute post-log plugins if enabled
-                    if self._enable_plugins and hasattr(self, '_plugin_engine') and self._plugin_engine:
-                        await self._execute_post_log_plugins(record)
+                    # Plugin system removed - simplified architecture
                     
                     # Update statistics
                     self._log_count += 1
@@ -804,56 +787,13 @@ class AsyncLogger(BaseLogger):
     
     async def _execute_pre_log_plugins(self, record: LogRecord) -> LogRecord:
         """Execute pre-log plugins to modify the record before processing."""
-        try:
-            if not hasattr(self, '_plugin_engine') or not self._plugin_engine:
-                return record
-            
-            # Get all active plugins by name, then retrieve each plugin instance
-            plugin_names = self._plugin_engine.list_plugins()
-            if not plugin_names:
-                return record
-            
-            # Execute pre-log plugins
-            for plugin_name in plugin_names:
-                try:
-                    plugin = self._plugin_engine.get_plugin(plugin_name)
-                    if plugin and hasattr(plugin, 'pre_log_process'):
-                        record = plugin.pre_log_process(record)
-                except Exception as e:
-                    # Log plugin error but don't fail the log operation
-                    print(f"Pre-log plugin {plugin_name} failed: {e}")
-                    continue
-            
-            return record
-        except Exception as e:
-            # Log plugin execution error but don't fail the log operation
-            print(f"Pre-log plugin execution failed: {e}")
-            return record
+        # Plugin system removed - simplified architecture
+        return record
     
     async def _execute_post_log_plugins(self, record: LogRecord) -> None:
         """Execute post-log plugins after the record has been processed."""
-        try:
-            if not hasattr(self, '_plugin_engine') or not self._plugin_engine:
-                return
-            
-            # Get all active plugins by name, then retrieve each plugin instance
-            plugin_names = self._plugin_engine.list_plugins()
-            if not plugin_names:
-                return
-            
-            # Execute post-log plugins
-            for plugin_name in plugin_names:
-                try:
-                    plugin = self._plugin_engine.get_plugin(plugin_name)
-                    if plugin and hasattr(plugin, 'post_log_process'):
-                        plugin.post_log_process(record)
-                except Exception as e:
-                    # Log plugin error but don't fail the log operation
-                    print(f"Post-log plugin {plugin_name} failed: {e}")
-                    continue
-        except Exception as e:
-            # Log plugin execution error but don't fail the log operation
-            print(f"Post-log plugin execution failed: {e}")
+        # Plugin system removed - simplified architecture
+        pass
     
     async def _emit_to_handlers(self, record: LogRecord) -> None:
         """Emit record to all appropriate handlers for the layer."""

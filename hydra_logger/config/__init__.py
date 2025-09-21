@@ -110,61 +110,25 @@ from .magic_configs import (
     validate_magic_config
 )
 
-from .builder import (
-    ConfigurationBuilder,
-    LayerBuilder,
-    DestinationBuilder,
-    create_console_config,
-    create_file_config,
-    create_dual_config,
-    create_production_config,
-    create_development_config,
-    create_testing_config,
-    create_python_logging_style_example
-)
+# Builder module removed - simplified architecture
 
-from .loaders import (
-    load_config,
-    load_config_from_dict,
-    load_config_from_env,
-    load_config_from_configs_dir,
-    create_log_directories,
-    validate_config,
-    merge_configs,
-    create_config_from_template,
-    list_available_templates
-)
+# Loaders module removed - simplified architecture
 
-from .exporters import (
-    save_config_to_yaml,
-    save_config_to_toml,
-    save_config_to_json,
-    config_to_dict,
-    config_to_yaml_string,
-    config_to_toml_string,
-    config_to_json_string,
-    ConfigurationRegistry,
-    config_registry,
-    save_config,
-    export_config
-)
+# Exporters module removed - simplified architecture
 
-from .validators import (
-    ConfigurationValidator,
-    config_validator,
-    validate_config_file,
-    validate_config_data,
-    validate_handler_config,
-    get_validation_summary,
-    clear_validation_results
-)
+# Validators module removed - simplified architecture
 
-from .setup import (
-    LogsDirectoryManager,
-    setup_logs_directory,
-    get_logs_manager,
-    ensure_logs_structure
-)
+# from .validators import (
+#     ConfigurationValidator,
+#     config_validator,
+#     validate_config_file,
+#     validate_config_data,
+#     validate_handler_config,
+#     get_validation_summary,
+#     clear_validation_results
+# )
+
+# Setup module removed - simplified architecture
 
 
 __all__ = [

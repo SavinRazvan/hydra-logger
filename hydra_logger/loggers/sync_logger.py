@@ -274,7 +274,6 @@ class SyncLogger(BaseLogger):
         
         # Core system integration
         self._security_engine = None
-        self._plugin_engine = None
         
         # Feature components
         self._performance_monitor = None
@@ -352,15 +351,8 @@ class SyncLogger(BaseLogger):
         else:
             self._security_engine = None
         
-        try:
-            # Plugin engine
-            from ..loggers.engines.plugin_engine import PluginEngine
-            self._plugin_engine = PluginEngine()
-        except ImportError:
-            pass
         
     
-
     
     def _setup_data_protection(self):
         """Setup data protection features."""
@@ -505,12 +497,8 @@ class SyncLogger(BaseLogger):
 
     def _setup_plugins(self):
         """Setup plugin system."""
-        if self._enable_plugins:
-            try:
-                from ..plugins.manager import PluginManager
-                self._plugin_manager = PluginManager()
-            except ImportError:
-                pass
+        # Plugin system removed - simplified architecture
+        self._plugin_manager = None
     
     def _setup_fallback_configuration(self):
         """Setup emergency fallback configuration."""
@@ -689,56 +677,13 @@ class SyncLogger(BaseLogger):
     
     def _execute_pre_log_plugins(self, record: LogRecord) -> LogRecord:
         """Execute pre-log plugins to modify the record before processing."""
-        try:
-            if not hasattr(self, '_plugin_engine') or not self._plugin_engine:
-                return record
-            
-            # Get all active plugins by name, then retrieve each plugin instance
-            plugin_names = self._plugin_engine.list_plugins()
-            if not plugin_names:
-                return record
-            
-            # Execute pre-log plugins
-            for plugin_name in plugin_names:
-                try:
-                    plugin = self._plugin_engine.get_plugin(plugin_name)
-                    if plugin and hasattr(plugin, 'pre_log_process'):
-                        record = plugin.pre_log_process(record)
-                except Exception as e:
-                    # Log plugin error but don't fail the log operation
-                    print(f"Pre-log plugin {plugin_name} failed: {e}")
-                    continue
-            
-            return record
-        except Exception as e:
-            # Log plugin execution error but don't fail the log operation
-            print(f"Pre-log plugin execution failed: {e}")
-            return record
+        # Plugin system removed - simplified architecture
+        return record
     
     def _execute_post_log_plugins(self, record: LogRecord) -> None:
         """Execute post-log plugins after the record has been processed."""
-        try:
-            if not hasattr(self, '_plugin_engine') or not self._plugin_engine:
-                return
-            
-            # Get all active plugins by name, then retrieve each plugin instance
-            plugin_names = self._plugin_engine.list_plugins()
-            if not plugin_names:
-                return
-            
-            # Execute post-log plugins
-            for plugin_name in plugin_names:
-                try:
-                    plugin = self._plugin_engine.get_plugin(plugin_name)
-                    if plugin and hasattr(plugin, 'post_log_process'):
-                        plugin.post_log_process(record)
-                except Exception as e:
-                    # Log plugin error but don't fail the log operation
-                    print(f"Post-log plugin {plugin_name} failed: {e}")
-                    continue
-        except Exception as e:
-            # Log plugin execution error but don't fail the log operation
-            print(f"Post-log plugin execution failed: {e}")
+        # Plugin system removed - simplified architecture
+        pass
     
     def close(self):
         """Close the logger and cleanup resources."""
@@ -778,8 +723,6 @@ class SyncLogger(BaseLogger):
         # Add core system health status
         if self._security_engine:
             health_status['security_engine'] = self._security_engine.get_security_metrics()
-        if self._plugin_engine:
-            health_status['plugin_engine'] = self._plugin_engine.get_plugin_metrics()
         
         return health_status
     

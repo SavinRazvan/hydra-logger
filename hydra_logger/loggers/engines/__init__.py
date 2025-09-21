@@ -104,3 +104,9 @@ BENEFITS:
 - Extensible plugin architecture
 - Production-ready with error handling
 """
+
+from .security_engine import SecurityEngine
+
+__all__ = [
+    "SecurityEngine",
+]
