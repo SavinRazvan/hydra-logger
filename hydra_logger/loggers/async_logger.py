@@ -471,9 +471,12 @@ class AsyncLogger(BaseLogger):
         fallback_handler = NullHandler()
         self._fallback_handler = fallback_handler
     
-    async def log(self, level: Union[str, int], message: str, **kwargs) -> None:
+    def log(self, level: Union[str, int], message: str, **kwargs) -> None:
         """
-        ULTRA-FAST async log method with minimal overhead.
+        ULTRA-FAST log method with automatic async/sync detection.
+        
+        This method automatically detects if it's being called from an async context
+        and handles both synchronous and asynchronous logging appropriately.
         
         Args:
             level: Log level (string or numeric)
@@ -484,6 +487,42 @@ class AsyncLogger(BaseLogger):
         if not self._initialized:
             return
         
+        try:
+            # Check if we're in an async context
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context - use async logging
+                asyncio.create_task(self._log_async(level, message, **kwargs))
+            except RuntimeError:
+                # No event loop - use synchronous fallback
+                self._log_sync(level, message, **kwargs)
+                
+        except Exception as e:
+            # Silent error handling for maximum speed
+            pass
+    
+    def _log_sync(self, level: Union[str, int], message: str, **kwargs) -> None:
+        """Synchronous fallback logging method."""
+        try:
+            # Convert level if needed
+            if isinstance(level, str):
+                level = LogLevelManager.get_level(level)
+            
+            # Create log record
+            record = self.create_log_record(level, message, **kwargs)
+            
+            # Emit to console handler as fallback
+            try:
+                self._console_handler.emit(record)
+            except Exception:
+                pass
+                
+        except Exception:
+            # Silent error handling
+            pass
+    
+    async def _log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
+        """Internal async logging method."""
         try:
             # Ensure concurrency control is active
             self._ensure_concurrency_semaphore()
@@ -833,25 +872,25 @@ class AsyncLogger(BaseLogger):
         return handlers
     
     # Convenience methods for different log levels
-    async def debug(self, message: str, **kwargs) -> None:
+    def debug(self, message: str, **kwargs) -> None:
         """Log a debug message."""
-        await self.log(LogLevel.DEBUG, message, **kwargs)
+        self.log(LogLevel.DEBUG, message, **kwargs)
     
-    async def info(self, message: str, **kwargs) -> None:
+    def info(self, message: str, **kwargs) -> None:
         """Log an info message."""
-        await self.log(LogLevel.INFO, message, **kwargs)
+        self.log(LogLevel.INFO, message, **kwargs)
     
-    async def warning(self, message: str, **kwargs) -> None:
+    def warning(self, message: str, **kwargs) -> None:
         """Log a warning message."""
-        await self.log(LogLevel.WARNING, message, **kwargs)
+        self.log(LogLevel.WARNING, message, **kwargs)
     
-    async def error(self, message: str, **kwargs) -> None:
+    def error(self, message: str, **kwargs) -> None:
         """Log an error message."""
-        await self.log(LogLevel.ERROR, message, **kwargs)
+        self.log(LogLevel.ERROR, message, **kwargs)
     
-    async def critical(self, message: str, **kwargs) -> None:
+    def critical(self, message: str, **kwargs) -> None:
         """Log a critical message."""
-        await self.log(LogLevel.CRITICAL, message, **kwargs)
+        self.log(LogLevel.CRITICAL, message, **kwargs)
     
     def warn(self, message: str, **kwargs) -> None:
         """Alias for warning (compatibility)."""
