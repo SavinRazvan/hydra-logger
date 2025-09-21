@@ -911,13 +911,13 @@ class TimeUtility:
     def start_of_week(dt: datetime) -> datetime:
         """Get start of week (Monday)."""
         days_since_monday = dt.weekday()
-        return TimeUtils.start_of_day(dt - timedelta(days=days_since_monday))
+        return TimeUtility.start_of_day(dt - timedelta(days=days_since_monday))
 
     @staticmethod
     def end_of_week(dt: datetime) -> datetime:
         """Get end of week (Sunday)."""
         days_until_sunday = 6 - dt.weekday()
-        return TimeUtils.end_of_day(dt + timedelta(days=days_until_sunday))
+        return TimeUtility.end_of_day(dt + timedelta(days=days_until_sunday))
 
     @staticmethod
     def start_of_month(dt: datetime) -> datetime:
@@ -932,7 +932,7 @@ class TimeUtility:
         else:
             next_month = dt.replace(month=dt.month + 1, day=1)
 
-        return TimeUtils.end_of_day(next_month - timedelta(days=1))
+        return TimeUtility.end_of_day(next_month - timedelta(days=1))
 
     @staticmethod
     def start_of_year(dt: datetime) -> datetime:

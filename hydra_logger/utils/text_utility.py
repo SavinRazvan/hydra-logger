@@ -256,13 +256,13 @@ class TextFormatter:
         elif case == TextCase.SENTENCE:
             return text.capitalize()
         elif case == TextCase.CAMEL:
-            return StringFormatter._to_camel_case(text)
+            return TextFormatter._to_camel_case(text)
         elif case == TextCase.SNAKE:
-            return StringFormatter._to_snake_case(text)
+            return TextFormatter._to_snake_case(text)
         elif case == TextCase.KEBAB:
-            return StringFormatter._to_kebab_case(text)
+            return TextFormatter._to_kebab_case(text)
         elif case == TextCase.PASCAL:
-            return StringFormatter._to_pascal_case(text)
+            return TextFormatter._to_pascal_case(text)
         else:
             return text
 
