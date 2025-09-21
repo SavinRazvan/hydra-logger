@@ -151,7 +151,7 @@ from hydra_logger.handlers.base import BaseHandler
 from hydra_logger.types.records import LogRecord
 from hydra_logger.types.levels import LogLevel
 from hydra_logger.types.enums import TimeUnit
-from hydra_logger.utils.file import FileUtils
+from hydra_logger.utils.file import FileUtility
 from hydra_logger.utils.time import TimeUtility
 
 
@@ -227,8 +227,8 @@ class RotatingFileHandler(BaseHandler):
 
         # Ensure directory exists
         log_dir = os.path.dirname(filename)
-        if log_dir and not FileUtils.exists(log_dir):
-            FileUtils.ensure_directory_exists(log_dir)
+        if log_dir and not FileUtility.exists(log_dir):
+            FileUtility.ensure_directory_exists(log_dir)
 
         # Formatter-aware handling
         self._needs_header_footer = False
@@ -241,13 +241,13 @@ class RotatingFileHandler(BaseHandler):
     def _initialize_file(self) -> None:
         """Initialize the log file."""
         try:
-            if not FileUtils.exists(self._filename):
+            if not FileUtility.exists(self._filename):
                 # Create empty file
                 with open(self._filename, 'w') as f:
                     pass
 
             # Check if file is writable
-            if not FileUtils.is_writable(self._filename):
+            if not FileUtility.is_writable(self._filename):
                 raise PermissionError(f"Cannot write to {self._filename}")
 
             self._current_file = open(self._filename, 'a', encoding='utf-8')
@@ -276,7 +276,7 @@ class RotatingFileHandler(BaseHandler):
                 backup_path = self._get_backup_path(backup_name)
 
                 # Move current file to backup
-                if FileUtils.exists(self._filename):
+                if FileUtility.exists(self._filename):
                     if self._config.atomic_rotation:
                         self._atomic_rotate(backup_path)
                     else:
@@ -345,7 +345,7 @@ class RotatingFileHandler(BaseHandler):
                         shutil.copyfileobj(f_in, f_out)
                 
                 # Remove original file
-                FileUtils.delete_file(file_path)
+                FileUtility.delete_file(file_path)
         except Exception as e:
             print(f"Warning: Failed to compress {file_path}: {e}", file=sys.stderr)
 
@@ -353,7 +353,7 @@ class RotatingFileHandler(BaseHandler):
         """Clean up old backup files."""
         try:
             backup_dir = self._config.backup_dir or os.path.dirname(self._filename)
-            if not FileUtils.exists(backup_dir):
+            if not FileUtility.exists(backup_dir):
                 return
 
             # Get list of backup files
@@ -361,11 +361,11 @@ class RotatingFileHandler(BaseHandler):
             for file in os.listdir(backup_dir):
                 if file.startswith(os.path.basename(self._filename)):
                     file_path = os.path.join(backup_dir, file)
-                    if FileUtils.is_file(file_path):
+                    if FileUtility.is_file(file_path):
                         backup_files.append(file_path)
 
             # Sort by modification time (oldest first)
-            backup_files.sort(key=lambda x: FileUtils.get_file_info(x).mtime)
+            backup_files.sort(key=lambda x: FileUtility.get_file_info(x).mtime)
 
             # Remove excess files based on strategy
             if self._config.strategy == RotationStrategy.TIME_BASED:
@@ -379,7 +379,7 @@ class RotatingFileHandler(BaseHandler):
             while len(backup_files) > max_files:
                 old_file = backup_files.pop(0)
                 try:
-                    FileUtils.delete_file(old_file)
+                    FileUtility.delete_file(old_file)
                 except Exception as e:
                     print(f"Warning: Failed to delete old file {old_file}: {e}", file=sys.stderr)
 
@@ -598,8 +598,8 @@ class TimedRotatingFileHandler(RotatingFileHandler):
 
     def _get_last_rotation_time(self) -> datetime:
         """Get the last rotation time."""
-        if FileUtils.exists(self._filename):
-            file_info = FileUtils.get_file_info(self._filename)
+        if FileUtility.exists(self._filename):
+            file_info = FileUtility.get_file_info(self._filename)
             return datetime.fromtimestamp(file_info.modified)
         return datetime.now()
 
@@ -682,11 +682,11 @@ class SizeRotatingFileHandler(RotatingFileHandler):
 
     def _should_rotate(self) -> bool:
         """Check if size-based rotation is needed."""
-        if not FileUtils.exists(self._filename):
+        if not FileUtility.exists(self._filename):
             return False
 
         try:
-            file_info = FileUtils.get_file_info(self._filename)
+            file_info = FileUtility.get_file_info(self._filename)
             return file_info.size >= self._max_bytes
         except Exception:
             return False
@@ -705,7 +705,7 @@ class SizeRotatingFileHandler(RotatingFileHandler):
                 backup_name = f"{name}.{sequence}"
             
             backup_path = self._get_backup_path(backup_name)
-            if not FileUtils.exists(backup_path):
+            if not FileUtility.exists(backup_path):
                 break
             sequence += 1
 
@@ -753,9 +753,9 @@ class HybridRotatingFileHandler(RotatingFileHandler):
     def _should_rotate(self) -> bool:
         """Check if hybrid rotation is needed."""
         # Check size-based rotation
-        if FileUtils.exists(self._filename):
+        if FileUtility.exists(self._filename):
             try:
-                file_info = FileUtils.get_file_info(self._filename)
+                file_info = FileUtility.get_file_info(self._filename)
                 if file_info.size >= self._max_bytes:
                     return True
             except Exception:
@@ -790,7 +790,7 @@ class HybridRotatingFileHandler(RotatingFileHandler):
                 backup_name = f"{name}.{timestamp}.{sequence}"
             
             backup_path = self._get_backup_path(backup_name)
-            if not FileUtils.exists(backup_path):
+            if not FileUtility.exists(backup_path):
                 break
             sequence += 1
 

@@ -241,7 +241,7 @@ class TextProcessor:
         return self._patterns["ip_address"].findall(text)
 
 
-class StringFormatter:
+class TextFormatter:
     """String formatting and transformation utilities."""
 
     @staticmethod

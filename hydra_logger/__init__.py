@@ -64,7 +64,7 @@ from .factories.logger_factory import (
 from .core.logger_manager import getLogger, getSyncLogger, getAsyncLogger
 
 # Configuration
-from .config.magic_configs import MagicConfigs
+from .config.magic_configs import ConfigurationTemplates
 from .config.models import LoggingConfig, LogDestination, LogLayer
 
 # Core types
@@ -104,7 +104,7 @@ __all__ = [
     "LoggingConfig",
     "LogDestination",
     "LogLayer",
-    "MagicConfigs",
+    "ConfigurationTemplates",
     # Core types
     "LogRecord",
     "LogLevel",

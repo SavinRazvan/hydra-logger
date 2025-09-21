@@ -30,17 +30,17 @@ PATH MANAGEMENT:
 - Symbolic link resolution
 
 USAGE:
-    from hydra_logger.utils import FileUtils, PathManager, FileValidator
+    from hydra_logger.utils import FileUtility, PathUtility, FileValidator
     
     # File operations
-    exists = FileUtils.exists("/path/to/file")
-    size = FileUtils.get_size("/path/to/file")
-    info = FileUtils.get_file_info("/path/to/file")
+    exists = FileUtility.exists("/path/to/file")
+    size = FileUtility.get_size("/path/to/file")
+    info = FileUtility.get_file_info("/path/to/file")
     
     # Path management
-    normalized = PathManager.normalize_path("../relative/path")
-    absolute = PathManager.absolute_path("file.txt")
-    joined = PathManager.join_paths("dir", "subdir", "file.txt")
+    normalized = PathUtility.normalize_path("../relative/path")
+    absolute = PathUtility.absolute_path("file.txt")
+    joined = PathUtility.join_paths("dir", "subdir", "file.txt")
     
     # File validation
     is_valid = FileValidator.validate_file_exists("/path/to/file")
@@ -150,7 +150,7 @@ class FileInfo:
         }
 
 
-class FileUtils:
+class FileUtility:
     """General file utility functions."""
 
     @staticmethod
@@ -189,8 +189,8 @@ class FileUtils:
     @staticmethod
     def get_size_human(path: str) -> str:
         """Get file size in human-readable format."""
-        size = FileUtils.get_size(path)
-        return FileUtils._format_size(size)
+        size = FileUtility.get_size(path)
+        return FileUtility._format_size(size)
 
     @staticmethod
     def _format_size(size_bytes: int) -> str:
@@ -358,7 +358,7 @@ class FileUtils:
         stat = os.stat(path)
 
         # Basic information
-        file_type = FileUtils._detect_file_type(path)
+        file_type = FileUtility._detect_file_type(path)
         name = os.path.basename(path)
 
         # Timestamps
@@ -370,10 +370,10 @@ class FileUtils:
         is_file = os.path.isfile(path)
         is_directory = os.path.isdir(path)
         is_symlink = os.path.islink(path)
-        is_hidden = FileUtils.is_hidden(path)
+        is_hidden = FileUtility.is_hidden(path)
 
         # Permissions
-        permissions = FileUtils.get_permissions(path)
+        permissions = FileUtility.get_permissions(path)
 
         # Content information
         mime_type = None
@@ -396,9 +396,9 @@ class FileUtils:
 
         if include_content and is_file:
             try:
-                md5_hash = FileUtils._calculate_hash(path, "md5")
-                sha1_hash = FileUtils._calculate_hash(path, "sha1")
-                sha256_hash = FileUtils._calculate_hash(path, "sha256")
+                md5_hash = FileUtility._calculate_hash(path, "md5")
+                sha1_hash = FileUtility._calculate_hash(path, "sha1")
+                sha256_hash = FileUtility._calculate_hash(path, "sha256")
             except Exception:
                 pass
 
@@ -542,7 +542,7 @@ class FileUtils:
         return hash_obj.hexdigest()
 
 
-class PathManager:
+class PathUtility:
     """Path management utilities."""
 
     @staticmethod
@@ -988,7 +988,7 @@ class DirectoryScanner:
                     total_size += size
 
                     # Count file types
-                    file_type = FileUtils._detect_file_type(file_path)
+                    file_type = FileUtility._detect_file_type(file_path)
                     file_types[file_type.value] = file_types.get(file_type.value, 0) + 1
 
                     # Count extensions
@@ -1003,7 +1003,7 @@ class DirectoryScanner:
             "total_files": total_files,
             "total_directories": total_dirs,
             "total_size": total_size,
-            "total_size_human": FileUtils._format_size(total_size),
+            "total_size_human": FileUtility._format_size(total_size),
             "file_types": file_types,
             "extensions": extensions,
         }

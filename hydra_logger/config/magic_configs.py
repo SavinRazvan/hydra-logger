@@ -68,7 +68,7 @@ from .defaults import ConfigurationTemplates
 from ..core.exceptions import HydraLoggerError
 
 
-class MagicConfigs:
+class ConfigurationTemplates:
     """
     Registry for magic configurations.
     
@@ -110,12 +110,12 @@ class MagicConfigs:
     def _setup_builtin_configs(self):
         """Setup built-in magic configurations using the unified system."""
         # Use the unified ConfigurationTemplates for all built-in configs
-        templates = ConfigurationTemplates()
+        from .defaults import get_default_config, get_development_config, get_production_config, get_custom_config
         
-        self.register("default", "Optimized default configuration for maximum performance")(templates.get_default_config)
-        self.register("development", "Development-friendly configuration with debug output")(templates.get_development_config)
-        self.register("production", "Production-ready configuration with security and monitoring")(templates.get_production_config)
-        self.register("custom", "Custom configuration with user-specified features")(templates.get_custom_config)
+        self.register("default", "Optimized default configuration for maximum performance")(get_default_config)
+        self.register("development", "Development-friendly configuration with debug output")(get_development_config)
+        self.register("production", "Production-ready configuration with security and monitoring")(get_production_config)
+        self.register("custom", "Custom configuration with user-specified features")(get_custom_config)
     
     def register(self, name: str, description: str = "") -> Callable:
         """
@@ -205,7 +205,7 @@ class MagicConfigs:
 
 
 # Global instance
-magic_configs = MagicConfigs()
+magic_configs = ConfigurationTemplates()
 
 # Convenience functions
 def register_magic_config(name: str, description: str = "") -> Callable:

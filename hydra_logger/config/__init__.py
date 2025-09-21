@@ -101,7 +101,7 @@ from .defaults import (
 )
 
 from .magic_configs import (
-    MagicConfigs,
+    ConfigurationTemplates,
     magic_configs,
     register_magic_config,
     get_magic_config,
@@ -153,7 +153,7 @@ __all__ = [
     'templates',
     
     # Magic Configs
-    'MagicConfigs',
+    'ConfigurationTemplates',
     'magic_configs',
     'register_magic_config',
     'get_magic_config',

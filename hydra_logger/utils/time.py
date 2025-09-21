@@ -777,7 +777,7 @@ class TimestampFormatter:
                 raise ValueError(f"Failed to parse RFC3339 timestamp: {timestamp_str}")
 
 
-class TimeUtils:
+class TimeUtility:
     """General time utility functions."""
 
     @staticmethod
@@ -849,13 +849,13 @@ class TimeUtils:
     @staticmethod
     def is_business_day(dt: datetime) -> bool:
         """Check if datetime is on a business day."""
-        return not TimeUtils.is_weekend(dt)
+        return not TimeUtility.is_weekend(dt)
 
     @staticmethod
     def next_business_day(dt: datetime) -> datetime:
         """Get the next business day."""
         current = dt + timedelta(days=1)
-        while TimeUtils.is_weekend(current):
+        while TimeUtility.is_weekend(current):
             current += timedelta(days=1)
         return current
 
@@ -863,7 +863,7 @@ class TimeUtils:
     def previous_business_day(dt: datetime) -> datetime:
         """Get the previous business day."""
         current = dt - timedelta(days=1)
-        while TimeUtils.is_weekend(current):
+        while TimeUtility.is_weekend(current):
             current -= timedelta(days=1)
         return current
 
@@ -877,7 +877,7 @@ class TimeUtils:
         current = start
 
         while current <= end:
-            if TimeUtils.is_business_day(current):
+            if TimeUtility.is_business_day(current):
                 business_days += 1
             current += timedelta(days=1)
 
@@ -892,7 +892,7 @@ class TimeUtils:
 
         while remaining_days > 0:
             current += timedelta(days=direction)
-            if TimeUtils.is_business_day(current):
+            if TimeUtility.is_business_day(current):
                 remaining_days -= 1
 
         return current
@@ -976,7 +976,7 @@ class TimeUtils:
     def human_readable_time(dt: datetime, now: Optional[datetime] = None) -> str:
         """Get human-readable relative time."""
         if now is None:
-            now = TimeUtils.now()
+            now = TimeUtility.now()
 
         diff = now - dt
         seconds = abs(diff.total_seconds())
@@ -1024,7 +1024,7 @@ class DateFormatter:
     @staticmethod
     def format_relative(dt: datetime, now: Optional[datetime] = None) -> str:
         """Format date in relative terms."""
-        return TimeUtils.human_readable_time(dt, now)
+        return TimeUtility.human_readable_time(dt, now)
 
     @staticmethod
     def format_interval(start: datetime, end: datetime) -> str:
@@ -1066,7 +1066,7 @@ class DateFormatter:
         return (dt.month - 1) // 3 + 1
 
 
-class TimeZoneManager:
+class TimeZoneUtility:
     """Time zone management utilities."""
 
     def __init__(self):

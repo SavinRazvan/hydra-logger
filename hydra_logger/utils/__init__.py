@@ -35,28 +35,27 @@ USAGE:
 
 from .text import (
     TextProcessor,
-    StringFormatter,
+    TextFormatter,
     TextValidator,
     TextSanitizer,
     TextAnalyzer
 )
 
 from .time import (
-    TimeUtils,
     TimeUtility,
     TimestampFormatter,
     TimestampFormat,
     TimestampPrecision,
     TimestampConfig,
     DateFormatter,
-    TimeZoneManager,
+    TimeZoneUtility,
     TimeRange,
     TimeInterval
 )
 
 from .file import (
-    FileUtils,
-    PathManager,
+    FileUtility,
+    PathUtility,
     FileValidator,
     FileProcessor,
     DirectoryScanner
@@ -71,21 +70,25 @@ from .file import (
 __all__ = [
     # Text utilities
     "TextProcessor",
-    "StringFormatter",
+    "TextFormatter",
     "TextValidator",
     "TextSanitizer",
     "TextAnalyzer",
 
     # Time utilities
-    "TimeUtils",
+    "TimeUtility",
+    "TimestampFormatter",
+    "TimestampFormat",
+    "TimestampPrecision",
+    "TimestampConfig",
     "DateFormatter",
-    "TimeZoneManager",
+    "TimeZoneUtility",
     "TimeRange",
     "TimeInterval",
 
     # File utilities
-    "FileUtils",
-    "PathManager",
+    "FileUtility",
+    "PathUtility",
     "FileValidator",
     "FileProcessor",
     "DirectoryScanner",
