@@ -79,10 +79,9 @@ Performance Monitoring:
 import threading
 from typing import Any, Dict, List, Optional, Union
 
-from ..interfaces.handler import HandlerInterface
-from ..interfaces.formatter import FormatterInterface as BaseFormatter
+from ..handlers.base import BaseHandler
+from ..formatters.base import BaseFormatter
 from ..types.levels import LogLevel
-from .cache_manager import CacheManager
 
 
 class LayerConfiguration:
@@ -92,7 +91,7 @@ class LayerConfiguration:
         self.name = name
         self.level = level
         self.destinations = destinations or []
-        self.handlers: List[HandlerInterface] = []
+        self.handlers: List[BaseHandler] = []
         self.formatter: Optional[BaseFormatter] = None
         self.color_mode: str = "auto"
         self.enabled: bool = True
@@ -101,7 +100,7 @@ class LayerConfiguration:
         """Add a destination to this layer."""
         self.destinations.append(destination)
     
-    def set_handlers(self, handlers: List[HandlerInterface]) -> None:
+    def set_handlers(self, handlers: List[BaseHandler]) -> None:
         """Set handlers for this layer."""
         self.handlers = handlers
     
@@ -119,9 +118,9 @@ class LayerManager:
     
     def __init__(self):
         self._layers: Dict[str, LayerConfiguration] = {}
-        self._handlers: Dict[str, List[HandlerInterface]] = {}
+        self._handlers: Dict[str, List[BaseHandler]] = {}
         self._layer_levels: Dict[str, int] = {}
-        self._cache_manager = CacheManager()
+        # Cache removed - simplified layer management
         self._lock = threading.RLock()
         
         # Multi-layer optimization flags
@@ -180,7 +179,7 @@ class LayerManager:
         except Exception as e:
             raise RuntimeError(f"Failed to create layer '{layer_name}': {e}") from e
     
-    def _create_handler_from_config(self, destination_config: Any) -> Optional[HandlerInterface]:
+    def _create_handler_from_config(self, destination_config: Any) -> Optional[BaseHandler]:
         """Create a handler from destination configuration."""
         try:
             # Handle both dict and object configs
@@ -263,7 +262,7 @@ class LayerManager:
         self._layer_count = len(self._handlers)
         self._multi_layer_mode = self._layer_count > 1
     
-    def get_handlers_for_layer(self, layer: str) -> List[HandlerInterface]:
+    def get_handlers_for_layer(self, layer: str) -> List[BaseHandler]:
         """
         Get handlers for a layer with intelligent fallback and caching.
         
@@ -345,10 +344,7 @@ class LayerManager:
             self._layers.clear()
             self._handlers.clear()
             self._layer_levels.clear()
-            self._cache_manager.clear_all()
             self._multi_layer_mode = False
             self._layer_count = 0
     
-    def get_cache_manager(self) -> CacheManager:
-        """Get the cache manager instance."""
-        return self._cache_manager
+    # Cache manager removed - simplified layer management

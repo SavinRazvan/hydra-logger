@@ -106,11 +106,9 @@ CACHING SYSTEM:
 
 # Core formatters
 from .base import BaseFormatter
-from .text import PlainTextFormatter, FastPlainTextFormatter, DetailedFormatter
+from .text import PlainTextFormatter
 from .json import JsonLinesFormatter
-from .color import ColoredFormatter
 from .structured import GelfFormatter, LogstashFormatter, CsvFormatter, SyslogFormatter
-from .binary import BinaryFormatter, CompactBinaryFormatter, ExtendedBinaryFormatter
 
 def get_formatter(format_type: str, use_colors: bool = False):
     """
@@ -132,8 +130,6 @@ def get_formatter(format_type: str, use_colors: bool = False):
     """
     if format_type == "plain-text":
         return PlainTextFormatter()
-    elif format_type == "colored":
-        return ColoredFormatter(use_colors=use_colors)
     elif format_type == "json-lines":
         return JsonLinesFormatter()
     elif format_type == "json":
@@ -146,16 +142,6 @@ def get_formatter(format_type: str, use_colors: bool = False):
         return GelfFormatter()
     elif format_type == "logstash":
         return LogstashFormatter()
-    elif format_type == "binary":
-        return BinaryFormatter()
-    elif format_type == "binary-compact":
-        return CompactBinaryFormatter()
-    elif format_type == "binary-extended":
-        return ExtendedBinaryFormatter()
-    elif format_type == "detailed":
-        return DetailedFormatter()
-    elif format_type == "fast-plain":
-        return FastPlainTextFormatter()
     else:
         # Default to plain text
         return PlainTextFormatter()
@@ -166,17 +152,11 @@ __all__ = [
     # Core formatters
     "BaseFormatter",
     "PlainTextFormatter",
-    "FastPlainTextFormatter",
-    "DetailedFormatter",
     "JsonLinesFormatter",
-    "ColoredFormatter",
     "GelfFormatter",
     "LogstashFormatter",
     "CsvFormatter",
     "SyslogFormatter",
-    "BinaryFormatter",
-    "CompactBinaryFormatter",
-    "ExtendedBinaryFormatter",
     
     # Utility functions
     "get_formatter"

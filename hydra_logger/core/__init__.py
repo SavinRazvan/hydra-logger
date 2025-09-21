@@ -67,7 +67,6 @@ Performance Optimization:
 
 from .constants import Colors, QueuePolicy, ShutdownPhase
 from ..types.levels import LogLevel
-from .cache_manager import CacheManager, LayerHandlerCache, FormatterCache, CacheEntry
 from .layer_manager import LayerManager, LayerConfiguration
 from .exceptions import (
     HydraLoggerError, ConfigurationError, ValidationError,
@@ -80,12 +79,6 @@ __all__ = [
     "LogLevel",
     "QueuePolicy",
     "ShutdownPhase",
-    
-    # Cache Management
-    "CacheManager",
-    "LayerHandlerCache", 
-    "FormatterCache",
-    "CacheEntry",
     
     # Layer Management
     "LayerManager",

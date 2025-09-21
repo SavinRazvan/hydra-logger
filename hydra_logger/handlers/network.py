@@ -144,7 +144,7 @@ except ImportError:
 from ..types.records import LogRecord
 from ..types.levels import LogLevel
 from .base import BaseHandler
-from ..utils.network import NetworkUtils
+# NetworkUtils removed - simplified network handler
 
 
 class NetworkProtocol(Enum):
@@ -275,10 +275,10 @@ class BaseNetworkHandler(BaseHandler):
 
     def _validate_network_config(self) -> None:
         """Validate network configuration."""
-        if not NetworkUtils.is_valid_hostname(self._config.host):
+        if not self._is_valid_hostname(self._config.host):
             raise ValueError(f"Invalid hostname: {self._config.host}")
 
-        if not NetworkUtils.is_valid_port(self._config.port):
+        if not self._is_valid_port(self._config.port):
             raise ValueError(f"Invalid port: {self._config.port}")
 
         if self._config.timeout <= 0:
@@ -286,6 +286,17 @@ class BaseNetworkHandler(BaseHandler):
 
         if self._config.max_retries < 0:
             raise ValueError("Max retries cannot be negative")
+    
+    def _is_valid_hostname(self, hostname: str) -> bool:
+        """Simple hostname validation."""
+        if not hostname or len(hostname) > 253:
+            return False
+        # Basic validation - allow localhost, IP addresses, and domain names
+        return True
+    
+    def _is_valid_port(self, port: int) -> bool:
+        """Simple port validation."""
+        return isinstance(port, int) and 1 <= port <= 65535
 
     def _connect(self) -> bool:
         """Establish network connection."""

@@ -95,7 +95,7 @@ from hydra_logger.types.enums import TimeUnit
 from .base import BaseHandler
 from .console import SyncConsoleHandler, AsyncConsoleHandler
 from .file import FileHandler
-from .stream import StreamHandler
+# StreamHandler removed - simplified handlers
 from .null import NullHandler
 from .rotating import (
     RotatingFileHandler,
@@ -116,58 +116,7 @@ from .network import (
     NetworkProtocol,
     RetryPolicy
 )
-from .system import (
-    SyslogHandler,
-    SystemdJournalHandler,
-    WindowsEventLogHandler,
-    SystemHandlerFactory,
-    SyslogConfig,
-    SyslogFacility,
-    SyslogSeverity
-)
-from .database import (
-    BaseDatabaseHandler,
-    SQLiteHandler,
-    PostgreSQLHandler,
-    MongoDBHandler,
-    RedisHandler,
-    DatabaseHandlerFactory,
-    DatabaseConfig,
-    DatabaseType,
-    ConnectionPool
-)
-from .queue import (
-    BaseQueueHandler,
-    RabbitMQHandler,
-    KafkaHandler,
-    RedisStreamsHandler,
-    QueueHandlerFactory,
-    QueueConfig,
-    QueueType,
-    ExchangeType
-)
-from .cloud import (
-    BaseCloudHandler,
-    AWSCloudWatchHandler,
-    AzureMonitorHandler,
-    GoogleCloudLoggingHandler,
-    ElasticsearchHandler,
-    CloudHandlerFactory,
-    CloudConfig,
-    CloudService
-)
-from .composite import (
-    CompositeHandler,
-    FallbackHandler,
-    LoadBalancingHandler,
-    CircuitBreakerHandler,
-    HandlerChain,
-    CompositeHandlerFactory,
-    HandlerConfig,
-    CompositeConfig,
-    RoutingStrategy,
-    LoadBalancingStrategy
-)
+# Removed over-engineered handlers: system, database, queue, cloud, composite
 
 __all__ = [
     # Base classes
@@ -179,9 +128,6 @@ __all__ = [
     
     # File handlers
     "FileHandler",
-    
-    # Stream handlers
-    "StreamHandler",
     
     # Rotating file handlers
     "RotatingFileHandler",
@@ -202,58 +148,6 @@ __all__ = [
     "NetworkConfig",
     "NetworkProtocol",
     "RetryPolicy",
-    
-    # System handlers
-    "SyslogHandler",
-    "SystemdJournalHandler",
-    "WindowsEventLogHandler",
-    "SystemHandlerFactory",
-    "SyslogConfig",
-    "SyslogFacility",
-    "SyslogSeverity",
-    
-    # Database handlers
-    "BaseDatabaseHandler",
-    "SQLiteHandler",
-    "PostgreSQLHandler",
-    "MongoDBHandler",
-    "RedisHandler",
-    "DatabaseHandlerFactory",
-    "DatabaseConfig",
-    "DatabaseType",
-    "ConnectionPool",
-    
-    # Queue handlers
-    "BaseQueueHandler",
-    "RabbitMQHandler",
-    "KafkaHandler",
-    "RedisStreamsHandler",
-    "QueueHandlerFactory",
-    "QueueConfig",
-    "QueueType",
-    "ExchangeType",
-    
-    # Cloud service handlers
-    "BaseCloudHandler",
-    "AWSCloudWatchHandler",
-    "AzureMonitorHandler",
-    "GoogleCloudLoggingHandler",
-    "ElasticsearchHandler",
-    "CloudHandlerFactory",
-    "CloudConfig",
-    "CloudService",
-    
-    # Composite and fallback handlers
-    "CompositeHandler",
-    "FallbackHandler",
-    "LoadBalancingHandler",
-    "CircuitBreakerHandler",
-    "HandlerChain",
-    "CompositeHandlerFactory",
-    "HandlerConfig",
-    "CompositeConfig",
-    "RoutingStrategy",
-    "LoadBalancingStrategy",
     
     # Utility handlers
     "NullHandler",

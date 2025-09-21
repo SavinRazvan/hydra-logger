@@ -269,3 +269,4 @@ config.local.toml
 .coveragerc
 
 _old_implementation-knowledge
+._backup_copy
