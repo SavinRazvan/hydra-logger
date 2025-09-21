@@ -49,6 +49,7 @@ setup(
         "toml>=0.10.0",
         "msgpack>=1.1.1",
         "psutil>=5.8.0",
+        "requests>=2.28.0",
         # Database handlers
         "psycopg2-binary>=2.9.0",  # PostgreSQL
         "pymongo>=4.0.0",          # MongoDB
@@ -68,9 +69,13 @@ setup(
         "dev": [
             "pytest>=7.0.0",
             "pytest-cov>=4.0.0",
+            "pytest-mock>=3.10.0",
             "black>=23.0.0",
             "flake8>=6.0.0",
+            "isort>=5.12.0",
             "mypy>=1.0.0",
+            "bandit>=1.7.0",
+            "safety>=2.3.0",
         ],
         "database": [
             "psycopg2-binary>=2.9.0",
@@ -92,6 +97,17 @@ setup(
             "pywin32>=306; sys_platform == 'win32'",
         ],
         "full": [
+            "psycopg2-binary>=2.9.0",
+            "pymongo>=4.0.0",
+            "redis>=4.0.0",
+            "pika>=1.3.0",
+            "kafka-python>=2.0.0",
+            "boto3>=1.26.0",
+            "elasticsearch>=8.0.0",
+            "websockets>=11.0.0",
+            "pywin32>=306; sys_platform == 'win32'",
+        ],
+        "all": [
             "psycopg2-binary>=2.9.0",
             "pymongo>=4.0.0",
             "redis>=4.0.0",
