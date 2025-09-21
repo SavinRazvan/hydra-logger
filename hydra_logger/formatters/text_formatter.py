@@ -144,15 +144,15 @@ class PlainTextFormatter(BaseFormatter):
         if self.format_string == "{timestamp} | {level_name} | {layer} | {message}":
             return lambda r: f"{self.format_timestamp(r)} | {r.level_name} | {r.layer} | {r.message}"
         elif self.format_string == "[{level_name}] [{layer}] {message}":
-            return lambda r: f"[{r.level_name}] [{r.layer}] {r.message}"
+            return lambda r: f"{r.level_name} {r.layer} {r.message}"
         elif self.format_string == "[{timestamp}] [{level_name}] [{layer}] {message}":
-            return lambda r: f"[{self.format_timestamp(r)}] [{r.level_name}] [{r.layer}] {r.message}"
+            return lambda r: f"{self.format_timestamp(r)} {r.level_name} {r.layer} {r.message}"
         elif self.format_string == "[{timestamp}] [{level_name}] {message}":
-            return lambda r: f"[{self.format_timestamp(r)}] [{r.level_name}] {r.message}"
+            return lambda r: f"{self.format_timestamp(r)} {r.level_name} {r.message}"
         elif self.format_string == "{timestamp} {level_name} {message}":
             return lambda r: f"{self.format_timestamp(r)} {r.level_name} {r.message}"
         elif self.format_string == "[{level_name}] {message}":
-            return lambda r: f"[{r.level_name}] {r.message}"
+            return lambda r: f"{r.level_name} {r.message}"
         elif self.format_string == "{message}":
             return lambda r: f"{r.message}"
         else:
