@@ -99,18 +99,16 @@ Logstash Formatting:
     # Format record for Elasticsearch
     logstash_message = formatter.format(record)
 
-Performance Integration:
-    from hydra_logger.formatters.standard_formats import get_standard_formats, PerformanceLevel
+Custom Configuration:
+    from hydra_logger.formatters.structured_formatter import CsvFormatter
+    from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
     
-    # Get performance-optimized formatter
-    standard_formats = get_standard_formats(PerformanceLevel.FAST)
-    
-    # Use in custom formatter
-    class OptimizedCsvFormatter(CsvFormatter):
-        def __init__(self):
-            super().__init__()
-            self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-            self._format_func = self._standard_formats.format_basic
+    # Create formatter with custom timestamp config
+    config = TimestampConfig(
+        format_type=TimestampFormat.RFC3339_MICRO,
+        precision=TimestampPrecision.MICROSECONDS
+    )
+    formatter = CsvFormatter(timestamp_config=config)
 
 INDUSTRY STANDARDS:
 - CSV: RFC 4180 compliance

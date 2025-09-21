@@ -12,20 +12,17 @@ ARCHITECTURE:
 - Performance Integration: Standardized format function integration
 - Format Optimization: Pre-compiled format functions for common patterns
 
-PERFORMANCE FEATURES:
-- Ultra-fast string formatting with direct concatenation
+FORMATTER FEATURES:
+- High-performance string formatting
 - Pre-compiled format functions for common patterns
-- LRU cache integration for performance optimization
-- Memory-efficient object pooling
-- JIT optimization for hot code paths
-- Zero-overhead formatting for simple cases
+- Clean, readable text output
+- Customizable format strings
 
-FORMAT OPTIMIZATION:
+FORMAT FEATURES:
 - F-string compilation for common format patterns
-- Direct string concatenation for maximum speed
+- Direct string concatenation for better performance
 - Format string caching and reuse
-- Performance level configuration
-- Automatic optimization based on usage patterns
+- Customizable format templates
 
 COLOR SYSTEM NOTE:
 - Plain text formatters do NOT support colors
@@ -56,18 +53,19 @@ Detailed Formatting:
     # Comprehensive context information
     formatter = DetailedFormatter()
 
-Performance Integration:
-    from hydra_logger.formatters.standard_formats import get_standard_formats, PerformanceLevel
+Custom Formatting:
+    from hydra_logger.formatters.text_formatter import PlainTextFormatter
     
-    # Get performance-optimized formatter
-    standard_formats = get_standard_formats(PerformanceLevel.FAST)
+    # Create formatter with custom format string
+    formatter = PlainTextFormatter("{timestamp} {level_name} {message}")
     
-    # Use in custom formatter
-    class OptimizedTextFormatter(PlainTextFormatter):
-        def __init__(self):
-            super().__init__()
-            self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-            self._format_func = self._standard_formats.format_basic
+    # Create formatter with custom timestamp config
+    from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
+    config = TimestampConfig(
+        format_type=TimestampFormat.RFC3339_MICRO,
+        precision=TimestampPrecision.MICROSECONDS
+    )
+    formatter = PlainTextFormatter(timestamp_config=config)
 
 FORMAT STRING PATTERNS:
 - "{level_name} {layer} {message}": Basic format with level and layer
@@ -75,12 +73,6 @@ FORMAT STRING PATTERNS:
 - "{timestamp} {level_name} {message}": Format with timestamp and level
 - "{level_name} {message}": Minimal format with level only
 - "{message}": Message-only format
-
-PERFORMANCE LEVELS:
-- ULTRA_FAST: Minimal overhead, maximum speed (direct string operations)
-- FAST: Balanced performance and features (LRU cache, minimal overhead)
-- ENHANCED: Full infrastructure features (memory optimization, JIT)
-- DEBUG: Maximum debugging and monitoring capabilities
 """
 
 from datetime import datetime

@@ -66,18 +66,16 @@ With Timestamp Configuration:
     
     formatter = JsonLinesFormatter(timestamp_config=config)
 
-Performance Integration:
-    from hydra_logger.formatters.standard_formats import get_standard_formats, PerformanceLevel
+Custom Configuration:
+    from hydra_logger.formatters.json_formatter import JsonLinesFormatter
+    from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
     
-    # Get performance-optimized formatter
-    standard_formats = get_standard_formats(PerformanceLevel.FAST)
-    
-    # Use in custom formatter
-    class OptimizedJsonFormatter(JsonLinesFormatter):
-        def __init__(self):
-            super().__init__()
-            self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-            self._format_func = self._standard_formats.format_basic
+    # Create formatter with custom timestamp config
+    config = TimestampConfig(
+        format_type=TimestampFormat.RFC3339_MICRO,
+        precision=TimestampPrecision.MICROSECONDS
+    )
+    formatter = JsonLinesFormatter(timestamp_config=config)
 
 JSON LINES FORMAT:
 The JSON Lines format is an industry standard for structured logging where

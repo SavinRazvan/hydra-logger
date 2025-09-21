@@ -22,13 +22,11 @@ CORE FEATURES:
 - Memory optimization integration
 - Thread-safe operations
 
-PERFORMANCE INTEGRATION:
-- Standardized format function integration
-- LRU cache support for performance optimization
-- Memory-efficient object pooling
-- JIT optimization for hot code paths
-- Parallel processing support
-- Zero-overhead formatting for simple cases
+CORE FEATURES:
+- Standardized format function interface
+- Consistent timestamp formatting
+- Structured data support
+- Error handling and validation
 
 VALIDATION SYSTEM:
 - Record validation before formatting
@@ -61,18 +59,13 @@ Timestamp Configuration:
     
     formatter = BaseFormatter("my_formatter", timestamp_config=config)
 
-Performance Integration:
-    from hydra_logger.formatters.standard_formats import get_standard_formats, PerformanceLevel
-    
-    # Get performance-optimized formatter
-    standard_formats = get_standard_formats(PerformanceLevel.FAST)
-    
-    # Use in custom formatter
-    class OptimizedFormatter(BaseFormatter):
+Custom Formatter:
+    class CustomFormatter(BaseFormatter):
         def __init__(self):
-            super().__init__("optimized")
-            self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-            self._format_func = self._standard_formats.format_basic
+            super().__init__("custom")
+        
+        def _format_default(self, record: LogRecord) -> str:
+            return f"[{record.level_name}] {record.message}"
 
 ERROR HANDLING:
 - FormatterError: Custom exception for formatter-specific errors
@@ -118,13 +111,11 @@ class BaseFormatter(ABC):
     - Memory optimization integration
     - Thread-safe operations
     
-    PERFORMANCE INTEGRATION:
-    - Standardized format function integration
-    - LRU cache support for performance optimization
-    - Memory-efficient object pooling
-    - JIT optimization for hot code paths
-    - Parallel processing support
-    - Zero-overhead formatting for simple cases
+    CORE FEATURES:
+    - Standardized format function interface
+    - Consistent timestamp formatting
+    - Structured data support
+    - Error handling and validation
     
     VALIDATION SYSTEM:
     - Record validation before formatting
@@ -150,13 +141,13 @@ class BaseFormatter(ABC):
         )
         formatter = MyFormatter(timestamp_config=config)
     
-    Performance Integration:
-        class OptimizedFormatter(BaseFormatter):
+    Custom Formatter:
+        class CustomFormatter(BaseFormatter):
             def __init__(self):
-                super().__init__("optimized")
-                from .standard_formats import get_standard_formats, PerformanceLevel
-                self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-                self._format_func = self._standard_formats.format_basic
+                super().__init__("custom")
+            
+            def _format_default(self, record: LogRecord) -> str:
+                return f"[{record.level_name}] {record.message}"
     """
 
     def __init__(self, name: str = "base", timestamp_config: Optional[TimestampConfig] = None):
@@ -408,36 +399,16 @@ class BaseFormatter(ABC):
             logger.warning(f"Record validation failed: {e}")
             return False
 
-    def get_performance_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> Dict[str, Any]:
         """
-        Get performance statistics from the standardized formatter.
+        Get formatter statistics.
         
         Returns:
-            Dictionary containing performance statistics
+            Dictionary containing formatter statistics
         """
-        if hasattr(self, '_standard_formats'):
-            return self._standard_formats.get_stats()
-        else:
-            return {
-                'performance_level': 'not_optimized',
-                'formats_processed': 0,
-                'cache_hits': 0,
-                'cache_misses': 0,
-                'uptime_seconds': 0,
-                'formats_per_second': 0,
-                'cache_hit_rate': 0
-            }
-    
-    def clear_cache(self) -> None:
-        """
-        Clear the LRU cache for better memory management.
-        """
-        if hasattr(self, '_standard_formats'):
-            self._standard_formats.clear_cache()
-    
-    def optimize(self) -> None:
-        """
-        Optimize performance by clearing caches and resetting statistics.
-        """
-        if hasattr(self, '_standard_formats'):
-            self._standard_formats.optimize()
+        return {
+            'name': self.name,
+            'type': self.__class__.__name__,
+            'initialized': self._initialized,
+            'formatting_errors': len(self._formatting_errors)
+        }

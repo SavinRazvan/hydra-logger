@@ -8,41 +8,34 @@ and minimal latency while maintaining data integrity.
 
 ARCHITECTURE:
 - BaseFormatter: Abstract base class for all formatters
-- StandardFormats: Ultra-optimized format templates with performance levels
-- FormatRegistry: Registry system for format functions
-- Performance Levels: ULTRA_FAST, FAST, ENHANCED, DEBUG
-- LRU Caching: 2.8x performance improvement with 99.8% hit rate
+- Standardized interface across all formatter types
+- Consistent timestamp formatting
+- Structured data support for complex logging scenarios
 
 FORMATTER TYPES:
-- Text Formatters: PlainTextFormatter, FastPlainTextFormatter, DetailedFormatter
-- Colored Formatters: ColoredFormatter with level and layer colors
+- Text Formatters: PlainTextFormatter for clean text output
 - JSON Formatters: JsonLinesFormatter for structured logging
 - Structured Formatters: CSV, Syslog, GELF, Logstash formats
-- Binary Formatters: Binary, CompactBinary, ExtendedBinary formats
 
-PERFORMANCE FEATURES:
-- Ultra-fast string formatting with direct concatenation
-- LRU cache for frequently used format patterns
-- Pre-compiled format functions for common patterns
-- Memory-efficient object pooling integration
-- JIT optimization for hot code paths
-- Parallel processing support
-- Zero-overhead formatting for simple cases
+FORMATTER FEATURES:
+- High-performance string formatting
+- Consistent timestamp formatting
+- Structured data support (extra and context fields)
+- Industry standard compliance
+- Clean, readable output formats
 
-COLOR SYSTEM:
-- ColoredFormatter: Level and layer colors with LRU cache (2.8x speedup)
-- Colors only available for console handlers (not file handlers)
-- Use get_formatter('colored', use_colors=True) to enable colors
-- 100% data integrity - preserves user ANSI codes and Unicode
-- Standardized formatter creation across all loggers
-- Automatic formatter selection based on handler type and color settings
+TEXT FORMATTING:
+- PlainTextFormatter: Clean text output without colors
+- Optimized for file handlers and console output
+- Standardized format string support
+- High performance with minimal overhead
 
 STANDARDIZED FORMATTING:
 - Unified format function interface across all formatters
-- Performance level configuration (ULTRA_FAST, FAST, ENHANCED, DEBUG)
-- Automatic format optimization based on usage patterns
-- Memory optimization and garbage collection
-- Thread-safe operations with minimal locking
+- Consistent timestamp formatting across all formatters
+- Structured data support (extra and context fields)
+- Industry standard compliance
+- Thread-safe operations
 
 USAGE EXAMPLES:
 
@@ -59,49 +52,43 @@ Basic Formatter Usage:
     formatter = get_formatter('json-lines', use_colors=False)
 
 Direct Formatter Creation:
-    from hydra_logger.formatters import ColoredFormatter, JsonLinesFormatter
+    from hydra_logger.formatters import PlainTextFormatter, JsonLinesFormatter
     
-    # Create colored formatter
-    colored_formatter = ColoredFormatter(use_colors=True)
+    # Create text formatter
+    text_formatter = PlainTextFormatter()
     
     # Create JSON formatter
     json_formatter = JsonLinesFormatter()
 
-Performance-Optimized Formatting:
-    from hydra_logger.formatters import get_standard_formats, PerformanceLevel
+Custom Formatting:
+    from hydra_logger.formatters import PlainTextFormatter
     
-    # Get ultra-fast formatter
-    formatter = get_standard_formats(PerformanceLevel.ULTRA_FAST)
+    # Create formatter with custom format string
+    formatter = PlainTextFormatter("{timestamp} {level_name} {message}")
     
-    # Get enhanced formatter with full infrastructure
-    formatter = get_standard_formats(PerformanceLevel.ENHANCED)
+    # Create formatter with custom timestamp config
+    from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
+    config = TimestampConfig(
+        format_type=TimestampFormat.RFC3339_MICRO,
+        precision=TimestampPrecision.MICROSECONDS
+    )
+    formatter = PlainTextFormatter(timestamp_config=config)
 
 AVAILABLE FORMATTERS:
 - PlainTextFormatter: Basic text formatting with customizable format strings
-- FastPlainTextFormatter: Ultra-fast plain text with minimal overhead
-- DetailedFormatter: Comprehensive context information
-- ColoredFormatter: Colorized console output with LRU cache
 - JsonLinesFormatter: JSON Lines format for structured logging
 - CsvFormatter: CSV format with proper headers and quoting
 - SyslogFormatter: Syslog format for system logging
 - GelfFormatter: Graylog Extended Log Format
 - LogstashFormatter: Logstash format for Elasticsearch
-- BinaryFormatter: Binary format variants for high-performance logging
-- CompactBinaryFormatter: Minimal overhead binary format
-- ExtendedBinaryFormatter: Full context binary format
 
-PERFORMANCE LEVELS:
-- ULTRA_FAST: Minimal overhead, maximum speed (direct string operations)
-- FAST: Balanced performance and features (LRU cache, minimal overhead)
-- ENHANCED: Full infrastructure features (memory optimization, JIT)
-- DEBUG: Maximum debugging and monitoring capabilities
-
-CACHING SYSTEM:
-- LRU cache for format patterns (1000 entries by default)
-- 99.8% cache hit rate for common patterns
-- Automatic cache management and cleanup
-- Memory-efficient cache implementation
-- Thread-safe cache operations
+FORMATTER FEATURES:
+- Standardized interface across all formatters
+- Consistent timestamp formatting
+- Structured data support (extra and context fields)
+- Industry standard compliance
+- High performance with minimal overhead
+- Thread-safe operations
 """
 
 # Core formatters
