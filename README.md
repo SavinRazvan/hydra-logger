@@ -68,11 +68,12 @@ hydra_logger/
 │   ├── network.py          # NetworkHandler (HTTP/WebSocket)
 │   ├── null.py             # NullHandler (testing)
 │   └── rotating_handler.py # RotatingFileHandler (renamed from rotating.py)
-├── formatters/             # ESSENTIAL FORMATTERS (4 modules)
+├── formatters/             # ESSENTIAL FORMATTERS (5 modules)
 │   ├── base.py             # BaseFormatter
 │   ├── text_formatter.py   # PlainTextFormatter (renamed from text.py)
 │   ├── json_formatter.py   # JsonLinesFormatter (renamed from json.py)
-│   └── structured_formatter.py # CsvFormatter, SyslogFormatter, GelfFormatter, LogstashFormatter (renamed from structured.py)
+│   ├── structured_formatter.py # CsvFormatter, SyslogFormatter, GelfFormatter, LogstashFormatter (renamed from structured.py)
+│   └── __init__.py         # Formatter registry and factory functions
 ├── security/               # CORE SECURITY (6 modules)
 │   ├── access_control.py   # AccessController
 │   ├── encryption.py       # DataEncryption
@@ -573,10 +574,10 @@ def create_logger(name=None, config=None, **kwargs):
 - **Utility**: NullHandler (for testing)
 
 #### **6 ESSENTIAL FORMATTERS** (Simplified from 14+)
-- **Text Formatters**: PlainTextFormatter
-- **JSON Formatters**: JsonLinesFormatter
+- **Text Formatters**: PlainTextFormatter (default format includes timestamp)
+- **JSON Formatters**: JsonLinesFormatter (complete structured data support)
 - **Structured Formatters**: CsvFormatter, SyslogFormatter, GelfFormatter, LogstashFormatter
-- **Note**: Colors handled by console handlers, not separate formatters
+- **Note**: All formatters support structured data (extra and context fields)
 
 #### **SIMPLE CONFIGURATION** (Simplified from 8+)
 - **LoggingConfig**: Root configuration with Pydantic validation
@@ -880,10 +881,10 @@ hydra_logger/
 - ✅ Over-engineered adapters module (1+ files) - REMOVED ENTIRELY
 - ✅ Over-engineered handler manager (1+ files) - REMOVED ENTIRELY
 
-### **🎯 ACHIEVED: 53% Reduction in Complexity**
-- **From 100+ files** → **47 essential files** ✅
+### **🎯 ACHIEVED: 52% Reduction in Complexity**
+- **From 100+ files** → **48 essential files** ✅
 - **From 20+ handler types** → **6 essential handlers** ✅
-- **From 14+ formatter types** → **4 essential formatters** ✅
+- **From 14+ formatter types** → **6 essential formatters** ✅
 - **Colors handled by console handlers** (not separate formatters) ✅
 - **Security built-in** (6 essential components) ✅
 - **Clean, KISS-based architecture** ✅
@@ -910,9 +911,10 @@ hydra_logger/
 - **Phase 10**: Removed over-engineered modules (adapters, handler manager) ✅
 - **Phase 11**: Fixed all traceback issues and standardized log format ✅
 - **Phase 12**: Standardized all formatters to include layer field consistently ✅
+- **Phase 13**: Cleaned up formatter documentation and removed outdated performance references ✅
 
 ### **🎯 CURRENT ARCHITECTURE**
-- **47 Essential Files**: Down from 100+ files (53% reduction)
+- **48 Essential Files**: Down from 100+ files (52% reduction)
 - **KISS Principles**: Simple, clean, maintainable code
 - **Simplified EDA**: Direct method calls, no complex event buses
 - **Zero Overhead**: Features disabled by default
@@ -922,7 +924,7 @@ hydra_logger/
 - **Standardized Log Format**: Consistent `timestamp | level_name | layer | message` format
 - **All Formatters Standardized**: Layer field included across all format types
 
-### **🔧 LATEST FIXES COMPLETED (Phase 11-12)**
+### **🔧 LATEST FIXES COMPLETED (Phase 11-13)**
 
 **Traceback Issues Fixed:**
 - ✅ **CompositeLogger Constructor**: Fixed `'got multiple values for argument name'` error
@@ -936,13 +938,27 @@ hydra_logger/
 - ✅ **Format Optimization**: Updated format patterns for better performance
 - ✅ **Industry Standards**: Maintained compliance for each format type
 
+**Formatter Documentation Cleanup:**
+- ✅ **Removed Outdated References**: Eliminated all references to non-existent `standard_formats` module
+- ✅ **Removed ColoredFormatter**: Cleaned up references to non-existent `ColoredFormatter`
+- ✅ **Updated Performance Docs**: Removed outdated performance level references (ULTRA_FAST, FAST, etc.)
+- ✅ **Clarified Default Format**: Made it clear that full format with timestamp is the default
+- ✅ **Simplified Architecture**: Removed complex performance optimization documentation
+- ✅ **Accurate Examples**: Updated all usage examples to reflect current reality
+
 **Formatter Standardization:**
 - ✅ **JSON Formatter**: Includes `layer` field in structured JSON
 - ✅ **CSV Formatter**: Includes `layer` field in CSV structure
 - ✅ **Syslog Formatter**: Updated to include `[layer]` field in syslog format
-- ✅ **GELF Formatter**: Includes `_layer` field in GELF structure
-- ✅ **Logstash Formatter**: Includes `layer` field in Logstash structure
-- ✅ **Text Formatter**: Standardized pipe-separated format with layer
+
+**Current Formatter Capabilities:**
+- ✅ **PlainTextFormatter**: Default format `"{timestamp} {level_name} {layer} {message}"`
+- ✅ **JsonLinesFormatter**: Complete structured data support (extra + context fields)
+- ✅ **CsvFormatter**: Structured data support with proper CSV formatting
+- ✅ **SyslogFormatter**: RFC 3164 compliant with layer field
+- ✅ **GelfFormatter**: Graylog Extended Log Format with structured data
+- ✅ **LogstashFormatter**: Elasticsearch integration with structured data
+- ✅ **All Formatters**: Support for `extra` and `context` fields for complex logging scenarios
 
 ### **📝 NAMING CONVENTIONS IMPLEMENTED**
 
