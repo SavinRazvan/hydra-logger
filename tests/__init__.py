@@ -1,8 +1,4 @@
 """
-Hydra-Logger Test Suite.
-
-This package contains all tests for the Hydra-Logger project.
+Test package for hydra-logger.
+This will be expanded during extension system implementation.
 """
-
-__version__ = "1.0.0"
-__author__ = "Hydra-Logger Team"
