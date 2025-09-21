@@ -163,10 +163,8 @@ class CsvFormatter(BaseFormatter):
         self._headers_written = False
         self._file_headers_written = set()  # Track headers per file
         
-        # Performance optimization: Use standardized format function with FAST performance level
-        from .standard_formats import get_standard_formats, PerformanceLevel
-        self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-        self._format_func = self._standard_formats.format_basic
+        # Simplified formatter - no performance optimization
+        self._format_func = self._format_default
     
     def get_headers(self) -> List[str]:
         """Get CSV headers based on default configuration."""
@@ -323,10 +321,8 @@ class SyslogFormatter(BaseFormatter):
             50: 2,  # CRITICAL -> CRITICAL
         }
         
-        # Performance optimization: Use standardized format function with FAST performance level
-        from .standard_formats import get_standard_formats, PerformanceLevel
-        self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-        self._format_func = self._standard_formats.format_basic
+        # Simplified formatter - no performance optimization
+        self._format_func = self._format_default
     
     def format(self, record: LogRecord) -> str:
         """

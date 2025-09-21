@@ -146,10 +146,8 @@ class JsonLinesFormatter(BaseFormatter):
             sort_keys=False  # Don't sort for performance
         )
         
-        # Performance optimization: Use standardized format function with FAST performance level
-        from .standard_formats import get_standard_formats, PerformanceLevel
-        self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-        self._format_func = self._standard_formats.format_basic
+        # Simplified formatter - no performance optimization
+        self._format_func = self._format_default
 
     def _format_default(self, record: LogRecord) -> str:
         """

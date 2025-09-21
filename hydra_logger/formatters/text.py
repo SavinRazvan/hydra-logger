@@ -114,10 +114,8 @@ class PlainTextFormatter(BaseFormatter):
         super().__init__("plain_text", timestamp_config)
         self.format_string = format_string or "[{level_name}] [{layer}] {message}"
         
-        # Performance optimization: Use standardized format function with FAST performance level
-        from .standard_formats import get_standard_formats, PerformanceLevel
-        self._standard_formats = get_standard_formats(PerformanceLevel.FAST)
-        self._format_func = self._standard_formats.format_basic
+        # Simplified formatter - no performance optimization
+        self._format_func = self._format_default
         
         # Performance optimization: Caching
         self._format_cache = {}

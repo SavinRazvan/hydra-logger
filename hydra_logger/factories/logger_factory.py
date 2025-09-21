@@ -127,7 +127,7 @@ PERFORMANCE FEATURES:
 from typing import Optional, Union, Dict, Any
 from ..config.models import LoggingConfig
 from ..config.magic_configs import magic_configs
-from ..config.setup import ensure_logs_structure
+# Setup module removed - simplified architecture
 from ..loggers.sync_logger import SyncLogger
 from ..loggers.async_logger import AsyncLogger
 from ..loggers.composite_logger import CompositeLogger, CompositeAsyncLogger
@@ -227,8 +227,7 @@ class LoggerFactory:
             )
         """
         
-        # Ensure logs directory structure exists
-        ensure_logs_structure()
+        # Logs directory structure - simplified (no automatic creation)
         
         # Parse configuration
         if isinstance(config, dict):
