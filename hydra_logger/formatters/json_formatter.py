@@ -125,15 +125,9 @@ class JsonLinesFormatter(BaseFormatter):
         Note: This is the recommended JSON formatter for file output.
         Creates valid JSONL files with one JSON object per line.
         """
-        # Set default timestamp config to HUMAN_READABLE if not provided
+        # Set professional timestamp config if not provided
         if timestamp_config is None:
-            from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-            timestamp_config = TimestampConfig(
-                format_type=TimestampFormat.HUMAN_READABLE,
-                precision=TimestampPrecision.SECONDS,
-                timezone_name=None,  # Local timezone
-                include_timezone=False
-            )
+            timestamp_config = self._get_professional_timestamp_config()
         super().__init__("json_lines", timestamp_config=timestamp_config)
         self.ensure_ascii = ensure_ascii
         
@@ -146,6 +140,36 @@ class JsonLinesFormatter(BaseFormatter):
         
         # Simplified formatter - no performance optimization
         self._format_func = self._format_default
+    
+    def _get_professional_timestamp_config(self):
+        """
+        Get professional timestamp configuration based on environment.
+        
+        Returns:
+            Professional timestamp configuration
+        """
+        import os
+        from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
+        
+        # Check if we're in production environment
+        is_production = os.environ.get('ENVIRONMENT', '').lower() in ['production', 'prod']
+        
+        if is_production:
+            # Production: UTC, microsecond precision, RFC3339 format
+            return TimestampConfig(
+                format_type=TimestampFormat.RFC3339_MICRO,
+                precision=TimestampPrecision.MICROSECONDS,
+                timezone_name="UTC",
+                include_timezone=True
+            )
+        else:
+            # Development: Local timezone, second precision, human readable
+            return TimestampConfig(
+                format_type=TimestampFormat.HUMAN_READABLE,
+                precision=TimestampPrecision.SECONDS,
+                timezone_name=None,  # Local timezone
+                include_timezone=False
+            )
 
     def _format_default(self, record: LogRecord) -> str:
         """

@@ -128,12 +128,41 @@ COMPATIBILITY:
 import csv
 import io
 import os
-from datetime import datetime
 from typing import Any, Dict, Optional, List
 from .base import BaseFormatter
 from ..types.records import LogRecord
 from ..core.constants import CSV_HEADERS
-from ..utils.time_utility import TimestampConfig
+from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
+
+
+def _get_professional_timestamp_config() -> TimestampConfig:
+    """
+    Get professional timestamp configuration based on environment.
+    
+    Returns:
+        Professional timestamp configuration
+    """
+    import os
+    
+    # Check if we're in production environment
+    is_production = os.environ.get('ENVIRONMENT', '').lower() in ['production', 'prod']
+    
+    if is_production:
+        # Production: UTC, microsecond precision, RFC3339 format
+        return TimestampConfig(
+            format_type=TimestampFormat.RFC3339_MICRO,
+            precision=TimestampPrecision.MICROSECONDS,
+            timezone_name="UTC",
+            include_timezone=True
+        )
+    else:
+        # Development: Local timezone, second precision, human readable
+        return TimestampConfig(
+            format_type=TimestampFormat.HUMAN_READABLE,
+            precision=TimestampPrecision.SECONDS,
+            timezone_name=None,  # Local timezone
+            include_timezone=False
+        )
 
 
 class CsvFormatter(BaseFormatter):
@@ -147,15 +176,9 @@ class CsvFormatter(BaseFormatter):
             include_headers: Whether to include CSV headers
             timestamp_config: Configuration for timestamp formatting
         """
-        # Set default timestamp config to HUMAN_READABLE if not provided
+        # Set professional timestamp config if not provided
         if timestamp_config is None:
-            from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-            timestamp_config = TimestampConfig(
-                format_type=TimestampFormat.HUMAN_READABLE,
-                precision=TimestampPrecision.SECONDS,
-                timezone_name=None,  # Local timezone
-                include_timezone=False
-            )
+            timestamp_config = _get_professional_timestamp_config()
         super().__init__("csv", timestamp_config=timestamp_config)
         self.include_headers = include_headers
         self._headers_written = False
@@ -303,17 +326,17 @@ class CsvFormatter(BaseFormatter):
 class SyslogFormatter(BaseFormatter):
     """Syslog format formatter for system logging."""
     
-    def __init__(self, facility: int = 1, app_name: str = "hydra-logger"):
+    def __init__(self, facility: int = 1, app_name: str = None):
         """
         Initialize syslog formatter.
         
         Args:
             facility: Syslog facility number
-            app_name: Application name
+            app_name: Application name (auto-detected if None)
         """
         super().__init__("syslog")
         self.facility = facility
-        self.app_name = app_name
+        self.app_name = app_name or self._detect_app_name()
         
         # Syslog severity mapping
         self.severity_map = {
@@ -327,6 +350,38 @@ class SyslogFormatter(BaseFormatter):
         
         # Simplified formatter - no performance optimization
         self._format_func = self._format_default
+    
+    def _detect_app_name(self) -> str:
+        """
+        Auto-detect application name from various sources.
+        
+        Returns:
+            Detected application name
+        """
+        import sys
+        import os
+        
+        # Try to get from environment variable first
+        app_name = os.environ.get('APP_NAME') or os.environ.get('SERVICE_NAME')
+        if app_name:
+            return app_name
+        
+        # Try to get from sys.argv
+        if sys.argv and len(sys.argv) > 0:
+            script_name = os.path.basename(sys.argv[0])
+            if script_name and script_name != '-c':  # Not from -c flag
+                return script_name.replace('.py', '')
+        
+        # Try to get from process name
+        try:
+            import psutil
+            process = psutil.Process()
+            return process.name()
+        except (ImportError, Exception):
+            pass
+        
+        # Fallback to generic name
+        return "hydra-logger"
     
     def format(self, record: LogRecord) -> str:
         """
@@ -377,17 +432,51 @@ class SyslogFormatter(BaseFormatter):
 class GelfFormatter(BaseFormatter):
     """GELF format formatter for Graylog."""
     
-    def __init__(self, host: str = "localhost", version: str = "1.1"):
+    def __init__(self, host: str = None, version: str = "1.1"):
         """
         Initialize GELF formatter.
         
         Args:
-            host: Hostname
+            host: Hostname (auto-detected if None)
             version: GELF version
         """
         super().__init__("gelf")
-        self.host = host
+        self.host = host or self._detect_hostname()
         self.version = version
+    
+    def _detect_hostname(self) -> str:
+        """
+        Auto-detect hostname from various sources.
+        
+        Returns:
+            Detected hostname
+        """
+        import socket
+        import os
+        
+        # Try to get from environment variable first
+        hostname = os.environ.get('HOSTNAME') or os.environ.get('HOST')
+        if hostname:
+            return hostname
+        
+        # Try socket.gethostname()
+        try:
+            hostname = socket.gethostname()
+            if hostname and hostname != 'localhost':
+                return hostname
+        except Exception:
+            pass
+        
+        # Try socket.getfqdn()
+        try:
+            fqdn = socket.getfqdn()
+            if fqdn and fqdn != 'localhost':
+                return fqdn
+        except Exception:
+            pass
+        
+        # Fallback to localhost
+        return "localhost"
     
     def format(self, record: LogRecord) -> str:
         """
@@ -454,17 +543,80 @@ class GelfFormatter(BaseFormatter):
 class LogstashFormatter(BaseFormatter):
     """Logstash format formatter for Elasticsearch."""
     
-    def __init__(self, type_name: str = "log", tags: Optional[list] = None):
+    def __init__(self, type_name: str = None, tags: Optional[list] = None):
         """
         Initialize Logstash formatter.
         
         Args:
-            type_name: Log type name
-            tags: List of tags
+            type_name: Log type name (auto-detected if None)
+            tags: List of tags (auto-detected if None)
         """
         super().__init__("logstash")
-        self.type_name = type_name
-        self.tags = tags or []
+        self.type_name = type_name or self._detect_log_type()
+        self.tags = tags or self._detect_tags()
+    
+    def _detect_log_type(self) -> str:
+        """
+        Auto-detect log type from various sources.
+        
+        Returns:
+            Detected log type
+        """
+        import os
+        import sys
+        
+        # Try to get from environment variable first
+        log_type = os.environ.get('LOG_TYPE') or os.environ.get('SERVICE_TYPE')
+        if log_type:
+            return log_type
+        
+        # Try to detect from sys.argv
+        if sys.argv and len(sys.argv) > 0:
+            script_name = os.path.basename(sys.argv[0])
+            if script_name and script_name != '-c':
+                # Extract meaningful part
+                if 'api' in script_name.lower():
+                    return 'api-logs'
+                elif 'web' in script_name.lower():
+                    return 'web-logs'
+                elif 'worker' in script_name.lower():
+                    return 'worker-logs'
+                elif 'cron' in script_name.lower():
+                    return 'cron-logs'
+                else:
+                    return f"{script_name.replace('.py', '')}-logs"
+        
+        # Fallback to generic
+        return "application-logs"
+    
+    def _detect_tags(self) -> list:
+        """
+        Auto-detect tags from environment and context.
+        
+        Returns:
+            List of detected tags
+        """
+        import os
+        
+        tags = []
+        
+        # Environment tags
+        env = os.environ.get('ENVIRONMENT', 'development')
+        tags.append(env)
+        
+        # Service tags
+        service = os.environ.get('SERVICE_NAME') or os.environ.get('APP_NAME')
+        if service:
+            tags.append(service)
+        
+        # Platform tags
+        platform = os.environ.get('PLATFORM', 'python')
+        tags.append(platform)
+        
+        # Add common tags
+        tags.extend(['logstash', 'structured'])
+        
+        return tags
     
     def format(self, record: LogRecord) -> str:
         """

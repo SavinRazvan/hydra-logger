@@ -91,15 +91,9 @@ class PlainTextFormatter(BaseFormatter):
             format_string: Format template using {field} placeholders
             timestamp_config: Configuration for timestamp formatting
         """
-        # Set default timestamp config to HUMAN_READABLE if not provided
+        # Set professional timestamp config if not provided
         if timestamp_config is None:
-            from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-            timestamp_config = TimestampConfig(
-                format_type=TimestampFormat.HUMAN_READABLE,
-                precision=TimestampPrecision.SECONDS,
-                timezone_name=None,  # Local timezone
-                include_timezone=False
-            )
+            timestamp_config = self._get_professional_timestamp_config()
         super().__init__("plain_text", timestamp_config)
         self.format_string = format_string or "{timestamp} {level_name} {layer} {message}"
         
@@ -114,6 +108,36 @@ class PlainTextFormatter(BaseFormatter):
         # Pre-compile format string if possible
         if self._use_fstring:
             self._compiled_format = self._compile_fstring_format()
+    
+    def _get_professional_timestamp_config(self):
+        """
+        Get professional timestamp configuration based on environment.
+        
+        Returns:
+            Professional timestamp configuration
+        """
+        import os
+        from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
+        
+        # Check if we're in production environment
+        is_production = os.environ.get('ENVIRONMENT', '').lower() in ['production', 'prod']
+        
+        if is_production:
+            # Production: UTC, microsecond precision, RFC3339 format
+            return TimestampConfig(
+                format_type=TimestampFormat.RFC3339_MICRO,
+                precision=TimestampPrecision.MICROSECONDS,
+                timezone_name="UTC",
+                include_timezone=True
+            )
+        else:
+            # Development: Local timezone, second precision, human readable
+            return TimestampConfig(
+                format_type=TimestampFormat.HUMAN_READABLE,
+                precision=TimestampPrecision.SECONDS,
+                timezone_name=None,  # Local timezone
+                include_timezone=False
+            )
     
     def _should_use_fstring(self) -> bool:
         """Check if we can use f-string formatting for better performance."""
