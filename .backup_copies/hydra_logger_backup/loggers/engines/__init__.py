@@ -2,18 +2,20 @@
 Logger Engines Module for Hydra-Logger
 
 This module provides specialized engines for different aspects of logging
-including security and plugins. These engines provide advanced
+including security, plugins, and monitoring. These engines provide advanced
 functionality that can be integrated into logger implementations.
 
 ARCHITECTURE:
 - SecurityEngine: Security and validation engine for loggers
 - PluginEngine: Plugin management engine for loggers
+- MonitoringEngine: Monitoring and metrics engine for loggers
 - Specialized engines for different logging aspects
 - Integration with logger implementations
 
 CORE ENGINES:
 - SecurityEngine: Data validation, sanitization, and threat detection
 - PluginEngine: Plugin discovery, loading, and lifecycle management
+- MonitoringEngine: Performance monitoring, health checks, and metrics
 
 USAGE EXAMPLES:
 
@@ -61,16 +63,44 @@ Plugin Engine:
     metrics = plugins.get_plugin_metrics()
     print(f"Plugin metrics: {metrics}")
 
+Monitoring Engine:
+    from hydra_logger.loggers.engines import MonitoringEngine
+    
+    # Create monitoring engine
+    monitoring = MonitoringEngine()
+    
+    # Start monitoring
+    monitoring.start_monitoring()
+    
+    # Get health status
+    health = monitoring.get_health_status()
+    print(f"Health status: {health}")
+    
+    # Record custom metric
+    monitoring.record_metric("custom_metric", 42.5)
+    
+    # Get all metrics
+    all_metrics = monitoring.get_all_metrics()
+    print(f"All metrics: {all_metrics}")
+    
+    # Stop monitoring
+    monitoring.stop_monitoring()
+
 Engine Integration:
-    from hydra_logger.loggers.engines import SecurityEngine, PluginEngine
+    from hydra_logger.loggers.engines import SecurityEngine, PluginEngine, MonitoringEngine
     
     # Create all engines
     security = SecurityEngine()
     plugins = PluginEngine()
+    monitoring = MonitoringEngine()
     
     # Configure engines
     security.set_security_enabled(True)
     plugins.set_plugins_enabled(True)
+    monitoring.set_monitoring_enabled(True)
+    
+    # Start monitoring
+    monitoring.start_monitoring()
     
     # Use engines in logger
     # (Engines are typically integrated into logger implementations)
@@ -89,6 +119,12 @@ PLUGIN FEATURES:
 - Plugin performance optimization
 - Plugin error handling
 
+MONITORING FEATURES:
+- Performance monitoring and metrics
+- Health status monitoring
+- Memory usage tracking
+- System metrics collection
+- Alert threshold management
 
 ERROR HANDLING:
 - Graceful error handling with fallback mechanisms
@@ -100,7 +136,7 @@ ERROR HANDLING:
 BENEFITS:
 - Specialized functionality for different logging aspects
 - Easy integration with logger implementations
-- Comprehensive security features
+- Comprehensive monitoring and security features
 - Extensible plugin architecture
 - Production-ready with error handling
 """

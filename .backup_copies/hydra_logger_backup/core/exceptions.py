@@ -19,6 +19,7 @@ EXCEPTION HIERARCHY:
   - CompatibilityError: Version compatibility and migration errors
   - PerformanceError: Performance threshold and optimization errors
   - SecurityError: Security threat and violation errors
+  - MonitoringError: Health monitoring and metrics errors
   - RegistryError: Component registry related errors
   - FactoryError: Component factory related errors
   - LifecycleError: Component lifecycle management errors
@@ -297,6 +298,25 @@ class SecurityError(HydraLoggerError):
         self.threat_type = threat_type
         self.severity = severity
         self.source = source
+
+
+class MonitoringError(HydraLoggerError):
+    """Monitoring and health check errors."""
+    
+    def __init__(self, message: str, component: Optional[str] = None,
+                 health_status: Optional[str] = None, metrics: Optional[Dict[str, Any]] = None):
+        details = {}
+        if component:
+            details['component'] = component
+        if health_status:
+            details['health_status'] = health_status
+        if metrics:
+            details['metrics'] = metrics
+        
+        super().__init__(message, details)
+        self.component = component
+        self.health_status = health_status
+        self.metrics = metrics
 
 
 class RegistryError(HydraLoggerError):

@@ -275,6 +275,7 @@ class SyncLogger(BaseLogger):
         # Core system integration
         self._security_engine = None
         self._plugin_engine = None
+        self._monitoring_engine = None
         
         # Feature components
         self._performance_monitor = None
@@ -361,6 +362,12 @@ class SyncLogger(BaseLogger):
         except ImportError:
             pass
         
+        try:
+            # Monitoring engine
+            from ..loggers.engines.monitoring_engine import MonitoringEngine
+            self._monitoring_engine = MonitoringEngine()
+        except ImportError:
+            pass
     
 
     
@@ -782,6 +789,8 @@ class SyncLogger(BaseLogger):
             health_status['security_engine'] = self._security_engine.get_security_metrics()
         if self._plugin_engine:
             health_status['plugin_engine'] = self._plugin_engine.get_plugin_metrics()
+        if self._monitoring_engine:
+            health_status['monitoring_engine'] = self._monitoring_engine.get_monitoring_metrics()
         
         return health_status
     

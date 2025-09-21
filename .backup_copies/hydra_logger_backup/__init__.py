@@ -10,7 +10,7 @@ FEATURES:
 - Modular handler and formatter system
 - Intelligent configuration management
 - Performance-optimized logging operations
-- Security and data protection features
+- Comprehensive monitoring and analytics
 - Security and compliance features
 - Plugin system for extensibility
 - Multiple output formats and destinations
@@ -81,6 +81,7 @@ from .core.exceptions import (
     FormatterError,
     PluginError,
     SecurityError,
+    MonitoringError,
 )
 
 # Public API
@@ -117,6 +118,7 @@ __all__ = [
     "FormatterError",
     "PluginError",
     "SecurityError",
+    "MonitoringError",
     # Version
     "__version__",
     "__author__",

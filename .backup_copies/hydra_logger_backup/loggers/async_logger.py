@@ -254,6 +254,7 @@ class AsyncLogger(BaseLogger):
         # Core system integration
         self._security_engine = None
         self._plugin_engine = None
+        self._monitoring_engine = None
         
         # Feature components
         self._plugin_manager = None
@@ -262,6 +263,7 @@ class AsyncLogger(BaseLogger):
         self._enable_security = False
         self._enable_sanitization = False
         self._enable_plugins = False
+        self._enable_performance_monitoring = False
         
         # Object pooling removed - using standardized LogRecord creation
         
@@ -310,6 +312,12 @@ class AsyncLogger(BaseLogger):
         else:
             self._plugin_engine = None
         
+        try:
+            # Monitoring engine
+            from ..loggers.engines.monitoring_engine import MonitoringEngine
+            self._monitoring_engine = MonitoringEngine()
+        except ImportError:
+            pass
     
     def _setup_plugins(self):
         """Setup plugin system."""
@@ -365,6 +373,7 @@ class AsyncLogger(BaseLogger):
             self._enable_security = self._config.enable_security
             self._enable_sanitization = self._config.enable_sanitization
             self._enable_plugins = self._config.enable_plugins
+            self._enable_performance_monitoring = self._config.enable_performance_monitoring
         
         # ✅ CRITICAL FIX: Setup handlers from configuration
         self._setup_layers()
@@ -522,10 +531,31 @@ class AsyncLogger(BaseLogger):
                     return
             
             # Semaphore available, process immediately
+            start_time = None
+            if self._enable_performance_monitoring and self._monitoring_engine:
+                start_time = time.perf_counter()
+                
             async with self._concurrency_semaphore:
                 try:
                     # Emit to handlers
                     await self._emit_to_handlers(record)
+                    
+                    # ✅ INTEGRATION: Record performance metrics if enabled
+                    if self._enable_performance_monitoring and self._monitoring_engine and start_time:
+                        try:
+                            end_time = time.perf_counter()
+                            duration = (end_time - start_time) * 1000  # Convert to milliseconds
+                            
+                            # Record log operation metrics (sampled for performance)
+                            if self._log_count % 100 == 0:  # Sample every 100th log
+                                self._monitoring_engine.record_metric('log_duration_ms', duration)
+                                self._monitoring_engine.record_metric('log_throughput', 1000.0 / duration if duration > 0 else 0)
+                            
+                            # Always record basic counters
+                            self._monitoring_engine.record_metric('total_logs', self._log_count)
+                            
+                        except Exception:
+                            pass  # Silently fail monitoring to avoid breaking logging
                     
                     # ✅ INTEGRATION: Execute post-log plugins if enabled
                     if self._enable_plugins and hasattr(self, '_plugin_engine') and self._plugin_engine:
@@ -1099,6 +1129,15 @@ class AsyncLogger(BaseLogger):
                 'concurrency_available': None
             })
         
+        # ✅ INTEGRATION: Add monitoring engine metrics if available
+        if self._monitoring_engine:
+            try:
+                monitoring_metrics = self._monitoring_engine.get_monitoring_metrics()
+                health_status['monitoring_engine'] = monitoring_metrics
+            except Exception:
+                health_status['monitoring_engine'] = {'status': 'error'}
+        else:
+            health_status['monitoring_engine'] = {'status': 'not_available'}
         
         return health_status
     
@@ -1139,6 +1178,8 @@ class AsyncLogger(BaseLogger):
                 self._enable_sanitization = enabled
             elif feature == "plugins":
                 self._enable_plugins = enabled
+            elif feature == "monitoring":
+                self._enable_performance_monitoring = enabled
             
             print(f"✅ {feature} {'enabled' if enabled else 'disabled'}")
         else:

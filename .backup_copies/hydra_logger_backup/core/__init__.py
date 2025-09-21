@@ -70,7 +70,7 @@ from ..types.levels import LogLevel
 from .layer_manager import LayerManager, LayerConfiguration
 from .exceptions import (
     HydraLoggerError, ConfigurationError, ValidationError,
-    HandlerError, FormatterError, PluginError, SecurityError
+    HandlerError, FormatterError, PluginError, SecurityError, MonitoringError
 )
 
 __all__ = [
@@ -92,4 +92,5 @@ __all__ = [
     "FormatterError",
     "PluginError",
     "SecurityError",
+    "MonitoringError"
 ]
