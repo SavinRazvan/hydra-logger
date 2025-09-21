@@ -97,7 +97,7 @@ from .console import SyncConsoleHandler, AsyncConsoleHandler
 from .file import FileHandler
 # StreamHandler removed - simplified handlers
 from .null import NullHandler
-from .rotating import (
+from .rotating_handler import (
     RotatingFileHandler,
     TimedRotatingFileHandler,
     SizeRotatingFileHandler,

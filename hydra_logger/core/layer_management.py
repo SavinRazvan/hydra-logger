@@ -232,11 +232,11 @@ class LayerManager:
         """Setup a default layer with console output."""
         try:
             from ..handlers.console import SyncConsoleHandler
-            from ..formatters.text import ColoredFormatter
+            from ..formatters.text_formatter import ColoredFormatter
             
             # Create default console handler
             console_handler = SyncConsoleHandler(
-                stream='stdout',
+                stream='stdout',  # review this and tell me if like this is performant
                 use_colors=True
             )
             
