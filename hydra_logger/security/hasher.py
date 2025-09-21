@@ -38,10 +38,9 @@ USAGE:
 
 import hashlib
 from typing import Any, Dict, Optional
-from ..interfaces.security import SecurityInterface
 
 
-class DataHasher(SecurityInterface):
+class DataHasher:
     """Data hashing component for secure data handling."""
     
     def __init__(self, enabled: bool = True, algorithm: str = "sha256"):
@@ -62,27 +61,14 @@ class DataHasher(SecurityInterface):
         else:  # sha256
             return hashlib.sha256(data_str.encode()).hexdigest()
     
-    # SecurityInterface implementation
     def is_enabled(self) -> bool:
+        """Check if hasher is enabled."""
         return self._enabled
     
     def enable(self) -> None:
+        """Enable the hasher."""
         self._enabled = True
     
     def disable(self) -> None:
+        """Disable the hasher."""
         self._enabled = False
-    
-    def get_security_level(self) -> str:
-        return "standard"
-    
-    def get_threat_count(self) -> int:
-        return 0
-    
-    def get_security_stats(self) -> Dict[str, Any]:
-        return {"algorithm": self._algorithm, "enabled": self._enabled}
-    
-    def reset_security_stats(self) -> None:
-        pass
-    
-    def is_secure(self) -> bool:
-        return self._enabled and self._initialized

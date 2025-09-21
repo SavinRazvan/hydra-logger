@@ -43,10 +43,9 @@ USAGE:
 
 import time
 from typing import Any, Dict, List, Optional, Set
-from ..interfaces.security import SecurityInterface
 
 
-class AccessController(SecurityInterface):
+class AccessController:
     """Real access control component with Role-Based Access Control (RBAC)."""
     
     def __init__(self, enabled: bool = True):
@@ -344,27 +343,14 @@ class AccessController(SecurityInterface):
         self._access_denied = 0
         self._access_log = []
     
-    # SecurityInterface implementation
     def is_enabled(self) -> bool:
+        """Check if access control is enabled."""
         return self._enabled
     
     def enable(self) -> None:
+        """Enable access control."""
         self._enabled = True
     
     def disable(self) -> None:
+        """Disable access control."""
         self._enabled = False
-    
-    def get_security_level(self) -> str:
-        return "high" if self._enabled else "disabled"
-    
-    def get_threat_count(self) -> int:
-        return self._access_denied
-    
-    def get_security_stats(self) -> Dict[str, Any]:
-        return self.get_access_stats()
-    
-    def reset_security_stats(self) -> None:
-        self.reset_stats()
-    
-    def is_secure(self) -> bool:
-        return self._enabled and self._initialized

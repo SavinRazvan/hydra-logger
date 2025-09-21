@@ -60,10 +60,9 @@ USAGE:
 import re
 import json
 from typing import Any, Dict, List, Optional, Union
-from ..interfaces.security import SecurityInterface
 
 
-class SecurityValidator(SecurityInterface):
+class SecurityValidator:
     """
     Professional security validator for input validation and threat detection.
     
@@ -446,36 +445,14 @@ class SecurityValidator(SecurityInterface):
             return True
         return False
     
-    # SecurityInterface implementation
     def is_enabled(self) -> bool:
+        """Check if validator is enabled."""
         return self._enabled
     
     def enable(self) -> None:
+        """Enable validator."""
         self._enabled = True
     
     def disable(self) -> None:
+        """Disable validator."""
         self._enabled = False
-    
-    def get_security_level(self) -> str:
-        return self._security_level
-    
-    def get_threat_count(self) -> int:
-        return self._security_stats['threats_detected']
-    
-    def get_security_stats(self) -> Dict[str, Any]:
-        return self._security_stats.copy()
-    
-    def reset_security_stats(self) -> None:
-        self._security_stats = {
-            'inputs_validated': 0,
-            'threats_detected': 0,
-            'validation_errors': 0,
-            'blocked_inputs': 0,
-            'errors': 0
-        }
-    
-    def is_secure(self) -> bool:
-        return (self._enabled and 
-                self._initialized and 
-                self._security_stats['errors'] == 0 and
-                self._security_stats['threats_detected'] == 0)

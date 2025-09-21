@@ -42,10 +42,9 @@ from typing import Any, Dict, Optional
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from ..interfaces.security import SecurityInterface
 
 
-class DataEncryption(SecurityInterface):
+class DataEncryption:
     """Real AES encryption component for secure data handling."""
     
     def __init__(self, enabled: bool = True, key: Optional[str] = None, salt: Optional[str] = None):
@@ -170,11 +169,12 @@ class DataEncryption(SecurityInterface):
         self._decryption_count = 0
         self._error_count = 0
     
-    # SecurityInterface implementation
     def is_enabled(self) -> bool:
+        """Check if encryption is enabled."""
         return self._enabled
     
     def enable(self) -> None:
+        """Enable encryption."""
         if not self._fernet:
             self._salt = os.urandom(16)
             self._key = self._derive_key(Fernet.generate_key())
@@ -182,19 +182,5 @@ class DataEncryption(SecurityInterface):
         self._enabled = True
     
     def disable(self) -> None:
+        """Disable encryption."""
         self._enabled = False
-    
-    def get_security_level(self) -> str:
-        return "high" if self._enabled else "disabled"
-    
-    def get_threat_count(self) -> int:
-        return self._error_count
-    
-    def get_security_stats(self) -> Dict[str, Any]:
-        return self.get_encryption_stats()
-    
-    def reset_security_stats(self) -> None:
-        self.reset_stats()
-    
-    def is_secure(self) -> bool:
-        return self._enabled and self._initialized and self._fernet is not None

@@ -56,10 +56,9 @@ USAGE:
 import re
 import hashlib
 from typing import Any, Dict, List, Optional, Union
-from ..interfaces.security import SecurityInterface
 
 
-class DataSanitizer(SecurityInterface):
+class DataSanitizer:
     """
     Professional data sanitizer for sensitive information.
     
@@ -284,32 +283,14 @@ class DataSanitizer(SecurityInterface):
         """Remove a sensitive key."""
         self._sensitive_keys.discard(key.lower())
     
-    # SecurityInterface implementation
     def is_enabled(self) -> bool:
+        """Check if sanitizer is enabled."""
         return self._enabled
     
     def enable(self) -> None:
+        """Enable sanitizer."""
         self._enabled = True
     
     def disable(self) -> None:
+        """Disable sanitizer."""
         self._enabled = False
-    
-    def get_security_level(self) -> str:
-        return self._security_level
-    
-    def get_threat_count(self) -> int:
-        return self._sanitization_stats['patterns_matched']
-    
-    def get_security_stats(self) -> Dict[str, Any]:
-        return self._sanitization_stats.copy()
-    
-    def reset_security_stats(self) -> None:
-        self._sanitization_stats = {
-            'records_processed': 0,
-            'fields_sanitized': 0,
-            'patterns_matched': 0,
-            'errors': 0
-        }
-    
-    def is_secure(self) -> bool:
-        return self._enabled and self._initialized and self._sanitization_stats['errors'] == 0

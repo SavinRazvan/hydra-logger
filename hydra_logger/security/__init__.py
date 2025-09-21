@@ -55,24 +55,14 @@ from .validator import SecurityValidator
 from .hasher import DataHasher
 from .encryption import DataEncryption
 from .redaction import DataRedaction
-from .threat_detection import ThreatDetector
-from .compliance import ComplianceManager
 from .access_control import AccessController
-from .audit import AuditLogger
-from .crypto import CryptoUtils
 
 __all__ = [
-    # Core security components
+    # Core security components (KISS principle)
     "DataSanitizer",
-    "SecurityValidator",
+    "SecurityValidator", 
     "DataHasher",
     "DataEncryption",
     "DataRedaction",
-    
-    # Advanced security
-    "ThreatDetector",
-    "ComplianceManager",
     "AccessController",
-    "AuditLogger",
-    "CryptoUtils",
 ]
