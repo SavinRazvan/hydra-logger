@@ -6,11 +6,9 @@ use cases, optimized for maximum throughput and minimal latency. These
 formatters are designed for file output and console output without colors.
 
 ARCHITECTURE:
-- PlainTextFormatter: Basic text formatting with customizable format strings
-- FastPlainTextFormatter: Ultra-fast plain text with minimal overhead
-- DetailedFormatter: Comprehensive context information
-- Performance Integration: Standardized format function integration
+- PlainTextFormatter: Text formatting with customizable format strings (default includes timestamp)
 - Format Optimization: Pre-compiled format functions for common patterns
+- Clean Output: Uncolored text suitable for files and console
 
 FORMATTER FEATURES:
 - High-performance string formatting
@@ -33,25 +31,25 @@ COLOR SYSTEM NOTE:
 USAGE EXAMPLES:
 
 Basic Text Formatting:
-    from hydra_logger.formatters.text import PlainTextFormatter
+    from hydra_logger.formatters.text_formatter import PlainTextFormatter
     
-    # Create formatter with default format
+    # Create formatter with default format (includes timestamp)
     formatter = PlainTextFormatter()
     
     # Create formatter with custom format
     formatter = PlainTextFormatter("{timestamp} {level_name} {message}")
-
-Fast Text Formatting:
-    from hydra_logger.formatters.text import FastPlainTextFormatter
     
-    # Ultra-fast formatter with minimal overhead
-    formatter = FastPlainTextFormatter()
+    # Create formatter without timestamp
+    formatter = PlainTextFormatter("{level_name} {layer} {message}")
 
-Detailed Formatting:
-    from hydra_logger.formatters.text import DetailedFormatter
+Alternative Formats:
+    from hydra_logger.formatters.text_formatter import PlainTextFormatter
     
-    # Comprehensive context information
-    formatter = DetailedFormatter()
+    # Format without layer information
+    formatter = PlainTextFormatter("{timestamp} {level_name} {message}")
+    
+    # Minimal format with just level and message
+    formatter = PlainTextFormatter("{level_name} {message}")
 
 Custom Formatting:
     from hydra_logger.formatters.text_formatter import PlainTextFormatter
@@ -68,9 +66,9 @@ Custom Formatting:
     formatter = PlainTextFormatter(timestamp_config=config)
 
 FORMAT STRING PATTERNS:
-- "{level_name} {layer} {message}": Basic format with level and layer
-- "{timestamp} {level_name} {layer} {message}": Full format with timestamp
-- "{timestamp} {level_name} {message}": Format with timestamp and level
+- "{timestamp} {level_name} {layer} {message}": DEFAULT - Full format with timestamp
+- "{level_name} {layer} {message}": Alternative format without timestamp
+- "{timestamp} {level_name} {message}": Format with timestamp but no layer
 - "{level_name} {message}": Minimal format with level only
 - "{message}": Message-only format
 """
@@ -83,7 +81,7 @@ from ..utils.time_utility import TimestampConfig
 
 
 class PlainTextFormatter(BaseFormatter):
-    """Basic plain text formatter with customizable format string."""
+    """Plain text formatter with customizable format string. Default format includes timestamp, level, layer, and message."""
     
     def __init__(self, format_string: str = None, timestamp_config: Optional[TimestampConfig] = None):
         """
