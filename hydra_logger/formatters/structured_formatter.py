@@ -343,9 +343,9 @@ class SyslogFormatter(BaseFormatter):
         
         # Build message with minimal string operations
         if record.file_name and record.function_name:
-            return f"<{priority}> {timestamp} {self.app_name} [{record.level_name}] {record.message} [{record.file_name}:{record.function_name}:{record.line_number}]"
+            return f"<{priority}> {timestamp} {self.app_name} [{record.level_name}] [{record.layer}] {record.message} [{record.file_name}:{record.function_name}:{record.line_number}]"
         else:
-            return f"<{priority}> {timestamp} {self.app_name} [{record.level_name}] {record.message}"
+            return f"<{priority}> {timestamp} {self.app_name} [{record.level_name}] [{record.layer}] {record.message}"
 
     def get_required_extension(self) -> str:
         """
