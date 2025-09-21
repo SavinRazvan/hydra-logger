@@ -351,9 +351,7 @@ class SyncLogger(BaseLogger):
         else:
             self._security_engine = None
         
-        
-    
-    
+
     def _setup_data_protection(self):
         """Setup data protection features."""
         if self._enable_data_protection:

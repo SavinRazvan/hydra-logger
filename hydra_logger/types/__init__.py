@@ -11,8 +11,8 @@ CORE TYPES:
 - LogRecordBatch: High-performance batch processing
 - LogLevel: Standard log level definitions and management
 - LogContext: Context management and caller information
-- LogMetadata: Metadata container and validation
-- LogEvent: Event system for notifications and monitoring
+# LogMetadata removed - simplified architecture
+# Event system removed - simplified architecture
 
 SYSTEM ENUMS:
 - HandlerType: Log handler types (console, file, network, etc.)
@@ -53,8 +53,7 @@ USAGE:
 from .records import LogRecord, LogRecordBatch
 from .levels import LogLevel, LogLevelManager, get_level_name, get_level, is_valid_level, all_levels, all_level_names
 from .context import LogContext, ContextType, CallerInfo, SystemInfo, ContextManager, ContextDetector
-from .metadata import LogMetadata, MetadataSchema, MetadataField, create_metadata, merge_metadata
-from .events import LogEvent, EventType, EventSeverity, EventStatus, LogEntryEvent, SecurityEvent, PerformanceEvent, ErrorEvent, SystemEvent, EventHandler, EventBus
+# Metadata and Events modules removed - simplified architecture
 from .enums import (
     HandlerType, FormatterType, PluginType, LogLayer, SecurityLevel,
     QueuePolicy, ShutdownPhase, RotationStrategy, CompressionType, EncryptionType,
@@ -62,8 +61,7 @@ from .enums import (
     MonitoringLevel, ErrorHandling, AsyncMode, CacheStrategy, BackupStrategy,
     HealthCheckType, AlertSeverity, MetricType, TimeUnit, SizeUnit
 )
-from .handlers import HandlerConfig, HandlerState, HandlerMetrics, HandlerHealth
-from .formatters import FormatterConfig, FormatOptions, ColorScheme, FormatTemplate, FormatResult
+# Handlers and Formatters types removed - simplified architecture
 
 __all__ = [
     # Core types
@@ -72,8 +70,6 @@ __all__ = [
     "LogLevel",
     "LogLevelManager",
     "LogContext",
-    "LogMetadata",
-    "LogEvent",
     
     # Enums
     "HandlerType",
@@ -103,24 +99,7 @@ __all__ = [
     "TimeUnit",
     "SizeUnit",
     
-    # Handler types
-    "HandlerConfig",
-    "HandlerState",
-    "HandlerMetrics",
-    "HandlerHealth",
-    
-    # Formatter types
-    "FormatterConfig",
-    "FormatOptions",
-    "ColorScheme",
-    "FormatTemplate",
-    "FormatResult",
-    
-    # Plugin types
-    "PluginConfig",
-    "PluginState",
-    "PluginMetadata",
-    "PluginCompatibility",
+    # Handler and Formatter types removed - simplified architecture
     
     # Context types
     "ContextType",
@@ -128,22 +107,6 @@ __all__ = [
     "SystemInfo",
     "ContextManager",
     "ContextDetector",
-    
-    # Metadata types
-    "MetadataSchema",
-    "MetadataField",
-    
-    # Event types
-    "EventType",
-    "EventSeverity",
-    "EventStatus",
-    "LogEntryEvent",
-    "SecurityEvent",
-    "PerformanceEvent",
-    "ErrorEvent",
-    "SystemEvent",
-    "EventHandler",
-    "EventBus",
     
     # Utility functions
     "get_level_name",
