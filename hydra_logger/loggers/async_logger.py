@@ -197,6 +197,7 @@ from ..core.exceptions import HydraLoggerError
 from ..handlers.null import NullHandler
 from ..handlers.base import BaseHandler
 from ..formatters.base import BaseFormatter
+from ..utils.time_utility import TimeUtility
 
 
 class AsyncLogger(BaseLogger):
@@ -271,12 +272,12 @@ class AsyncLogger(BaseLogger):
         # ✅ OPTIMIZATION: Non-blocking concurrency control with overflow handling
         self._concurrency_semaphore = None
         self._optimal_concurrency = None
-        self._overflow_queue = asyncio.Queue(maxsize=10000)  # Overflow protection
+        self._overflow_queue = asyncio.Queue(maxsize=100000)  # Larger overflow queue
         self._overflow_worker_task = None
         
         # Statistics
         self._log_count = 0
-        self._start_time = time.time()
+        self._start_time = TimeUtility.timestamp()
         
         # Formatter cache for performance
         self._formatter_cache = {}
@@ -287,18 +288,32 @@ class AsyncLogger(BaseLogger):
     
     def _setup_core_systems(self):
         """Setup core system integration."""
-        # ✅ CRITICAL FIX: Only initialize security engine if security is enabled
-        if hasattr(self, '_enable_security') and self._enable_security:
-            try:
-                # Security engine
-                from ..loggers.engines.security_engine import SecurityEngine
-                self._security_engine = SecurityEngine()
-            except ImportError:
-                pass
-        else:
-            self._security_engine = None
+        # ✅ SIMPLIFIED: No complex security engine - use simple extensions
+        self._security_engine = None
+        
+        # Setup data protection if enabled
+        self._setup_data_protection()
         
         # Plugin system removed - simplified architecture
+    
+    def _setup_data_protection(self):
+        """Setup simple data protection features."""
+        if self._enable_data_protection:
+            try:
+                from ..extensions.extension_base import SecurityExtension
+                
+                # Get extension config from LoggingConfig if available
+                patterns = ['email', 'phone', 'ssn', 'credit_card', 'api_key']
+                if self._config and hasattr(self._config, 'extensions') and self._config.extensions:
+                    data_protection_config = self._config.extensions.get('data_protection', {})
+                    patterns = data_protection_config.get('patterns', patterns)
+                
+                # Create simple security extension
+                self._data_protection = SecurityExtension(enabled=True, patterns=patterns)
+            except ImportError:
+                self._data_protection = None
+        else:
+            self._data_protection = None
     
     def _setup_plugins(self):
         """Setup plugin system."""
@@ -349,6 +364,7 @@ class AsyncLogger(BaseLogger):
         if self._config:
             self._enable_security = self._config.enable_security
             self._enable_sanitization = self._config.enable_sanitization
+            self._enable_data_protection = getattr(self._config, 'enable_data_protection', False)
             self._enable_plugins = self._config.enable_plugins
         
         # ✅ CRITICAL FIX: Setup handlers from configuration
@@ -359,8 +375,8 @@ class AsyncLogger(BaseLogger):
         # SIMPLIFIED: Use only console handler for maximum performance
         from ..handlers.console import AsyncConsoleHandler
         self._console_handler = AsyncConsoleHandler(
-            buffer_size=1000,
-            flush_interval=0.1
+            buffer_size=10000,  # Larger buffer
+            flush_interval=1.0   # Less frequent flushes
         )
         self._handlers = {'console': self._console_handler}
         self._layer_handlers = {'default': [self._console_handler]}
@@ -390,8 +406,8 @@ class AsyncLogger(BaseLogger):
             handler = AsyncConsoleHandler(
                 stream=sys.stdout,
                 use_colors=getattr(destination, 'use_colors', False),  # FIXED: Default to False
-                buffer_size=100,  # Process 100 messages in bulk
-                flush_interval=0.1
+                buffer_size=10000,  # Process more messages in bulk
+                flush_interval=1.0   # Less frequent flushes
             )
             # Set formatter for console
             use_colors = getattr(destination, 'use_colors', False)  # FIXED: Default to False
@@ -471,7 +487,7 @@ class AsyncLogger(BaseLogger):
         fallback_handler = NullHandler()
         self._fallback_handler = fallback_handler
     
-    def log(self, level: Union[str, int], message: str, **kwargs) -> None:
+    def log(self, level: Union[str, int], message: str, **kwargs):
         """
         ULTRA-FAST log method with automatic async/sync detection.
         
@@ -491,8 +507,8 @@ class AsyncLogger(BaseLogger):
             # Check if we're in an async context
             try:
                 loop = asyncio.get_running_loop()
-                # We're in an async context - use async logging
-                asyncio.create_task(self._log_async(level, message, **kwargs))
+                # We're in an async context - return coroutine
+                return self._log_async(level, message, **kwargs)
             except RuntimeError:
                 # No event loop - use synchronous fallback
                 self._log_sync(level, message, **kwargs)
@@ -511,7 +527,28 @@ class AsyncLogger(BaseLogger):
             # Create log record
             record = self.create_log_record(level, message, **kwargs)
             
-            # Emit to console handler as fallback
+            # ✅ SIMPLE SECURITY: Apply data protection if enabled
+            if self._data_protection and self._data_protection.is_enabled():
+                try:
+                    # Process the message through simple security extension
+                    record.message = self._data_protection.process(record.message)
+                except Exception:
+                    # If security processing fails, continue with original record
+                    pass
+            
+            # ✅ FIX: Emit to ALL handlers, not just console
+            layer_name = getattr(record, 'layer', 'default')
+            handlers = self._get_handlers_for_layer(layer_name)
+            
+            # Emit to all handlers for this layer
+            for handler in handlers:
+                try:
+                    handler.emit(record)
+                except Exception:
+                    # Silent error handling for maximum speed
+                    pass
+            
+            # Also emit to console handler as fallback
             try:
                 self._console_handler.emit(record)
             except Exception:
@@ -533,6 +570,15 @@ class AsyncLogger(BaseLogger):
             
             # ✅ STANDARDIZED: Use standardized LogRecord creation
             record = self.create_log_record(level, message, **kwargs)
+            
+            # ✅ SIMPLE SECURITY: Apply data protection if enabled
+            if self._data_protection and self._data_protection.is_enabled():
+                try:
+                    # Process the message through simple security extension
+                    record.message = self._data_protection.process(record.message)
+                except Exception:
+                    # If security processing fails, continue with original record
+                    pass
             
             # ✅ OPTIMIZATION: Try non-blocking semaphore acquisition
             if self._concurrency_semaphore.locked():
@@ -606,7 +652,7 @@ class AsyncLogger(BaseLogger):
                         async with self._concurrency_semaphore:
                             try:
                                 # ✅ INTEGRATION: Monitor overflow message processing
-                                start_time = time.perf_counter()
+                                start_time = TimeUtility.perf_counter()
                                 await self._emit_to_handlers(record)
                                 
                                 

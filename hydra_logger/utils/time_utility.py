@@ -794,6 +794,27 @@ class TimeUtility:
     def timestamp() -> float:
         """Get current Unix timestamp."""
         return time.time()
+    
+    @staticmethod
+    def perf_counter() -> float:
+        """Get high-resolution performance counter for timing measurements.
+        
+        This is the recommended way to measure elapsed time for performance
+        monitoring and benchmarking. It's not affected by system clock adjustments.
+        
+        Returns:
+            Performance counter value in seconds (fractional)
+        """
+        return time.perf_counter()
+    
+    @staticmethod
+    def sleep(seconds: float) -> None:
+        """Sleep for the specified number of seconds.
+        
+        Args:
+            seconds: Number of seconds to sleep (can be fractional)
+        """
+        time.sleep(seconds)
 
     @staticmethod
     def from_timestamp(timestamp: float) -> datetime:

@@ -231,6 +231,9 @@ class LoggerFactory:
         elif config is None:
             config = self._get_default_config()
         
+        # ✅ EXTENSION INTEGRATION: Load and configure extensions
+        self._setup_extensions(config)
+        
         # Create logger based on type
         if logger_type == "sync":
             return SyncLogger(config=config, **kwargs)
@@ -343,6 +346,42 @@ class LoggerFactory:
             from ..config.defaults import get_default_config
             self._default_config = get_default_config()
         return self._default_config
+    
+    def _setup_extensions(self, config: LoggingConfig) -> None:
+        """Setup extensions based on configuration."""
+        if not hasattr(config, 'extensions') or not config.extensions:
+            return
+        
+        try:
+            from ..extensions import ExtensionManager
+            
+            # Initialize professional extension manager
+            manager = ExtensionManager()
+            
+            # Create extensions based on user config
+            for extension_name, extension_config in config.extensions.items():
+                enabled = extension_config.get('enabled', False)
+                extension_type = extension_config.get('type', extension_name)
+                
+                # Create extension with user configuration
+                extension = manager.create_extension(
+                    extension_name, 
+                    extension_type, 
+                    **extension_config
+                )
+                
+                if enabled:
+                    print(f"✅ Extension '{extension_name}' created and enabled")
+                else:
+                    print(f"ℹ️  Extension '{extension_name}' created but disabled")
+            
+            # Store manager in config for logger access
+            config._extension_manager = manager
+                    
+        except ImportError as e:
+            print(f"⚠️  Extension system not available: {e}")
+        except Exception as e:
+            print(f"⚠️  Error setting up extensions: {e}")
     
     def set_default_config(self, config: LoggingConfig) -> None:
         """Set the default configuration."""

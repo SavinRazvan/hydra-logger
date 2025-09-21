@@ -200,6 +200,7 @@ class BaseLogger(ABC):
         # PERFORMANCE-FIRST: Disable all features by default for maximum performance
         self._enable_security = kwargs.get('enable_security', False)
         self._enable_sanitization = kwargs.get('enable_sanitization', False)
+        self._enable_data_protection = kwargs.get('enable_data_protection', False)
         self._enable_plugins = kwargs.get('enable_plugins', False)
         self._enable_monitoring = kwargs.get('enable_monitoring', False)
         

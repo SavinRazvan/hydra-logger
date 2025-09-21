@@ -212,6 +212,7 @@ from ..config.models import LoggingConfig, LogDestination
 from ..handlers.console import SyncConsoleHandler
 from ..handlers.null import NullHandler
 from ..handlers.base import BaseHandler
+from ..utils.time_utility import TimeUtility
 
 
 class SyncLogger(BaseLogger):
@@ -292,9 +293,9 @@ class SyncLogger(BaseLogger):
         # Object pooling removed - using standardized LogRecord creation
         self._enable_data_protection = False
         
-        # Buffer configuration
-        self._buffer_size = 8192
-        self._flush_interval = 1.0
+        # Buffer configuration - OPTIMIZED for performance
+        self._buffer_size = 50000  # Larger buffer for fewer flushes
+        self._flush_interval = 5.0  # Less frequent flushes
         
         # Magic configuration
         self._magic_registry = {}
@@ -304,7 +305,7 @@ class SyncLogger(BaseLogger):
         
         # Statistics
         self._log_count = 0
-        self._start_time = time.time()
+        self._start_time = TimeUtility.timestamp()
         
         # Formatter cache to ensure consistent instances
         self._formatter_cache = {}
@@ -324,6 +325,7 @@ class SyncLogger(BaseLogger):
         if self._config:
             self._enable_security = self._config.enable_security
             self._enable_sanitization = self._config.enable_sanitization
+            self._enable_data_protection = getattr(self._config, 'enable_data_protection', False)
             self._enable_plugins = self._config.enable_plugins
             self._buffer_size = self._config.buffer_size
             self._flush_interval = self._config.flush_interval
@@ -333,42 +335,35 @@ class SyncLogger(BaseLogger):
         # SIMPLIFIED: Use only console handler for maximum performance
         from ..handlers.console import SyncConsoleHandler
         self._console_handler = SyncConsoleHandler(
-            buffer_size=1000,
-            flush_interval=0.1
+            buffer_size=10000,  # Larger buffer
+            flush_interval=1.0   # Less frequent flushes
         )
         self._handlers = {'console': self._console_handler}
     
     def _setup_core_systems(self):
         """Setup core system integration."""
-        # ✅ CRITICAL FIX: Only initialize security engine if security is enabled
-        if hasattr(self, '_enable_security') and self._enable_security:
-            try:
-                # Security engine
-                from ..loggers.engines.security_engine import SecurityEngine
-                self._security_engine = SecurityEngine()
-            except ImportError:
-                pass
-        else:
-            self._security_engine = None
+        # ✅ SIMPLIFIED: No complex security engine - use simple extensions
+        self._security_engine = None
         
 
     def _setup_data_protection(self):
-        """Setup data protection features."""
+        """Setup simple data protection features."""
         if self._enable_data_protection:
-            # Initialize security components if enabled
-            if self._enable_security:
-                try:
-                    from ..security.validator import SecurityValidator
-                    self._security_validator = SecurityValidator()
-                except ImportError:
-                    pass
-            
-            if self._enable_sanitization:
-                try:
-                    from ..security.sanitizer import DataSanitizer
-                    self._data_sanitizer = DataSanitizer()
-                except ImportError:
-                    pass
+            try:
+                from ..extensions.extension_base import SecurityExtension
+                
+                # Get extension config from LoggingConfig if available
+                patterns = ['email', 'phone', 'ssn', 'credit_card', 'api_key']
+                if self._config and hasattr(self._config, 'extensions') and self._config.extensions:
+                    data_protection_config = self._config.extensions.get('data_protection', {})
+                    patterns = data_protection_config.get('patterns', patterns)
+                
+                # Create simple security extension
+                self._data_protection = SecurityExtension(enabled=True, patterns=patterns)
+            except ImportError:
+                self._data_protection = None
+        else:
+            self._data_protection = None
     
     def _setup_layers(self):
         """Setup logging layers and handlers."""
@@ -413,7 +408,9 @@ class SyncLogger(BaseLogger):
             handler = SyncFileHandler(
                 filename=resolved_path,
                 mode="a",  # Append mode
-                encoding="utf-8"
+                encoding="utf-8",
+                buffer_size=50000,  # Large buffer for performance
+                flush_interval=5.0   # Less frequent flushes
             )
             # Set formatter for file
             formatter = self._create_formatter_for_destination(destination, is_console=False)
@@ -533,6 +530,15 @@ class SyncLogger(BaseLogger):
             
             # ✅ STANDARDIZED: Use standardized LogRecord creation
             record = self.create_log_record(level, message, **kwargs)
+            
+            # ✅ SIMPLE SECURITY: Apply data protection if enabled
+            if self._data_protection and self._data_protection.is_enabled():
+                try:
+                    # Process the message through simple security extension
+                    record.message = self._data_protection.process(record.message)
+                except Exception:
+                    # If security processing fails, continue with original record
+                    pass
             
             # ✅ LAYER ROUTING: Route to specific layer handlers
             layer_name = kwargs.get('layer', 'default')

@@ -113,6 +113,7 @@ from collections import deque
 from .base import BaseHandler
 from ..types.records import LogRecord
 from ..types.levels import LogLevel
+from ..utils.time_utility import TimeUtility
 
 
 class SyncFileHandler(BaseHandler):
@@ -127,7 +128,7 @@ class SyncFileHandler(BaseHandler):
     """
     
     def __init__(self, filename: str, mode: str = "a", encoding: str = "utf-8",
-                 buffer_size: int = 1000, flush_interval: float = 0.5, timestamp_config=None):  # Optimal: 1000 buffer, 0.5s flush
+                 buffer_size: int = 50000, flush_interval: float = 5.0, timestamp_config=None):  # Optimal: 50K buffer, 5s flush
         """Initialize sync file handler.
         
         Args:
@@ -148,12 +149,12 @@ class SyncFileHandler(BaseHandler):
         self._buffer_size = buffer_size
         self._flush_interval = flush_interval
         self._buffer = deque(maxlen=buffer_size)
-        self._last_flush = time.perf_counter()  # FIX: Use perf_counter for precision
+        self._last_flush = TimeUtility.perf_counter()  # FIX: Use perf_counter for precision
         
         # Performance metrics
         self._messages_processed = 0
         self._total_bytes_written = 0
-        self._start_time = time.perf_counter()  # FIX: Use perf_counter for precision
+        self._start_time = TimeUtility.perf_counter()  # FIX: Use perf_counter for precision
         
         # Ensure directory exists
         try:
@@ -237,7 +238,7 @@ class SyncFileHandler(BaseHandler):
                 self._total_bytes_written += len(message.encode(self._encoding))
             
             # Check if we should flush
-            current_time = time.perf_counter()  # FIX: Use perf_counter for precision
+            current_time = TimeUtility.perf_counter()  # Use standardized time utility
             should_flush = (
                 len(self._buffer) >= self._buffer_size or
                 (current_time - self._last_flush) >= self._flush_interval
@@ -273,13 +274,18 @@ class SyncFileHandler(BaseHandler):
             
             # Clear buffer and update flush time
             self._buffer.clear()
-            self._last_flush = time.perf_counter()  # FIX: Use perf_counter for precision
+
+            self._last_flush = TimeUtility.perf_counter()  # FIX: Use perf_counter for precision
             
         except (OSError, ValueError) as e:
             # File is closed or invalid, silently ignore
             pass
         except Exception as e:
             print(f"File buffer flush error: {e}", file=sys.stderr)
+    
+    def flush(self) -> None:
+        """Public flush method to force immediate writing."""
+        self._flush_buffer()
     
     def force_flush(self) -> None:
         """Force flush any remaining buffered messages."""
@@ -350,7 +356,7 @@ class SyncFileHandler(BaseHandler):
             'messages_processed': self._messages_processed,
             'total_bytes_written': self._total_bytes_written,
             'start_time': self._start_time,
-            'uptime_seconds': time.perf_counter() - self._start_time,  # FIX: Use perf_counter for precision
+            'uptime_seconds': TimeUtility.perf_counter() - self._start_time,  # FIX: Use perf_counter for precision
             'filename': self._filename,
             'handler_type': 'sync_file'
         }
@@ -369,7 +375,7 @@ class AsyncFileHandler(BaseHandler):
     """
     
     def __init__(self, filename: str, mode: str = "a", encoding: str = "utf-8",
-                 bulk_size: int = 100, max_queue_size: int = 5000, timestamp_config=None):  # Optimal: 100 bulk, 5000 queue
+                 bulk_size: int = 1000, max_queue_size: int = 100000, timestamp_config=None):  # Optimal: 1K bulk, 100K queue
         """Initialize massive performance async file handler."""
         super().__init__(name="async_file", level=LogLevel.NOTSET, timestamp_config=timestamp_config)
         self._filename = filename
@@ -391,10 +397,10 @@ class AsyncFileHandler(BaseHandler):
         self._worker_task = None
         self._running = False
         
-        # ✅ PERFORMANCE: Reasonable batching for reliable file writing
-        self._batch_size = 100  # Small batch size for immediate flushing
-        self._flush_interval = 0.01  # 10ms flush interval (reliable)
-        self._last_flush = time.perf_counter()  # FIX: Use perf_counter for precision
+        # ✅ PERFORMANCE: Optimized batching for high throughput
+        self._batch_size = 1000  # Larger batch size for better performance
+        self._flush_interval = 1.0  # 1s flush interval (balanced)
+        self._last_flush = TimeUtility.perf_counter()  # FIX: Use perf_counter for precision
         
         # ✅ PERFORMANCE: Pre-allocated buffer for maximum speed
         self._message_buffer = []
@@ -404,7 +410,7 @@ class AsyncFileHandler(BaseHandler):
         self._messages_processed = 0
         self._messages_dropped = 0
         self._total_bytes_written = 0
-        self._start_time = time.perf_counter()  # FIX: Use perf_counter for precision
+        self._start_time = TimeUtility.perf_counter()  # FIX: Use perf_counter for precision
         self._batch_count = 0
         
         # Register for automatic cleanup
@@ -478,7 +484,7 @@ class AsyncFileHandler(BaseHandler):
     
     def _should_flush_batch(self) -> bool:
         """Determine if current batch should be flushed."""
-        current_time = time.perf_counter()  # FIX: Use perf_counter for precision
+        current_time = TimeUtility.perf_counter()  # Use standardized time utility
         
         # Time-based flush
         if current_time - self._last_flush > self._flush_interval:
@@ -550,7 +556,7 @@ class AsyncFileHandler(BaseHandler):
             self._messages_dropped += len(self._message_buffer)
         finally:
             self._message_buffer.clear()
-            self._last_flush = time.perf_counter()  # FIX: Use perf_counter for precision
+            self._last_flush = TimeUtility.perf_counter()  # Use standardized time utility
     
 
     
@@ -791,8 +797,7 @@ class AsyncFileHandler(BaseHandler):
                 if loop and not loop.is_closed() and self._worker_task and not self._worker_task.done():
                     self._worker_task.cancel()
                     # Give the task a moment to cancel gracefully
-                    import time
-                    time.sleep(0.05)
+                    TimeUtility.sleep(0.05)
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
                 pass
@@ -811,8 +816,7 @@ class AsyncFileHandler(BaseHandler):
                 if loop and not loop.is_closed() and self._worker_task and not self._worker_task.done():
                     self._worker_task.cancel()
                     # Give the task a moment to cancel gracefully
-                    import time
-                    time.sleep(0.05)
+                    TimeUtility.sleep(0.05)
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
                 pass
@@ -830,8 +834,7 @@ class AsyncFileHandler(BaseHandler):
                 self._worker_task.cancel()
             
             # Give task a moment to cancel
-            import time
-            time.sleep(0.01)
+            TimeUtility.sleep(0.01)
             
         except Exception:
             pass  # Ignore errors during cleanup
@@ -843,7 +846,7 @@ class AsyncFileHandler(BaseHandler):
             'messages_dropped': self._messages_dropped,
             'total_bytes_written': self._total_bytes_written,
             'start_time': self._start_time,
-            'uptime_seconds': time.perf_counter() - self._start_time,  # FIX: Use perf_counter for precision
+            'uptime_seconds': TimeUtility.perf_counter() - self._start_time,  # FIX: Use perf_counter for precision
             'queue_size': self._message_queue.qsize(),
             'batch_count': self._batch_count,
             'running': self._running,

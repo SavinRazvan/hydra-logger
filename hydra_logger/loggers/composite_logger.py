@@ -209,11 +209,14 @@ BENEFITS:
 from typing import Any, Dict, List, Optional, Union, Tuple
 import asyncio
 import time
+import sys
 
 from .base import BaseLogger
 from ..types.records import LogRecordFactory
-from ..config.models import LoggingConfig
+from ..config.models import LoggingConfig, LogLayer, LogDestination
 from ..core.exceptions import HydraLoggerError
+from ..utils.time_utility import TimeUtility
+from ..handlers.base import BaseHandler
 
 
 class CompositeLogger(BaseLogger):
@@ -237,11 +240,50 @@ class CompositeLogger(BaseLogger):
         self._initialized = False
         self._closed = False
         
+        # ✅ FIX: Setup configuration and handlers if config provided
+        if config:
+            self._setup_from_config(config)
+        
         # Initialize components
         self._initialize_components()
         
         # Mark as initialized
         self._initialized = True
+    
+    def _setup_from_config(self, config: Union[LoggingConfig, Dict[str, Any]]):
+        """Setup logger from configuration."""
+        if isinstance(config, dict):
+            self._config = LoggingConfig(**config)
+        else:
+            self._config = config
+        
+        # Setup layers and handlers
+        self._setup_layers()
+    
+    def _setup_layers(self):
+        """Setup logging layers and handlers."""
+        if not self._config:
+            return
+        
+        for layer_name, layer in self._config.layers.items():
+            # For CompositeLogger, we create individual loggers for each layer's destinations
+            # and add them as components.
+            for destination in layer.destinations:
+                handler = self._create_handler_from_destination(destination)
+                if handler:
+                    # Create a simple logger for this handler and add it as a component
+                    from ..loggers.sync_logger import SyncLogger
+                    layer_logger = SyncLogger(config=LoggingConfig(layers={layer_name: LogLayer(destinations=[destination])}))
+                    self.add_component(layer_logger)
+    
+    def _create_handler_from_destination(self, destination: LogDestination) -> BaseHandler:
+        """Create handler from destination configuration."""
+        # This method is primarily for internal use by _setup_layers
+        # For CompositeLogger, we're creating sub-loggers, so this might be simplified
+        # or delegate to the sub-logger's handler creation.
+        # For now, let's return a NullHandler as the actual handlers are managed by sub-loggers.
+        from ..handlers.null import NullHandler
+        return NullHandler()
     
     def _initialize_components(self):
         """Initialize all component loggers."""
@@ -465,18 +507,18 @@ class CompositeAsyncLogger(BaseLogger):
         
         # Performance optimization
         self._log_count = 0
-        self._start_time = time.perf_counter()
+        self._start_time = TimeUtility.perf_counter()
         
-        # ULTRA-HIGH-PERFORMANCE: Use direct I/O instead of complex handlers
+        # Use direct I/O instead of complex handlers
         self._use_direct_io = kwargs.get('use_direct_io', True)
         self._direct_io_buffer = []
-        self._buffer_size = 2000000  # MASSIVE buffer for 200K+ msg/s target
-        self._last_flush = time.perf_counter()
-        self._flush_interval = 0.5  # Less frequent flushing for higher throughput
+        self._buffer_size = 1000000  # Large buffer for high throughput
+        self._last_flush = TimeUtility.perf_counter()
+        self._flush_interval = 2.0  # Balanced flushing for performance
         
-        # Batch processing for 200K+ msg/s performance - OPTIMIZED
+        # Batch processing for high performance - OPTIMIZED
         self._batch_buffer = []
-        self._batch_size = 100000  # Process in larger batches for higher throughput
+        self._batch_size = 50000  # Balanced batch size for performance
         self._batch_processing = kwargs.get('batch_processing', True)
         
         # Formatter support
@@ -774,7 +816,7 @@ class CompositeAsyncLogger(BaseLogger):
     def _direct_string_format(self, level: str, message: str, layer: str, kwargs: dict) -> None:
         """ULTRA-HIGH-PERFORMANCE direct string formatting - 200K+ msg/s performance."""
         # ULTRA-FAST: Use f-strings for maximum speed (faster than manual building)
-        timestamp = time.time()
+        timestamp = TimeUtility.timestamp()
         
         # Check if we have file_name/function for detailed format
         file_name = kwargs.get('file_name')
@@ -795,7 +837,7 @@ class CompositeAsyncLogger(BaseLogger):
             self._flush_direct_io()
         else:
             # Only check time if buffer is not full
-            current_time = time.perf_counter()
+            current_time = TimeUtility.perf_counter()
             if (current_time - self._last_flush) >= self._flush_interval:
                 self._flush_direct_io()
     
@@ -806,7 +848,7 @@ class CompositeAsyncLogger(BaseLogger):
             formatted_message = f"{message}\n"
         else:
             # Format message directly (no complex formatting) - use ISO standard timestamp
-            timestamp = time.time()  # Use proper Unix timestamp for production logs
+            timestamp = TimeUtility.timestamp()  # Use proper Unix timestamp for production logs
             layer_str = layer or self._default_layer
             formatted_message = f"{timestamp} {level} [{layer_str}] {message}\n"
         
@@ -818,7 +860,7 @@ class CompositeAsyncLogger(BaseLogger):
             self._flush_direct_io()
         else:
             # Only check time if buffer is not full
-            current_time = time.perf_counter()
+            current_time = TimeUtility.perf_counter()
             if (current_time - self._last_flush) >= self._flush_interval:
                 self._flush_direct_io()
     
@@ -841,7 +883,7 @@ class CompositeAsyncLogger(BaseLogger):
                 file_path = f"composite_logger_{self.name.lower()}.log"
             
             # ULTRA-HIGH-PERFORMANCE: Use massive buffering and single write operation
-            with open(file_path, 'a', encoding='utf-8', buffering=2097152) as f:  # 2MB buffer for maximum throughput
+            with open(file_path, 'a', encoding='utf-8', buffering=8388608) as f:  # 8MB buffer for maximum throughput
                 # Join all messages at once - much faster than individual writes
                 f.write(''.join(self._direct_io_buffer))
                 # Don't flush every time - let OS handle it for better performance
@@ -853,7 +895,7 @@ class CompositeAsyncLogger(BaseLogger):
         
         # Clear buffer and update timestamp
         self._direct_io_buffer.clear()
-        self._last_flush = time.perf_counter()
+        self._last_flush = TimeUtility.perf_counter()
     
     async def log_batch(self, messages: List[Tuple[Union[str, int], str, Dict[str, Any]]]) -> None:
         """ULTRA-HIGH-PERFORMANCE batch logging - 200K+ msg/s performance."""
@@ -1105,12 +1147,12 @@ class CompositeAsyncLogger(BaseLogger):
             'overall_health': overall_health,
             'components': component_health,
             'log_count': self._log_count,
-            'uptime': time.perf_counter() - self._start_time
+            'uptime': TimeUtility.perf_counter() - self._start_time
         }
     
     def get_stats(self) -> Dict[str, Any]:
         """Get performance statistics including object pool stats."""
-        current_time = time.perf_counter()
+        current_time = TimeUtility.perf_counter()
         duration = current_time - self._start_time
         messages_per_second = self._log_count / duration if duration > 0 else 0
         

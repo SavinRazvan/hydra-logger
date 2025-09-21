@@ -466,8 +466,15 @@ class LoggingConfig(BaseModel):
     # Global settings - PERFORMANCE-FIRST DEFAULTS
     enable_security: bool = Field(default=False, description="Enable security features (disabled by default for maximum performance)")
     enable_sanitization: bool = Field(default=False, description="Enable data sanitization (disabled by default for maximum performance)")
+    enable_data_protection: bool = Field(default=False, description="Enable data protection extension (disabled by default for maximum performance)")
     enable_plugins: bool = Field(default=False, description="Enable plugin system (disabled by default for security & performance)")
     enable_performance_monitoring: bool = Field(default=False, description="Enable performance monitoring (disabled by default for maximum performance)")
+    
+    # Extension configuration - USER-CONTROLLABLE
+    extensions: Optional[Dict[str, Dict[str, Any]]] = Field(
+        default=None,
+        description="Extension configurations. Users can enable/disable and configure individual extensions."
+    )
     
     # Security configuration
     security_level: Literal["low", "medium", "high", "strict"] = Field(
