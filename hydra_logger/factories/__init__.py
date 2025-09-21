@@ -1,35 +1,25 @@
 """
 Hydra-Logger Factory System
 
-This module provides a comprehensive factory system for creating and managing
+This module provides a simplified factory system for creating and managing
 all Hydra-Logger components. The factory pattern ensures consistent component
 creation, proper configuration, and easy extensibility.
 
 ARCHITECTURE:
 - LoggerFactory: Central factory for creating all logger types
-- Component Factories: Specialized factories for specific component types
 - Magic Configuration Integration: Pre-configured component creation
 - Caching System: Intelligent component caching and reuse
 - Validation: Built-in validation during component creation
 
 FACTORY TYPES:
 - Logger Creation: Sync, Async, Composite, and CompositeAsync loggers
-- Handler Creation: Console, File, and specialized handlers
-- Formatter Creation: Colored, JSON, CSV, and custom formatters
-- Plugin Creation: Extension and plugin component creation
-- Configuration Creation: Dynamic configuration generation
-- Composite Creation: Multi-component composite systems
-- Engine Creation: Processing engines and optimizers
-- Monitor Creation: Performance and health monitoring components
-- Security Creation: Security and compliance components
+- Magic Configuration Loggers: Pre-configured loggers for common use cases
 
 CORE FEATURES:
 - Type-safe component creation
 - Configuration validation and defaults
 - Magic configuration shortcuts
 - Component caching and reuse
-- Dependency injection support
-- Plugin system integration
 - Performance optimization
 - Memory management
 - Error handling and recovery
@@ -39,8 +29,8 @@ USAGE EXAMPLES:
 Basic Logger Creation:
     from hydra_logger.factories import create_logger, create_sync_logger
     
-    # Create logger with configuration
-    logger = create_logger(config, logger_type="sync")
+    # Create logger with name
+    logger = create_logger("MyLogger", logger_type="sync")
     
     # Create specific logger type
     sync_logger = create_sync_logger("MyLogger")
@@ -59,8 +49,8 @@ Composite Logger Creation:
     
     # Create composite logger with multiple components
     composite = create_composite_logger(
-        components=[sync_logger, async_logger],
-        config=config
+        name="MyCompositeLogger",
+        components=[sync_logger, async_logger]
     )
 
 Factory Pattern Usage:
@@ -87,12 +77,20 @@ AVAILABLE FACTORIES:
 - create_production_logger: Production-ready logger
 - create_development_logger: Development logger
 - create_testing_logger: Testing logger
-- create_web_app_logger: Web application logger
-- create_api_logger: API service logger
-- create_microservice_logger: Microservice logger
+- create_custom_logger: Custom configuration logger
 """
 
-from .logger_factory import create_logger, create_sync_logger, create_async_logger, create_composite_logger, create_composite_async_logger
+from .logger_factory import (
+    create_logger, 
+    create_sync_logger, 
+    create_async_logger, 
+    create_composite_logger, 
+    create_composite_async_logger,
+    create_default_logger,
+    create_development_logger,
+    create_production_logger,
+    create_custom_logger
+)
 
 __all__ = [
     # Factory functions
@@ -100,5 +98,10 @@ __all__ = [
     "create_sync_logger",
     "create_async_logger",
     "create_composite_logger",
-    "create_composite_async_logger"
+    "create_composite_async_logger",
+    # Magic configuration functions
+    "create_default_logger",
+    "create_development_logger",
+    "create_production_logger",
+    "create_custom_logger"
 ]

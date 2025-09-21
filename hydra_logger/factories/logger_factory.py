@@ -27,12 +27,10 @@ COLOR SYSTEM INTEGRATION:
 - Automatic color detection and fallback
 
 MAGIC CONFIGURATIONS:
-- production: Production-ready configuration with file logging
-- development: Development configuration with console colors
-- testing: Testing configuration with minimal overhead
-- web_app: Web application configuration with request logging
-- api: API service configuration with structured logging
-- microservice: Microservice configuration with distributed logging
+- default: Optimized default configuration for maximum performance
+- development: Development-friendly configuration with debug output
+- production: Production-ready configuration with security and monitoring
+- custom: Custom configuration with user-specified features
 
 CACHING FEATURES:
 - Intelligent logger caching based on configuration
@@ -159,12 +157,10 @@ class LoggerFactory:
     - Thread-safe cache operations
     
     MAGIC CONFIGURATIONS:
-    - production: Production-ready configuration with file logging
-    - development: Development configuration with console colors
-    - testing: Testing configuration with minimal overhead
-    - web_app: Web application configuration with request logging
-    - api: API service configuration with structured logging
-    - microservice: Microservice configuration with distributed logging
+    - default: Optimized default configuration for maximum performance
+    - development: Development-friendly configuration with debug output
+    - production: Production-ready configuration with security and monitoring
+    - custom: Custom configuration with user-specified features
     
     USAGE EXAMPLES:
     
@@ -285,12 +281,10 @@ class LoggerFactory:
         
         Args:
             magic_config_name: Name of the magic configuration to use. Options:
-                - "production": Production-ready configuration with file logging
-                - "development": Development configuration with console colors
-                - "testing": Testing configuration with minimal overhead
-                - "web_app": Web application configuration with request logging
-                - "api": API service configuration with structured logging
-                - "microservice": Microservice configuration with distributed logging
+                - "default": Optimized default configuration for maximum performance
+                - "development": Development-friendly configuration with debug output
+                - "production": Production-ready configuration with security and monitoring
+                - "custom": Custom configuration with user-specified features
             logger_type: Type of logger to create (sync, async, composite, composite-async)
             **kwargs: Additional keyword arguments passed to the logger constructor
         
@@ -317,11 +311,11 @@ class LoggerFactory:
         config = magic_configs.get_config(magic_config_name)
         return self.create_logger(config=config, logger_type=logger_type, **kwargs)
     
-    def create_production_logger(self, 
-                                logger_type: str = "sync",
-                                **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-        """Create a production-ready logger."""
-        return self.create_logger_with_magic("production", logger_type, **kwargs)
+    def create_default_logger(self, 
+                             logger_type: str = "sync",
+                             **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
+        """Create a default logger with optimized configuration."""
+        return self.create_logger_with_magic("default", logger_type, **kwargs)
     
     def create_development_logger(self, 
                                  logger_type: str = "sync",
@@ -329,29 +323,17 @@ class LoggerFactory:
         """Create a development logger."""
         return self.create_logger_with_magic("development", logger_type, **kwargs)
     
-    def create_testing_logger(self, 
-                             logger_type: str = "sync",
-                             **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-        """Create a testing logger."""
-        return self.create_logger_with_magic("testing", logger_type, **kwargs)
+    def create_production_logger(self, 
+                                logger_type: str = "sync",
+                                **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
+        """Create a production-ready logger."""
+        return self.create_logger_with_magic("production", logger_type, **kwargs)
     
-    def create_web_app_logger(self, 
-                             logger_type: str = "sync",
-                             **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-        """Create a web application logger."""
-        return self.create_logger_with_magic("web_app", logger_type, **kwargs)
-    
-    def create_api_logger(self, 
-                         logger_type: str = "sync",
-                         **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-        """Create an API service logger."""
-        return self.create_logger_with_magic("api", logger_type, **kwargs)
-    
-    def create_microservice_logger(self, 
-                                  logger_type: str = "sync",
-                                  **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-        """Create a microservice logger."""
-        return self.create_logger_with_magic("microservice", logger_type, **kwargs)
+    def create_custom_logger(self, 
+                            logger_type: str = "sync",
+                            **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
+        """Create a custom logger."""
+        return self.create_logger_with_magic("custom", logger_type, **kwargs)
     
 
     
@@ -474,39 +456,38 @@ def create_composite_async_logger(name_or_config: Optional[Union[str, LoggingCon
 
 
 # Magic configuration convenience functions
-def create_production_logger(logger_type: str = "sync",
-                           **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
+def create_default_logger(logger_type: str = "sync",
+                         **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
     """
-    Create a production-ready logger with optimized configuration.
+    Create a default logger with optimized configuration.
     
-    This function creates a logger using the "production" magic configuration,
-    which is optimized for production environments with file logging, structured
-    output, and performance optimizations.
+    This function creates a logger using the "default" magic configuration,
+    which is optimized for maximum performance with sensible defaults.
     
     Args:
         logger_type: Type of logger to create (sync, async, composite, composite-async)
         **kwargs: Additional keyword arguments passed to the logger constructor
     
     Returns:
-        Production-optimized logger instance
+        Default-optimized logger instance
         
     Examples:
-        # Create production async logger
-        logger = create_production_logger("async")
+        # Create default async logger
+        logger = create_default_logger("async")
         
-        # Create production logger with custom name
-        logger = create_production_logger("sync", name="MyProdLogger")
+        # Create default logger with custom name
+        logger = create_default_logger("sync", name="MyDefaultLogger")
     """
-    return logger_factory.create_production_logger(logger_type=logger_type, **kwargs)
+    return logger_factory.create_default_logger(logger_type=logger_type, **kwargs)
 
 def create_development_logger(logger_type: str = "sync",
                             **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
     """
-    Create a development logger with console colors and debugging features.
+    Create a development logger with debugging features.
     
     This function creates a logger using the "development" magic configuration,
-    which is optimized for development environments with colored console output,
-    detailed logging, and debugging features.
+    which is optimized for development environments with debug output
+    and development-friendly features.
     
     Args:
         logger_type: Type of logger to create (sync, async, composite, composite-async)
@@ -524,104 +505,53 @@ def create_development_logger(logger_type: str = "sync",
     """
     return logger_factory.create_development_logger(logger_type=logger_type, **kwargs)
 
-def create_testing_logger(logger_type: str = "sync",
-                         **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
+def create_production_logger(logger_type: str = "sync",
+                           **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
     """
-    Create a testing logger with minimal overhead and fast execution.
+    Create a production-ready logger with security and monitoring.
     
-    This function creates a logger using the "testing" magic configuration,
-    which is optimized for testing environments with minimal overhead,
-    fast execution, and simplified output.
+    This function creates a logger using the "production" magic configuration,
+    which is optimized for production environments with security features,
+    monitoring, and production-ready defaults.
     
     Args:
         logger_type: Type of logger to create (sync, async, composite, composite-async)
         **kwargs: Additional keyword arguments passed to the logger constructor
     
     Returns:
-        Testing-optimized logger instance
+        Production-optimized logger instance
         
     Examples:
-        # Create testing logger
-        logger = create_testing_logger("sync")
+        # Create production async logger
+        logger = create_production_logger("async")
         
-        # Create testing async logger
-        logger = create_testing_logger("async", name="TestLogger")
+        # Create production logger with custom name
+        logger = create_production_logger("sync", name="MyProdLogger")
     """
-    return logger_factory.create_testing_logger(logger_type=logger_type, **kwargs)
+    return logger_factory.create_production_logger(logger_type=logger_type, **kwargs)
 
-def create_web_app_logger(logger_type: str = "sync",
-                         **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
+def create_custom_logger(logger_type: str = "sync",
+                        **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
     """
-    Create a web application logger with request logging and structured output.
+    Create a custom logger with user-specified features.
     
-    This function creates a logger using the "web_app" magic configuration,
-    which is optimized for web applications with request logging, structured
-    output, and web-specific features.
+    This function creates a logger using the "custom" magic configuration,
+    which allows for user-specified features and customizations.
     
     Args:
         logger_type: Type of logger to create (sync, async, composite, composite-async)
         **kwargs: Additional keyword arguments passed to the logger constructor
     
     Returns:
-        Web application-optimized logger instance
+        Custom-optimized logger instance
         
     Examples:
-        # Create web app logger
-        logger = create_web_app_logger("async")
+        # Create custom logger
+        logger = create_custom_logger("sync")
         
-        # Create web app logger with custom name
-        logger = create_web_app_logger("sync", name="WebAppLogger")
+        # Create custom async logger with custom name
+        logger = create_custom_logger("async", name="MyCustomLogger")
     """
-    return logger_factory.create_web_app_logger(logger_type=logger_type, **kwargs)
-
-def create_api_logger(logger_type: str = "sync",
-                     **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-    """
-    Create an API service logger with structured logging and performance monitoring.
-    
-    This function creates a logger using the "api" magic configuration,
-    which is optimized for API services with structured logging, performance
-    monitoring, and API-specific features.
-    
-    Args:
-        logger_type: Type of logger to create (sync, async, composite, composite-async)
-        **kwargs: Additional keyword arguments passed to the logger constructor
-    
-    Returns:
-        API service-optimized logger instance
-        
-    Examples:
-        # Create API logger
-        logger = create_api_logger("async")
-        
-        # Create API logger with custom name
-        logger = create_api_logger("sync", name="APILogger")
-    """
-    return logger_factory.create_api_logger(logger_type=logger_type, **kwargs)
-
-def create_microservice_logger(logger_type: str = "sync",
-                              **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-    """
-    Create a microservice logger with distributed logging and service discovery.
-    
-    This function creates a logger using the "microservice" magic configuration,
-    which is optimized for microservices with distributed logging, service
-    discovery integration, and microservice-specific features.
-    
-    Args:
-        logger_type: Type of logger to create (sync, async, composite, composite-async)
-        **kwargs: Additional keyword arguments passed to the logger constructor
-    
-    Returns:
-        Microservice-optimized logger instance
-        
-    Examples:
-        # Create microservice logger
-        logger = create_microservice_logger("async")
-        
-        # Create microservice logger with custom name
-        logger = create_microservice_logger("sync", name="MicroserviceLogger")
-    """
-    return logger_factory.create_microservice_logger(logger_type=logger_type, **kwargs)
+    return logger_factory.create_custom_logger(logger_type=logger_type, **kwargs)
 
 
