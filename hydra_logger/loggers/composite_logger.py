@@ -212,6 +212,7 @@ import time
 
 from .base import BaseLogger
 from ..types.records import LogRecordFactory
+from ..config.models import LoggingConfig
 from ..core.exceptions import HydraLoggerError
 
 
@@ -227,9 +228,9 @@ class CompositeLogger(BaseLogger):
     - Coordinated shutdown
     """
     
-    def __init__(self, name: str = "CompositeLogger", components: Optional[List[BaseLogger]] = None, **kwargs):
+    def __init__(self, config: Optional[LoggingConfig] = None, name: str = "CompositeLogger", components: Optional[List[BaseLogger]] = None, **kwargs):
         """Initialize the composite logger."""
-        super().__init__(name=name, **kwargs)
+        super().__init__(config=config, name=name, **kwargs)
         
         self.name = name
         self.components = components or []
@@ -453,9 +454,9 @@ class CompositeAsyncLogger(BaseLogger):
     - Coordinated async shutdown
     """
     
-    def __init__(self, name: str = "CompositeAsyncLogger", components: Optional[List[BaseLogger]] = None, **kwargs):
+    def __init__(self, config: Optional[LoggingConfig] = None, name: str = "CompositeAsyncLogger", components: Optional[List[BaseLogger]] = None, **kwargs):
         """Initialize the async composite logger."""
-        super().__init__(name=name, **kwargs)
+        super().__init__(config=config, name=name, **kwargs)
         
         self.name = name
         self.components = components or []

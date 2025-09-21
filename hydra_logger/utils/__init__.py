@@ -61,12 +61,6 @@ from .file_utility import (
     DirectoryScanner
 )
 
-# Removed over-engineered utilities: network, async_utils
-
-# Removed over-engineered utilities: sync_utils, helpers, serialization, compression, caching
-
-# Removed over-engineered utilities: debugging
-
 __all__ = [
     # Text utilities
     "TextProcessor",
@@ -93,7 +87,4 @@ __all__ = [
     "FileProcessor",
     "DirectoryScanner",
 
-    # Removed over-engineered utilities
-
-    # Removed over-engineered utilities: serialization, compression, caching, debugging
 ]

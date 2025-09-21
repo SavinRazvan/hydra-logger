@@ -112,7 +112,7 @@ class PlainTextFormatter(BaseFormatter):
                 include_timezone=False
             )
         super().__init__("plain_text", timestamp_config)
-        self.format_string = format_string or "[{level_name}] [{layer}] {message}"
+        self.format_string = format_string or "{timestamp} | {level_name} | {layer} | {message}"
         
         # Simplified formatter - no performance optimization
         self._format_func = self._format_default
@@ -141,7 +141,9 @@ class PlainTextFormatter(BaseFormatter):
     
     def _compile_fstring_format(self) -> callable:
         """Compile format string into optimized function."""
-        if self.format_string == "[{level_name}] [{layer}] {message}":
+        if self.format_string == "{timestamp} | {level_name} | {layer} | {message}":
+            return lambda r: f"{self.format_timestamp(r)} | {r.level_name} | {r.layer} | {r.message}"
+        elif self.format_string == "[{level_name}] [{layer}] {message}":
             return lambda r: f"[{r.level_name}] [{r.layer}] {r.message}"
         elif self.format_string == "[{timestamp}] [{level_name}] [{layer}] {message}":
             return lambda r: f"[{self.format_timestamp(r)}] [{r.level_name}] [{r.layer}] {r.message}"
@@ -216,7 +218,7 @@ class PlainTextFormatter(BaseFormatter):
 class FastPlainTextFormatter(BaseFormatter):
     """Ultra-fast plain text formatter with minimal overhead."""
     
-    def __init__(self, format_string: str = "[{timestamp}] [{level_name}] [{layer}] {message}",
+    def __init__(self, format_string: str = "{timestamp} | {level_name} | {layer} | {message}",
                  timestamp_config: Optional[TimestampConfig] = None):
         """
         Initialize fast formatter.

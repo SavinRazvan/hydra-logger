@@ -547,7 +547,7 @@ class BaseLogger(ABC):
     
     def __del__(self):
         """Destructor to ensure cleanup."""
-        if not self._closed:
+        if hasattr(self, '_closed') and not self._closed:
             try:
                 # Check if close is async method
                 if asyncio.iscoroutinefunction(self.close):
