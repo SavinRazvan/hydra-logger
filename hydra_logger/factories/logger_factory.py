@@ -124,7 +124,7 @@ PERFORMANCE FEATURES:
 
 from typing import Optional, Union, Dict, Any
 from ..config.models import LoggingConfig
-from ..config.configuration_templates import magic_configs
+from ..config.configuration_templates import configuration_templates
 # Setup module removed - simplified architecture
 from ..loggers.sync_logger import SyncLogger
 from ..loggers.async_logger import AsyncLogger
@@ -268,19 +268,19 @@ class LoggerFactory:
         """Create a composite async logger for complex scenarios."""
         return self.create_logger(config=config, logger_type="composite-async", **kwargs)
     
-    def create_logger_with_magic(self, 
-                                magic_config_name: str,
-                                logger_type: str = "sync",
-                                **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
+    def create_logger_with_template(self, 
+                                   template_name: str,
+                                   logger_type: str = "sync",
+                                   **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
         """
-        Create a logger using a pre-configured magic configuration.
+        Create a logger using a pre-configured configuration template.
         
-        Magic configurations are pre-defined configurations optimized for common
+        Configuration templates are pre-defined configurations optimized for common
         use cases. They provide sensible defaults and can be customized further
         through additional parameters.
         
         Args:
-            magic_config_name: Name of the magic configuration to use. Options:
+            template_name: Name of the configuration template to use. Options:
                 - "default": Optimized default configuration for maximum performance
                 - "development": Development-friendly configuration with debug output
                 - "production": Production-ready configuration with security and monitoring
@@ -289,51 +289,51 @@ class LoggerFactory:
             **kwargs: Additional keyword arguments passed to the logger constructor
         
         Returns:
-            Logger instance with the magic configuration applied
+            Logger instance with the configuration template applied
             
         Raises:
-            ValueError: If magic_config_name is not found or logger_type is invalid
+            ValueError: If template_name is not found or logger_type is invalid
             
         Examples:
             # Create production logger
-            logger = factory.create_logger_with_magic("production", "async")
+            logger = factory.create_logger_with_template("production", "async")
             
             # Create development logger with custom name
-            logger = factory.create_logger_with_magic(
+            logger = factory.create_logger_with_template(
                 "development", 
                 "sync", 
                 name="MyDevLogger"
             )
         """
-        if not magic_configs.has_config(magic_config_name):
-            raise ValueError(f"Unknown magic config: {magic_config_name}")
+        if not configuration_templates.has_template(template_name):
+            raise ValueError(f"Unknown configuration template: {template_name}")
         
-        config = magic_configs.get_config(magic_config_name)
+        config = configuration_templates.get_template(template_name)
         return self.create_logger(config=config, logger_type=logger_type, **kwargs)
     
     def create_default_logger(self, 
                              logger_type: str = "sync",
                              **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
         """Create a default logger with optimized configuration."""
-        return self.create_logger_with_magic("default", logger_type, **kwargs)
+        return self.create_logger_with_template("default", logger_type, **kwargs)
     
     def create_development_logger(self, 
                                  logger_type: str = "sync",
                                  **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
         """Create a development logger."""
-        return self.create_logger_with_magic("development", logger_type, **kwargs)
+        return self.create_logger_with_template("development", logger_type, **kwargs)
     
     def create_production_logger(self, 
                                 logger_type: str = "sync",
                                 **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
         """Create a production-ready logger."""
-        return self.create_logger_with_magic("production", logger_type, **kwargs)
+        return self.create_logger_with_template("production", logger_type, **kwargs)
     
     def create_custom_logger(self, 
                             logger_type: str = "sync",
                             **kwargs) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
         """Create a custom logger."""
-        return self.create_logger_with_magic("custom", logger_type, **kwargs)
+        return self.create_logger_with_template("custom", logger_type, **kwargs)
     
 
     

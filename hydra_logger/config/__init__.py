@@ -102,33 +102,13 @@ from .defaults import (
 
 from .configuration_templates import (
     ConfigurationTemplates,
-    magic_configs,
-    register_magic_config,
-    get_magic_config,
-    list_magic_configs,
-    has_magic_config,
-    validate_magic_config
+    configuration_templates,
+    register_configuration_template,
+    get_configuration_template,
+    list_configuration_templates,
+    has_configuration_template,
+    validate_configuration_template
 )
-
-# Builder module removed - simplified architecture
-
-# Loaders module removed - simplified architecture
-
-# Exporters module removed - simplified architecture
-
-# Validators module removed - simplified architecture
-
-# from .validators import (
-#     ConfigurationValidator,
-#     config_validator,
-#     validate_config_file,
-#     validate_config_data,
-#     validate_handler_config,
-#     get_validation_summary,
-#     clear_validation_results
-# )
-
-# Setup module removed - simplified architecture
 
 
 __all__ = [
@@ -152,14 +132,14 @@ __all__ = [
     'list_available_configs',
     'templates',
     
-    # Magic Configs
+    # Configuration Templates
     'ConfigurationTemplates',
-    'magic_configs',
-    'register_magic_config',
-    'get_magic_config',
-    'list_magic_configs',
-    'has_magic_config',
-    'validate_magic_config',
+    'configuration_templates',
+    'register_configuration_template',
+    'get_configuration_template',
+    'list_configuration_templates',
+    'has_configuration_template',
+    'validate_configuration_template',
     
     # Builder
     'ConfigurationBuilder',

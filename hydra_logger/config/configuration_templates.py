@@ -1,18 +1,17 @@
 """
-Hydra-Logger Magic Configuration System
+Hydra-Logger Configuration Templates System
 
-This module provides a registry system for custom logging configurations
-that can be applied with simple method calls like logger.for_production().
-It integrates with the unified ConfigurationTemplates system to provide
-a single source of truth for all configurations.
+This module provides a registry system for predefined logging configurations
+that can be applied with simple method calls. It provides a centralized
+system for managing common configuration patterns and templates.
 
 FEATURES:
-- Registry system for custom logging configurations
+- Registry system for predefined logging configurations
 - Simple method calls for configuration application
 - Built-in configurations for common use cases
-- Integration with ConfigurationTemplates system
 - Type-safe configuration with automatic validation
 - Performance-first defaults with optional optimizations
+- Easy custom configuration registration
 
 BUILT-IN CONFIGURATIONS:
 - "default": Optimized configuration for maximum performance
@@ -23,21 +22,21 @@ BUILT-IN CONFIGURATIONS:
 USAGE EXAMPLES:
 
 Using Built-in Configurations:
-    from hydra_logger.config import get_magic_config
+    from hydra_logger.config import get_configuration_template
     
     # Get default configuration (maximum performance)
-    config = get_magic_config("default")
+    config = get_configuration_template("default")
     
     # Get production configuration
-    config = get_magic_config("production")
+    config = get_configuration_template("production")
     
     # Get development configuration
-    config = get_magic_config("development")
+    config = get_configuration_template("development")
 
 Registering Custom Configurations:
-    from hydra_logger.config import register_magic_config
+    from hydra_logger.config import register_configuration_template
     
-    @register_magic_config("my_app", "Custom configuration for my application")
+    @register_configuration_template("my_app", "Custom configuration for my application")
     def my_app_config():
         return LoggingConfig(
             default_level="INFO",
@@ -53,12 +52,12 @@ Registering Custom Configurations:
         )
     
     # Use the custom configuration
-    config = get_magic_config("my_app")
+    config = get_configuration_template("my_app")
 
 Listing Available Configurations:
-    from hydra_logger.config import list_magic_configs
+    from hydra_logger.config import list_configuration_templates
     
-    configs = list_magic_configs()
+    configs = list_configuration_templates()
     print(configs)  # {'default': 'Optimized default...', 'production': '...', ...}
 """
 
@@ -70,18 +69,18 @@ from ..core.exceptions import HydraLoggerError
 
 class ConfigurationTemplates:
     """
-    Registry for magic configurations.
+    Registry for predefined logging configuration templates.
     
     This class provides a registry system for logging configurations that can be
-    applied with simple method calls. It integrates with the unified ConfigurationTemplates
-    system to provide a single source of truth for all configurations.
+    applied with simple method calls. It provides a centralized system for
+    managing common configuration patterns and templates.
     
     Features:
     - Built-in configurations for common use cases
-    - Custom configuration registration
+    - Custom configuration template registration
     - Type-safe configuration with automatic validation
     - Performance-first defaults with optional optimizations
-    - Integration with ConfigurationTemplates system
+    - Easy template management and discovery
     
     Built-in Configurations:
     - "default": Optimized configuration for maximum performance
@@ -90,16 +89,16 @@ class ConfigurationTemplates:
     - "custom": Customizable configuration with user-specified features
     
     Examples:
-        # Get built-in configuration
-        config = magic_configs.get_config("production")
+        # Get built-in configuration template
+        config = configuration_templates.get_template("production")
         
-        # Register custom configuration
-        @magic_configs.register("my_app", "Custom configuration for my application")
+        # Register custom configuration template
+        @configuration_templates.register_template("my_app", "Custom configuration for my application")
         def my_app_config():
             return LoggingConfig(...)
         
-        # List available configurations
-        configs = magic_configs.list_configs()
+        # List available configuration templates
+        templates = configuration_templates.list_templates()
     """
     
     def __init__(self):
@@ -108,32 +107,32 @@ class ConfigurationTemplates:
         self._setup_builtin_configs()
     
     def _setup_builtin_configs(self):
-        """Setup built-in magic configurations using the unified system."""
+        """Setup built-in configuration templates using the unified system."""
         # Use the unified ConfigurationTemplates for all built-in configs
         from .defaults import get_default_config, get_development_config, get_production_config, get_custom_config
         
-        self.register("default", "Optimized default configuration for maximum performance")(get_default_config)
-        self.register("development", "Development-friendly configuration with debug output")(get_development_config)
-        self.register("production", "Production-ready configuration with security and monitoring")(get_production_config)
-        self.register("custom", "Custom configuration with user-specified features")(get_custom_config)
+        self.register_template("default", "Optimized default configuration for maximum performance")(get_default_config)
+        self.register_template("development", "Development-friendly configuration with debug output")(get_development_config)
+        self.register_template("production", "Production-ready configuration with security and monitoring")(get_production_config)
+        self.register_template("custom", "Custom configuration with user-specified features")(get_custom_config)
     
-    def register(self, name: str, description: str = "") -> Callable:
+    def register_template(self, name: str, description: str = "") -> Callable:
         """
-        Register a custom magic configuration.
+        Register a custom configuration template.
         
         Args:
-            name: The name of the magic config
-            description: Optional description of the config
+            name: The name of the configuration template
+            description: Optional description of the template
             
         Returns:
-            Decorator function that registers the config
+            Decorator function that registers the template
         """
         if not isinstance(name, str) or not name.strip():
-            raise HydraLoggerError("Magic config name must be a non-empty string")
+            raise HydraLoggerError("Configuration template name must be a non-empty string")
         
         def decorator(func: Callable[[], LoggingConfig]) -> Callable[[], LoggingConfig]:
             if not callable(func):
-                raise HydraLoggerError(f"Magic config '{name}' must be a callable function")
+                raise HydraLoggerError(f"Configuration template '{name}' must be a callable function")
             
             self._configs[name] = func
             self._descriptions[name] = description
@@ -141,55 +140,55 @@ class ConfigurationTemplates:
         
         return decorator
     
-    def has_config(self, name: str) -> bool:
-        """Check if a magic config exists."""
+    def has_template(self, name: str) -> bool:
+        """Check if a configuration template exists."""
         return name in self._configs
     
-    def get_config(self, name: str) -> LoggingConfig:
-        """Get a magic configuration by name."""
+    def get_template(self, name: str) -> LoggingConfig:
+        """Get a configuration template by name."""
         if name not in self._configs:
-            raise HydraLoggerError(f"Unknown magic config: {name}")
+            raise HydraLoggerError(f"Unknown configuration template: {name}")
         
         try:
             return self._configs[name]()
         except Exception as e:
-            raise HydraLoggerError(f"Failed to create magic config '{name}': {e}")
+            raise HydraLoggerError(f"Failed to create configuration template '{name}': {e}")
     
-    def list_configs(self) -> Dict[str, str]:
-        """List all available magic configurations."""
+    def list_templates(self) -> Dict[str, str]:
+        """List all available configuration templates."""
         return self._descriptions.copy()
     
-    def remove_config(self, name: str) -> None:
-        """Remove a magic configuration."""
+    def remove_template(self, name: str) -> None:
+        """Remove a configuration template."""
         if name in self._configs:
             del self._configs[name]
             del self._descriptions[name]
     
-    def clear_custom_configs(self) -> None:
-        """Clear all custom configurations (keep built-ins)."""
+    def clear_custom_templates(self) -> None:
+        """Clear all custom configuration templates (keep built-ins)."""
         builtin_names = {
             "default", "development", "production", "custom"
         }
         
         custom_names = [name for name in self._configs.keys() if name not in builtin_names]
         for name in custom_names:
-            self.remove_config(name)
+            self.remove_template(name)
     
-    def get_available_configs(self) -> Dict[str, str]:
+    def get_available_templates(self) -> Dict[str, str]:
         """
-        Get all available configurations including built-ins and custom ones.
+        Get all available configuration templates including built-ins and custom ones.
         
         Returns:
-            Dictionary mapping configuration names to descriptions
+            Dictionary mapping template names to descriptions
         """
         return self._descriptions.copy()
     
-    def validate_config(self, name: str) -> bool:
+    def validate_template(self, name: str) -> bool:
         """
-        Validate a magic configuration by name.
+        Validate a configuration template by name.
         
         Args:
-            name: Name of the configuration to validate
+            name: Name of the template to validate
             
         Returns:
             True if valid
@@ -198,32 +197,32 @@ class ConfigurationTemplates:
             HydraLoggerError: If validation fails
         """
         try:
-            config = self.get_config(name)
+            config = self.get_template(name)
             return config.validate_configuration()
         except Exception as e:
-            raise HydraLoggerError(f"Configuration validation failed for '{name}': {e}")
+            raise HydraLoggerError(f"Configuration template validation failed for '{name}': {e}")
 
 
 # Global instance
-magic_configs = ConfigurationTemplates()
+configuration_templates = ConfigurationTemplates()
 
 # Convenience functions
-def register_magic_config(name: str, description: str = "") -> Callable:
-    """Register a magic configuration."""
-    return magic_configs.register(name, description)
+def register_configuration_template(name: str, description: str = "") -> Callable:
+    """Register a configuration template."""
+    return configuration_templates.register_template(name, description)
 
-def get_magic_config(name: str) -> LoggingConfig:
-    """Get a magic configuration by name."""
-    return magic_configs.get_config(name)
+def get_configuration_template(name: str) -> LoggingConfig:
+    """Get a configuration template by name."""
+    return configuration_templates.get_template(name)
 
-def list_magic_configs() -> Dict[str, str]:
-    """List all available magic configurations."""
-    return magic_configs.list_configs()
+def list_configuration_templates() -> Dict[str, str]:
+    """List all available configuration templates."""
+    return configuration_templates.list_templates()
 
-def has_magic_config(name: str) -> bool:
-    """Check if a magic config exists."""
-    return magic_configs.has_config(name)
+def has_configuration_template(name: str) -> bool:
+    """Check if a configuration template exists."""
+    return configuration_templates.has_template(name)
 
-def validate_magic_config(name: str) -> bool:
-    """Validate a magic configuration by name."""
-    return magic_configs.validate_config(name)
+def validate_configuration_template(name: str) -> bool:
+    """Validate a configuration template."""
+    return configuration_templates.validate_template(name)
