@@ -10,8 +10,7 @@ import time
 from unittest.mock import Mock, patch, MagicMock
 from hydra_logger.handlers.console import (
     SyncConsoleHandler, 
-    AsyncConsoleHandler, 
-    ConsoleHandler
+    AsyncConsoleHandler
 )
 from hydra_logger.types.records import LogRecord
 from hydra_logger.types.levels import LogLevel

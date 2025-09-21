@@ -2,6 +2,7 @@
 aiofiles>=23.0.0  # True async file I/O
 psutil>=5.9.0     # System memory monitoring for adaptive concurrency
 toml>=0.10.0      # TOML configuration parsing
+requests>=2.28.0  # HTTP requests for network handlers
 
 # Development dependencies (optional)
 pytest>=7.0.0     # Testing framework
