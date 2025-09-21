@@ -288,7 +288,6 @@ class SyncLogger(BaseLogger):
         self._enable_security = False
         self._enable_sanitization = False
         self._enable_plugins = False
-        self._enable_performance_monitoring = False
         
         # Object pooling for performance
         # Object pooling removed - using standardized LogRecord creation
@@ -327,7 +326,6 @@ class SyncLogger(BaseLogger):
             self._enable_security = self._config.enable_security
             self._enable_sanitization = self._config.enable_sanitization
             self._enable_plugins = self._config.enable_plugins
-            self._enable_performance_monitoring = self._config.enable_performance_monitoring
             self._buffer_size = self._config.buffer_size
             self._flush_interval = self._config.flush_interval
     
@@ -822,8 +820,6 @@ class SyncLogger(BaseLogger):
                 self._enable_sanitization = enabled
             elif feature == "plugins":
                 self._enable_plugins = enabled
-            elif feature == "monitoring":
-                self._enable_performance_monitoring = enabled
             
             print(f"✅ {feature} {'enabled' if enabled else 'disabled'}")
         else:

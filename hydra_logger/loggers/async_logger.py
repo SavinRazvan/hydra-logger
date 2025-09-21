@@ -587,14 +587,6 @@ class AsyncLogger(BaseLogger):
                                 start_time = time.perf_counter()
                                 await self._emit_to_handlers(record)
                                 
-                                # Record overflow processing metrics
-                                if self._enable_performance_monitoring and self._monitoring_engine:
-                                    try:
-                                        end_time = time.perf_counter()
-                                        duration = (end_time - start_time) * 1000
-                                        self._monitoring_engine.record_metric('overflow_processing_ms', duration)
-                                    except Exception:
-                                        pass
                                 
                                 self._log_count += 1
                             finally:
@@ -628,10 +620,6 @@ class AsyncLogger(BaseLogger):
             return
         
         try:
-            # ✅ INTEGRATION: Start batch monitoring if enabled
-            start_time = None
-            if self._enable_performance_monitoring and self._monitoring_engine:
-                start_time = time.perf_counter()
             
             # ✅ PERFORMANCE FIX: Process in optimal chunks without individual tasks
             optimal_chunk_size = min(5000, len(messages) // 10)  # Dynamic chunk sizing
@@ -647,20 +635,6 @@ class AsyncLogger(BaseLogger):
                 # ✅ PERFORMANCE FIX: Process chunk directly without creating tasks
                 await self._process_chunk_optimized(chunk, **kwargs)
             
-            # ✅ INTEGRATION: Record batch processing metrics if enabled
-            if self._enable_performance_monitoring and self._monitoring_engine and start_time:
-                try:
-                    end_time = time.perf_counter()
-                    duration = (end_time - start_time) * 1000
-                    total_messages = len(messages)
-                    
-                    # Record batch metrics
-                    self._monitoring_engine.record_metric('batch_duration_ms', duration)
-                    self._monitoring_engine.record_metric('batch_size', total_messages)
-                    self._monitoring_engine.record_metric('batch_throughput', total_messages / (duration / 1000) if duration > 0 else 0)
-                    
-                except Exception:
-                    pass  # Silently fail monitoring to avoid breaking logging
                 
         except Exception as e:
             raise HydraLoggerError(f"Failed to log batch: {e}") from e
@@ -716,10 +690,6 @@ class AsyncLogger(BaseLogger):
             return
         
         try:
-            # ✅ INTEGRATION: Start concurrent monitoring if enabled
-            start_time = None
-            if self._enable_performance_monitoring and self._monitoring_engine:
-                start_time = time.perf_counter()
             
             # ✅ TRUE ASYNC: Use optimal concurrency based on message count
             if max_concurrent is None:
@@ -746,21 +716,6 @@ class AsyncLogger(BaseLogger):
             # ✅ TRUE ASYNC: Wait for all tasks to complete in parallel
             await asyncio.gather(*tasks, return_exceptions=True)
             
-            # ✅ INTEGRATION: Record concurrent processing metrics if enabled
-            if self._enable_performance_monitoring and self._monitoring_engine and start_time:
-                try:
-                    end_time = time.perf_counter()
-                    duration = (end_time - start_time) * 1000
-                    total_messages = len(messages)
-                    
-                    # Record concurrent metrics
-                    self._monitoring_engine.record_metric('concurrent_duration_ms', duration)
-                    self._monitoring_engine.record_metric('concurrent_size', total_messages)
-                    self._monitoring_engine.record_metric('concurrent_throughput', total_messages / (duration / 1000) if duration > 0 else 0)
-                    self._monitoring_engine.record_metric('concurrent_level', concurrency)
-                    
-                except Exception:
-                    pass  # Silently fail monitoring to avoid breaking logging
             
         except Exception as e:
             raise HydraLoggerError(f"Failed to log concurrent: {e}") from e
