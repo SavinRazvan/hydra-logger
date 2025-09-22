@@ -209,9 +209,9 @@ from .base import BaseLogger
 from ..types.records import LogRecord
 from ..types.levels import LogLevel, LogLevelManager
 from ..config.models import LoggingConfig, LogDestination
-from ..handlers.console import SyncConsoleHandler
-from ..handlers.null import NullHandler
-from ..handlers.base import BaseHandler
+from ..handlers.console_handler import SyncConsoleHandler
+from ..handlers.null_handler import NullHandler
+from ..handlers.base_handler import BaseHandler
 from ..utils.time_utility import TimeUtility
 
 
@@ -333,7 +333,7 @@ class SyncLogger(BaseLogger):
     def _setup_default_configuration(self):
         """Setup SIMPLIFIED configuration for maximum performance."""
         # SIMPLIFIED: Use only console handler for maximum performance
-        from ..handlers.console import SyncConsoleHandler
+        from ..handlers.console_handler import SyncConsoleHandler
         self._console_handler = SyncConsoleHandler(
             buffer_size=10000,  # Larger buffer
             flush_interval=1.0   # Less frequent flushes
@@ -385,13 +385,13 @@ class SyncLogger(BaseLogger):
         """Create handler from destination configuration."""
         if destination.type in ['console', 'sync_console']:
             # Use dedicated sync console handler for better performance
-            from ..handlers.console import SyncConsoleHandler
+            from ..handlers.console_handler import SyncConsoleHandler
             handler = SyncConsoleHandler(
                 stream=sys.stdout,
-                use_colors=getattr(destination, 'use_colors', False)  # FIXED: Default to False
+                use_colors=destination.use_colors  # Use the actual value from destination
             )
             # Set formatter for console
-            use_colors = getattr(destination, 'use_colors', False)  # FIXED: Default to False
+            use_colors = destination.use_colors  # Use the actual value from destination
             formatter = self._create_formatter_for_destination(destination, is_console=True, use_colors=use_colors)
             handler.setFormatter(formatter)
             
@@ -402,7 +402,7 @@ class SyncLogger(BaseLogger):
                 
         elif destination.type in ['file', 'sync_file']:
             # Use dedicated sync file handler for better performance
-            from ..handlers.file import SyncFileHandler
+            from ..handlers.file_handler import SyncFileHandler
             # Resolve log path using config settings with format-aware extension
             resolved_path = self._config.resolve_log_path(destination.path, destination.format)
             handler = SyncFileHandler(

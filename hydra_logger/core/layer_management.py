@@ -79,7 +79,7 @@ Performance Monitoring:
 import threading
 from typing import Any, Dict, List, Optional, Union
 
-from ..handlers.base import BaseHandler
+from ..handlers.base_handler import BaseHandler
 from ..formatters.base import BaseFormatter
 from ..types.levels import LogLevel
 
@@ -190,7 +190,7 @@ class LayerManager:
             
             # Import handlers dynamically to avoid circular imports
             if dest_type == 'console':
-                from ..handlers.console import SyncConsoleHandler
+                from ..handlers.console_handler import SyncConsoleHandler
                 from ..formatters import get_formatter
                 
                 # Get format type from destination config
@@ -210,18 +210,18 @@ class LayerManager:
                 
                 return console_handler
             elif dest_type == 'file':
-                from ..handlers.file import FileHandler
+                from ..handlers.file_handler import FileHandler
                 return FileHandler(
                     filename=destination_config.get('path') or destination_config.get('filename'),
                     max_bytes=destination_config.get('max_size', '10MB'),
                     backup_count=destination_config.get('backup_count', 5)
                 )
             elif dest_type == 'null':
-                from ..handlers.null import NullHandler
+                from ..handlers.null_handler import NullHandler
                 return NullHandler()
             else:
                 # For unsupported types, return null handler
-                from ..handlers.null import NullHandler
+                from ..handlers.null_handler import NullHandler
                 return NullHandler()
                 
         except Exception as e:
@@ -231,8 +231,8 @@ class LayerManager:
     def _setup_default_layer(self) -> None:
         """Setup a default layer with console output."""
         try:
-            from ..handlers.console import SyncConsoleHandler
-            from ..formatters.text_formatter import ColoredFormatter
+            from ..handlers.console_handler import SyncConsoleHandler
+            from ..formatters.colored_formatter import ColoredFormatter
             
             # Create default console handler
             console_handler = SyncConsoleHandler(

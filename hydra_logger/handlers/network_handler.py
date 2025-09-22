@@ -143,7 +143,7 @@ except ImportError:
 
 from ..types.records import LogRecord
 from ..types.levels import LogLevel
-from .base import BaseHandler
+from .base_handler import BaseHandler
 # NetworkUtils removed - simplified network handler
 
 

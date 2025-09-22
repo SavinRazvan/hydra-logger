@@ -38,7 +38,7 @@ PERFORMANCE OPTIMIZATIONS:
 USAGE EXAMPLES:
 
 Basic Handler Implementation:
-    from hydra_logger.handlers.base import BaseHandler
+    from hydra_logger.handlers.base_handler import BaseHandler
     from hydra_logger.types.records import LogRecord
     
     class CustomHandler(BaseHandler):

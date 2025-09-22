@@ -94,6 +94,7 @@ FORMATTER FEATURES:
 # Core formatters
 from .base import BaseFormatter
 from .text_formatter import PlainTextFormatter
+from .colored_formatter import ColoredFormatter
 from .json_formatter import JsonLinesFormatter
 from .structured_formatter import GelfFormatter, LogstashFormatter, CsvFormatter, SyslogFormatter
 
@@ -117,6 +118,8 @@ def get_formatter(format_type: str, use_colors: bool = False):
     """
     if format_type == "plain-text":
         return PlainTextFormatter()
+    elif format_type == "colored":
+        return ColoredFormatter(use_colors=use_colors)
     elif format_type == "json-lines":
         return JsonLinesFormatter()
     elif format_type == "json":
@@ -139,6 +142,7 @@ __all__ = [
     # Core formatters
     "BaseFormatter",
     "PlainTextFormatter",
+    "ColoredFormatter",
     "JsonLinesFormatter",
     "GelfFormatter",
     "LogstashFormatter",

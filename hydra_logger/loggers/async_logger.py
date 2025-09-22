@@ -194,8 +194,8 @@ from ..types.records import LogRecord
 from ..types.levels import LogLevel, LogLevelManager
 from ..config.models import LoggingConfig, LogDestination
 from ..core.exceptions import HydraLoggerError
-from ..handlers.null import NullHandler
-from ..handlers.base import BaseHandler
+from ..handlers.null_handler import NullHandler
+from ..handlers.base_handler import BaseHandler
 from ..formatters.base import BaseFormatter
 from ..utils.time_utility import TimeUtility
 
@@ -373,7 +373,7 @@ class AsyncLogger(BaseLogger):
     def _setup_default_configuration(self):
         """Setup SIMPLIFIED configuration for maximum performance."""
         # SIMPLIFIED: Use only console handler for maximum performance
-        from ..handlers.console import AsyncConsoleHandler
+        from ..handlers.console_handler import AsyncConsoleHandler
         self._console_handler = AsyncConsoleHandler(
             buffer_size=10000,  # Larger buffer
             flush_interval=1.0   # Less frequent flushes
@@ -402,21 +402,21 @@ class AsyncLogger(BaseLogger):
         """Create handler from destination configuration."""
         if destination.type in ['console', 'async_console']:
             # Use dedicated async console handler for better performance
-            from ..handlers.console import AsyncConsoleHandler
+            from ..handlers.console_handler import AsyncConsoleHandler
             handler = AsyncConsoleHandler(
                 stream=sys.stdout,
-                use_colors=getattr(destination, 'use_colors', False),  # FIXED: Default to False
+                use_colors=destination.use_colors,  # Use the actual value from destination
                 buffer_size=10000,  # Process more messages in bulk
                 flush_interval=1.0   # Less frequent flushes
             )
             # Set formatter for console
-            use_colors = getattr(destination, 'use_colors', False)  # FIXED: Default to False
+            use_colors = destination.use_colors  # Use the actual value from destination
             formatter = self._create_formatter_for_destination(destination, is_console=True, use_colors=use_colors)
             handler.setFormatter(formatter)
                 
         elif destination.type in ['file', 'async_file']:
             # Use dedicated async file handler for better performance
-            from ..handlers.file import AsyncFileHandler
+            from ..handlers.file_handler import AsyncFileHandler
             # Resolve log path using config settings with format-aware extension
             resolved_path = self._config.resolve_log_path(destination.path, destination.format)
             handler = AsyncFileHandler(
@@ -427,6 +427,9 @@ class AsyncLogger(BaseLogger):
             # Set formatter for file
             formatter = self._create_formatter_for_destination(destination, is_console=False)
             handler.setFormatter(formatter)
+            
+            # ✅ CRITICAL FIX: Start the async file worker
+            handler._start_worker()
 
         elif destination.type == 'null':
             handler = NullHandler()
@@ -517,8 +520,26 @@ class AsyncLogger(BaseLogger):
             # Silent error handling for maximum speed
             pass
     
+    async def log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
+        """
+        Async log method for explicit async usage.
+        
+        Args:
+            level: Log level (string or numeric)
+            message: Log message
+            **kwargs: Additional log record fields
+        """
+        if not self._initialized:
+            return
+        
+        try:
+            await self._log_async(level, message, **kwargs)
+        except Exception:
+            # Silent error handling for maximum speed
+            pass
+    
     def _log_sync(self, level: Union[str, int], message: str, **kwargs) -> None:
-        """Synchronous fallback logging method."""
+        """Synchronous fallback logging method - SIMPLIFIED."""
         try:
             # Convert level if needed
             if isinstance(level, str):
@@ -536,7 +557,7 @@ class AsyncLogger(BaseLogger):
                     # If security processing fails, continue with original record
                     pass
             
-            # ✅ FIX: Emit to ALL handlers, not just console
+            # ✅ SIMPLIFIED: Direct emission to handlers (no async complexity)
             layer_name = getattr(record, 'layer', 'default')
             handlers = self._get_handlers_for_layer(layer_name)
             
@@ -548,22 +569,16 @@ class AsyncLogger(BaseLogger):
                     # Silent error handling for maximum speed
                     pass
             
-            # Also emit to console handler as fallback
-            try:
-                self._console_handler.emit(record)
-            except Exception:
-                pass
-                
+            # Update statistics
+            self._log_count += 1
+            
         except Exception:
-            # Silent error handling
+            # Silent error handling for maximum speed
             pass
     
     async def _log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
-        """Internal async logging method."""
+        """Internal async logging method - SIMPLIFIED for reliability."""
         try:
-            # Ensure concurrency control is active
-            self._ensure_concurrency_semaphore()
-            
             # SIMPLIFIED: Direct level conversion (no caching overhead)
             if isinstance(level, str):
                 level = LogLevelManager.get_level(level)
@@ -580,35 +595,11 @@ class AsyncLogger(BaseLogger):
                     # If security processing fails, continue with original record
                     pass
             
-            # ✅ OPTIMIZATION: Try non-blocking semaphore acquisition
-            if self._concurrency_semaphore.locked():
-                # Semaphore busy, use overflow queue (non-blocking)
-                try:
-                    self._overflow_queue.put_nowait(record)
-                    return  # Don't wait, return immediately
-                except asyncio.QueueFull:
-                    # Overflow queue full, drop message
-                    print(f"Warning: All queues full, dropping log message: {message[:100]}...")
-                    return
+            # ✅ SIMPLIFIED: Direct emission to handlers (no complex semaphore)
+            await self._emit_to_handlers(record)
             
-            # Semaphore available, process immediately
-            async with self._concurrency_semaphore:
-                try:
-                    # Emit to handlers
-                    await self._emit_to_handlers(record)
-                    
-                    # Plugin system removed - simplified architecture
-                    
-                    # Update statistics
-                    self._log_count += 1
-                    
-                    # Record processing completed
-                except Exception as handler_error:
-                    print(f"Handler emission failed: {handler_error}")
-                    # Don't fail the entire log operation
-                    self._log_count += 1
-                    
-                    # Error handling completed
+            # Update statistics
+            self._log_count += 1
             
         except Exception as e:
             # Use fallback handler if available
@@ -889,6 +880,7 @@ class AsyncLogger(BaseLogger):
         # Emit to all handlers for this layer
         for handler in handlers:
             try:
+                # Use async emit if available, otherwise fall back to sync
                 if hasattr(handler, 'emit_async'):
                     await handler.emit_async(record)
                 else:
@@ -896,13 +888,6 @@ class AsyncLogger(BaseLogger):
             except Exception:
                 # Silent error handling for maximum speed
                 pass
-        
-        # Also emit to console handler as fallback
-        try:
-            await self._console_handler.emit_async(record)
-        except Exception:
-            # Silent error handling for maximum speed
-            pass
     
     def _get_handlers_for_layer(self, layer_name: str) -> list:
         """Get handlers for a specific layer with caching."""
@@ -918,25 +903,91 @@ class AsyncLogger(BaseLogger):
         return handlers
     
     # Convenience methods for different log levels
-    def debug(self, message: str, **kwargs) -> None:
+    def debug(self, message: str, **kwargs):
         """Log a debug message."""
-        self.log(LogLevel.DEBUG, message, **kwargs)
+        result = self.log(LogLevel.DEBUG, message, **kwargs)
+        if asyncio.iscoroutine(result):
+            # Schedule the coroutine in the current event loop
+            try:
+                loop = asyncio.get_running_loop()
+                return loop.create_task(result)
+            except RuntimeError:
+                # No event loop running, return the coroutine
+                return result
+        return result
     
-    def info(self, message: str, **kwargs) -> None:
+    def info(self, message: str, **kwargs):
         """Log an info message."""
-        self.log(LogLevel.INFO, message, **kwargs)
+        result = self.log(LogLevel.INFO, message, **kwargs)
+        if asyncio.iscoroutine(result):
+            # Schedule the coroutine in the current event loop
+            try:
+                loop = asyncio.get_running_loop()
+                return loop.create_task(result)
+            except RuntimeError:
+                # No event loop running, return the coroutine
+                return result
+        return result
     
-    def warning(self, message: str, **kwargs) -> None:
+    def warning(self, message: str, **kwargs):
         """Log a warning message."""
-        self.log(LogLevel.WARNING, message, **kwargs)
+        result = self.log(LogLevel.WARNING, message, **kwargs)
+        if asyncio.iscoroutine(result):
+            # Schedule the coroutine in the current event loop
+            try:
+                loop = asyncio.get_running_loop()
+                return loop.create_task(result)
+            except RuntimeError:
+                # No event loop running, return the coroutine
+                return result
+        return result
     
-    def error(self, message: str, **kwargs) -> None:
+    def error(self, message: str, **kwargs):
         """Log an error message."""
-        self.log(LogLevel.ERROR, message, **kwargs)
+        result = self.log(LogLevel.ERROR, message, **kwargs)
+        if asyncio.iscoroutine(result):
+            # Schedule the coroutine in the current event loop
+            try:
+                loop = asyncio.get_running_loop()
+                return loop.create_task(result)
+            except RuntimeError:
+                # No event loop running, return the coroutine
+                return result
+        return result
     
-    def critical(self, message: str, **kwargs) -> None:
+    def critical(self, message: str, **kwargs):
         """Log a critical message."""
-        self.log(LogLevel.CRITICAL, message, **kwargs)
+        result = self.log(LogLevel.CRITICAL, message, **kwargs)
+        if asyncio.iscoroutine(result):
+            # Schedule the coroutine in the current event loop
+            try:
+                loop = asyncio.get_running_loop()
+                return loop.create_task(result)
+            except RuntimeError:
+                # No event loop running, return the coroutine
+                return result
+        return result
+    
+    # Async convenience methods for explicit async usage
+    async def debug_async(self, message: str, **kwargs) -> None:
+        """Async log a debug message."""
+        await self.log_async(LogLevel.DEBUG, message, **kwargs)
+    
+    async def info_async(self, message: str, **kwargs) -> None:
+        """Async log an info message."""
+        await self.log_async(LogLevel.INFO, message, **kwargs)
+    
+    async def warning_async(self, message: str, **kwargs) -> None:
+        """Async log a warning message."""
+        await self.log_async(LogLevel.WARNING, message, **kwargs)
+    
+    async def error_async(self, message: str, **kwargs) -> None:
+        """Async log an error message."""
+        await self.log_async(LogLevel.ERROR, message, **kwargs)
+    
+    async def critical_async(self, message: str, **kwargs) -> None:
+        """Async log a critical message."""
+        await self.log_async(LogLevel.CRITICAL, message, **kwargs)
     
     def warn(self, message: str, **kwargs) -> None:
         """Alias for warning (compatibility)."""
@@ -947,7 +998,7 @@ class AsyncLogger(BaseLogger):
         return self.critical(message, **kwargs)
     
     def close(self):
-        """Close the logger and cleanup resources - PROPERLY FIXED VERSION."""
+        """Close the logger and cleanup resources - SIMPLIFIED VERSION."""
         if self._closed:
             return
         
@@ -955,104 +1006,80 @@ class AsyncLogger(BaseLogger):
             # Mark as closed first to prevent new operations
             self._closed = True
             
-            # ✅ OPTIMIZATION: Clean up concurrency resources
-            if self._concurrency_semaphore:
-                self._concurrency_semaphore = None
-                self._optimal_concurrency = None
-            
-            # ✅ OPTIMIZATION: Clean up overflow worker
-            if self._overflow_worker_task and not self._overflow_worker_task.done():
-                self._overflow_worker_task.cancel()
-            
-            # ✅ CRITICAL FIX: Properly close handlers to prevent StreamWriter issues
+            # Clean up handlers
             for handler in self._handlers.values():
                 try:
                     if hasattr(handler, 'close'):
-                        # Use sync close to avoid coroutine issues
                         handler.close()
-                    
-                    # ✅ CRITICAL FIX: Explicitly clean up any StreamWriter references
-                    if hasattr(handler, '_writer') and handler._writer:
-                        try:
-                            # Properly close the StreamWriter before it gets garbage collected
-                            if hasattr(handler._writer, 'close'):
-                                handler._writer.close()
-                        except Exception:
-                            pass
-                        finally:
-                            handler._writer = None
-                            
                 except Exception:
                     pass
             
-            # Clear collections
-            self._handlers.clear()
-            self._layer_handlers.clear()
-            self._layers.clear()
+            # Clean up console handler
+            if hasattr(self, '_console_handler') and self._console_handler:
+                try:
+                    self._console_handler.close()
+                except Exception:
+                    pass
+            
+            # Clean up concurrency resources
+            if hasattr(self, '_concurrency_semaphore'):
+                self._concurrency_semaphore = None
+            
+            # Clean up overflow worker
+            if hasattr(self, '_overflow_worker_task') and self._overflow_worker_task and not self._overflow_worker_task.done():
+                self._overflow_worker_task.cancel()
+            
+            # Clear handler cache
+            self._handler_cache.clear()
             
         except Exception:
+            # Silent cleanup - don't fail on close
             pass
     
-    async def aclose(self):
-        """Async close the logger and cleanup resources - PROPERLY FIXED VERSION."""
+    async def close_async(self):
+        """Async close method for proper async cleanup."""
         if self._closed:
             return
         
         try:
-            # Mark as closed first to prevent new operations
+            # Mark as closed first
             self._closed = True
             
-            # ✅ OPTIMIZATION: Clean up concurrency resources
-            if self._concurrency_semaphore:
-                self._concurrency_semaphore = None
-                self._optimal_concurrency = None
-            
-            # ✅ OPTIMIZATION: Clean up overflow worker
-            if self._overflow_worker_task and not self._overflow_worker_task.done():
-                self._overflow_worker_task.cancel()
-                try:
-                    await asyncio.wait_for(self._overflow_worker_task, timeout=0.1)
-                except (asyncio.CancelledError, asyncio.TimeoutError):
-                    pass
-            
-            # ✅ CRITICAL FIX: Properly close handlers to prevent StreamWriter issues
+            # Clean up handlers asynchronously
             for handler in self._handlers.values():
                 try:
-                    if hasattr(handler, 'aclose'):
-                        # Async close with timeout
-                        await asyncio.wait_for(handler.aclose(), timeout=0.5)
+                    if hasattr(handler, 'close_async'):
+                        await handler.close_async()
                     elif hasattr(handler, 'close'):
-                        # Sync close
                         handler.close()
-                    
-                    # ✅ CRITICAL FIX: Explicitly clean up any StreamWriter references
-                    if hasattr(handler, '_writer') and handler._writer:
-                        try:
-                            # Properly close the StreamWriter before it gets garbage collected
-                            if hasattr(handler._writer, 'close'):
-                                handler._writer.close()
-                            if hasattr(handler._writer, 'wait_closed'):
-                                try:
-                                    await asyncio.wait_for(handler._writer.wait_closed(), timeout=0.1)
-                                except (asyncio.TimeoutError, asyncio.CancelledError):
-                                    pass
-                        except Exception:
-                            pass
-                        finally:
-                            handler._writer = None
-                            
-                except Exception as e:
-                    # Silently ignore close errors to prevent StreamWriter issues
+                except Exception:
                     pass
             
-            # Clear collections
-            self._handlers.clear()
-            self._layer_handlers.clear()
-            self._layers.clear()
+            # Clean up console handler
+            if hasattr(self, '_console_handler') and self._console_handler:
+                try:
+                    if hasattr(self._console_handler, 'close_async'):
+                        await self._console_handler.close_async()
+                    else:
+                        self._console_handler.close()
+                except Exception:
+                    pass
             
-        except Exception as e:
-            # Silently ignore close errors
+            # Clean up concurrency resources
+            if hasattr(self, '_concurrency_semaphore'):
+                self._concurrency_semaphore = None
+            
+            # Clean up overflow worker
+            if hasattr(self, '_overflow_worker_task') and self._overflow_worker_task and not self._overflow_worker_task.done():
+                self._overflow_worker_task.cancel()
+            
+            # Clear handler cache
+            self._handler_cache.clear()
+            
+        except Exception:
+            # Silent cleanup - don't fail on close
             pass
+    
     
     def get_health_status(self) -> Dict[str, Any]:
         """Get the health status of the logger."""

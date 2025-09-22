@@ -92,11 +92,11 @@ CONFIGURATION:
 """
 
 from hydra_logger.types.enums import TimeUnit
-from .base import BaseHandler
-from .console import SyncConsoleHandler, AsyncConsoleHandler
-from .file import FileHandler
+from .base_handler import BaseHandler
+from .console_handler import SyncConsoleHandler, AsyncConsoleHandler
+from .file_handler import FileHandler
 # StreamHandler removed - simplified handlers
-from .null import NullHandler
+from .null_handler import NullHandler
 from .rotating_handler import (
     RotatingFileHandler,
     TimedRotatingFileHandler,
@@ -105,7 +105,7 @@ from .rotating_handler import (
     RotationConfig,
     RotationStrategy
 )
-from .network import (
+from .network_handler import (
     BaseNetworkHandler,
     HTTPHandler,
     WebSocketHandler,

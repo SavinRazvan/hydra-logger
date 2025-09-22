@@ -147,7 +147,7 @@ from dataclasses import dataclass
 from enum import Enum
 from collections import deque
 
-from hydra_logger.handlers.base import BaseHandler
+from hydra_logger.handlers.base_handler import BaseHandler
 from hydra_logger.types.records import LogRecord
 from hydra_logger.types.levels import LogLevel
 from hydra_logger.types.enums import TimeUnit

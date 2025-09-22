@@ -77,7 +77,7 @@ ERROR HANDLING:
 - Graceful operation
 """
 
-from .base import BaseHandler
+from .base_handler import BaseHandler
 from ..types.records import LogRecord
 
 

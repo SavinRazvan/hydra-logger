@@ -216,7 +216,7 @@ from ..types.records import LogRecordFactory
 from ..config.models import LoggingConfig, LogLayer, LogDestination
 from ..core.exceptions import HydraLoggerError
 from ..utils.time_utility import TimeUtility
-from ..handlers.base import BaseHandler
+from ..handlers.base_handler import BaseHandler
 
 
 class CompositeLogger(BaseLogger):
@@ -282,7 +282,7 @@ class CompositeLogger(BaseLogger):
         # For CompositeLogger, we're creating sub-loggers, so this might be simplified
         # or delegate to the sub-logger's handler creation.
         # For now, let's return a NullHandler as the actual handlers are managed by sub-loggers.
-        from ..handlers.null import NullHandler
+        from ..handlers.null_handler import NullHandler
         return NullHandler()
     
     def _initialize_components(self):
@@ -568,7 +568,7 @@ class CompositeAsyncLogger(BaseLogger):
         
         # Add default async console handler if no components and not using direct I/O
         if not self.components and not self._use_direct_io:
-            from ..handlers.console import AsyncConsoleHandler
+            from ..handlers.console_handler import AsyncConsoleHandler
             self.components.append(AsyncConsoleHandler(buffer_size=10000, flush_interval=0.1))
         
         # Initialize components
