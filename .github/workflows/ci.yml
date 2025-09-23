@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -32,7 +32,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev,all]"
+        pip install -e ".[dev]"
+        pip install -e ".[database,cloud,queues,network]"
     
     - name: Run tests with coverage
       run: |
@@ -60,7 +61,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev,all]"
+        pip install -e ".[dev]"
+        pip install -e ".[database,cloud,queues,network]"
     
     - name: Run flake8
       run: |
@@ -94,7 +96,8 @@ jobs:
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev,all]" build twine
+        pip install -e ".[dev]" build twine
+        pip install -e ".[database,cloud,queues,network]"
     
     - name: Build package
       run: |
@@ -124,7 +127,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev,all]"
+        pip install -e ".[dev]"
+        pip install -e ".[database,cloud,queues,network]"
     
     - name: Run bandit security scan
       run: |

@@ -49,7 +49,9 @@ setup(
         "toml>=0.10.0",
         "msgpack>=1.1.1",
         "psutil>=5.8.0",
-        "requests>=2.28.0",
+        "requests>=2.32.0",
+        "urllib3>=1.26.0,<3.0.0",
+        "charset-normalizer>=2.0.0",
         # Database handlers
         "psycopg2-binary>=2.9.0",  # PostgreSQL
         "pymongo>=4.0.0",          # MongoDB
@@ -76,6 +78,7 @@ setup(
             "mypy>=1.0.0",
             "bandit>=1.7.0",
             "safety>=2.3.0",
+            "tomli-w>=1.2.0",
         ],
         "database": [
             "psycopg2-binary>=2.9.0",

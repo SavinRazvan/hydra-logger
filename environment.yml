@@ -54,4 +54,5 @@ dependencies:
     
     # Build dependencies
     - build
-    - twine 
+    - twine
+    - tomli-w>=1.2.0 
