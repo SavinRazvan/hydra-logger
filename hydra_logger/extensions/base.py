@@ -15,7 +15,7 @@ class ExtensionConfig:
     """Base configuration for extensions."""
     enabled: bool = False
     name: str = ""
-    version: str = "1.0.0"
+    version: str = "0.4.0"
     description: str = ""
 
 
@@ -40,7 +40,7 @@ class Extension(ABC):
         self.config = config or {}
         self._enabled = self.config.get('enabled', False)
         self._name = self.config.get('name', self.__class__.__name__)
-        self._version = self.config.get('version', '1.0.0')
+        self._version = self.config.get('version', '0.4.0')
         self._description = self.config.get('description', '')
         
         # Initialize extension-specific configuration

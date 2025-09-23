@@ -173,5 +173,5 @@ __all__ = [
 ]
 
 # Version info
-__version__ = "1.0.0"
-__author__ = "Hydra-Logger Team"
+__version__ = "0.4.0"
+__author__ = "Savin Ionut Razvan"

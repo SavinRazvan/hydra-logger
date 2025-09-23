@@ -42,7 +42,7 @@ USAGE:
     logger = getLogger("my_app")
 """
 
-__version__ = "1.0.0"
+__version__ = "0.4.0"
 __author__ = "Savin Ionut Razvan"
 __license__ = "MIT"
 
