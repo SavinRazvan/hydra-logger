@@ -1,10 +1,10 @@
 """
 Hydra-Logger Configuration System
 
-A comprehensive, production-ready configuration system that provides:
+Configuration system providing:
 - Pydantic-based models with automatic validation and type safety
-- Fluent builder pattern for intuitive configuration creation
-- Magic configuration system for pre-built setups
+- Builder pattern for configuration creation
+- Pre-built configuration templates
 - Multi-format configuration loading (YAML, TOML, JSON, environment)
 - Configuration validation and error reporting
 - Template system for common use cases
@@ -29,15 +29,15 @@ The configuration system is built around three core concepts:
    - Supports all major output formats and protocols
 
 PYTHON LOGGING COMPATIBILITY:
-The system follows Python logging standards exactly:
+The system follows Python logging standards:
 
 - Logger Level (LogLayer.level): Controls message acceptance
-- Handler Level (LogDestination.level): Controls message processing  
+- Handler Level (LogDestination.level): Controls message processing
 - Global Default (LoggingConfig.default_level): Fallback for unspecified levels
 - Inheritance: Child levels inherit from parent when not explicitly set
 
-PERFORMANCE-FIRST DESIGN:
-- Security features disabled by default for maximum performance
+PERFORMANCE CONSIDERATIONS:
+- Security features disabled by default
 - Optimized validation with early exit on errors
 - LRU caching for frequently accessed configurations
 - Minimal memory footprint with efficient data structures
@@ -47,7 +47,7 @@ USAGE EXAMPLES:
 
 Basic Configuration:
     from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-    
+
     config = LoggingConfig(
         default_level="INFO",
         layers={
@@ -63,7 +63,7 @@ Basic Configuration:
 
 Using Builder Pattern:
     from hydra_logger.config import ConfigurationBuilder
-    
+
     config = (ConfigurationBuilder()
               .setLevel("INFO")
               .add_layer_builder("app")
@@ -74,7 +74,7 @@ Using Builder Pattern:
 
 Using Magic Configurations:
     from hydra_logger.config import get_magic_config
-    
+
     config = get_magic_config("production")  # Pre-built production config
 """
 
@@ -86,7 +86,7 @@ from .models import (
     FileHandlerConfig,
     ConsoleHandlerConfig,
     MemoryHandlerConfig,
-    ModularConfig
+    ModularConfig,
 )
 
 from .defaults import (
@@ -97,99 +97,89 @@ from .defaults import (
     get_production_config,
     get_named_config,
     list_available_configs,
-    templates
+    templates,
 )
 
 from .configuration_templates import (
-    ConfigurationTemplates,
     configuration_templates,
     register_configuration_template,
     get_configuration_template,
     list_configuration_templates,
     has_configuration_template,
-    validate_configuration_template
+    validate_configuration_template,
 )
 
 
 __all__ = [
     # Models
-    'LoggingConfig',
-    'LogLayer',
-    'LogDestination',
-    'HandlerConfig',
-    'FileHandlerConfig',
-    'ConsoleHandlerConfig',
-    'MemoryHandlerConfig',
-    'ModularConfig',
-    
+    "LoggingConfig",
+    "LogLayer",
+    "LogDestination",
+    "HandlerConfig",
+    "FileHandlerConfig",
+    "ConsoleHandlerConfig",
+    "MemoryHandlerConfig",
+    "ModularConfig",
     # Templates
-    'ConfigurationTemplates',
-    'get_default_config',
-    'get_custom_config',
-    'get_development_config',
-    'get_production_config',
-    'get_named_config',
-    'list_available_configs',
-    'templates',
-    
+    "ConfigurationTemplates",
+    "get_default_config",
+    "get_custom_config",
+    "get_development_config",
+    "get_production_config",
+    "get_named_config",
+    "list_available_configs",
+    "templates",
     # Configuration Templates
-    'ConfigurationTemplates',
-    'configuration_templates',
-    'register_configuration_template',
-    'get_configuration_template',
-    'list_configuration_templates',
-    'has_configuration_template',
-    'validate_configuration_template',
-    
+    "configuration_templates",
+    "register_configuration_template",
+    "get_configuration_template",
+    "list_configuration_templates",
+    "has_configuration_template",
+    "validate_configuration_template",
     # Builder
-    'ConfigurationBuilder',
-    'LayerBuilder',
-    'DestinationBuilder',
-    'create_console_config',
-    'create_file_config',
-    'create_dual_config',
-    'create_production_config',
-    'create_development_config',
-    'create_testing_config',
-    'create_python_logging_style_example',
-    
+    "ConfigurationBuilder",
+    "LayerBuilder",
+    "DestinationBuilder",
+    "create_console_config",
+    "create_file_config",
+    "create_dual_config",
+    "create_production_config",
+    "create_development_config",
+    "create_testing_config",
+    "create_python_logging_style_example",
     # Loaders
-    'load_config',
-    'load_config_from_dict',
-    'load_config_from_env',
-    'load_config_from_configs_dir',
-    'create_log_directories',
-    'validate_config',
-    'merge_configs',
-    'create_config_from_template',
-    'list_available_templates',
-    
+    "load_config",
+    "load_config_from_dict",
+    "load_config_from_env",
+    "load_config_from_configs_dir",
+    "create_log_directories",
+    "validate_config",
+    "merge_configs",
+    "create_config_from_template",
+    "list_available_templates",
     # Exporters
-    'save_config_to_yaml',
-    'save_config_to_toml',
-    'save_config_to_json',
-    'config_to_dict',
-    'config_to_yaml_string',
-    'config_to_toml_string',
-    'config_to_json_string',
-    'ConfigurationRegistry',
-    'config_registry',
-    'save_config',
-    'export_config',
-    
+    "save_config_to_yaml",
+    "save_config_to_toml",
+    "save_config_to_json",
+    "config_to_dict",
+    "config_to_yaml_string",
+    "config_to_toml_string",
+    "config_to_json_string",
+    "ConfigurationRegistry",
+    "config_registry",
+    "save_config",
+    "export_config",
     # Validators
-    'ConfigurationValidator',
-    'config_validator',
-    'validate_config_file',
-    'validate_config_data',
-    'validate_handler_config',
-    'get_validation_summary',
-    'clear_validation_results',
-    
+    "ConfigurationValidator",
+    "config_validator",
+    "validate_config_file",
+    "validate_config_data",
+    "validate_handler_config",
+    "get_validation_summary",
+    "clear_validation_results",
     # Setup
-    'LogsDirectoryManager',
-    'setup_logs_directory',
-    'get_logs_manager',
-    'ensure_logs_structure',
-
+    "LogsDirectoryManager",
+    "setup_logs_directory",
+    "get_logs_manager",
+    "ensure_logs_structure",
 ]
