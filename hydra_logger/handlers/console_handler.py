@@ -122,8 +122,8 @@ class SyncConsoleHandler(BaseHandler):
         self,
         stream: Optional[TextIO] = None,
         formatter: Optional[object] = None,
-        buffer_size: int = 1000,  # Optimal: 1000 (from performance tuner)
-        flush_interval: float = 0.1,  # Optimal: 0.1s (from performance tuner)
+        buffer_size: int = 5000,  # PERFORMANCE: Larger default buffer (5K messages)
+        flush_interval: float = 0.5,  # PERFORMANCE: Longer flush interval (0.5s)
         use_colors: bool = False
     ):
         """
@@ -193,19 +193,21 @@ class SyncConsoleHandler(BaseHandler):
         self._buffer.append(message)
         self._messages_processed += 1
         
-        # IMMEDIATE FLUSH FOR COLORS - No buffering when colors are enabled
-        if self._use_colors:
+        # PERFORMANCE: Batch even with colors (smaller batches for colors, but still batch)
+        # Colors can be batched - terminal will handle them correctly
+        current_time = time.perf_counter()
+        
+        # Use smaller buffer for colors (for faster visual feedback), larger for plain text
+        effective_buffer_size = max(10, self._buffer_size // 10) if self._use_colors else self._buffer_size
+        effective_flush_interval = max(0.01, self._flush_interval / 5) if self._use_colors else self._flush_interval
+        
+        should_flush = (
+            len(self._buffer) >= effective_buffer_size or
+            (current_time - self._last_flush) >= effective_flush_interval
+        )
+        
+        if should_flush:
             self._flush_buffer()
-        else:
-            # Check if we should flush (only for non-colored output)
-            current_time = time.perf_counter()
-            should_flush = (
-                len(self._buffer) >= self._buffer_size or
-                (current_time - self._last_flush) >= self._flush_interval
-            )
-            
-            if should_flush:
-                self._flush_buffer()
     
     def _flush_buffer(self) -> None:
         """Flush buffer to stream efficiently."""
@@ -260,8 +262,8 @@ class AsyncConsoleHandler(BaseHandler):
         self,
         stream: Optional[TextIO] = None,
         formatter: Optional[object] = None,
-        buffer_size: int = 1000,  # Optimal: 1000 (from performance tuner)
-        flush_interval: float = 0.1,  # Optimal: 0.1s (from performance tuner)
+        buffer_size: int = 5000,  # PERFORMANCE: Larger default buffer (5K messages)
+        flush_interval: float = 0.5,  # PERFORMANCE: Longer flush interval (0.5s)
         use_colors: bool = False
     ):
         """
@@ -287,14 +289,19 @@ class AsyncConsoleHandler(BaseHandler):
                 buffer_size = buffer_size or optimal_config["buffer_size"]
                 flush_interval = flush_interval or optimal_config["flush_interval"]
             except Exception:
-                # Fallback defaults
-                buffer_size = buffer_size or 1000
-                flush_interval = flush_interval or 0.1
+                # Fallback defaults (optimized for performance)
+                buffer_size = buffer_size or 5000
+                flush_interval = flush_interval or 0.5
         
         self._buffer_size = buffer_size
         self._flush_interval = flush_interval
         
-        # Simple async queue
+        # PERFORMANCE: Buffering for async emit_async (reduces I/O overhead)
+        self._async_buffer = []
+        self._async_buffer_lock = asyncio.Lock()
+        self._last_async_flush = time.perf_counter()
+        
+        # Simple async queue (for worker loop if needed)
         self._message_queue = asyncio.Queue(maxsize=buffer_size * 2)
         self._shutdown_event = asyncio.Event()
         self._worker_task = None
@@ -312,6 +319,9 @@ class AsyncConsoleHandler(BaseHandler):
         # Create formatter instances once for performance
         self._plain_formatter = None
         self._colored_formatter = None
+        
+        # PERFORMANCE: Thread pool for non-blocking console I/O
+        self._executor = None
         
         # Register for automatic cleanup
         atexit.register(self._auto_cleanup)
@@ -355,27 +365,71 @@ class AsyncConsoleHandler(BaseHandler):
     
     async def emit_async(self, record: LogRecord) -> None:
         """
-        Async emit method.
+        Async emit method with buffering and non-blocking I/O.
+        
+        PERFORMANCE: Uses buffering and run_in_executor to avoid blocking the event loop.
         
         Args:
             record: Log record to emit
         """
-        # Direct output - no worker loop needed since we write directly
-        # Worker loop is kept for potential future queuing, but not started here
-        # to avoid unnecessary tasks that can't be cleaned up properly
-        
         # Format message using cached formatter for performance
         formatter = self._get_formatter()
         message = formatter.format(record)
         
-        # Write directly to stream for immediate output (no queuing!)
-        try:
-            self._stream.write(message + '\n')
-            self._stream.flush()
+        # PERFORMANCE: Buffer messages and flush in batches (much faster than individual writes)
+        async with self._async_buffer_lock:
+            self._async_buffer.append(message)
             self._messages_processed += 1
+            
+            # Check if we should flush
+            current_time = time.perf_counter()
+            should_flush = (
+                len(self._async_buffer) >= self._buffer_size or
+                (current_time - self._last_async_flush) >= self._flush_interval
+            )
+            
+            if should_flush:
+                # Flush buffer using non-blocking I/O
+                await self._flush_async_buffer()
+    
+    async def _flush_async_buffer(self) -> None:
+        """Flush async buffer using non-blocking I/O."""
+        if not self._async_buffer:
+            return
+        
+        # Get messages to flush and clear buffer
+        messages_to_flush = self._async_buffer.copy()
+        self._async_buffer.clear()
+        self._last_async_flush = time.perf_counter()
+        
+        # PERFORMANCE: Use run_in_executor for non-blocking console I/O
+        # This prevents blocking the event loop with synchronous stream.write()
+        try:
+            loop = asyncio.get_event_loop()
+            
+            # Join all messages and write in one operation (much faster)
+            combined_message = '\n'.join(messages_to_flush) + '\n'
+            
+            # Run I/O in executor to avoid blocking event loop
+            await loop.run_in_executor(
+                None,
+                lambda: self._write_to_stream(combined_message)
+            )
+            
+            # Update statistics
+            self._total_bytes_written += len(combined_message.encode('utf-8'))
+            
         except Exception:
             # If console output fails, don't block the entire system
-            self._messages_dropped += 1
+            self._messages_dropped += len(messages_to_flush)
+    
+    def _write_to_stream(self, message: str) -> None:
+        """Write to stream (called from executor to avoid blocking)."""
+        try:
+            self._stream.write(message)
+            self._stream.flush()
+        except Exception:
+            pass
     
     async def _start_worker(self) -> None:
         """Start async worker task."""
@@ -470,7 +524,9 @@ class AsyncConsoleHandler(BaseHandler):
     
     async def _write_messages(self, messages: list) -> None:
         """
-        Write messages to stream efficiently.
+        Write messages to stream efficiently using non-blocking I/O.
+        
+        PERFORMANCE: Uses run_in_executor to avoid blocking the event loop.
         
         Args:
             messages: List of messages to write
@@ -480,11 +536,18 @@ class AsyncConsoleHandler(BaseHandler):
         
         # Join all messages with newlines and write in one operation
         combined_message = '\n'.join(messages) + '\n'
-        self._stream.write(combined_message)
-        self._stream.flush()
         
-        # Update statistics
-        self._total_bytes_written += len(combined_message.encode('utf-8'))
+        # PERFORMANCE: Use run_in_executor for non-blocking I/O
+        try:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: self._write_to_stream(combined_message)
+            )
+            # Update statistics
+            self._total_bytes_written += len(combined_message.encode('utf-8'))
+        except Exception:
+            self._messages_dropped += len(messages)
     
     def _auto_cleanup(self) -> None:
         """Cleanup handler on exit."""
@@ -503,6 +566,11 @@ class AsyncConsoleHandler(BaseHandler):
     
     async def aclose(self) -> None:
         """Close async handler and cleanup resources."""
+        # PERFORMANCE: Flush any remaining buffered messages before closing
+        async with self._async_buffer_lock:
+            if self._async_buffer:
+                await self._flush_async_buffer()
+        
         # Signal shutdown first - worker loop will exit immediately
         self._shutdown_event.set()
         self._running = False

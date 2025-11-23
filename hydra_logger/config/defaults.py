@@ -109,6 +109,12 @@ class ConfigurationTemplates:
         - Console + file output
         - Fast formatting
         - Optimized buffering
+        
+        Performance optimizations:
+        - Uses async_console for better throughput (non-blocking)
+        - Larger buffer sizes (5000 messages) for batching
+        - Longer flush intervals (0.5s) to reduce I/O frequency
+        - Colors disabled by default (enable with use_colors=True)
         """
         return LoggingConfig(
             # All features disabled by default
@@ -117,15 +123,17 @@ class ConfigurationTemplates:
             enable_sanitization=False,
             enable_plugins=False,
             enable_performance_monitoring=False,
-            # Fast buffering and flushing
-            buffer_size=8192,
-            flush_interval=1.0,
+            # PERFORMANCE: Larger buffers for better batching (reduces I/O frequency)
+            buffer_size=16384,  # 16K buffer (larger = better performance)
+            flush_interval=0.5,  # 0.5s flush (balance between latency and throughput)
             layers={
                 "default": LogLayer(
                     level="INFO",
                     destinations=[
                         LogDestination(
-                            type="console", format="colored", use_colors=True
+                            type="async_console",  # Use async for better performance
+                            format="plain-text",  # Faster than colored
+                            use_colors=False,  # Disable colors for performance
                         ),
                         LogDestination(
                             type="file",
@@ -198,8 +206,9 @@ class ConfigurationTemplates:
         destinations = []
 
         if console_enabled:
+            # Use async_console for better performance (non-blocking I/O)
             destinations.append(
-                LogDestination(type="console", format="colored", use_colors=True)
+                LogDestination(type="async_console", format="plain-text", use_colors=False)
             )
 
         if file_enabled:
@@ -216,9 +225,9 @@ class ConfigurationTemplates:
             )
 
         if not destinations:
-            # Fallback to console if no destinations specified
+            # Fallback to async_console if no destinations specified (better performance)
             destinations.append(
-                LogDestination(type="console", format="colored", use_colors=True)
+                LogDestination(type="async_console", format="plain-text", use_colors=False)
             )
 
         # Build layers
@@ -296,7 +305,7 @@ class ConfigurationTemplates:
                         max_size="2MB",
                         backup_count=10,
                     ),
-                    LogDestination(type="console", format="colored", use_colors=True),
+                    LogDestination(type="async_console", format="plain-text", use_colors=False),
                 ],
             )
 
@@ -325,13 +334,20 @@ class ConfigurationTemplates:
         - DEBUG level for detailed logging
         - Fast flush for immediate feedback
         - Performance monitoring disabled for speed
+        
+        Performance optimizations:
+        - Uses async_console for better throughput
+        - Fast-plain format (faster than colored)
+        - Optimized buffer sizes
         """
-        return ConfigurationTemplates.get_custom_config(
+        config = ConfigurationTemplates.get_custom_config(
             default_level="DEBUG",
             flush_interval=0.1,  # Fast feedback
             debug_layer=True,  # Dedicated debug output
             file_format="fast-plain",  # Faster formatting
         )
+        # Config already uses async_console from get_custom_config, no override needed
+        return config
 
     @staticmethod
     def get_production_config() -> LoggingConfig:
@@ -342,8 +358,14 @@ class ConfigurationTemplates:
         - Security and monitoring enabled
         - Larger buffers for performance
         - Dedicated error layer
+        
+        Performance optimizations:
+        - Uses async_console for better throughput
+        - Larger buffer sizes for batching
+        - Longer flush intervals to reduce I/O
+        - Colors disabled (not needed in production logs)
         """
-        return ConfigurationTemplates.get_custom_config(
+        config = ConfigurationTemplates.get_custom_config(
             enable_security=True,
             enable_sanitization=True,
             enable_performance_monitoring=True,
@@ -352,6 +374,13 @@ class ConfigurationTemplates:
             error_layer=True,  # Dedicated error logging
             file_format="json-lines",  # Structured logging
         )
+        # Override console to use async_console for better performance
+        if "default" in config.layers:
+            for dest in config.layers["default"].destinations:
+                if dest.type == "console":
+                    dest.type = "async_console"
+                    dest.use_colors = False  # Disable colors in production
+        return config
 
 
 # Global instance for easy access

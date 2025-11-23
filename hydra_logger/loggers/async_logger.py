@@ -406,8 +406,8 @@ class AsyncLogger(BaseLogger):
             handler = AsyncConsoleHandler(
                 stream=sys.stdout,
                 use_colors=destination.use_colors,  # Use the actual value from destination
-                buffer_size=10000,  # Process more messages in bulk
-                flush_interval=1.0   # Less frequent flushes
+                buffer_size=5000,  # Larger buffer for better batching
+                flush_interval=0.5   # Balanced flush interval (throughput vs latency)
             )
             # Set formatter for console
             use_colors = destination.use_colors  # Use the actual value from destination

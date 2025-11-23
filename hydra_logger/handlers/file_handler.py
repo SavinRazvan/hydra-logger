@@ -406,9 +406,9 @@ class AsyncFileHandler(BaseHandler):
         self._disk_buffer = []  # Secondary disk buffer
         self._last_disk_flush = time.time()
         
-        # CRITICAL FIX: Worker coordination to prevent duplicates
-        self._worker_lock = asyncio.Lock()  # Prevent multiple workers from processing same messages
-        self._active_worker = None  # Track which worker is active
+        # PERFORMANCE: File write lock for thread-safe concurrent writes
+        # Multiple workers can process in parallel, but file writes are serialized
+        self._file_write_lock = asyncio.Lock()  # Serialize file writes for data integrity
         
         # CRITICAL FIX: Ensure directory exists
         try:
@@ -500,28 +500,29 @@ class AsyncFileHandler(BaseHandler):
         
         while not self._shutdown_event.is_set():
             try:
-                # CRITICAL FIX: Only one worker processes at a time to prevent duplicates
-                async with self._worker_lock:
-                    # Direct memory-to-file processing
-                    messages_to_process = []
-                    batch_start_time = TimeUtility.perf_counter()
-                    
-                    # Collect messages from queue
-                    while len(messages_to_process) < self._current_batch_size and not self._message_queue.empty():
-                        try:
-                            message = self._message_queue.get_nowait()
-                            messages_to_process.append(message)
-                            self._message_queue.task_done()
-                        except asyncio.QueueEmpty:
-                            break
-                    
-                    # Direct write from memory to file
-                    if messages_to_process:
-                        await self._direct_memory_to_file_write(messages_to_process)
-                        self._messages_processed += len(messages_to_process)
-                    
-                    # Dynamic optimization
-                    await self._optimization(batch_start_time, len(messages_to_process))
+                # PERFORMANCE: Remove global lock - use per-worker message collection
+                # Each worker collects its own batch from the shared queue
+                # This allows true parallel processing when num_workers > 1
+                messages_to_process = []
+                batch_start_time = TimeUtility.perf_counter()
+                
+                # Collect messages from queue (non-blocking, no lock needed)
+                # Queue.get_nowait() is thread-safe, so multiple workers can safely collect
+                while len(messages_to_process) < self._current_batch_size and not self._message_queue.empty():
+                    try:
+                        message = self._message_queue.get_nowait()
+                        messages_to_process.append(message)
+                        self._message_queue.task_done()
+                    except asyncio.QueueEmpty:
+                        break
+                
+                # Direct write from memory to file (each worker writes independently)
+                if messages_to_process:
+                    await self._direct_memory_to_file_write(messages_to_process)
+                    self._messages_processed += len(messages_to_process)
+                
+                # Dynamic optimization (per-worker, no lock needed)
+                await self._optimization(batch_start_time, len(messages_to_process))
                 
                 # Micro-sleep for throughput
                 if not messages_to_process:
@@ -599,32 +600,61 @@ class AsyncFileHandler(BaseHandler):
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
             
-            # Write all messages at once for performance
+            # PERFORMANCE: Join all messages before writing (single I/O operation)
+            combined_message = ''.join(messages)
+            
+            # Write all messages at once for performance (thread-safe)
             with self._file_lock:
-                with open(self._filename, self._mode, encoding=self._encoding, buffering=65536) as f:
-                    for message in messages:
-                        f.write(message)
-                        self._total_bytes_written += len(message)
+                with open(self._filename, self._mode, encoding=self._encoding, buffering=16777216) as f:  # 16MB buffer
+                    f.write(combined_message)
+                    f.flush()
+                    self._total_bytes_written += len(combined_message.encode(self._encoding))
                         
         except Exception as e:
             print(f"Bulk disk write error: {e}", file=sys.stderr)
             raise
     
     async def _bulk_write_to_disk_async(self, messages: list):
-        """Async bulk write to disk."""
+        """
+        Async bulk write to disk with file locking and optimized batching.
+        
+        PERFORMANCE: Joins all messages before writing (single I/O operation).
+        Uses file lock to ensure thread-safe concurrent writes.
+        """
+        if not messages:
+            return
+            
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
             
-            # Write all messages at once
-            with open(self._filename, self._mode, encoding=self._encoding, buffering=65536) as f:
-                for message in messages:
-                    f.write(message)
-                    self._total_bytes_written += len(message)
+            # PERFORMANCE: Join all messages before writing (single I/O operation)
+            # This is much faster than writing each message separately
+            combined_message = ''.join(messages)
+            
+            # PERFORMANCE: Serialize file writes for data integrity (multiple workers can process in parallel)
+            async with self._file_write_lock:
+                # Use aiofiles for true async I/O if available, otherwise use executor
+                try:
+                    import aiofiles
+                    async with aiofiles.open(self._filename, mode=self._mode, encoding=self._encoding) as f:
+                        await f.write(combined_message)
+                        await f.flush()
+                except ImportError:
+                    # Fallback: use executor for non-blocking I/O
+                    loop = asyncio.get_event_loop()
+                    def write_sync():
+                        with open(self._filename, self._mode, encoding=self._encoding, buffering=16777216) as f:  # 16MB buffer
+                            f.write(combined_message)
+                            f.flush()
+                    await loop.run_in_executor(None, write_sync)
+                
+                # Update statistics
+                self._total_bytes_written += len(combined_message.encode(self._encoding))
                     
         except Exception as e:
             print(f"Async bulk disk write error: {e}", file=sys.stderr)
-            raise
+            self._messages_dropped += len(messages)
     
     async def _optimization(self, batch_start_time: float, messages_processed: int):
         """Dynamic optimization."""

@@ -19,6 +19,7 @@ import sys
 import time
 import statistics
 import json
+import gc
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
@@ -402,7 +403,6 @@ class HydraLoggerBenchmark:
             self._cleanup_logger_cache()
             
             # Step 7: Force garbage collection to free memory
-            import gc
             gc.collect()
                             
         except RuntimeError:
@@ -1212,11 +1212,20 @@ class HydraLoggerBenchmark:
         """
         Test performance with different configurations.
         
+        NOTE: These tests use REAL-WORLD configurations that include console handlers.
+        Console I/O is inherently slow (10-15K msg/s) because it's synchronous blocking I/O.
+        This is expected and represents actual user experience with default configs.
+        
+        For comparison, the other performance tests use file-only handlers (30K-400K+ msg/s)
+        to measure true logger performance without I/O bottlenecks.
+        
         Returns:
             Dict containing performance metrics for different configurations
         """
         print("\nTesting Configuration Performance...")
         print("   Testing different configuration impacts...")
+        print("   NOTE: These use real-world configs with console handlers (slower I/O)")
+        print("   For optimized performance, use file-only handlers (see other tests)")
         
         configs = {
             'default': get_default_config(),
@@ -1242,13 +1251,18 @@ class HydraLoggerBenchmark:
             
             # Flush before timing
             self._flush_all_handlers(logger)
+            time.sleep(0.1)  # Brief pause for I/O to settle
             
             start_time = time.perf_counter()
             for i in range(message_count):
                 logger.info(f"{config_name.title()} config benchmark message {i}")
             # Flush after logging
             self._flush_all_handlers(logger)
+            # End timing BEFORE sleep to measure actual logging performance
             end_time = time.perf_counter()
+            
+            # Brief pause for I/O to complete (for accurate measurement, not performance)
+            time.sleep(0.1)
             
             duration = end_time - start_time
             messages_per_second = message_count / duration
@@ -1262,17 +1276,23 @@ class HydraLoggerBenchmark:
             config_results[config_name] = {
                 'messages_per_second': messages_per_second,
                 'duration': duration,
-                'total_messages': message_count
+                'total_messages': message_count,
+                'note': 'Real-world config with console handlers (slower I/O)'
             }
             
-            print(f"   {config_name.title()} Config: {messages_per_second:,.0f} msg/s")
+            print(f"   {config_name.title()} Config: {messages_per_second:,.0f} msg/s (with console I/O)")
         
         print("   Configuration Performance: COMPLETED")
+        print("   Note: Slower speeds are expected due to console handler I/O bottleneck")
         return config_results
         
     def test_memory_usage(self) -> Dict[str, Any]:
         """
         Test memory usage patterns.
+        
+        Uses multiple samples and garbage collection for accurate measurement.
+        RSS (Resident Set Size) includes process overhead, so measurements
+        represent actual process memory usage including Python overhead.
         
         Returns:
             Dict containing memory usage metrics
@@ -1283,9 +1303,23 @@ class HydraLoggerBenchmark:
         try:
             import psutil
             import os
+            import gc
             
             process = psutil.Process(os.getpid())
-            initial_memory = process.memory_info().rss / 1024 / 1024  # MB
+            
+            # Force garbage collection before initial measurement to get clean baseline
+            # This ensures we're not measuring leftover objects from previous tests
+            gc.collect()
+            gc.collect()  # Second pass to handle circular references
+            
+            # Take multiple samples and average for more accurate measurement
+            # Python's memory allocator works in chunks, so single samples can be noisy
+            initial_samples = []
+            for _ in range(3):
+                initial_samples.append(process.memory_info().rss / 1024 / 1024)  # MB
+                time.sleep(0.01)  # Brief pause between samples
+            
+            initial_memory = statistics.mean(initial_samples)
             
             # Test with multiple loggers
             loggers = []
@@ -1300,20 +1334,45 @@ class HydraLoggerBenchmark:
                 self._logger_names.append(logger_name)
                 logger.info(f"Memory test message {i}")
             
-            final_memory = process.memory_info().rss / 1024 / 1024  # MB
+            # Flush handlers to ensure all memory allocations are complete
+            for logger in loggers:
+                try:
+                    self._flush_all_handlers(logger)
+                except Exception:
+                    pass
+            
+            # Force garbage collection again to ensure we're measuring actual allocations
+            # (not just freed memory that Python's allocator is holding onto)
+            gc.collect()
+            
+            # Take multiple samples after logger creation for more accurate measurement
+            final_samples = []
+            for _ in range(3):
+                final_samples.append(process.memory_info().rss / 1024 / 1024)  # MB
+                time.sleep(0.01)  # Brief pause between samples
+            
+            final_memory = statistics.mean(final_samples)
             memory_increase = final_memory - initial_memory
+            
+            # Calculate memory per logger (this includes logger overhead + one log message)
+            memory_per_logger = memory_increase / logger_count if logger_count > 0 else 0
             
             result = {
                 'initial_memory_mb': initial_memory,
                 'final_memory_mb': final_memory,
                 'memory_increase_mb': memory_increase,
                 'loggers_created': logger_count,
-                'memory_per_logger_mb': memory_increase / logger_count if logger_count > 0 else 0,
+                'memory_per_logger_mb': memory_per_logger,
+                'initial_samples': initial_samples,  # For debugging
+                'final_samples': final_samples,  # For debugging
                 'status': 'COMPLETED'
             }
             
+            print(f"   Initial Memory (avg): {initial_memory:.2f} MB")
+            print(f"   Final Memory (avg): {final_memory:.2f} MB")
             print(f"   Memory Increase: {memory_increase:.2f} MB for {logger_count} loggers")
-            print(f"   Memory per Logger: {result['memory_per_logger_mb']:.4f} MB")
+            print(f"   Memory per Logger: {memory_per_logger:.4f} MB")
+            print("   Note: RSS includes Python overhead; actual logger memory may be lower")
             print("   Memory Usage: COMPLETED")
             
             return result
