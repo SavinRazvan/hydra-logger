@@ -1,20 +1,20 @@
 """
 File Handlers for Hydra-Logger
 
-This module provides comprehensive file handling capabilities with separate
+This module provides  file handling capabilities with separate
 synchronous and asynchronous implementations for optimal performance. Each
 handler is designed to do one thing well with minimal overhead.
 
 ARCHITECTURE:
-- SyncFileHandler: Pure synchronous file I/O with intelligent buffering
+- SyncFileHandler: Pure synchronous file I/O with buffering
 - AsyncFileHandler: Asynchronous file I/O with queue-based processing
 - FileHandler: Unified interface that automatically selects the best implementation
-- Intelligent buffering for high throughput
+- buffering for high throughput
 - Binary format support for specialized use cases
 
 PERFORMANCE FEATURES:
-- Intelligent buffering (1000 messages or 1s intervals by default)
-- Batch writing for maximum throughput
+- buffering (1000 messages or 1s intervals by default)
+- Batch writing for throughput
 - Lazy file opening and automatic cleanup
 - Memory-efficient buffer management
 - Performance statistics and monitoring
@@ -85,7 +85,7 @@ CONFIGURATION OPTIONS:
 - buffer_size: Buffer size for batching (default: 1000)
 - flush_interval: Flush interval in seconds (default: 1.0)
 - bulk_size: Batch size for async processing (default: 100)
-- max_queue_size: Maximum queue size for async handler (default: 10000)
+- max_queue_size: Queue size limit for async handler (default: 10000)
 
 THREAD SAFETY:
 - SyncFileHandler: Thread-safe with proper locking
@@ -96,7 +96,7 @@ THREAD SAFETY:
 ERROR HANDLING:
 - Graceful error handling and recovery
 - Automatic fallback mechanisms
-- Comprehensive error logging
+- Error logging
 - Non-blocking error recovery
 - Automatic cleanup on exit
 """
@@ -144,8 +144,19 @@ class SyncFileHandler(BaseHandler):
         self._mode = mode
         self._encoding = encoding
         self._file_handle = None
+
+        # Performance optimization: Buffering - auto-detect if None
+        if buffer_size is None or flush_interval is None:
+            try:
+                from ..utils.system_detector import get_optimal_buffer_config
+                optimal_config = get_optimal_buffer_config("file")
+                buffer_size = buffer_size or optimal_config["buffer_size"]
+                flush_interval = flush_interval or optimal_config["flush_interval"]
+            except Exception:
+                # Fallback defaults
+                buffer_size = buffer_size or 1000
+                flush_interval = flush_interval or 1.0
         
-        # Performance optimization: Buffering
         self._buffer_size = buffer_size
         self._flush_interval = flush_interval
         self._buffer = deque(maxlen=buffer_size)
@@ -370,7 +381,7 @@ class AsyncFileHandler(BaseHandler):
     - Dynamic worker management with smart scaling
     - Adaptive batching based on load and performance
     - Data integrity with guaranteed delivery
-    - Performance optimization with intelligent buffering
+    - Performance optimization with buffering
     - Error recovery and resilience
     - Memory-efficient processing
     """
@@ -379,7 +390,7 @@ class AsyncFileHandler(BaseHandler):
                  bulk_size: int = 1000, max_queue_size: int = 100000, timestamp_config=None, 
                  num_workers: int = 1, use_threading: bool = True, 
                  memory_buffer_size: int = 50000, disk_flush_interval: float = 2.0):
-        """Initialize REVOLUTIONARY hybrid memory-disk handler for 50K+ msg/s."""
+        """Initialize Direct hybrid memory-disk handler for high throughput."""
         super().__init__(name="async_file", level=LogLevel.NOTSET, timestamp_config=timestamp_config)
         self._filename = filename
         self._mode = mode
@@ -388,30 +399,30 @@ class AsyncFileHandler(BaseHandler):
         self._num_workers = num_workers
         self._use_threading = use_threading
         
-        # 🚀 REVOLUTIONARY: Hybrid Memory-Disk Architecture
-        self._memory_buffer_size = memory_buffer_size  # Massive memory buffer
+        # Hybrid Memory-Disk Architecture
+        self._memory_buffer_size = memory_buffer_size  # Memory buffer
         self._disk_flush_interval = disk_flush_interval  # Less frequent disk writes
         self._memory_buffer = []  # Primary memory buffer
         self._disk_buffer = []  # Secondary disk buffer
         self._last_disk_flush = time.time()
         
-        # 🚀 CRITICAL FIX: Worker coordination to prevent duplicates
+        # CRITICAL FIX: Worker coordination to prevent duplicates
         self._worker_lock = asyncio.Lock()  # Prevent multiple workers from processing same messages
         self._active_worker = None  # Track which worker is active
         
-        # ✅ CRITICAL FIX: Ensure directory exists
+        # CRITICAL FIX: Ensure directory exists
         try:
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         except Exception as e:
             print(f"Warning: Could not create directory for {filename}: {e}")
         
-        # ✅ ULTRA-HIGH PERFORMANCE: Smart queue management with threading
+        # High performance: Smart queue management with threading
         self._message_queue = asyncio.Queue(maxsize=max_queue_size)
         self._shutdown_event = asyncio.Event()
         self._worker_tasks = []  # Multiple worker tasks
         self._running = False
         
-        # ✅ THREADING SUPPORT: For 50K+ msg/s performance
+        # THREADING SUPPORT: for performance
         if self._use_threading:
             import threading
             from concurrent.futures import ThreadPoolExecutor
@@ -421,25 +432,25 @@ class AsyncFileHandler(BaseHandler):
             self._thread_pool = None
             self._file_lock = None
         
-        # ✅ ULTRA-HIGH PERFORMANCE: Massive batching for 50K+ msg/s
+        # High performance: Batching for throughput
         self._base_batch_size = bulk_size * 10  # Start with larger batches
         self._current_batch_size = bulk_size * 10
         self._max_batch_size = bulk_size * 100  # Much larger max batches
         self._min_batch_size = max(1, bulk_size // 5)  # Higher minimum
         
-        # ✅ ULTRA-HIGH PERFORMANCE: Optimized flush intervals for 50K+ msg/s
+        # High performance: Optimized flush intervals for high throughput
         self._base_flush_interval = 0.1  # Much faster flushing
         self._current_flush_interval = 0.1
         self._max_flush_interval = 1.0  # Shorter max interval
         self._min_flush_interval = 0.01  # Very fast minimum
         self._last_flush = TimeUtility.perf_counter()
         
-        # ✅ ULTRA-HIGH PERFORMANCE: Massive buffering for 50K+ msg/s
+        # High performance: Buffering for throughput
         self._message_buffer = []
         self._buffer_capacity = max_queue_size  # Use full queue capacity
         self._overflow_buffer = []  # Overflow protection
         
-        # ✅ PERFORMANCE METRICS: Dynamic optimization data
+        # PERFORMANCE METRICS: Dynamic optimization data
         self._messages_processed = 0
         self._messages_dropped = 0
         self._total_bytes_written = 0
@@ -460,8 +471,8 @@ class AsyncFileHandler(BaseHandler):
         self._start_worker()
     
     def _start_worker(self):
-        """Start multiple async worker tasks for 50K+ msg/s performance."""
-        # ✅ CRITICAL FIX: Prevent multiple worker starts
+        """Start multiple async worker tasks for high throughput performance."""
+        # CRITICAL FIX: Prevent multiple worker starts
         if self._running or self._worker_tasks:
             return
         
@@ -474,28 +485,28 @@ class AsyncFileHandler(BaseHandler):
                     task = loop.create_task(self._message_processor(f"Worker-{i+1}"))
                     self._worker_tasks.append(task)
                 self._running = True
-                print(f"🚀 Started {self._num_workers} ultra-high performance async workers for {self._filename}")
+                print(f"Started {self._num_workers} async workers for {self._filename}")
             except RuntimeError:
                 # No event loop running, defer worker start
-                print(f"⚠️  No event loop running, deferring worker start for {self._filename}")
+                print(f"No event loop running, deferring worker start for {self._filename}")
                 self._running = False
         except Exception as e:
             print(f"Failed to start async file workers: {e}", file=sys.stderr)
             self._running = False
     
     async def _message_processor(self, worker_name: str = "Worker"):
-        """REVOLUTIONARY direct memory-to-file processor for MAXIMUM performance (100K+ msg/s)."""
-        print(f"🚀 {worker_name} started for {self._filename}")
+        """Direct direct memory-to-file processor for performance."""
+        print(f"{worker_name} started for {self._filename}")
         
         while not self._shutdown_event.is_set():
             try:
-                # 🚀 CRITICAL FIX: Only one worker processes at a time to prevent duplicates
+                # CRITICAL FIX: Only one worker processes at a time to prevent duplicates
                 async with self._worker_lock:
-                    # 🚀 REVOLUTIONARY: Direct memory-to-file processing
+                    # Direct memory-to-file processing
                     messages_to_process = []
                     batch_start_time = TimeUtility.perf_counter()
                     
-                    # Collect messages from queue (ultra-fast)
+                    # Collect messages from queue
                     while len(messages_to_process) < self._current_batch_size and not self._message_queue.empty():
                         try:
                             message = self._message_queue.get_nowait()
@@ -504,29 +515,29 @@ class AsyncFileHandler(BaseHandler):
                         except asyncio.QueueEmpty:
                             break
                     
-                    # 🚀 REVOLUTIONARY: DIRECT WRITE from memory to file (NO intermediate buffers!)
+                    # Direct write from memory to file
                     if messages_to_process:
                         await self._direct_memory_to_file_write(messages_to_process)
                         self._messages_processed += len(messages_to_process)
                     
-                    # 🚀 REVOLUTIONARY: Dynamic optimization
-                    await self._revolutionary_optimization(batch_start_time, len(messages_to_process))
+                    # Dynamic optimization
+                    await self._optimization(batch_start_time, len(messages_to_process))
                 
-                # 🚀 REVOLUTIONARY: Micro-sleep for maximum throughput
+                # Micro-sleep for throughput
                 if not messages_to_process:
-                    await asyncio.sleep(0.0001)  # Ultra-short sleep
+                    await asyncio.sleep(0.0001)  # Short sleep
                     
             except Exception as e:
-                print(f"Revolutionary processor error: {e}", file=sys.stderr)
+                print(f"Processor error: {e}", file=sys.stderr)
                 await asyncio.sleep(0.001)  # Brief delay on error
     
     async def _direct_memory_to_file_write(self, messages: list):
-        """REVOLUTIONARY: Direct memory-to-file write for MAXIMUM performance (100K+ msg/s)."""
+        """Direct memory-to-file write for performance."""
         if not messages:
             return
         
         try:
-            # 🚀 REVOLUTIONARY: Direct write from memory to file (NO intermediate buffers!)
+            # Direct write from memory to file
             if self._use_threading and self._thread_pool:
                 # Use threading for non-blocking disk I/O
                 loop = asyncio.get_event_loop()
@@ -543,13 +554,13 @@ class AsyncFileHandler(BaseHandler):
             print(f"Direct memory-to-file write error: {e}", file=sys.stderr)
     
     async def _smart_memory_to_disk_transfer(self):
-        """REVOLUTIONARY: Smart memory-to-disk transfer for maximum performance."""
+        """Smart memory-to-disk transfer for performance."""
         # Only transfer when memory buffer is full or time interval passed
         current_time = time.time()
         time_since_flush = current_time - self._last_disk_flush
         
         should_transfer = (
-            len(self._memory_buffer) >= self._memory_buffer_size or
+            (self._memory_buffer_size is not None and len(self._memory_buffer) >= self._memory_buffer_size) or
             time_since_flush >= self._disk_flush_interval
         )
         
@@ -559,8 +570,8 @@ class AsyncFileHandler(BaseHandler):
             self._memory_buffer.clear()
             self._last_disk_flush = current_time
     
-    async def _ultra_fast_disk_flush(self):
-        """REVOLUTIONARY: Ultra-fast disk flush with massive batching."""
+    async def _fast_disk_flush(self):
+        """Fast disk flush with batching."""
         if not self._disk_buffer:
             return
         
@@ -580,15 +591,15 @@ class AsyncFileHandler(BaseHandler):
             self._disk_buffer.clear()
                     
         except Exception as e:
-            print(f"Ultra-fast disk flush error: {e}", file=sys.stderr)
+            print(f"Fast disk flush error: {e}", file=sys.stderr)
     
     def _bulk_write_to_disk(self, messages: list):
-        """REVOLUTIONARY: Bulk write to disk with maximum performance."""
+        """Bulk write to disk with performance."""
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
             
-            # Write all messages at once (massive performance gain)
+            # Write all messages at once for performance
             with self._file_lock:
                 with open(self._filename, self._mode, encoding=self._encoding, buffering=65536) as f:
                     for message in messages:
@@ -600,7 +611,7 @@ class AsyncFileHandler(BaseHandler):
             raise
     
     async def _bulk_write_to_disk_async(self, messages: list):
-        """REVOLUTIONARY: Async bulk write to disk."""
+        """Async bulk write to disk."""
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
@@ -615,8 +626,8 @@ class AsyncFileHandler(BaseHandler):
             print(f"Async bulk disk write error: {e}", file=sys.stderr)
             raise
     
-    async def _revolutionary_optimization(self, batch_start_time: float, messages_processed: int):
-        """REVOLUTIONARY: Dynamic optimization for 50K+ msg/s."""
+    async def _optimization(self, batch_start_time: float, messages_processed: int):
+        """Dynamic optimization."""
         current_time = TimeUtility.perf_counter()
         batch_duration = current_time - batch_start_time
         
@@ -634,11 +645,11 @@ class AsyncFileHandler(BaseHandler):
         
         # Optimize every 2 seconds
         if current_time - self._last_performance_check >= 2.0:
-            await self._revolutionary_parameter_adjustment()
+            await self._parameter_adjustment()
             self._last_performance_check = current_time
     
-    async def _revolutionary_parameter_adjustment(self):
-        """REVOLUTIONARY: Adjust parameters for maximum performance."""
+    async def _parameter_adjustment(self):
+        """Adjust parameters for performance."""
         if len(self._performance_samples) < 5:
             return
         
@@ -650,7 +661,7 @@ class AsyncFileHandler(BaseHandler):
         if total_duration > 0:
             avg_throughput = total_messages / total_duration
             
-            # Aggressive optimization for 50K+ msg/s
+            # Aggressive optimization for high throughput
             if avg_throughput > 10000:  # High throughput
                 self._current_batch_size = min(self._max_batch_size, int(self._current_batch_size * 1.5))
                 self._current_flush_interval = max(self._min_flush_interval, self._current_flush_interval * 0.8)
@@ -673,7 +684,7 @@ class AsyncFileHandler(BaseHandler):
         overflow_based = len(self._overflow_buffer) > 0
         
         # Force flush if buffer is getting too large
-        force_flush = len(self._message_buffer) >= self._buffer_capacity * 0.8
+        force_flush = (self._buffer_capacity is not None and len(self._message_buffer) >= self._buffer_capacity * 0.8) if self._buffer_capacity is not None else False
         
         return time_based or size_based or overflow_based or force_flush
     
@@ -707,7 +718,7 @@ class AsyncFileHandler(BaseHandler):
                 self._message_buffer.clear()
     
     async def _write_messages_to_file(self, messages: list):
-        """Write messages to file with ultra-high performance threading."""
+        """Write messages to file with High performance threading."""
         try:
             if self._use_threading and self._thread_pool:
                 # Use thread pool for file I/O to avoid blocking async loop
@@ -726,7 +737,7 @@ class AsyncFileHandler(BaseHandler):
             raise
     
     def _write_messages_threaded(self, messages: list):
-        """Write messages to file in thread for maximum performance."""
+        """Write messages to file in thread for performance."""
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
@@ -824,19 +835,33 @@ class AsyncFileHandler(BaseHandler):
             # Wait for all workers to finish
             if self._worker_tasks:
                 try:
-                    await asyncio.wait_for(
-                        asyncio.gather(*self._worker_tasks, return_exceptions=True), 
-                        timeout=5.0
+                    # Gather tasks with timeout, but don't use nested wait_for
+                    done, pending = await asyncio.wait(
+                        self._worker_tasks,
+                        timeout=2.0,
+                        return_when=asyncio.ALL_COMPLETED
                     )
-                except asyncio.TimeoutError:
-                    # Cancel any remaining tasks
+                    # Cancel and await pending tasks to prevent "Task was destroyed" warnings
+                    for task in pending:
+                        task.cancel()
+                        # Await cancellation without nested timeouts to prevent recursion
+                        try:
+                            await asyncio.gather(task, return_exceptions=True)
+                        except Exception:
+                            pass
+                except Exception:
+                    # If anything fails, cancel and await all tasks
                     for task in self._worker_tasks:
                         if not task.done():
                             task.cancel()
+                            try:
+                                await asyncio.gather(task, return_exceptions=True)
+                            except Exception:
+                                pass
             
             # Final flush of any remaining messages
             if self._memory_buffer or self._disk_buffer:
-                await self._ultra_fast_disk_flush()
+                await self._fast_disk_flush()
             
             self._running = False
             self._worker_tasks.clear()
@@ -867,12 +892,12 @@ class AsyncFileHandler(BaseHandler):
         return False
     
     async def _flush_batch(self):
-        """Flush current batch to file - MASSIVE performance optimization."""
+        """Flush current batch to file."""
         if not self._message_buffer:
             return
         
         try:
-            # ✅ PERFORMANCE: Handle both text and binary messages
+            # PERFORMANCE: Handle both text and binary messages
             first_message = self._message_buffer[0]
             is_binary = isinstance(first_message, bytes)
             
@@ -893,7 +918,7 @@ class AsyncFileHandler(BaseHandler):
                 # For text data, join as strings
                 combined_message = "".join(self._message_buffer)
                 
-                # ✅ PERFORMANCE: Use aiofiles for true async I/O
+                # PERFORMANCE: Use aiofiles for true async I/O
                 try:
                     import aiofiles
                     async with aiofiles.open(self._filename, mode=self._mode, encoding=self._encoding) as f:
@@ -901,12 +926,12 @@ class AsyncFileHandler(BaseHandler):
                         await f.flush()
                         
                 except ImportError:
-                    # ✅ PERFORMANCE: Fallback to direct file write (zero overhead)
+                    # PERFORMANCE: Fallback to direct file write (zero overhead)
                     with open(self._filename, self._mode, encoding=self._encoding, buffering=1) as f:  # Line buffering for text files
                         f.write(combined_message)
                         f.flush()
                 except Exception:
-                    # ✅ PERFORMANCE: Fallback to direct file write (zero overhead)
+                    # PERFORMANCE: Fallback to direct file write (zero overhead)
                     with open(self._filename, self._mode, encoding=self._encoding, buffering=1) as f:  # Line buffering for text files
                         f.write(combined_message)
                         f.flush()
@@ -1001,7 +1026,7 @@ class AsyncFileHandler(BaseHandler):
             record: Log record to emit
         """
         try:
-            # ✅ CRITICAL FIX: Start worker if not running
+            # CRITICAL FIX: Start worker if not running
             if not self._running:
                 self._start_worker()
             
@@ -1114,30 +1139,32 @@ class AsyncFileHandler(BaseHandler):
             # Signal shutdown
             self._shutdown_event.set()
             
-            # Wait for worker task to finish with timeout
-            if self._worker_task and not self._worker_task.done():
+            # Wait for worker tasks to finish (use _worker_tasks, not _worker_task)
+            if hasattr(self, '_worker_tasks') and self._worker_tasks:
                 try:
-                    # Set shutdown event to stop worker gracefully
-                    self._shutdown_event.set()
-                    
-                    # Wait for worker with shorter timeout
-                    await asyncio.wait_for(self._worker_task, timeout=0.3)
-                except asyncio.TimeoutError:
-                    # Force cancel task if it takes too long
-                    if not self._worker_task.done():
-                        self._worker_task.cancel()
+                    # Use wait() instead of wait_for() to avoid nested timeout recursion
+                    done, pending = await asyncio.wait(
+                        self._worker_tasks,
+                        timeout=0.5,
+                        return_when=asyncio.ALL_COMPLETED
+                    )
+                    # Cancel and await pending tasks to prevent "Task was destroyed" warnings
+                    for task in pending:
+                        task.cancel()
+                        # Await cancellation without nested timeouts to prevent recursion
                         try:
-                            # Wait longer for cancellation to complete
-                            await asyncio.wait_for(self._worker_task, timeout=0.2)
-                        except (asyncio.TimeoutError, asyncio.CancelledError):
+                            await asyncio.gather(task, return_exceptions=True)
+                        except Exception:
                             pass
-                except asyncio.CancelledError:
-                    # Task was cancelled, that's fine
-                    pass
-                except Exception as e:
-                    print(f"Worker task error: {e}")
-                    # Continue with cleanup
-                    pass
+                except Exception:
+                    # If anything fails, cancel and await all tasks
+                    for task in self._worker_tasks:
+                        if not task.done():
+                            task.cancel()
+                            try:
+                                await asyncio.gather(task, return_exceptions=True)
+                            except Exception:
+                                pass
             
         except Exception as e:
             print(f"Async file close error: {e}", file=sys.stderr)
@@ -1161,12 +1188,14 @@ class AsyncFileHandler(BaseHandler):
             # Signal shutdown
             self._shutdown_event.set()
             
-            # Try to cancel worker task if it exists and event loop is still running
+            # Try to cancel worker tasks if they exist and event loop is still running
             try:
                 loop = asyncio.get_running_loop()
-                if loop and not loop.is_closed() and self._worker_task and not self._worker_task.done():
-                    self._worker_task.cancel()
-                    # Give the task a moment to cancel gracefully
+                if loop and not loop.is_closed() and hasattr(self, '_worker_tasks') and self._worker_tasks:
+                    for task in self._worker_tasks:
+                        if not task.done():
+                            task.cancel()
+                    # Give the tasks a moment to cancel gracefully
                     TimeUtility.sleep(0.05)
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
@@ -1180,12 +1209,14 @@ class AsyncFileHandler(BaseHandler):
             # Signal shutdown
             self._shutdown_event.set()
             
-            # Try to cancel worker task if it exists and event loop is still running
+            # Try to cancel worker tasks if they exist and event loop is still running
             try:
                 loop = asyncio.get_running_loop()
-                if loop and not loop.is_closed() and self._worker_task and not self._worker_task.done():
-                    self._worker_task.cancel()
-                    # Give the task a moment to cancel gracefully
+                if loop and not loop.is_closed() and hasattr(self, '_worker_tasks') and self._worker_tasks:
+                    for task in self._worker_tasks:
+                        if not task.done():
+                            task.cancel()
+                    # Give the tasks a moment to cancel gracefully
                     TimeUtility.sleep(0.05)
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
@@ -1199,9 +1230,11 @@ class AsyncFileHandler(BaseHandler):
             # Signal shutdown immediately
             self._shutdown_event.set()
             
-            # Try to cancel worker task more aggressively
-            if self._worker_task and not self._worker_task.done():
-                self._worker_task.cancel()
+            # Try to cancel worker tasks more aggressively
+            if hasattr(self, '_worker_tasks') and self._worker_tasks:
+                for task in self._worker_tasks:
+                    if not task.done():
+                        task.cancel()
             
             # Give task a moment to cancel
             TimeUtility.sleep(0.01)
@@ -1221,7 +1254,7 @@ class AsyncFileHandler(BaseHandler):
             'batch_count': self._batch_count,
             'running': self._running,
             'filename': self._filename,
-            'handler_type': 'async_file_ultra_high_performance'
+            'handler_type': 'async_file_handler'
         }
 
 
@@ -1242,7 +1275,7 @@ class FileHandler(BaseHandler):
             mode: File open mode (default: append)
             encoding: File encoding (default: utf-8)
             bulk_size: Number of messages to process in bulk (async only)
-            max_queue_size: Maximum queue size before dropping messages (async only)
+            max_queue_size: Queue size limit before dropping messages (async only)
             timestamp_config: Timestamp configuration for formatting
         """
         super().__init__(name="file", level=LogLevel.NOTSET, timestamp_config=timestamp_config)

@@ -2,13 +2,13 @@
 Console Handlers for Hydra-Logger
 
 This module provides both synchronous and asynchronous console handlers
-optimized for high-performance logging with intelligent buffering and
-comprehensive color support.
+optimized for high-performance logging with buffering and
+ color support.
 
 ARCHITECTURE:
-- SyncConsoleHandler: Synchronous console output with intelligent buffering
+- SyncConsoleHandler: Synchronous console output with buffering
 - AsyncConsoleHandler: Asynchronous console output with queue-based processing
-- Intelligent buffering for high throughput (1000 messages or 0.1s intervals)
+- buffering for high throughput (1000 messages or 0.1s intervals)
 - Color system integration with LRU caching (2.8x performance improvement)
 - Formatter-aware handling for optimal performance
 
@@ -18,13 +18,13 @@ COLOR SYSTEM:
 - Use use_colors=True to enable colored output
 - ColoredFormatter provides level and layer colors with LRU cache
 - 100% data integrity - preserves user ANSI codes and Unicode
-- Intelligent color detection and fallback
+- Adaptive color detection and fallback
 
 PERFORMANCE FEATURES:
-- Intelligent buffering (1000 messages or 0.1s intervals)
+- buffering (1000 messages or 0.1s intervals)
 - LRU cache for color lookups (2.8x speedup)
 - Lazy formatter initialization for reduced overhead
-- Batch writing for maximum throughput
+- Batch writing for throughput
 - Automatic cleanup on exit
 - Performance statistics and monitoring
 
@@ -93,7 +93,7 @@ THREAD SAFETY:
 ERROR HANDLING:
 - Graceful error handling and recovery
 - Automatic fallback mechanisms
-- Comprehensive error logging
+-  error logging
 - Non-blocking error recovery
 """
 
@@ -109,10 +109,10 @@ from .base_handler import BaseHandler
 
 class SyncConsoleHandler(BaseHandler):
     """
-    Synchronous console handler with intelligent buffering.
+    Synchronous console handler with buffering.
     
     Features:
-    - Intelligent buffering for high performance
+    - buffering for high performance
     - Color support (console only, off by default)
     - Automatic flushing based on size and time
     - LRU cache for color lookups (2.8x speedup)
@@ -180,7 +180,7 @@ class SyncConsoleHandler(BaseHandler):
     
     def emit(self, record: LogRecord) -> None:
         """
-        Emit log record to console stream with intelligent buffering.
+        Emit log record to console stream with buffering.
         
         Args:
             record: Log record to emit
@@ -250,7 +250,7 @@ class AsyncConsoleHandler(BaseHandler):
     Asynchronous console handler with simple, efficient design.
     
     Features:
-    - Simple async queue with intelligent batching
+    - Simple async queue with batching
     - Color support (console only, off by default)
     - Non-blocking operations with proper cleanup
     - LRU cache for color lookups (2.8x speedup)
@@ -279,7 +279,18 @@ class AsyncConsoleHandler(BaseHandler):
         if formatter:
             self.setFormatter(formatter)
         
-        # Buffering configuration
+        # Buffering configuration - auto-detect if None
+        if buffer_size is None or flush_interval is None:
+            try:
+                from ..utils.system_detector import get_optimal_buffer_config
+                optimal_config = get_optimal_buffer_config("console")
+                buffer_size = buffer_size or optimal_config["buffer_size"]
+                flush_interval = flush_interval or optimal_config["flush_interval"]
+            except Exception:
+                # Fallback defaults
+                buffer_size = buffer_size or 1000
+                flush_interval = flush_interval or 0.1
+        
         self._buffer_size = buffer_size
         self._flush_interval = flush_interval
         
@@ -332,7 +343,7 @@ class AsyncConsoleHandler(BaseHandler):
         formatter = self._get_formatter()
         message = formatter.format(record)
         
-        # 🚀 REVOLUTIONARY: NON-BLOCKING DIRECT OUTPUT for maximum performance (100K+ msg/s)
+        # Non-blocking direct output for performance
         # Write directly to stream for immediate output (colors or no colors)
         try:
             self._stream.write(message + '\n')
@@ -349,11 +360,10 @@ class AsyncConsoleHandler(BaseHandler):
         Args:
             record: Log record to emit
         """
-        # Start worker if not running
-        if not self._running:
-            await self._start_worker()
+        # Direct output - no worker loop needed since we write directly
+        # Worker loop is kept for potential future queuing, but not started here
+        # to avoid unnecessary tasks that can't be cleaned up properly
         
-        # 🚀 REVOLUTIONARY: NON-BLOCKING DIRECT ASYNC OUTPUT for maximum performance (100K+ msg/s)
         # Format message using cached formatter for performance
         formatter = self._get_formatter()
         message = formatter.format(record)
@@ -384,49 +394,79 @@ class AsyncConsoleHandler(BaseHandler):
         messages = []
         last_flush = time.perf_counter()
         
-        while not self._shutdown_event.is_set():
-            try:
-                # Wait for messages with timeout
+        try:
+            while not self._shutdown_event.is_set():
                 try:
-                    message = await asyncio.wait_for(
-                        self._message_queue.get(), 
-                        timeout=self._flush_interval
-                    )
-                    messages.append(message)
-                except asyncio.TimeoutError:
-                    # Timeout - check if we should flush
-                    pass
-                
-                # Process all available messages
-                while not self._message_queue.empty():
-                    try:
-                        message = self._message_queue.get_nowait()
-                        messages.append(message)
-                    except asyncio.QueueEmpty:
+                    # Check shutdown before waiting - exit immediately if signaled
+                    if self._shutdown_event.is_set():
                         break
-                
-                # Flush if needed
-                current_time = time.perf_counter()
-                should_flush = (
-                    len(messages) >= self._buffer_size or
-                    (current_time - last_flush) >= self._flush_interval
-                )
-                
-                if should_flush and messages:
-                    await self._write_messages(messages)
+                    
+                    # Wait for messages with timeout - handle loop closure gracefully
+                    try:
+                        message = await asyncio.wait_for(
+                            self._message_queue.get(), 
+                            timeout=self._flush_interval
+                        )
+                        messages.append(message)
+                    except asyncio.TimeoutError:
+                        # Timeout - check if we should flush
+                        pass
+                    except (RuntimeError, asyncio.CancelledError) as e:
+                        # Event loop closed, cancelled, or different loop - exit immediately
+                        break
+                    
+                    # Check shutdown again after getting message
+                    if self._shutdown_event.is_set():
+                        break
+                    
+                    # Process all available messages (non-blocking)
+                    while not self._message_queue.empty() and not self._shutdown_event.is_set():
+                        try:
+                            message = self._message_queue.get_nowait()
+                            messages.append(message)
+                        except asyncio.QueueEmpty:
+                            break
+                        except (RuntimeError, asyncio.CancelledError):
+                            # Loop closed or cancelled
+                            break
+                    
+                    # Flush if needed
+                    current_time = time.perf_counter()
+                    should_flush = (
+                        len(messages) >= self._buffer_size or
+                        (current_time - last_flush) >= self._flush_interval
+                    )
+                    
+                    if should_flush and messages:
+                        try:
+                            await self._write_messages(messages)
+                            messages.clear()
+                            last_flush = current_time
+                        except (RuntimeError, asyncio.CancelledError):
+                            # Loop closed or cancelled - exit
+                            break
+                    
+                except (RuntimeError, asyncio.CancelledError):
+                    # Event loop closed or cancelled - exit immediately
+                    break
+                except Exception:
+                    # Clear messages on error, but continue
+                    if self._shutdown_event.is_set():
+                        break
                     messages.clear()
-                    last_flush = current_time
-                
-            except Exception as e:
-                # Clear messages on error
-                messages.clear()
-        
-        # Process remaining messages
-        if messages:
-            try:
-                await self._write_messages(messages)
-            except Exception:
-                pass
+        except (RuntimeError, asyncio.CancelledError):
+            # Exit immediately on cancellation or loop closure
+            pass
+        except Exception:
+            # Exit on any other error
+            pass
+        finally:
+            # Process remaining messages if any
+            if messages:
+                try:
+                    await self._write_messages(messages)
+                except (RuntimeError, asyncio.CancelledError, Exception):
+                    pass
     
     async def _write_messages(self, messages: list) -> None:
         """
@@ -463,12 +503,48 @@ class AsyncConsoleHandler(BaseHandler):
     
     async def aclose(self) -> None:
         """Close async handler and cleanup resources."""
+        # Signal shutdown first - worker loop will exit immediately
         self._shutdown_event.set()
+        self._running = False
+        
         if self._worker_task and not self._worker_task.done():
             try:
-                await asyncio.wait_for(self._worker_task, timeout=1.0)
-            except (asyncio.TimeoutError, RuntimeError):
+                # Check if task is in same event loop
+                try:
+                    current_loop = asyncio.get_running_loop()
+                    task_loop = self._worker_task.get_loop() if hasattr(self._worker_task, 'get_loop') else None
+                    
+                    # If task is in different loop, just cancel it (can't await)
+                    if task_loop and task_loop != current_loop:
+                        self._worker_task.cancel()
+                        return
+                except (RuntimeError, AttributeError):
+                    # Can't determine loop - try to cancel anyway
+                    pass
+                
+                # Task is in same loop - cancel and await properly
                 self._worker_task.cancel()
+                
+                try:
+                    # Use wait() with short timeout
+                    done, pending = await asyncio.wait(
+                        [self._worker_task],
+                        timeout=0.3,
+                        return_when=asyncio.ALL_COMPLETED
+                    )
+                    # If still pending, it's likely cancelled - that's fine
+                except RuntimeError as e:
+                    # Different loop or loop closed - can't await
+                    if "different loop" in str(e) or "closed" in str(e).lower():
+                        pass
+                    else:
+                        raise
+                except asyncio.CancelledError:
+                    # Task was cancelled - that's expected
+                    pass
+            except (RuntimeError, asyncio.CancelledError, Exception):
+                # If anything fails, just mark as closed
+                pass
     
     def get_stats(self) -> dict:
         """Get handler statistics."""

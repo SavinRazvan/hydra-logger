@@ -1,7 +1,7 @@
 """
 File System Utilities for Hydra-Logger
 
-This module provides comprehensive file and directory utility functions including
+This module provides  file and directory utility functions including
 file operations, path management, validation, processing, and directory scanning.
 It supports various file types, permissions, and metadata extraction.
 
@@ -31,21 +31,21 @@ PATH MANAGEMENT:
 
 USAGE:
     from hydra_logger.utils import FileUtility, PathUtility, FileValidator
-    
+
     # File operations
     exists = FileUtility.exists("/path/to/file")
     size = FileUtility.get_size("/path/to/file")
     info = FileUtility.get_file_info("/path/to/file")
-    
+
     # Path management
     normalized = PathUtility.normalize_path("../relative/path")
     absolute = PathUtility.absolute_path("file.txt")
     joined = PathUtility.join_paths("dir", "subdir", "file.txt")
-    
+
     # File validation
     is_valid = FileValidator.validate_file_exists("/path/to/file")
     is_readable = FileValidator.validate_file_readable("/path/to/file")
-    
+
     # File processing
     from hydra_logger.utils import FileProcessor
     content = FileProcessor.read_text_file("/path/to/file")
@@ -62,8 +62,23 @@ from enum import Enum
 from pathlib import Path
 import tempfile
 import json
-import yaml
-import toml
+
+# Optional dependencies - import with graceful fallback
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
+    yaml = None
+
+try:
+    import toml
+    TOML_AVAILABLE = True
+except ImportError:
+    TOML_AVAILABLE = False
+    toml = None
+
+
 class FileType(Enum):
     """File type categories."""
 
@@ -351,7 +366,7 @@ class FileUtility:
 
     @staticmethod
     def get_file_info(path: str, include_content: bool = False) -> FileInfo:
-        """Get comprehensive file information."""
+        """Get file information."""
         if not os.path.exists(path):
             raise FileNotFoundError(f"Path not found: {path}")
 
@@ -811,12 +826,16 @@ class FileProcessor:
     @staticmethod
     def read_yaml_file(path: str) -> Any:
         """Read YAML file."""
+        if not YAML_AVAILABLE:
+            raise ImportError("PyYAML is required for YAML file operations. Install it with: pip install pyyaml")
         with open(path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
 
     @staticmethod
     def write_yaml_file(path: str, data: Any) -> bool:
         """Write YAML file."""
+        if not YAML_AVAILABLE:
+            raise ImportError("PyYAML is required for YAML file operations. Install it with: pip install pyyaml")
         try:
             with open(path, "w", encoding="utf-8") as f:
                 yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
@@ -827,12 +846,16 @@ class FileProcessor:
     @staticmethod
     def read_toml_file(path: str) -> Any:
         """Read TOML file."""
+        if not TOML_AVAILABLE:
+            raise ImportError("toml is required for TOML file operations. Install it with: pip install toml")
         with open(path, "r", encoding="utf-8") as f:
             return toml.load(f)
 
     @staticmethod
     def write_toml_file(path: str, data: Any) -> bool:
         """Write TOML file."""
+        if not TOML_AVAILABLE:
+            raise ImportError("toml is required for TOML file operations. Install it with: pip install toml")
         try:
             with open(path, "w", encoding="utf-8") as f:
                 toml.dump(data, f)

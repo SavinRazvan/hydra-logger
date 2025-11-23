@@ -18,7 +18,7 @@ CORE FEATURES:
 - Aggregate health monitoring and status reporting
 - Coordinated shutdown and resource cleanup
 - High-performance logging with optimized processing
-- Direct I/O operations for maximum speed
+- Direct I/O operations for speed
 
 COMPOSITE LOGGER TYPES:
 - CompositeLogger: Synchronous composite pattern implementation
@@ -178,7 +178,7 @@ COMPONENT COORDINATION:
 
 PERFORMANCE FEATURES:
 - High-performance logging with optimized processing
-- Direct I/O operations for maximum speed
+- Direct I/O operations for speed
 - Batch processing for high throughput
 - Formatter caching and optimization
 - Memory-efficient buffer management
@@ -193,14 +193,14 @@ MONITORING AND METRICS:
 ERROR HANDLING:
 - Component error isolation
 - Graceful degradation on component failures
-- Comprehensive error reporting
+-  error reporting
 - Automatic resource cleanup
 - Fallback mechanisms
 
 BENEFITS:
 - Unified interface for multiple loggers
 - High-performance logging with optimized processing
-- Comprehensive component management
+-  component management
 - Easy configuration and customization
 - Production-ready with monitoring
 - Flexible architecture for complex scenarios
@@ -240,7 +240,7 @@ class CompositeLogger(BaseLogger):
         self._initialized = False
         self._closed = False
         
-        # ✅ FIX: Setup configuration and handlers if config provided
+        # FIX: Setup configuration and handlers if config provided
         if config:
             self._setup_from_config(config)
         
@@ -466,22 +466,26 @@ class CompositeLogger(BaseLogger):
         self.close()
     
     def log_batch(self, messages: List[Tuple[Union[str, int], str, Dict[str, Any]]]) -> None:
-        """ULTRA-HIGH-PERFORMANCE batch logging - 200K+ msg/s performance."""
+        """Batch logging method - OPTIMIZED for performance."""
         if not self._initialized or self._closed or not messages:
             return
         
-        # Process all messages through components for maximum performance
-        for level, message, kwargs in messages:
-            # Log through all components
-            for component in self.components:
-                try:
-                    if hasattr(component, 'log'):
+        # OPTIMIZATION: Use component batch methods if available (much faster!)
+        for component in self.components:
+            try:
+                # Try batch method first (fastest)
+                if hasattr(component, 'log_batch'):
+                    component.log_batch(messages)
+                elif hasattr(component, 'log'):
+                    # Fallback: process messages individually (slower but works)
+                    for level, message, kwargs in messages:
                         component.log(level, message, **kwargs)
-                except Exception:
-                    # Silent error handling for maximum speed
-                    pass
-            
-            self._log_count += 1
+            except Exception:
+                # Silent error handling for speed
+                pass
+        
+        # Update count once for all messages (more efficient)
+        self._log_count += len(messages)
 
 
 class CompositeAsyncLogger(BaseLogger):
@@ -552,17 +556,17 @@ class CompositeAsyncLogger(BaseLogger):
             'CRITICAL': 'CRITICAL'
         }
         
-        # Pre-computed format strings for maximum speed
+        # Pre-computed format strings for speed
         self._format_cache = {}
         self._string_cache = {}
         
-        # Direct formatting templates (no LogRecord needed) - OPTIMIZED for 100K+ msg/s
+        # Direct formatting templates (no LogRecord needed)
         self._direct_format_templates = {
             'simple': "{timestamp} {level} [{layer}] {message}\n",
             'detailed': "{timestamp} {level} [{layer}] [{file_name}] [{function}] {message}\n"
         }
         
-        # Pre-allocated string builder for maximum performance
+        # Pre-allocated string builder for performance
         self._string_builder = []
         self._string_builder_size = 0
         
@@ -691,7 +695,7 @@ class CompositeAsyncLogger(BaseLogger):
         return level_int >= current_level_int
     
     async def log(self, level: Union[str, int], message: str, **kwargs) -> None:
-        """ULTRA-HIGH-PERFORMANCE async log method - 100K+ msg/s performance."""
+        """Async log method."""
         # Fast path validation - minimal operations
         if not self._initialized or self._closed or not message:
             return
@@ -707,7 +711,7 @@ class CompositeAsyncLogger(BaseLogger):
         layer = kwargs.get('layer', self._default_layer)
         layer_str = self._common_strings.get(layer, layer)
         
-        # ULTRA-HIGH-PERFORMANCE: Use direct I/O for maximum speed
+        # : Use direct I/O for speed
         if self._use_direct_io:
             # Check if formatter is specified
             formatter_name = kwargs.get('formatter')
@@ -734,7 +738,7 @@ class CompositeAsyncLogger(BaseLogger):
                 # Emit with pre-formatted message
                 self._direct_io_emit(level_str, formatted_message, pre_formatted=True)
             else:
-                # DIRECT STRING FORMATTING - Maximum speed for 100K+ msg/s
+                # Direct string formatting
                 self._direct_string_format(level_str, message, layer_str, kwargs)
             
             self._log_count += 1
@@ -748,10 +752,10 @@ class CompositeAsyncLogger(BaseLogger):
         from ..types.levels import LogLevelManager
         level_int = LogLevelManager.get_level(level)
         
-        # ✅ STANDARDIZED: Use standardized LogRecord creation
+        # STANDARDIZED: Use standardized LogRecord creation
         record = self.create_log_record(level, message, **kwargs)
         
-        # ULTRA-FAST: Direct sequential processing for maximum speed
+        # Fast: Direct sequential processing for speed
         # asyncio.gather creates too much overhead for high-frequency logging
         for component in self.components:
             try:
@@ -761,20 +765,20 @@ class CompositeAsyncLogger(BaseLogger):
                 elif hasattr(component, 'log') and asyncio.iscoroutinefunction(component.log):
                     await component.log(level, message, **kwargs)
             except Exception:
-                # Silent error handling for maximum speed
+                # Silent error handling for speed
                 pass
         
         # Update statistics
         self._log_count += 1
     
     async def log_batch(self, messages: List[Tuple[Union[str, int], str, Dict[str, Any]]]) -> None:
-        """ULTRA-HIGH-PERFORMANCE batch logging - 100K+ msg/s performance."""
+        """Batch logging method."""
         if not self._initialized or self._closed or not messages:
             return
         
-        # ULTRA-FAST: Process all messages at once for maximum performance
+        # Fast: Process all messages at once for performance
         if self._use_direct_io:
-            # Process all messages with direct I/O for maximum speed
+            # Process all messages with direct I/O for speed
             for level, message, kwargs in messages:
                 if not self.is_enabled_for(level):
                     continue
@@ -786,7 +790,7 @@ class CompositeAsyncLogger(BaseLogger):
                 layer = kwargs.get('layer', self._default_layer)
                 layer_str = self._common_strings.get(layer, layer)
                 
-                # Use direct string formatting for maximum speed
+                # Use direct string formatting for speed
                 self._direct_string_format(level_str, message, layer_str, kwargs)
                 self._log_count += 1
             return
@@ -809,13 +813,13 @@ class CompositeAsyncLogger(BaseLogger):
                 layer = kwargs.get('layer', self._default_layer)
                 layer_str = self._common_strings.get(layer, layer)
                 
-                # Use direct string formatting for maximum speed
+                # Use direct string formatting for speed
                 self._direct_string_format(level_str, message, layer_str, kwargs)
                 self._log_count += 1
     
     def _direct_string_format(self, level: str, message: str, layer: str, kwargs: dict) -> None:
-        """ULTRA-HIGH-PERFORMANCE direct string formatting - 200K+ msg/s performance."""
-        # ULTRA-FAST: Use f-strings for maximum speed (faster than manual building)
+        """Direct string formatting."""
+        # Fast: Use f-strings for speed (faster than manual building)
         timestamp = TimeUtility.timestamp()
         
         # Check if we have file_name/function for detailed format
@@ -823,10 +827,10 @@ class CompositeAsyncLogger(BaseLogger):
         function_name = kwargs.get('function_name')
         
         if file_name and function_name:
-            # ULTRA-FAST: f-string formatting for maximum speed
+            # Fast: f-string formatting for speed
             formatted_message = f"{timestamp} {level} [{layer}] [{file_name}] [{function_name}] {message}\n"
         else:
-            # ULTRA-FAST: f-string formatting for simple format
+            # Fast: f-string formatting for simple format
             formatted_message = f"{timestamp} {level} [{layer}] {message}\n"
         
         # Add to buffer directly - no intermediate string building
@@ -842,7 +846,7 @@ class CompositeAsyncLogger(BaseLogger):
                 self._flush_direct_io()
     
     def _direct_io_emit(self, level: str, message: str, layer: str = None, pre_formatted: bool = False) -> None:
-        """ULTRA-HIGH-PERFORMANCE direct I/O emit - 100K+ msg/s performance."""
+        """Direct I/O emit method."""
         if pre_formatted:
             # Message is already formatted by a formatter, just add newline
             formatted_message = f"{message}\n"
@@ -865,11 +869,11 @@ class CompositeAsyncLogger(BaseLogger):
                 self._flush_direct_io()
     
     def _flush_direct_io(self) -> None:
-        """ULTRA-HIGH-PERFORMANCE direct I/O flush - 100K+ msg/s performance."""
+        """Direct I/O flush."""
         if not self._direct_io_buffer:
             return
         
-        # Write all buffered messages to file - OPTIMIZED for 100K+ msg/s
+        # Write all buffered messages to file
         try:
             # Get the file path from the first component that has a file handler
             file_path = None
@@ -882,8 +886,8 @@ class CompositeAsyncLogger(BaseLogger):
             if not file_path:
                 file_path = f"composite_logger_{self.name.lower()}.log"
             
-            # ULTRA-HIGH-PERFORMANCE: Use massive buffering and single write operation
-            with open(file_path, 'a', encoding='utf-8', buffering=8388608) as f:  # 8MB buffer for maximum throughput
+            # : Use massive buffering and single write operation
+            with open(file_path, 'a', encoding='utf-8', buffering=8388608) as f:  # 8MB buffer for throughput
                 # Join all messages at once - much faster than individual writes
                 f.write(''.join(self._direct_io_buffer))
                 # Don't flush every time - let OS handle it for better performance
@@ -898,13 +902,13 @@ class CompositeAsyncLogger(BaseLogger):
         self._last_flush = TimeUtility.perf_counter()
     
     async def log_batch(self, messages: List[Tuple[Union[str, int], str, Dict[str, Any]]]) -> None:
-        """ULTRA-HIGH-PERFORMANCE batch logging - 200K+ msg/s performance."""
+        """Batch logging method."""
         if not self._initialized or self._closed or not messages:
             return
         
-        # ULTRA-FAST: Process all messages at once for maximum performance
+        # Fast: Process all messages at once for performance
         if self._use_direct_io:
-            # Process all messages with direct I/O for maximum speed
+            # Process all messages with direct I/O for speed
             for level, message, kwargs in messages:
                 if not self.is_enabled_for(level):
                     continue
@@ -916,7 +920,7 @@ class CompositeAsyncLogger(BaseLogger):
                 layer = kwargs.get('layer', self._default_layer)
                 layer_str = self._common_strings.get(layer, layer)
                 
-                # Use direct string formatting for maximum speed
+                # Use direct string formatting for speed
                 self._direct_string_format(level_str, message, layer_str, kwargs)
                 self._log_count += 1
             return
@@ -939,16 +943,16 @@ class CompositeAsyncLogger(BaseLogger):
                 layer = kwargs.get('layer', self._default_layer)
                 layer_str = self._common_strings.get(layer, layer)
                 
-                # Use direct string formatting for maximum speed
+                # Use direct string formatting for speed
                 self._direct_string_format(level_str, message, layer_str, kwargs)
                 self._log_count += 1
     
     async def log_bulk(self, level: Union[str, int], messages: List[str], **kwargs) -> None:
-        """ULTRA-HIGH-PERFORMANCE bulk logging - 500K+ msg/s performance."""
+        """Bulk logging method."""
         if not self._initialized or self._closed or not messages:
             return
         
-        # ULTRA-HIGH-PERFORMANCE: Use direct I/O for maximum speed
+        # : Use direct I/O for speed
         if self._use_direct_io:
             level_str = str(level)
             for message in messages:
@@ -968,7 +972,7 @@ class CompositeAsyncLogger(BaseLogger):
         level_int = LogLevelManager.get_level(level)
         level_str = str(level)
         
-        # ULTRA-FAST: Process messages in chunks to avoid memory issues
+        # Fast: Process messages in chunks to avoid memory issues
         chunk_size = 10000  # Process 10K messages at a time
         for i in range(0, len(messages), chunk_size):
             chunk = messages[i:i + chunk_size]
@@ -980,11 +984,11 @@ class CompositeAsyncLogger(BaseLogger):
                 if message is not None:
                     if not isinstance(message, str):
                         message = str(message)
-                    # ✅ STANDARDIZED: Use standardized LogRecord creation
+                    # STANDARDIZED: Use standardized LogRecord creation
                     record = self.create_log_record(level_str, message, **kwargs)
                     records.append(record)
             
-            # ULTRA-FAST: Process all components sequentially for this chunk
+            # Fast: Process all components sequentially for this chunk
             for component in self.components:
                 try:
                     if hasattr(component, 'emit_async'):
@@ -1039,7 +1043,12 @@ class CompositeAsyncLogger(BaseLogger):
             close_tasks = []
             for component in self.components:
                 try:
-                    if hasattr(component, 'close') and callable(component.close):
+                    # Try async close methods first
+                    if hasattr(component, 'aclose') and asyncio.iscoroutinefunction(component.aclose):
+                        close_tasks.append(component.aclose())
+                    elif hasattr(component, 'close_async') and asyncio.iscoroutinefunction(component.close_async):
+                        close_tasks.append(component.close_async())
+                    elif hasattr(component, 'close') and callable(component.close):
                         if asyncio.iscoroutinefunction(component.close):
                             close_tasks.append(component.close())
                         else:
