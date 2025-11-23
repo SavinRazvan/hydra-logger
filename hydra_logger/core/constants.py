@@ -16,7 +16,7 @@ CONSTANT CATEGORIES:
 - Monitoring Constants: Performance and health thresholds
 
 COLOR SYSTEM:
-- Comprehensive ANSI color code support
+- ANSI color code support
 - Basic, bright, and background colors
 - Layer-specific color mappings
 - Consistent with ColoredFormatter color scheme
@@ -38,26 +38,26 @@ USAGE EXAMPLES:
 
 Color Usage:
     from hydra_logger.core.constants import Colors
-    
+
     # Basic colors
     print(Colors.RED + "Error" + Colors.RESET)
     print(Colors.GREEN + "Success" + Colors.RESET)
-    
+
     # Layer-specific colors
     color = Colors.get_layer_color('api')  # Returns API-specific color
-    
+
     # Color by name
     color = Colors.get_color_code('bright_blue')
 
 Format Validation:
     from hydra_logger.core.constants import SUPPORTED_FORMATS
-    
+
     if 'json-lines' in SUPPORTED_FORMATS:
         formatter = get_formatter('json-lines')
 
 System Constants:
     from hydra_logger.core.constants import DEFAULT_BUFFER_SIZE, DEFAULT_FLUSH_INTERVAL
-    
+
     processor = BatchProcessor(
         buffer_size=DEFAULT_BUFFER_SIZE,
         flush_interval=DEFAULT_FLUSH_INTERVAL
@@ -65,36 +65,36 @@ System Constants:
 
 Queue Policies:
     from hydra_logger.core.constants import QueuePolicy
-    
+
     if policy == QueuePolicy.DROP_OLDEST:
         # Handle backpressure by dropping oldest messages
         pass
 """
 
-from enum import Enum, IntEnum
-from typing import Dict, Any
+from enum import Enum
 
 # =============================================================================
 # COLOR CODES
 # =============================================================================
 
+
 class Colors:
     """
     ANSI color codes for terminal output.
-    
+
     Usage:
         Colors.RED + "Error message" + Colors.RESET
         Colors.BRIGHT_GREEN + "Success" + Colors.RESET
         Colors.BG_RED + "Background" + Colors.RESET
     """
-    
+
     # Reset
     RESET = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
     ITALIC = "\033[3m"
     UNDERLINE = "\033[4m"
-    
+
     # Basic colors
     BLACK = "\033[30m"
     RED = "\033[31m"
@@ -104,7 +104,7 @@ class Colors:
     MAGENTA = "\033[35m"
     CYAN = "\033[36m"
     WHITE = "\033[37m"
-    
+
     # Bright colors
     BRIGHT_BLACK = "\033[90m"
     BRIGHT_RED = "\033[91m"
@@ -114,7 +114,7 @@ class Colors:
     BRIGHT_MAGENTA = "\033[95m"
     BRIGHT_CYAN = "\033[96m"
     BRIGHT_WHITE = "\033[97m"
-    
+
     # Background colors
     BG_BLACK = "\033[40m"
     BG_RED = "\033[41m"
@@ -124,7 +124,7 @@ class Colors:
     BG_MAGENTA = "\033[45m"
     BG_CYAN = "\033[46m"
     BG_WHITE = "\033[47m"
-    
+
     # Bright background colors
     BG_BRIGHT_BLACK = "\033[100m"
     BG_BRIGHT_RED = "\033[101m"
@@ -134,15 +134,15 @@ class Colors:
     BG_BRIGHT_MAGENTA = "\033[105m"
     BG_BRIGHT_CYAN = "\033[106m"
     BG_BRIGHT_WHITE = "\033[107m"
-    
+
     @classmethod
     def get_color_code(cls, color_name: str) -> str:
         """
         Get ANSI color code from color name.
-        
+
         Args:
             color_name: Color name (e.g., 'red', 'bright_blue', 'cyan')
-            
+
         Returns:
             ANSI color code string
         """
@@ -156,7 +156,6 @@ class Colors:
             "magenta": cls.MAGENTA,
             "cyan": cls.CYAN,
             "white": cls.WHITE,
-            
             # Bright colors
             "bright_black": cls.BRIGHT_BLACK,
             "bright_red": cls.BRIGHT_RED,
@@ -167,17 +166,17 @@ class Colors:
             "bright_cyan": cls.BRIGHT_CYAN,
             "bright_white": cls.BRIGHT_WHITE,
         }
-        
+
         return color_map.get(color_name.lower(), cls.WHITE)  # Default to white
-    
+
     @classmethod
     def get_layer_color(cls, layer_name: str) -> str:
         """
         Get default color for common layer types.
-        
+
         Args:
             layer_name: Name of the layer
-            
+
         Returns:
             ANSI color code string
         """
@@ -199,8 +198,9 @@ class Colors:
             "BATCH": cls.RED,  # FIXED: Match ColoredFormatter
             "TEST": cls.BRIGHT_WHITE,
         }
-        
+
         return layer_colors.get(layer_name.upper(), cls.WHITE)
+
 
 # =============================================================================
 # LOG LEVELS
@@ -213,26 +213,28 @@ class Colors:
 # QUEUE POLICIES
 # =============================================================================
 
+
 class QueuePolicy(Enum):
     """Queue backpressure policies."""
-    
+
     DROP_OLDEST = "drop_oldest"
     BLOCK = "block"
     ERROR = "error"
     DISCARD = "discard"
 
+
 # =============================================================================
 # SHUTDOWN PHASES
 # =============================================================================
 
+
 class ShutdownPhase(Enum):
     """Shutdown phases for graceful shutdown."""
-    
+
     RUNNING = "running"
     FLUSHING = "flushing"
     CLEANING = "cleaning"
     DONE = "done"
-
 
 
 # =============================================================================
@@ -303,13 +305,13 @@ SUPPORTED_FORMATS = [
     "binary-compact",
     "binary-extended",
     "detailed",
-    "colored"
+    "colored",
 ]
 
 # CSV Headers - Centralized for all CSV formatters (using your unified LogColumn system)
 # These headers match the LogColumn enum values exactly
 # Each comment explains what logic/data is actually printed for that column:
-# 
+#
 # IMPORTANT: All formatters (not just CSV) can use the same unified column system
 # through the FormattingEngine. Users can customize which columns they want using:
 # - create_minimal_engine() - timestamp, level_name, message only
@@ -318,16 +320,16 @@ SUPPORTED_FORMATS = [
 # - create_custom_engine(columns) - custom column selection
 #
 CSV_HEADERS = [
-    "timestamp",      # record.timestamp - Unix timestamp (float) when log was created (e.g., 1234567890.123)
-    "level_name",     # record.level_name - Human-readable log level from LogLevelManager (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    "layer",          # record.layer - Application layer string (default: "default", can be "API", "DATABASE", "BUSINESS", etc.)
-    "file_name",      # record.file_name - Auto-detected from inspect.currentframe() call stack, or manually set
+    "timestamp",  # record.timestamp - Unix timestamp (float) when log was created (e.g., 1234567890.123)
+    "level_name",  # record.level_name - Human-readable log level from LogLevelManager (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    "layer",  # record.layer - Application layer string (default: "default", can be "API", "DATABASE", "BUSINESS", etc.)
+    "file_name",  # record.file_name - Auto-detected from inspect.currentframe() call stack, or manually set
     "function_name",  # record.function_name - Auto-detected from inspect.currentframe() call stack, or manually set
-    "message",        # record.message - The actual log message text passed by the user
-    "level",          # record.level - Numeric log level (10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR, 50=CRITICAL)
-    "logger_name",    # record.logger_name - Name of the logger instance
-    "line_number",    # record.line_number - Auto-detected from inspect.currentframe() call stack, or manually set
-    "extra"           # record.extra - Additional structured data as JSON string (e.g., {"user": "john", "action": "login"})
+    "message",  # record.message - The actual log message text passed by the user
+    "level",  # record.level - Numeric log level (10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR, 50=CRITICAL)
+    "logger_name",  # record.logger_name - Name of the logger instance
+    "line_number",  # record.line_number - Auto-detected from inspect.currentframe() call stack, or manually set
+    "extra",  # record.extra - Additional structured data as JSON string (e.g., {"user": "john", "action": "login"})
 ]
 
 # Default format strings
@@ -342,7 +344,7 @@ DEFAULT_JSON_FORMAT = {
     "level": True,
     "logger_name": True,
     "line_number": True,
-    "extra": True
+    "extra": True,
 }
 
 # =============================================================================
@@ -355,7 +357,7 @@ SENSITIVE_PATTERNS = [
     r"api_key\s*[:=]\s*\S+",
     r"secret\s*[:=]\s*\S+",
     r"token\s*[:=]\s*\S+",
-    r"key\s*[:=]\s*\S+"
+    r"key\s*[:=]\s*\S+",
 ]
 
 # Threat patterns
@@ -364,7 +366,7 @@ THREAT_PATTERNS = [
     r"javascript:",
     r"vbscript:",
     r"onload\s*=",
-    r"onerror\s*="
+    r"onerror\s*=",
 ]
 
 # =============================================================================
@@ -373,17 +375,17 @@ THREAT_PATTERNS = [
 
 # Performance thresholds
 PERFORMANCE_THRESHOLDS = {
-    "slow_operation": 1.0,              # seconds
-    "high_memory": 512 * 1024 * 1024,   # 512MB
-    "queue_backup": 1000,               # logs
-    "error_rate": 0.05,                 # 5%
-    "response_time": 0.1                # 100ms
+    "slow_operation": 1.0,  # seconds
+    "high_memory": 512 * 1024 * 1024,  # 512MB
+    "queue_backup": 1000,  # logs
+    "error_rate": 0.05,  # 5%
+    "response_time": 0.1,  # 100ms
 }
 
 # Health thresholds
 HEALTH_THRESHOLDS = {
-    "memory_usage": 80.0,              # 80%
-    "error_rate": 0.1,                 # 10%
-    "response_time": 1.0,              # 1 second
-    "throughput": 100000               # logs per second
+    "memory_usage": 80.0,  # 80%
+    "error_rate": 0.1,  # 10%
+    "response_time": 1.0,  # 1 second
+    "throughput": 100000,  # logs per second
 }

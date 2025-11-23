@@ -1,14 +1,14 @@
 """
 Handlers Module for Hydra-Logger
 
-This module provides a comprehensive collection of output destination handlers
+This module provides output destination handlers
 for different logging targets. Handlers are responsible for taking formatted
 log records and delivering them to their final destinations.
 
 ARCHITECTURE:
 - BaseHandler: Abstract base class for all handlers
 - Console Handlers: Synchronous and asynchronous console output
-- File Handlers: Local file storage with intelligent buffering
+- File Handlers: Local file storage with buffering
 - Network Handlers: HTTP, WebSocket, Socket, and Datagram protocols
 - Database Handlers: SQLite, PostgreSQL, MongoDB, and Redis storage
 - Queue Handlers: RabbitMQ, Kafka, and Redis Streams messaging
@@ -30,7 +30,7 @@ HANDLER TYPES:
 - Utility: NullHandler, StreamHandler
 
 PERFORMANCE FEATURES:
-- Intelligent buffering for high throughput
+- Buffering for high throughput
 - Batch processing for network and database handlers
 - Connection pooling for database handlers
 - Circuit breaker patterns for fault tolerance
@@ -41,13 +41,13 @@ USAGE EXAMPLES:
 
 Basic Console Handler:
     from hydra_logger.handlers import SyncConsoleHandler
-    
+
     handler = SyncConsoleHandler(use_colors=True)
     logger.addHandler(handler)
 
 File Handler with Rotation:
     from hydra_logger.handlers import TimedRotatingFileHandler
-    
+
     handler = TimedRotatingFileHandler(
         filename="app.log",
         when="midnight",
@@ -57,13 +57,13 @@ File Handler with Rotation:
 
 Database Handler:
     from hydra_logger.handlers import SQLiteHandler
-    
+
     handler = SQLiteHandler(database_path="logs.db")
     logger.addHandler(handler)
 
 Network Handler:
     from hydra_logger.handlers import HTTPHandler
-    
+
     handler = HTTPHandler(
         url="https://api.example.com/logs",
         method="POST"
@@ -72,7 +72,7 @@ Network Handler:
 
 Composite Handler with Fallback:
     from hydra_logger.handlers import FallbackHandler, SyncConsoleHandler, FileHandler
-    
+
     primary = SyncConsoleHandler()
     fallback = FileHandler("fallback.log")
     handler = FallbackHandler([primary], [fallback])
@@ -95,6 +95,7 @@ from hydra_logger.types.enums import TimeUnit
 from .base_handler import BaseHandler
 from .console_handler import SyncConsoleHandler, AsyncConsoleHandler
 from .file_handler import FileHandler
+
 # StreamHandler removed - simplified handlers
 from .null_handler import NullHandler
 from .rotating_handler import (
@@ -103,7 +104,7 @@ from .rotating_handler import (
     SizeRotatingFileHandler,
     HybridRotatingFileHandler,
     RotationConfig,
-    RotationStrategy
+    RotationStrategy,
 )
 from .network_handler import (
     BaseNetworkHandler,
@@ -114,21 +115,19 @@ from .network_handler import (
     NetworkHandlerFactory,
     NetworkConfig,
     NetworkProtocol,
-    RetryPolicy
+    RetryPolicy,
 )
+
 # Removed over-engineered handlers: system, database, queue, cloud, composite
 
 __all__ = [
     # Base classes
     "BaseHandler",
-    
     # Console handlers
     "SyncConsoleHandler",
     "AsyncConsoleHandler",
-    
     # File handlers
     "FileHandler",
-    
     # Rotating file handlers
     "RotatingFileHandler",
     "TimedRotatingFileHandler",
@@ -137,7 +136,6 @@ __all__ = [
     "RotationConfig",
     "RotationStrategy",
     "TimeUnit",
-    
     # Network handlers
     "BaseNetworkHandler",
     "HTTPHandler",
@@ -148,7 +146,6 @@ __all__ = [
     "NetworkConfig",
     "NetworkProtocol",
     "RetryPolicy",
-    
     # Utility handlers
     "NullHandler",
 ]

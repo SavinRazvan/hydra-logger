@@ -1,7 +1,7 @@
 """
 Hydra-Logger Extensions System
 
-Professional, user-controllable extension system with zero overhead when disabled.
+User-controllable extension system with zero overhead when disabled.
 Users have full control over formats, destinations, configurations, and extensions.
 
 ARCHITECTURE:
@@ -19,24 +19,27 @@ USER CONTROL:
 - Control via LoggingConfig
 
 NAMING CONVENTIONS:
-- Professional, descriptive naming
+- Descriptive naming
 - Consistent with project standards
 - Clear, unambiguous terminology
 """
 
-from .extension_base import ExtensionBase, SecurityExtension, FormattingExtension, PerformanceExtension
+from .extension_base import (
+    ExtensionBase,
+    SecurityExtension,
+    FormattingExtension,
+    PerformanceExtension,
+)
 from .extension_manager import ExtensionManager
 
-# Clean, professional exports
+# Exports
 __all__ = [
     # Base classes
     "ExtensionBase",
-    
     # Extension implementations
     "SecurityExtension",
-    "FormattingExtension", 
+    "FormattingExtension",
     "PerformanceExtension",
-    
     # Management
-    "ExtensionManager"
+    "ExtensionManager",
 ]

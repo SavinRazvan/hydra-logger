@@ -32,8 +32,8 @@ dependencies:
     - kafka-python>=2.0.0     # Kafka
     
     # Optional: Cloud service handlers
-    - boto3>=1.26.0           # AWS CloudWatch
-    - elasticsearch>=8.0.0    # Elasticsearch
+    - boto3>=1.37.0           # AWS CloudWatch
+    - elasticsearch>=9.0.0    # Elasticsearch
     
     # Optional: Network handlers
     - websockets>=11.0.0      # WebSocket support
@@ -50,7 +50,7 @@ dependencies:
     - isort>=5.12.0
     - mypy>=1.0.0
     - bandit>=1.7.0
-    - safety>=2.3.0
+    - safety>=3.6.2
     
     # Build dependencies
     - build

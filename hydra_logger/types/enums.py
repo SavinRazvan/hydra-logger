@@ -1,7 +1,7 @@
 """
 System Enums for Hydra-Logger
 
-This module provides comprehensive enumeration types for various system
+This module provides  enumeration types for various system
 components and configurations. It includes all standard enums used
 throughout the logging system for consistent type definitions and
 validation.
@@ -42,26 +42,27 @@ UTILITY FUNCTIONS:
 
 USAGE:
     from hydra_logger.types import HandlerType, LogLevel, TimeUnit
-    
+
     # Use handler types
     if handler_type == HandlerType.CONSOLE:
         print("Console handler configured")
-    
+
     # Use time units
     rotation_interval = 24 * TimeUnit.HOURS.to_seconds()
-    
+
     # Validate enum values
     from hydra_logger.types import is_valid_enum_value
     if is_valid_enum_value(HandlerType, "file"):
         print("Valid handler type")
 """
 
-from enum import Enum, IntEnum
-from typing import Dict, Any, List
+from enum import Enum
+from typing import Any, List
 
 
 class HandlerType(Enum):
     """Types of log handlers."""
+
     CONSOLE = "console"
     FILE = "file"
     STREAM = "stream"
@@ -78,6 +79,7 @@ class HandlerType(Enum):
 
 class FormatterType(Enum):
     """Types of log formatters."""
+
     PLAIN_TEXT = "plain_text"
     JSON = "json"
     JSON_LINES = "json_lines"
@@ -92,6 +94,7 @@ class FormatterType(Enum):
 
 class PluginType(Enum):
     """Types of plugins."""
+
     ANALYTICS = "analytics"
     SECURITY = "security"
     PERFORMANCE = "performance"
@@ -104,6 +107,7 @@ class PluginType(Enum):
 
 class LogLayer(Enum):
     """Standard log layers."""
+
     DEFAULT = "default"
     APP = "APP"
     SYSTEM = "SYSTEM"
@@ -117,6 +121,7 @@ class LogLayer(Enum):
 
 class SecurityLevel(Enum):
     """Security levels for data protection."""
+
     NONE = "none"
     BASIC = "basic"
     STANDARD = "standard"
@@ -126,6 +131,7 @@ class SecurityLevel(Enum):
 
 class QueuePolicy(Enum):
     """Queue backpressure policies."""
+
     DROP_OLDEST = "drop_oldest"
     BLOCK = "block"
     ERROR = "error"
@@ -134,6 +140,7 @@ class QueuePolicy(Enum):
 
 class ShutdownPhase(Enum):
     """Shutdown phases for graceful termination."""
+
     RUNNING = "running"
     FLUSHING = "flushing"
     CLEANING = "cleaning"
@@ -142,6 +149,7 @@ class ShutdownPhase(Enum):
 
 class RotationStrategy(Enum):
     """File rotation strategies."""
+
     TIME = "time"
     SIZE = "size"
     HYBRID = "hybrid"
@@ -150,6 +158,7 @@ class RotationStrategy(Enum):
 
 class CompressionType(Enum):
     """Compression types for log files."""
+
     NONE = "none"
     GZIP = "gzip"
     BZIP2 = "bzip2"
@@ -159,6 +168,7 @@ class CompressionType(Enum):
 
 class EncryptionType(Enum):
     """Encryption types for secure logging."""
+
     NONE = "none"
     AES = "aes"
     RSA = "rsa"
@@ -167,6 +177,7 @@ class EncryptionType(Enum):
 
 class NetworkProtocol(Enum):
     """Network protocols for remote logging."""
+
     HTTP = "http"
     HTTPS = "https"
     TCP = "tcp"
@@ -177,6 +188,7 @@ class NetworkProtocol(Enum):
 
 class DatabaseType(Enum):
     """Database types for log storage."""
+
     SQLITE = "sqlite"
     POSTGRESQL = "postgresql"
     MYSQL = "mysql"
@@ -187,6 +199,7 @@ class DatabaseType(Enum):
 
 class CloudProvider(Enum):
     """Cloud service providers."""
+
     AWS = "aws"
     AZURE = "azure"
     GCP = "gcp"
@@ -196,6 +209,7 @@ class CloudProvider(Enum):
 
 class LogFormat(Enum):
     """Standard log formats."""
+
     PLAIN = "plain"
     JSON = "json"
     JSON_LINES = "json_lines"
@@ -208,6 +222,7 @@ class LogFormat(Enum):
 
 class ColorMode(Enum):
     """Color output modes."""
+
     AUTO = "auto"
     ALWAYS = "always"
     NEVER = "never"
@@ -216,6 +231,7 @@ class ColorMode(Enum):
 
 class ValidationLevel(Enum):
     """Configuration validation levels."""
+
     NONE = "none"
     BASIC = "basic"
     STRICT = "strict"
@@ -224,6 +240,7 @@ class ValidationLevel(Enum):
 
 class MonitoringLevel(Enum):
     """Monitoring detail levels."""
+
     NONE = "none"
     BASIC = "basic"
     DETAILED = "detailed"
@@ -232,6 +249,7 @@ class MonitoringLevel(Enum):
 
 class ErrorHandling(Enum):
     """Error handling strategies."""
+
     IGNORE = "ignore"
     LOG = "log"
     RAISE = "raise"
@@ -241,6 +259,7 @@ class ErrorHandling(Enum):
 
 class AsyncMode(Enum):
     """Asynchronous operation modes."""
+
     SYNC = "sync"
     ASYNC = "async"
     AUTO = "auto"
@@ -249,6 +268,7 @@ class AsyncMode(Enum):
 
 class CacheStrategy(Enum):
     """Caching strategies."""
+
     NONE = "none"
     MEMORY = "memory"
     DISK = "disk"
@@ -258,6 +278,7 @@ class CacheStrategy(Enum):
 
 class BackupStrategy(Enum):
     """Backup strategies."""
+
     NONE = "none"
     COPY = "copy"
     MOVE = "move"
@@ -267,6 +288,7 @@ class BackupStrategy(Enum):
 
 class HealthCheckType(Enum):
     """Health check types."""
+
     BASIC = "basic"
     COMPREHENSIVE = "comprehensive"
     PERFORMANCE = "performance"
@@ -276,6 +298,7 @@ class HealthCheckType(Enum):
 
 class AlertSeverity(Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -284,6 +307,7 @@ class AlertSeverity(Enum):
 
 class MetricType(Enum):
     """Metric types."""
+
     COUNTER = "counter"
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
@@ -291,16 +315,17 @@ class MetricType(Enum):
 
 
 class TimeUnit(Enum):
-    """Comprehensive time units for all Hydra-Logger operations.
-    
+    """ time units for all Hydra-Logger operations.
+
     Supports both high-precision measurements and rotation intervals.
     Values are standardized for consistency across the codebase.
     """
+
     # High-precision units (for measurements)
     NANOSECONDS = "ns"
     MICROSECONDS = "μs"
     MILLISECONDS = "ms"
-    
+
     # Standard time units (for rotation and intervals)
     SECONDS = "seconds"
     MINUTES = "minutes"
@@ -309,18 +334,29 @@ class TimeUnit(Enum):
     WEEKS = "weeks"
     MONTHS = "months"
     YEARS = "years"
-    
+
     @property
     def is_precision_unit(self) -> bool:
         """Check if this is a high-precision measurement unit."""
-        return self in {TimeUnit.NANOSECONDS, TimeUnit.MICROSECONDS, TimeUnit.MILLISECONDS}
-    
+        return self in {
+            TimeUnit.NANOSECONDS,
+            TimeUnit.MICROSECONDS,
+            TimeUnit.MILLISECONDS,
+        }
+
     @property
     def is_rotation_unit(self) -> bool:
         """Check if this unit is suitable for file rotation."""
-        return self in {TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS, 
-                       TimeUnit.DAYS, TimeUnit.WEEKS, TimeUnit.MONTHS, TimeUnit.YEARS}
-    
+        return self in {
+            TimeUnit.SECONDS,
+            TimeUnit.MINUTES,
+            TimeUnit.HOURS,
+            TimeUnit.DAYS,
+            TimeUnit.WEEKS,
+            TimeUnit.MONTHS,
+            TimeUnit.YEARS,
+        }
+
     def to_seconds(self) -> float:
         """Convert this time unit to seconds (for calculations)."""
         conversion_map = {
@@ -336,12 +372,12 @@ class TimeUnit(Enum):
             TimeUnit.YEARS: 31536000.0,  # ~365 days
         }
         return conversion_map.get(self, 1.0)
-    
+
     def get_short_name(self) -> str:
         """Get short abbreviation for this time unit."""
         short_map = {
             TimeUnit.NANOSECONDS: "ns",
-            TimeUnit.MICROSECONDS: "μs", 
+            TimeUnit.MICROSECONDS: "μs",
             TimeUnit.MILLISECONDS: "ms",
             TimeUnit.SECONDS: "s",
             TimeUnit.MINUTES: "m",
@@ -356,6 +392,7 @@ class TimeUnit(Enum):
 
 class SizeUnit(Enum):
     """Size units for measurements."""
+
     BYTES = "B"
     KILOBYTES = "KB"
     MEGABYTES = "MB"
@@ -404,87 +441,61 @@ def is_valid_enum_name(enum_class: type, name: str) -> bool:
 __all__ = [
     # Handler types
     "HandlerType",
-    
     # Formatter types
     "FormatterType",
-    
     # Plugin types
     "PluginType",
-    
     # Log layers
     "LogLayer",
-    
     # Security levels
     "SecurityLevel",
-    
     # Queue policies
     "QueuePolicy",
-    
     # Shutdown phases
     "ShutdownPhase",
-    
     # Rotation strategies
     "RotationStrategy",
-    
     # Compression types
     "CompressionType",
-    
     # Encryption types
     "EncryptionType",
-    
     # Network protocols
     "NetworkProtocol",
-    
     # Database types
     "DatabaseType",
-    
     # Cloud providers
     "CloudProvider",
-    
     # Log formats
     "LogFormat",
-    
     # Color modes
     "ColorMode",
-    
     # Validation levels
     "ValidationLevel",
-    
     # Monitoring levels
     "MonitoringLevel",
-    
     # Error handling
     "ErrorHandling",
-    
     # Async modes
     "AsyncMode",
-    
     # Cache strategies
     "CacheStrategy",
-    
     # Backup strategies
     "BackupStrategy",
-    
     # Health check types
     "HealthCheckType",
-    
     # Alert severity
     "AlertSeverity",
-    
     # Metric types
     "MetricType",
-    
     # Time units
     "TimeUnit",
-    
     # Size units
     "SizeUnit",
-    
     # Utility functions
     "get_enum_values",
     "get_enum_names",
     "get_enum_by_value",
     "get_enum_by_name",
     "is_valid_enum_value",
-    "is_valid_enum_name"
+    "is_valid_enum_name",
 ]

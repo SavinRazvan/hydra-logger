@@ -1,7 +1,7 @@
 """
 Log Level Definitions for Hydra-Logger
 
-This module provides comprehensive log level definitions, constants, and
+This module provides  log level definitions, constants, and
 utilities for managing log levels throughout the system. It includes
 level validation, conversion, and color mapping for console output.
 
@@ -39,23 +39,23 @@ COLOR SYSTEM INTEGRATION:
 
 USAGE:
     from hydra_logger.types import LogLevel, LogLevelManager
-    
+
     # Use log levels
     if LogLevel.INFO >= LogLevel.DEBUG:
         print("Debug logging is enabled")
-    
+
     # Convert between formats
     level_name = LogLevelManager.get_name(LogLevel.INFO)
     level_num = LogLevelManager.get_level("WARNING")
-    
+
     # Validate levels
     if LogLevelManager.is_valid_level("ERROR"):
         print("Valid log level")
-    
+
     # Get color for console output
     color = LogLevelManager.get_color(LogLevel.ERROR)
     print(f"Error color: {color}")
-    
+
     # Check if level is enabled
     if LogLevelManager.is_enabled(LogLevel.INFO, LogLevel.DEBUG):
         print("Debug messages will be logged")
@@ -68,6 +68,7 @@ from functools import lru_cache
 
 class LogLevel(IntEnum):
     """Standard log levels with numeric values."""
+
     NOTSET = 0
     DEBUG = 10
     INFO = 20
@@ -78,17 +79,17 @@ class LogLevel(IntEnum):
 
 class LogLevelManager:
     """Utility class for log level operations and validation."""
-    
+
     # Standard level mappings
     LEVEL_NAMES = {
         LogLevel.NOTSET: "NOTSET",
-        LogLevel.DEBUG: "DEBUG", 
+        LogLevel.DEBUG: "DEBUG",
         LogLevel.INFO: "INFO",
         LogLevel.WARNING: "WARNING",
         LogLevel.ERROR: "ERROR",
-        LogLevel.CRITICAL: "CRITICAL"
+        LogLevel.CRITICAL: "CRITICAL",
     }
-    
+
     # String to level mapping
     NAME_TO_LEVEL = {
         "NOTSET": LogLevel.NOTSET,
@@ -99,28 +100,28 @@ class LogLevelManager:
         "CRITICAL": LogLevel.CRITICAL,
         # Aliases for compatibility
         "WARN": LogLevel.WARNING,
-        "FATAL": LogLevel.CRITICAL
+        "FATAL": LogLevel.CRITICAL,
     }
-    
+
     # Level to color mapping (for console output)
     LEVEL_COLORS = {
         LogLevel.DEBUG: "cyan",
-        LogLevel.INFO: "green", 
+        LogLevel.INFO: "green",
         LogLevel.WARNING: "yellow",
         LogLevel.ERROR: "red",
-        LogLevel.CRITICAL: "bright_red"
+        LogLevel.CRITICAL: "bright_red",
     }
-    
+
     @classmethod
     @lru_cache(maxsize=128)
     def get_name(cls, level: Union[int, LogLevel]) -> str:
         """Get the string name for a log level."""
         if isinstance(level, str):
             return level.upper()
-        
+
         numeric_level = int(level)
         return cls.LEVEL_NAMES.get(numeric_level, "UNKNOWN")
-    
+
     @classmethod
     @lru_cache(maxsize=128)
     def get_level(cls, level: Union[str, int, LogLevel]) -> int:
@@ -133,7 +134,7 @@ class LogLevelManager:
             return cls.NAME_TO_LEVEL.get(level.upper(), LogLevel.INFO)
         else:
             return LogLevel.INFO
-    
+
     @classmethod
     def is_valid_level(cls, level: Union[str, int, LogLevel]) -> bool:
         """Check if a log level is valid."""
@@ -145,31 +146,34 @@ class LogLevelManager:
             return level.upper() in cls.NAME_TO_LEVEL
         else:
             return False
-    
+
     @classmethod
     def all_levels(cls) -> List[LogLevel]:
         """Get all available log levels."""
         return list(cls.LEVEL_NAMES.keys())
-    
+
     @classmethod
     def all_names(cls) -> List[str]:
         """Get all available log level names."""
         return list(cls.NAME_TO_LEVEL.keys())
-    
+
     @classmethod
     def get_color(cls, level: Union[str, int, LogLevel]) -> Optional[str]:
         """Get the color for a log level."""
         numeric_level = cls.get_level(level)
         return cls.LEVEL_COLORS.get(numeric_level)
-    
+
     @classmethod
-    def is_enabled(cls, current_level: Union[str, int, LogLevel], 
-                   message_level: Union[str, int, LogLevel]) -> bool:
+    def is_enabled(
+        cls,
+        current_level: Union[str, int, LogLevel],
+        message_level: Union[str, int, LogLevel],
+    ) -> bool:
         """Check if a message level is enabled at the current level."""
         current = cls.get_level(current_level)
         message = cls.get_level(message_level)
         return message >= current
-    
+
     @classmethod
     def normalize_level(cls, level: Union[str, int, LogLevel]) -> LogLevel:
         """Normalize a level to a LogLevel enum value."""
@@ -211,8 +215,8 @@ __all__ = [
     "LogLevel",
     "LogLevelManager",
     "get_level_name",
-    "get_level", 
+    "get_level",
     "is_valid_level",
     "all_levels",
-    "all_level_names"
+    "all_level_names",
 ]

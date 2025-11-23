@@ -40,30 +40,30 @@ USAGE EXAMPLES:
 Creating Custom Formatters:
     from hydra_logger.formatters.base import BaseFormatter
     from hydra_logger.types.records import LogRecord
-    
+
     class CustomFormatter(BaseFormatter):
         def __init__(self):
             super().__init__("custom")
-        
+
         def _format_default(self, record: LogRecord) -> str:
             return f"[{record.level_name}] {record.message}"
 
 Timestamp Configuration:
     from hydra_logger.utils.time import TimestampConfig, TimestampFormat, TimestampPrecision
-    
+
     config = TimestampConfig(
         format_type=TimestampFormat.RFC3339_MICRO,
         precision=TimestampPrecision.MICROSECONDS,
         timezone_name="UTC"
     )
-    
+
     formatter = BaseFormatter("my_formatter", timestamp_config=config)
 
 Custom Formatter:
     class CustomFormatter(BaseFormatter):
         def __init__(self):
             super().__init__("custom")
-        
+
         def _format_default(self, record: LogRecord) -> str:
             return f"[{record.level_name}] {record.message}"
 
@@ -76,6 +76,7 @@ ERROR HANDLING:
 """
 
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 from ..types.records import LogRecord
@@ -89,18 +90,19 @@ logger = logging.getLogger(__name__)
 
 class FormatterError(Exception):
     """Custom exception for formatter errors."""
+
     pass
 
 
 class BaseFormatter(ABC):
     """
     Abstract base class for all Hydra-Logger formatters.
-    
+
     This class provides the foundation for all formatter implementations with
     standardized interfaces, performance optimization, validation, and error
     handling. It establishes the contract that all formatters must follow
     while providing common functionality and optimizations.
-    
+
     FEATURES:
     - Abstract interface for formatter implementations
     - Timestamp formatting with configurable precision and timezone
@@ -110,47 +112,49 @@ class BaseFormatter(ABC):
     - Error tracking and recovery
     - Memory optimization integration
     - Thread-safe operations
-    
+
     CORE FEATURES:
     - Standardized format function interface
     - Consistent timestamp formatting
     - Structured data support
     - Error handling and validation
-    
+
     VALIDATION SYSTEM:
     - Record validation before formatting
     - File extension validation and correction
     - Error tracking and recovery
     - Performance monitoring and statistics
     - Memory usage optimization
-    
+
     USAGE EXAMPLES:
-    
+
     Basic Implementation:
         class MyFormatter(BaseFormatter):
             def __init__(self):
                 super().__init__("my_formatter")
-            
+
             def _format_default(self, record: LogRecord) -> str:
                 return f"[{record.level_name}] {record.message}"
-    
+
     With Timestamp Configuration:
         config = TimestampConfig(
             format_type=TimestampFormat.RFC3339_MICRO,
             precision=TimestampPrecision.MICROSECONDS
         )
         formatter = MyFormatter(timestamp_config=config)
-    
+
     Custom Formatter:
         class CustomFormatter(BaseFormatter):
             def __init__(self):
                 super().__init__("custom")
-            
+
             def _format_default(self, record: LogRecord) -> str:
                 return f"[{record.level_name}] {record.message}"
     """
 
-    def __init__(self, name: str = "base", timestamp_config: Optional[TimestampConfig] = None):
+    def __init__(
+        self, name: str = "base", timestamp_config: Optional[TimestampConfig] = None
+    ):
         """
         Initialize base formatter.
 
@@ -160,13 +164,13 @@ class BaseFormatter(ABC):
         """
         if not name:
             raise FormatterError("Formatter name cannot be empty")
-        
+
         self.name = name
         self.timestamp_config = timestamp_config or TimestampConfig(
             format_type=TimestampFormat.RFC3339_MICRO,
             precision=TimestampPrecision.MICROSECONDS,
             timezone_name=None,  # Local timezone
-            include_timezone=True
+            include_timezone=True,
         )
         self._initialized = True
         self._formatting_errors = []
@@ -175,33 +179,65 @@ class BaseFormatter(ABC):
         """
         Format timestamp from log record using configured timestamp format.
         
+        Caches recent timestamps to avoid expensive datetime conversions.
+
         Args:
             record: Log record containing timestamp information
-            
+
         Returns:
             Formatted timestamp string
         """
         from datetime import datetime, timezone
         
-        # Convert record timestamp to datetime
-        if hasattr(record, 'timestamp') and record.timestamp:
-            if isinstance(record.timestamp, (int, float)):
-                # Unix timestamp - use local timezone for handlers
-                if self.timestamp_config.timezone_name is None:
-                    dt = datetime.fromtimestamp(record.timestamp)
-                else:
-                    dt = datetime.fromtimestamp(record.timestamp, tz=timezone.utc)
-            else:
-                # Assume it's already a datetime
-                dt = record.timestamp
-        else:
-            # Fallback to current time
-            if self.timestamp_config.timezone_name is None:
-                dt = datetime.now()
-            else:
-                dt = datetime.now(timezone.utc)
+        # Cache timestamp formatting
+        # Timestamps within the same millisecond share the same formatted string
+        if not hasattr(self, '_timestamp_cache'):
+            # Initialize cache: (timestamp_bucket, formatted_string)
+            self._timestamp_cache = {}
+            self._timestamp_cache_size = 100  # Cache last 100 unique timestamps
+            self._timestamp_cache_access = []  # LRU tracking
         
-        return self.timestamp_config.format_timestamp(dt)
+        # Get timestamp value
+        if hasattr(record, "timestamp") and record.timestamp:
+            timestamp = record.timestamp
+            if isinstance(timestamp, datetime):
+                timestamp = timestamp.timestamp()
+        else:
+            timestamp = time.time()
+        
+        # Round to millisecond bucket (1000 messages/sec = 1ms resolution)
+        # This allows caching timestamps within the same millisecond
+        timestamp_bucket = int(timestamp * 1000)  # Millisecond bucket
+        
+        # Check cache first
+        if timestamp_bucket in self._timestamp_cache:
+            return self._timestamp_cache[timestamp_bucket]
+        
+        # Cache miss - format timestamp
+        if isinstance(timestamp, (int, float)):
+            # Unix timestamp - use local timezone for handlers
+            if self.timestamp_config.timezone_name is None:
+                dt = datetime.fromtimestamp(timestamp)
+            else:
+                dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        else:
+            # Assume it's already a datetime
+            dt = timestamp
+        
+        formatted = self.timestamp_config.format_timestamp(dt)
+        
+        # Update cache (LRU eviction)
+        if len(self._timestamp_cache) >= self._timestamp_cache_size:
+            # Remove oldest entry
+            if self._timestamp_cache_access:
+                oldest = self._timestamp_cache_access.pop(0)
+                self._timestamp_cache.pop(oldest, None)
+        
+        self._timestamp_cache[timestamp_bucket] = formatted
+        if timestamp_bucket not in self._timestamp_cache_access:
+            self._timestamp_cache_access.append(timestamp_bucket)
+        
+        return formatted
 
     def _strip_ansi_colors(self, text: str) -> str:
         """
@@ -218,9 +254,10 @@ class BaseFormatter(ABC):
                 return text
 
             import re
+
             # Remove ANSI color codes (ESC[ followed by numbers and optional m)
-            ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-            return ansi_escape.sub('', text)
+            ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+            return ansi_escape.sub("", text)
         except Exception as e:
             logger.warning(f"Failed to strip ANSI colors: {e}")
             return text
@@ -270,10 +307,10 @@ class BaseFormatter(ABC):
     def get_required_extension(self) -> str:
         """
         Get the required file extension for this formatter.
-        
+
         This enforces industry standards and prevents users from creating
         files with incorrect extensions.
-        
+
         Returns:
             Required file extension (e.g., '.jsonl', '.gelf', '.csv')
         """
@@ -283,30 +320,29 @@ class BaseFormatter(ABC):
     def validate_filename(self, filename: str) -> str:
         """
         Validate and correct filename to ensure proper extension.
-        
+
         Args:
             filename: Original filename
-            
+
         Returns:
             Corrected filename with proper extension
-            
+
         Raises:
             FormatterError: If filename cannot be corrected
         """
         required_ext = self.get_required_extension()
-        
+
         # If filename already has correct extension, return as-is
         if filename.endswith(required_ext):
             return filename
-            
+
         # If filename has wrong extension, replace it
-        if '.' in filename:
-            base_name = filename.rsplit('.', 1)[0]
+        if "." in filename:
+            base_name = filename.rsplit(".", 1)[0]
             return base_name + required_ext
-            
+
         # If no extension, add the required one
         return filename + required_ext
-
 
     def get_format_name(self) -> str:
         """
@@ -338,19 +374,13 @@ class BaseFormatter(ABC):
                 "name": self.name,
                 "type": self.__class__.__name__,
                 "initialized": self._initialized,
-                "formatting_errors": self._formatting_errors.copy()
+                "formatting_errors": self._formatting_errors.copy(),
             }
-
 
             return config
         except Exception as e:
             logger.error(f"Failed to get formatter config: {e}")
-            return {
-                "name": self.name,
-                "type": self.__class__.__name__,
-                "error": str(e)
-            }
-
+            return {"name": self.name, "type": self.__class__.__name__, "error": str(e)}
 
     def get_formatting_errors(self) -> list:
         """
@@ -387,13 +417,13 @@ class BaseFormatter(ABC):
         try:
             if not record:
                 return False
-            
+
             # Check if record has required attributes
-            required_attrs = ['level', 'level_name', 'message']
+            required_attrs = ["level", "level_name", "message"]
             for attr in required_attrs:
                 if not hasattr(record, attr):
                     return False
-            
+
             return True
         except Exception as e:
             logger.warning(f"Record validation failed: {e}")
@@ -402,13 +432,13 @@ class BaseFormatter(ABC):
     def get_stats(self) -> Dict[str, Any]:
         """
         Get formatter statistics.
-        
+
         Returns:
             Dictionary containing formatter statistics
         """
         return {
-            'name': self.name,
-            'type': self.__class__.__name__,
-            'initialized': self._initialized,
-            'formatting_errors': len(self._formatting_errors)
+            "name": self.name,
+            "type": self.__class__.__name__,
+            "initialized": self._initialized,
+            "formatting_errors": len(self._formatting_errors),
         }

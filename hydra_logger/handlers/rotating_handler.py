@@ -1,7 +1,7 @@
 """
 Rotating File Handlers for Hydra-Logger
 
-This module provides comprehensive file rotation capabilities for managing
+This module provides file rotation capabilities for managing
 log file size and age. It includes time-based, size-based, and hybrid
 rotation strategies with automatic compression and cleanup.
 
@@ -14,7 +14,7 @@ ARCHITECTURE:
 
 ROTATION STRATEGIES:
 - TIME_BASED: Rotate based on time intervals (daily, hourly, etc.)
-- SIZE_BASED: Rotate when file reaches maximum size
+- SIZE_BASED: Rotate when file reaches size limit
 - HYBRID: Rotate based on both time and size criteria
 
 TIME UNITS:
@@ -28,7 +28,7 @@ TIME UNITS:
 PERFORMANCE FEATURES:
 - Atomic rotation for data integrity
 - Automatic file compression
-- Intelligent cleanup of old files
+- cleanup of old files
 - Configurable backup retention
 - Performance statistics and monitoring
 
@@ -124,7 +124,7 @@ CONFIGURATION:
 ERROR HANDLING:
 - Atomic rotation for data integrity
 - Automatic cleanup of old files
-- Comprehensive error logging
+- Error logging
 - Graceful degradation
 - File system error recovery
 
@@ -666,7 +666,7 @@ class SizeRotatingFileHandler(RotatingFileHandler):
 
         Args:
             filename: Base log file path
-            max_bytes: Maximum file size before rotation
+            max_bytes: File size limit before rotation
             backup_count: Number of backup files to keep
             **kwargs: Additional arguments
         """
@@ -729,7 +729,7 @@ class HybridRotatingFileHandler(RotatingFileHandler):
 
         Args:
             filename: Base log file path
-            max_bytes: Maximum file size before rotation
+            max_bytes: File size limit before rotation
             when: When to rotate (midnight, hour, day, etc.)
             interval: Rotation interval
             backup_count: Number of backup files to keep

@@ -8,7 +8,7 @@ creation, proper configuration, and easy extensibility.
 ARCHITECTURE:
 - LoggerFactory: Central factory for creating all logger types
 - Magic Configuration Integration: Pre-configured component creation
-- Caching System: Intelligent component caching and reuse
+- Caching System: Component caching and reuse
 - Validation: Built-in validation during component creation
 
 FACTORY TYPES:
@@ -28,17 +28,17 @@ USAGE EXAMPLES:
 
 Basic Logger Creation:
     from hydra_logger.factories import create_logger, create_sync_logger
-    
+
     # Create logger with name
     logger = create_logger("MyLogger", logger_type="sync")
-    
+
     # Create specific logger type
     sync_logger = create_sync_logger("MyLogger")
     async_logger = create_async_logger("MyAsyncLogger")
 
 Magic Configuration Loggers:
     from hydra_logger.factories import create_production_logger
-    
+
     # Create pre-configured loggers
     prod_logger = create_production_logger(logger_type="async")
     dev_logger = create_development_logger(logger_type="sync")
@@ -46,7 +46,7 @@ Magic Configuration Loggers:
 
 Composite Logger Creation:
     from hydra_logger.factories import create_composite_logger
-    
+
     # Create composite logger with multiple components
     composite = create_composite_logger(
         name="MyCompositeLogger",
@@ -55,15 +55,15 @@ Composite Logger Creation:
 
 Factory Pattern Usage:
     from hydra_logger.factories import LoggerFactory
-    
+
     factory = LoggerFactory()
-    
+
     # Create with magic configuration
     logger = factory.create_logger_with_magic("production", "async")
-    
+
     # Create with custom configuration
     logger = factory.create_logger(config, "sync")
-    
+
     # Cache management
     factory.cache_logger("my_logger", logger)
     cached = factory.get_cached_logger("my_logger")
@@ -81,15 +81,15 @@ AVAILABLE FACTORIES:
 """
 
 from .logger_factory import (
-    create_logger, 
-    create_sync_logger, 
-    create_async_logger, 
-    create_composite_logger, 
+    create_logger,
+    create_sync_logger,
+    create_async_logger,
+    create_composite_logger,
     create_composite_async_logger,
     create_default_logger,
     create_development_logger,
     create_production_logger,
-    create_custom_logger
+    create_custom_logger,
 )
 
 __all__ = [
@@ -103,5 +103,5 @@ __all__ = [
     "create_default_logger",
     "create_development_logger",
     "create_production_logger",
-    "create_custom_logger"
+    "create_custom_logger",
 ]

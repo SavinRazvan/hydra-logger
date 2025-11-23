@@ -1,9 +1,9 @@
 """
 JSON Formatters for Hydra-Logger
 
-This module provides high-performance JSON-based formatters for structured
-logging with optimized serialization and industry-standard output formats.
-The JSON formatters are designed for maximum throughput while maintaining
+This module provides JSON-based formatters for structured
+logging with serialization and industry-standard output formats.
+The JSON formatters are designed for throughput while maintaining
 data integrity and compatibility with log aggregation systems.
 
 ARCHITECTURE:
@@ -15,7 +15,7 @@ ARCHITECTURE:
 
 PERFORMANCE FEATURES:
 - Pre-compiled JSON encoder for better performance
-- Compact JSON output with optimized separators
+- Compact JSON output with separators
 - Memory-efficient serialization
 - LRU cache integration for performance optimization
 - JIT optimization for hot code paths
@@ -24,7 +24,7 @@ PERFORMANCE FEATURES:
 JSON FORMAT FEATURES:
 - JSON Lines format (one JSON object per line)
 - Complete record information preservation
-- Optimized field ordering for performance
+- Field ordering for performance
 - Compact JSON output (no unnecessary whitespace)
 - Unicode support and proper encoding
 - Industry-standard format compliance
@@ -48,28 +48,28 @@ USAGE EXAMPLES:
 
 Basic JSON Formatting:
     from hydra_logger.formatters.json import JsonLinesFormatter
-    
+
     # Create JSON formatter
     formatter = JsonLinesFormatter()
-    
+
     # Create with custom configuration
     formatter = JsonLinesFormatter(ensure_ascii=False)
 
 With Timestamp Configuration:
     from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-    
+
     config = TimestampConfig(
         format_type=TimestampFormat.RFC3339_MICRO,
         precision=TimestampPrecision.MICROSECONDS,
         timezone_name="UTC"
     )
-    
+
     formatter = JsonLinesFormatter(timestamp_config=config)
 
 Custom Configuration:
     from hydra_logger.formatters.json_formatter import JsonLinesFormatter
     from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-    
+
     # Create formatter with custom timestamp config
     config = TimestampConfig(
         format_type=TimestampFormat.RFC3339_MICRO,
@@ -86,8 +86,8 @@ each line contains a complete JSON object. This format is:
 - Human-readable when needed
 - Machine-parseable for analysis
 
-PERFORMANCE OPTIMIZATION:
-- Pre-compiled JSON encoder with optimized settings
+PERFORMANCE:
+- Pre-compiled JSON encoder with settings
 - Compact JSON output (no unnecessary whitespace)
 - Efficient field ordering and access
 - Memory-efficient serialization
@@ -103,7 +103,7 @@ COMPATIBILITY:
 """
 
 import json
-import time
+# import time  # unused
 from typing import Any, Dict, Optional
 from .base import BaseFormatter
 from ..types.records import LogRecord
@@ -113,54 +113,64 @@ from ..utils.time_utility import TimestampConfig
 class JsonLinesFormatter(BaseFormatter):
     """Primary JSON formatter for Hydra-Logger - creates valid JSON Lines files."""
 
-    def __init__(self, ensure_ascii: bool = False,
-                 timestamp_config: Optional[TimestampConfig] = None):
+    def __init__(
+        self,
+        ensure_ascii: bool = False,
+        timestamp_config: Optional[TimestampConfig] = None,
+    ):
         """
         Initialize JSON Lines formatter.
 
         Args:
             ensure_ascii: Whether to escape non-ASCII characters
             timestamp_config: Configuration for timestamp formatting
-            
+
         Note: This is the recommended JSON formatter for file output.
         Creates valid JSONL files with one JSON object per line.
         """
-        # Set professional timestamp config if not provided
+        # Set timestamp config if not provided
         if timestamp_config is None:
-            timestamp_config = self._get_professional_timestamp_config()
+            timestamp_config = self._get_timestamp_config()
         super().__init__("json_lines", timestamp_config=timestamp_config)
         self.ensure_ascii = ensure_ascii
-        
+
         # Performance optimization: Pre-compiled JSON encoder
         self._encoder = json.JSONEncoder(
             ensure_ascii=ensure_ascii,
-            separators=(',', ':'),  # Compact JSON
-            sort_keys=False  # Don't sort for performance
+            separators=(",", ":"),  # Compact JSON
+            sort_keys=False,  # Don't sort for performance
         )
-        
+
         # Simplified formatter - no performance optimization
         self._format_func = self._format_default
-    
-    def _get_professional_timestamp_config(self):
+
+    def _get_timestamp_config(self):
         """
-        Get professional timestamp configuration based on environment.
-        
+        Get timestamp configuration based on environment.
+
         Returns:
-            Professional timestamp configuration
+            Timestamp configuration
         """
         import os
-        from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-        
+        from ..utils.time_utility import (
+            TimestampConfig,
+            TimestampFormat,
+            TimestampPrecision,
+        )
+
         # Check if we're in production environment
-        is_production = os.environ.get('ENVIRONMENT', '').lower() in ['production', 'prod']
-        
+        is_production = os.environ.get("ENVIRONMENT", "").lower() in [
+            "production",
+            "prod",
+        ]
+
         if is_production:
             # Production: UTC, microsecond precision, RFC3339 format
             return TimestampConfig(
                 format_type=TimestampFormat.RFC3339_MICRO,
                 precision=TimestampPrecision.MICROSECONDS,
                 timezone_name="UTC",
-                include_timezone=True
+                include_timezone=True,
             )
         else:
             # Development: Local timezone, second precision, human readable
@@ -168,7 +178,7 @@ class JsonLinesFormatter(BaseFormatter):
                 format_type=TimestampFormat.HUMAN_READABLE,
                 precision=TimestampPrecision.SECONDS,
                 timezone_name=None,  # Local timezone
-                include_timezone=False
+                include_timezone=False,
             )
 
     def _format_default(self, record: LogRecord) -> str:
@@ -184,12 +194,12 @@ class JsonLinesFormatter(BaseFormatter):
         # Use pre-compiled encoder for better performance
         record_dict = self._create_record_dict(record)
         return self._encoder.encode(record_dict)
-    
+
     def _create_record_dict(self, record: LogRecord) -> Dict[str, Any]:
-        """Create ultra-optimized record dictionary with minimal overhead."""
+        """Create record dictionary with minimal overhead."""
         # Pre-format timestamp once to avoid repeated calls
         timestamp = self.format_timestamp(record)
-        
+
         # Build dictionary with minimal overhead - avoid or operations
         record_dict = {
             "timestamp": timestamp,
@@ -202,7 +212,7 @@ class JsonLinesFormatter(BaseFormatter):
             "function_name": record.function_name if record.function_name else "",
             "line_number": record.line_number if record.line_number else 0,
         }
-        
+
         # Add structured data fields
         if record.extra:
             record_dict["extra"] = record.extra
@@ -211,11 +221,10 @@ class JsonLinesFormatter(BaseFormatter):
 
         return record_dict
 
-
     def get_required_extension(self) -> str:
         """
         Get the required file extension for JSON Lines formatter.
-        
+
         Returns:
             '.jsonl' - Industry standard for JSON Lines format
         """

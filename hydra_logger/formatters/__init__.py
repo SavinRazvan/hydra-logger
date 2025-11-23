@@ -1,10 +1,10 @@
 """
 Hydra-Logger Formatters System
 
-This module provides a comprehensive formatter system for Hydra-Logger with
-ultra-high performance, standardized formatting, and support for multiple
-output formats. The formatter system is designed for maximum throughput
-and minimal latency while maintaining data integrity.
+This module provides a formatter system for Hydra-Logger with
+performance focus, standardized formatting, and support for multiple
+output formats. The formatter system is designed for throughput
+with minimal latency while maintaining data integrity.
 
 ARCHITECTURE:
 - BaseFormatter: Abstract base class for all formatters
@@ -18,7 +18,7 @@ FORMATTER TYPES:
 - Structured Formatters: CSV, Syslog, GELF, Logstash formats
 
 FORMATTER FEATURES:
-- High-performance string formatting
+- String formatting
 - Consistent timestamp formatting
 - Structured data support (extra and context fields)
 - Industry standard compliance
@@ -26,7 +26,7 @@ FORMATTER FEATURES:
 
 TEXT FORMATTING:
 - PlainTextFormatter: Clean text output without colors
-- Optimized for file handlers and console output
+- Suitable for file handlers and console output
 - Standardized format string support
 - High performance with minimal overhead
 
@@ -41,31 +41,31 @@ USAGE EXAMPLES:
 
 Basic Formatter Usage:
     from hydra_logger.formatters import get_formatter
-    
+
     # Get colored formatter for console
     formatter = get_formatter('colored', use_colors=True)
-    
+
     # Get plain formatter for file
     formatter = get_formatter('plain-text', use_colors=False)
-    
+
     # Get JSON formatter for structured logging
     formatter = get_formatter('json-lines', use_colors=False)
 
 Direct Formatter Creation:
     from hydra_logger.formatters import PlainTextFormatter, JsonLinesFormatter
-    
+
     # Create text formatter
     text_formatter = PlainTextFormatter()
-    
+
     # Create JSON formatter
     json_formatter = JsonLinesFormatter()
 
 Custom Formatting:
     from hydra_logger.formatters import PlainTextFormatter
-    
+
     # Create formatter with custom format string
     formatter = PlainTextFormatter("{timestamp} {level_name} {message}")
-    
+
     # Create formatter with custom timestamp config
     from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
     config = TimestampConfig(
@@ -96,23 +96,29 @@ from .base import BaseFormatter
 from .text_formatter import PlainTextFormatter
 from .colored_formatter import ColoredFormatter
 from .json_formatter import JsonLinesFormatter
-from .structured_formatter import GelfFormatter, LogstashFormatter, CsvFormatter, SyslogFormatter
+from .structured_formatter import (
+    GelfFormatter,
+    LogstashFormatter,
+    CsvFormatter,
+    SyslogFormatter,
+)
+
 
 def get_formatter(format_type: str, use_colors: bool = False):
     """
     Get the appropriate formatter for a given format type.
-    
+
     Args:
         format_type: Format type (e.g., 'plain-text', 'json-lines', 'colored')
         use_colors: Whether to use colors (for console output only)
-        
+
     Returns:
         Formatter instance or None if not found
-        
+
     Example:
         # Get colored formatter for console
         formatter = get_formatter('colored', use_colors=True)
-        
+
         # Get plain formatter for file
         formatter = get_formatter('plain-text', use_colors=False)
     """
@@ -148,7 +154,6 @@ __all__ = [
     "LogstashFormatter",
     "CsvFormatter",
     "SyslogFormatter",
-    
     # Utility functions
-    "get_formatter"
+    "get_formatter",
 ]

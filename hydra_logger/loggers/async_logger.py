@@ -2,14 +2,14 @@
 Asynchronous Logger Implementation for Hydra-Logger
 
 This module provides a high-performance asynchronous logger implementation with
-optimized async processing, comprehensive monitoring, and advanced features.
+optimized async processing,  monitoring, and  features.
 It delivers efficient async logging with minimal overhead.
 
 ARCHITECTURE:
 - AsyncLogger: High-performance asynchronous logging system
 - Async I/O operations with non-blocking concurrency control
 - Overflow queue handling for burst traffic
-- Comprehensive health monitoring and metrics collection
+-  health monitoring and metrics collection
 - Plugin system integration for extensibility
 
 CORE FEATURES:
@@ -27,7 +27,7 @@ PERFORMANCE OPTIMIZATIONS:
 - Formatter caching for consistent instances
 - Handler lookup caching for performance
 - Batch processing for high-throughput scenarios
-- Direct I/O operations for maximum speed
+- Direct I/O operations for speed
 
 USAGE EXAMPLES:
 
@@ -171,16 +171,16 @@ SECURITY FEATURES:
 
 ERROR HANDLING:
 - Graceful error handling with fallback mechanisms
-- Silent error handling for maximum performance
-- Comprehensive health monitoring and status reporting
+- Silent error handling for performance
+-  health monitoring and status reporting
 - Automatic resource cleanup on errors
 
 BENEFITS:
 - High-performance async processing with parallelization
 - True asynchronous processing with parallelization
-- Comprehensive monitoring and health checks
+-  monitoring and health checks
 - Easy configuration and customization
-- Production-ready with advanced features
+- Production-ready with  features
 - Memory efficient with leak prevention
 """
 
@@ -225,7 +225,7 @@ class AsyncLogger(BaseLogger):
         else:
             self._setup_default_configuration()
         
-        # ✅ CRITICAL FIX: Setup core systems AFTER configuration (so security flags are set)
+        # CRITICAL FIX: Setup core systems AFTER configuration (so security flags are set)
         self._setup_core_systems()
         
         # Setup layers and handlers
@@ -258,7 +258,7 @@ class AsyncLogger(BaseLogger):
         # Feature components
         self._plugin_manager = None
         
-        # Feature flags - DISABLED by default for maximum performance
+        # Feature flags - DISABLED by default for performance
         self._enable_security = False
         self._enable_sanitization = False
         self._enable_plugins = False
@@ -269,7 +269,7 @@ class AsyncLogger(BaseLogger):
         self._shutdown_event = None
         self._writer_tasks = {}
         
-        # ✅ OPTIMIZATION: Non-blocking concurrency control with overflow handling
+        # OPTIMIZATION: Non-blocking concurrency control with overflow handling
         self._concurrency_semaphore = None
         self._optimal_concurrency = None
         self._overflow_queue = asyncio.Queue(maxsize=100000)  # Larger overflow queue
@@ -288,7 +288,7 @@ class AsyncLogger(BaseLogger):
     
     def _setup_core_systems(self):
         """Setup core system integration."""
-        # ✅ SIMPLIFIED: No complex security engine - use simple extensions
+        # SIMPLIFIED: No complex security engine - use simple extensions
         self._security_engine = None
         
         # Setup data protection if enabled
@@ -349,7 +349,7 @@ class AsyncLogger(BaseLogger):
             self._optimal_concurrency = self._get_optimal_concurrency()
             self._concurrency_semaphore = asyncio.Semaphore(self._optimal_concurrency)
             
-            # ✅ OPTIMIZATION: Start overflow worker for non-blocking operation
+            # OPTIMIZATION: Start overflow worker for non-blocking operation
             if self._overflow_worker_task is None:
                 self._overflow_worker_task = asyncio.create_task(self._overflow_worker())
     
@@ -360,19 +360,19 @@ class AsyncLogger(BaseLogger):
         else:
             self._config = config
         
-        # ✅ CRITICAL FIX: Extract security settings from configuration
+        # CRITICAL FIX: Extract security settings from configuration
         if self._config:
             self._enable_security = self._config.enable_security
             self._enable_sanitization = self._config.enable_sanitization
             self._enable_data_protection = getattr(self._config, 'enable_data_protection', False)
             self._enable_plugins = self._config.enable_plugins
         
-        # ✅ CRITICAL FIX: Setup handlers from configuration
+        # CRITICAL FIX: Setup handlers from configuration
         self._setup_layers()
     
     def _setup_default_configuration(self):
-        """Setup SIMPLIFIED configuration for maximum performance."""
-        # SIMPLIFIED: Use only console handler for maximum performance
+        """Setup SIMPLIFIED configuration for performance."""
+        # SIMPLIFIED: Use only console handler for performance
         from ..handlers.console_handler import AsyncConsoleHandler
         self._console_handler = AsyncConsoleHandler(
             buffer_size=10000,  # Larger buffer
@@ -428,7 +428,7 @@ class AsyncLogger(BaseLogger):
             formatter = self._create_formatter_for_destination(destination, is_console=False)
             handler.setFormatter(formatter)
             
-            # ✅ CRITICAL FIX: Start the async file worker
+            # CRITICAL FIX: Start the async file worker
             handler._start_worker()
 
         elif destination.type == 'null':
@@ -452,7 +452,7 @@ class AsyncLogger(BaseLogger):
             if cache_key in self._formatter_cache:
                 return self._formatter_cache[cache_key]
             
-            # ✅ STANDARDIZED: Use the standardized get_formatter function
+            # STANDARDIZED: Use the standardized get_formatter function
             from ..formatters import get_formatter
             
             # Map old format types to new standardized types
@@ -492,7 +492,7 @@ class AsyncLogger(BaseLogger):
     
     def log(self, level: Union[str, int], message: str, **kwargs):
         """
-        ULTRA-FAST log method with automatic async/sync detection.
+        Log method with automatic async/sync detection.
         
         This method automatically detects if it's being called from an async context
         and handles both synchronous and asynchronous logging appropriately.
@@ -517,7 +517,7 @@ class AsyncLogger(BaseLogger):
                 self._log_sync(level, message, **kwargs)
                 
         except Exception as e:
-            # Silent error handling for maximum speed
+            # Silent error handling for speed
             pass
     
     async def log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
@@ -535,7 +535,7 @@ class AsyncLogger(BaseLogger):
         try:
             await self._log_async(level, message, **kwargs)
         except Exception:
-            # Silent error handling for maximum speed
+            # Silent error handling for speed
             pass
     
     def _log_sync(self, level: Union[str, int], message: str, **kwargs) -> None:
@@ -548,7 +548,7 @@ class AsyncLogger(BaseLogger):
             # Create log record
             record = self.create_log_record(level, message, **kwargs)
             
-            # ✅ SIMPLE SECURITY: Apply data protection if enabled
+            # SIMPLE SECURITY: Apply data protection if enabled
             if self._data_protection and self._data_protection.is_enabled():
                 try:
                     # Process the message through simple security extension
@@ -557,7 +557,7 @@ class AsyncLogger(BaseLogger):
                     # If security processing fails, continue with original record
                     pass
             
-            # ✅ SIMPLIFIED: Direct emission to handlers (no async complexity)
+            # SIMPLIFIED: Direct emission to handlers (no async complexity)
             layer_name = getattr(record, 'layer', 'default')
             handlers = self._get_handlers_for_layer(layer_name)
             
@@ -566,14 +566,14 @@ class AsyncLogger(BaseLogger):
                 try:
                     handler.emit(record)
                 except Exception:
-                    # Silent error handling for maximum speed
+                    # Silent error handling for speed
                     pass
             
             # Update statistics
             self._log_count += 1
             
         except Exception:
-            # Silent error handling for maximum speed
+            # Silent error handling for speed
             pass
     
     async def _log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
@@ -583,10 +583,10 @@ class AsyncLogger(BaseLogger):
             if isinstance(level, str):
                 level = LogLevelManager.get_level(level)
             
-            # ✅ STANDARDIZED: Use standardized LogRecord creation
+            # STANDARDIZED: Use standardized LogRecord creation
             record = self.create_log_record(level, message, **kwargs)
             
-            # ✅ SIMPLE SECURITY: Apply data protection if enabled
+            # SIMPLE SECURITY: Apply data protection if enabled
             if self._data_protection and self._data_protection.is_enabled():
                 try:
                     # Process the message through simple security extension
@@ -595,7 +595,7 @@ class AsyncLogger(BaseLogger):
                     # If security processing fails, continue with original record
                     pass
             
-            # ✅ SIMPLIFIED: Direct emission to handlers (no complex semaphore)
+            # SIMPLIFIED: Direct emission to handlers (no complex semaphore)
             await self._emit_to_handlers(record)
             
             # Update statistics
@@ -642,7 +642,7 @@ class AsyncLogger(BaseLogger):
                     if self._concurrency_semaphore:
                         async with self._concurrency_semaphore:
                             try:
-                                # ✅ INTEGRATION: Monitor overflow message processing
+                                # INTEGRATION: Monitor overflow message processing
                                 start_time = TimeUtility.perf_counter()
                                 await self._emit_to_handlers(record)
                                 
@@ -680,18 +680,18 @@ class AsyncLogger(BaseLogger):
         
         try:
             
-            # ✅ PERFORMANCE FIX: Process in optimal chunks without individual tasks
+            # PERFORMANCE FIX: Process in optimal chunks without individual tasks
             optimal_chunk_size = min(5000, len(messages) // 10)  # Dynamic chunk sizing
             optimal_chunk_size = max(100, optimal_chunk_size)  # Minimum chunk size
             
             # Progress tracking (only for large batches)
             if len(messages) > 10000:
-                print(f"🚀 Processing {len(messages):,} messages in chunks of {optimal_chunk_size:,}")
+                print(f"Processing {len(messages):,} messages in chunks of {optimal_chunk_size:,}")
             
             for i in range(0, len(messages), optimal_chunk_size):
                 chunk = messages[i:i + optimal_chunk_size]
                 
-                # ✅ PERFORMANCE FIX: Process chunk directly without creating tasks
+                # PERFORMANCE FIX: Process chunk directly without creating tasks
                 await self._process_chunk_optimized(chunk, **kwargs)
             
                 
@@ -700,7 +700,7 @@ class AsyncLogger(BaseLogger):
     
     async def _process_chunk_optimized(self, chunk: List[Tuple[Union[str, int], str, Dict]], **kwargs) -> None:
         """Process a chunk of messages with minimal overhead - NO TASK CANCELLATION ISSUES."""
-        # ✅ PERFORMANCE FIX: Use sequential processing for small chunks (most reliable)
+        # PERFORMANCE FIX: Use sequential processing for small chunks (most reliable)
         if len(chunk) <= 100:
             # Sequential processing - no task management overhead
             for level, message, extra_kwargs in chunk:
@@ -716,7 +716,7 @@ class AsyncLogger(BaseLogger):
             
             # Progress tracking (only for large chunks)
             if len(chunk) > 1000:
-                print(f"      🔄 Processing {len(chunk):,} messages with concurrency {concurrency}")
+                print(f"     🔄 Processing {len(chunk):,} messages with concurrency {concurrency}")
             
             # Process in smaller sub-chunks to avoid overwhelming the system
             sub_chunk_size = max(50, len(chunk) // concurrency)
@@ -750,7 +750,7 @@ class AsyncLogger(BaseLogger):
         
         try:
             
-            # ✅ TRUE ASYNC: Use optimal concurrency based on message count
+            # TRUE ASYNC: Use optimal concurrency based on message count
             if max_concurrent is None:
                 # Dynamic concurrency: more messages = more concurrency (up to limit)
                 concurrency = min(100, max(10, len(messages) // 100))
@@ -761,10 +761,10 @@ class AsyncLogger(BaseLogger):
             if len(messages) > 10000:
                 print(f"🔄 Processing {len(messages):,} messages with concurrency {concurrency}")
             
-            # ✅ TRUE ASYNC: Create semaphore for controlled concurrency
+            # TRUE ASYNC: Create semaphore for controlled concurrency
             semaphore = asyncio.Semaphore(concurrency)
             
-            # ✅ TRUE ASYNC: Create tasks for all messages
+            # TRUE ASYNC: Create tasks for all messages
             tasks = []
             for level, message, extra_kwargs in messages:
                 task = asyncio.create_task(
@@ -772,7 +772,7 @@ class AsyncLogger(BaseLogger):
                 )
                 tasks.append(task)
             
-            # ✅ TRUE ASYNC: Wait for all tasks to complete in parallel
+            # TRUE ASYNC: Wait for all tasks to complete in parallel
             await asyncio.gather(*tasks, return_exceptions=True)
             
             
@@ -803,16 +803,16 @@ class AsyncLogger(BaseLogger):
             return []
         
         try:
-            # ✅ TRUE ASYNC: Use optimal concurrency
+            # TRUE ASYNC: Use optimal concurrency
             if max_concurrent is None:
                 concurrency = min(50, max(5, len(work_tasks) // 10))
             else:
                 concurrency = min(max_concurrent, 50)  # Cap at 50 for work tasks
             
-            # ✅ TRUE ASYNC: Create semaphore for controlled concurrency
+            # TRUE ASYNC: Create semaphore for controlled concurrency
             semaphore = asyncio.Semaphore(concurrency)
             
-            # ✅ TRUE ASYNC: Create tasks for all work
+            # TRUE ASYNC: Create tasks for all work
             tasks = []
             for work_task in work_tasks:
                 task = asyncio.create_task(
@@ -820,7 +820,7 @@ class AsyncLogger(BaseLogger):
                 )
                 tasks.append(task)
             
-            # ✅ TRUE ASYNC: Wait for all work to complete in parallel
+            # TRUE ASYNC: Wait for all work to complete in parallel
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
             # Filter out exceptions and return only successful results
@@ -886,7 +886,7 @@ class AsyncLogger(BaseLogger):
                 else:
                     handler.emit(record)
             except Exception:
-                # Silent error handling for maximum speed
+                # Silent error handling for speed
                 pass
     
     def _get_handlers_for_layer(self, layer_name: str) -> list:
@@ -1038,6 +1038,10 @@ class AsyncLogger(BaseLogger):
     
     async def close_async(self):
         """Async close method for proper async cleanup."""
+        await self.aclose()
+    
+    async def aclose(self):
+        """Async close method (standard async context manager protocol)."""
         if self._closed:
             return
         
@@ -1048,7 +1052,10 @@ class AsyncLogger(BaseLogger):
             # Clean up handlers asynchronously
             for handler in self._handlers.values():
                 try:
-                    if hasattr(handler, 'close_async'):
+                    # Try aclose first (standard), then close_async (legacy), then sync close
+                    if hasattr(handler, 'aclose') and asyncio.iscoroutinefunction(handler.aclose):
+                        await handler.aclose()
+                    elif hasattr(handler, 'close_async') and asyncio.iscoroutinefunction(handler.close_async):
                         await handler.close_async()
                     elif hasattr(handler, 'close'):
                         handler.close()
@@ -1058,7 +1065,9 @@ class AsyncLogger(BaseLogger):
             # Clean up console handler
             if hasattr(self, '_console_handler') and self._console_handler:
                 try:
-                    if hasattr(self._console_handler, 'close_async'):
+                    if hasattr(self._console_handler, 'aclose') and asyncio.iscoroutinefunction(self._console_handler.aclose):
+                        await self._console_handler.aclose()
+                    elif hasattr(self._console_handler, 'close_async') and asyncio.iscoroutinefunction(self._console_handler.close_async):
                         await self._console_handler.close_async()
                     else:
                         self._console_handler.close()
@@ -1072,6 +1081,10 @@ class AsyncLogger(BaseLogger):
             # Clean up overflow worker
             if hasattr(self, '_overflow_worker_task') and self._overflow_worker_task and not self._overflow_worker_task.done():
                 self._overflow_worker_task.cancel()
+                try:
+                    await self._overflow_worker_task
+                except (asyncio.CancelledError, Exception):
+                    pass
             
             # Clear handler cache
             self._handler_cache.clear()
@@ -1092,7 +1105,7 @@ class AsyncLogger(BaseLogger):
             'layer_count': len(self._layers)
         }
         
-        # ✅ REAL ASYNC: Add concurrency information
+        # REAL ASYNC: Add concurrency information
         if self._concurrency_semaphore:
             health_status.update({
                 'concurrency_optimal': self._optimal_concurrency,
@@ -1113,9 +1126,9 @@ class AsyncLogger(BaseLogger):
         """Update security level at runtime."""
         if self._config:
             self._config.update_security_level(level)
-            print(f"✅ Security level updated to: {level}")
+            print(f"Security level updated to: {level}")
         else:
-            print("❌ No configuration available for runtime updates")
+            print("No configuration available for runtime updates")
     
     def update_monitoring_config(self, detail_level: Optional[str] = None,
                                sample_rate: Optional[int] = None,
@@ -1126,13 +1139,13 @@ class AsyncLogger(BaseLogger):
             
             # Update local monitoring settings
             if detail_level:
-                print(f"✅ Monitoring detail level updated to: {detail_level}")
+                print(f"Monitoring detail level updated to: {detail_level}")
             if sample_rate is not None:
-                print(f"✅ Monitoring sample rate updated to: {sample_rate}")
+                print(f"Monitoring sample rate updated to: {sample_rate}")
             if background is not None:
-                print(f"✅ Monitoring background processing: {'enabled' if background else 'disabled'}")
+                print(f"Monitoring background processing: {'enabled' if background else 'disabled'}")
         else:
-            print("❌ No configuration available for runtime updates")
+            print("No configuration available for runtime updates")
     
     def toggle_feature(self, feature: str, enabled: bool) -> None:
         """Toggle a feature on/off at runtime."""
@@ -1147,9 +1160,9 @@ class AsyncLogger(BaseLogger):
             elif feature == "plugins":
                 self._enable_plugins = enabled
             
-            print(f"✅ {feature} {'enabled' if enabled else 'disabled'}")
+            print(f"{feature} {'enabled' if enabled else 'disabled'}")
         else:
-            print("❌ No configuration available for runtime updates")
+            print("No configuration available for runtime updates")
     
     def get_configuration_summary(self) -> Dict[str, Any]:
         """Get a summary of current configuration."""

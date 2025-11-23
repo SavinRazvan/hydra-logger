@@ -1,7 +1,7 @@
 """
 Network Handlers for Hydra-Logger
 
-This module provides comprehensive network-based logging handlers for various
+This module provides network-based logging handlers for various
 network protocols and communication patterns. It includes connection management,
 retry mechanisms, and batch processing for optimal performance.
 
@@ -20,12 +20,12 @@ SUPPORTED PROTOCOLS:
 - UDP: Fast datagram-based communication
 
 PERFORMANCE FEATURES:
-- Intelligent batch processing (100 messages or 5s intervals)
+- batch processing (100 messages or 5s intervals)
 - Connection pooling and management
 - Retry mechanisms with exponential backoff
 - Authentication and security support
 - Formatter-aware handling for optimal performance
-- Comprehensive error handling and recovery
+- Error handling and recovery
 
 RETRY POLICIES:
 - NONE: No retry on failure
@@ -110,7 +110,7 @@ ERROR HANDLING:
 - Automatic retry with configurable policies
 - Connection recovery and reconnection
 - Fallback mechanisms for failed operations
-- Comprehensive error logging
+- Error logging
 - Graceful degradation
 
 THREAD SAFETY:
@@ -719,7 +719,7 @@ class DatagramHandler(BaseNetworkHandler):
         Args:
             host: Target host
             port: Target port
-            max_packet_size: Maximum packet size
+            max_packet_size: Packet size limit
             **kwargs: Additional arguments
         """
         config = NetworkConfig(

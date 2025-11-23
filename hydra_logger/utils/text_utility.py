@@ -1,13 +1,13 @@
 """
 Text Processing Utilities for Hydra-Logger
 
-This module provides comprehensive text processing utilities including
+This module provides  text processing utilities including
 string manipulation, validation, sanitization, analysis, and formatting.
 It supports various text operations with performance optimization and
 extensive pattern matching capabilities.
 
 FEATURES:
-- TextProcessor: Advanced text processing and pattern matching
+- TextProcessor:  text processing and pattern matching
 - StringFormatter: String formatting and case transformation
 - TextValidator: Text validation and format checking
 - TextSanitizer: Text sanitization and sensitive data protection
@@ -33,24 +33,24 @@ VALIDATION FEATURES:
 
 USAGE:
     from hydra_logger.utils import TextProcessor, StringFormatter, TextValidator
-    
+
     # Text processing
     processor = TextProcessor()
     normalized = processor.normalize_text("Héllo Wörld")
     words = processor.extract_words("Hello world from Hydra-Logger")
     emails = processor.extract_emails("Contact: user@example.com")
-    
+
     # String formatting
     camel_case = StringFormatter.change_case("hello_world", TextCase.CAMEL)
     truncated = StringFormatter.truncate("Long text", 10, "...")
     wrapped = StringFormatter.wrap("Long text", width=20)
-    
+
     # Text validation
     validator = TextValidator()
     is_email = validator.is_email("user@example.com")
     is_url = validator.is_url("https://example.com")
     is_strong = validator.is_strong_password("MyStr0ng!Pass")
-    
+
     # Text analysis
     from hydra_logger.utils import TextAnalyzer
     analyzer = TextAnalyzer()
@@ -101,7 +101,7 @@ class TextMetrics:
     sentence_count: int
     paragraph_count: int
 
-    # Advanced metrics
+    #  metrics
     average_word_length: float
     average_sentence_length: float
     average_paragraph_length: float
@@ -141,7 +141,7 @@ class TextMetrics:
 
 
 class TextProcessor:
-    """Advanced text processing utilities."""
+    """ text processing utilities."""
 
     def __init__(self):
         """Initialize text processor."""
@@ -563,7 +563,7 @@ class TextAnalyzer:
         self._readability_calculator = None
 
     def analyze_text(self, text: str) -> TextMetrics:
-        """Analyze text and return comprehensive metrics."""
+        """Analyze text and return  metrics."""
         # Basic metrics
         character_count = len(text)
         word_count = len(self._extract_words(text))

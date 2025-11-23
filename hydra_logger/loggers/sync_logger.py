@@ -2,7 +2,7 @@
 Synchronous Logger Implementation for Hydra-Logger
 
 This module provides a high-performance synchronous logger implementation with
-multi-layer support, comprehensive logging capabilities, and advanced features.
+multi-layer support,  logging capabilities, and  features.
 It delivers efficient synchronous logging with minimal overhead and maximum reliability.
 
 ARCHITECTURE:
@@ -27,7 +27,7 @@ PERFORMANCE OPTIMIZATIONS:
 - Layer threshold caching for fast level checks
 - Precomputed logging methods for optimization
 - Direct level conversion without caching overhead
-- Silent error handling for maximum speed
+- Silent error handling for speed
 
 USAGE EXAMPLES:
 
@@ -187,16 +187,16 @@ PLUGIN SYSTEM:
 
 ERROR HANDLING:
 - Graceful error handling with fallback mechanisms
-- Silent error handling for maximum performance
-- Comprehensive health monitoring and status reporting
+- Silent error handling for performance
+-  health monitoring and status reporting
 - Automatic resource cleanup on errors
 
 BENEFITS:
 - High-performance synchronous logging
 - Multi-layer support with independent configurations
-- Comprehensive monitoring and health checks
+-  monitoring and health checks
 - Easy configuration and customization
-- Production-ready with advanced features
+- Production-ready with  features
 - Thread-safe operations with proper locking
 """
 
@@ -240,7 +240,7 @@ class SyncLogger(BaseLogger):
         else:
             self._setup_default_configuration()
         
-        # ✅ CRITICAL FIX: Setup core systems AFTER configuration (so security flags are set)
+        # CRITICAL FIX: Setup core systems AFTER configuration (so security flags are set)
         self._setup_core_systems()
         
         # Setup data protection
@@ -284,7 +284,7 @@ class SyncLogger(BaseLogger):
         self._fallback_handler = None
         self._plugin_manager = None
         
-        # Feature flags - DISABLED by default for maximum performance
+        # Feature flags - DISABLED by default for performance
         self._enable_security = False
         self._enable_sanitization = False
         self._enable_plugins = False
@@ -321,7 +321,7 @@ class SyncLogger(BaseLogger):
         else:
             self._config = config
         
-        # ✅ CRITICAL FIX: Extract security settings from configuration
+        # CRITICAL FIX: Extract security settings from configuration
         if self._config:
             self._enable_security = self._config.enable_security
             self._enable_sanitization = self._config.enable_sanitization
@@ -331,8 +331,8 @@ class SyncLogger(BaseLogger):
             self._flush_interval = self._config.flush_interval
     
     def _setup_default_configuration(self):
-        """Setup SIMPLIFIED configuration for maximum performance."""
-        # SIMPLIFIED: Use only console handler for maximum performance
+        """Setup simplified configuration."""
+        # SIMPLIFIED: Use only console handler for performance
         from ..handlers.console_handler import SyncConsoleHandler
         self._console_handler = SyncConsoleHandler(
             buffer_size=10000,  # Larger buffer
@@ -342,7 +342,7 @@ class SyncLogger(BaseLogger):
     
     def _setup_core_systems(self):
         """Setup core system integration."""
-        # ✅ SIMPLIFIED: No complex security engine - use simple extensions
+        # SIMPLIFIED: No complex security engine - use simple extensions
         self._security_engine = None
         
 
@@ -458,7 +458,7 @@ class SyncLogger(BaseLogger):
             if cache_key in self._formatter_cache:
                 return self._formatter_cache[cache_key]
             
-            # ✅ STANDARDIZED: Use the standardized get_formatter function
+            # STANDARDIZED: Use the standardized get_formatter function
             from ..formatters import get_formatter
             
             format_mapping = {
@@ -518,7 +518,7 @@ class SyncLogger(BaseLogger):
         }
     
     def log(self, level: Union[str, int], message: str, **kwargs) -> None:
-        """ULTRA-FAST log method with minimal overhead."""
+        """Log method with minimal overhead."""
         # Fast path checks (minimal overhead)
         if not self._initialized or self._closed:
             return
@@ -528,10 +528,10 @@ class SyncLogger(BaseLogger):
             if isinstance(level, str):
                 level = LogLevelManager.get_level(level)
             
-            # ✅ STANDARDIZED: Use standardized LogRecord creation
+            # STANDARDIZED: Use standardized LogRecord creation
             record = self.create_log_record(level, message, **kwargs)
             
-            # ✅ SIMPLE SECURITY: Apply data protection if enabled
+            # SIMPLE SECURITY: Apply data protection if enabled
             if self._data_protection and self._data_protection.is_enabled():
                 try:
                     # Process the message through simple security extension
@@ -540,17 +540,17 @@ class SyncLogger(BaseLogger):
                     # If security processing fails, continue with original record
                     pass
             
-            # ✅ LAYER ROUTING: Route to specific layer handlers
+            # LAYER ROUTING: Route to specific layer handlers
             layer_name = kwargs.get('layer', 'default')
             if not self._is_level_enabled_for_layer(layer_name, level):
                 return
             
-            # ✅ LAYER HANDLERS: Get handlers for the specific layer
+            # LAYER HANDLERS: Get handlers for the specific layer
             layer_handlers = self._get_handlers_for_layer(layer_name)
             for handler in layer_handlers:
                 handler.handle(record)
             
-            # ✅ PERFORMANCE: Return record to pool
+            # PERFORMANCE: Return record to pool
             # Record processing completed
             
         except Exception as e:
@@ -734,9 +734,9 @@ class SyncLogger(BaseLogger):
         """Update security level at runtime."""
         if self._config:
             self._config.update_security_level(level)
-            print(f"✅ Security level updated to: {level}")
+            print(f"Security level updated to: {level}")
         else:
-            print("❌ No configuration available for runtime updates")
+            print("No configuration available for runtime updates")
     
     def update_monitoring_config(self, detail_level: Optional[str] = None,
                                sample_rate: Optional[int] = None,
@@ -747,13 +747,13 @@ class SyncLogger(BaseLogger):
             
             # Update local monitoring settings
             if detail_level:
-                print(f"✅ Monitoring detail level updated to: {detail_level}")
+                print(f"Monitoring detail level updated to: {detail_level}")
             if sample_rate is not None:
-                print(f"✅ Monitoring sample rate updated to: {sample_rate}")
+                print(f"Monitoring sample rate updated to: {sample_rate}")
             if background is not None:
-                print(f"✅ Monitoring background processing: {'enabled' if background else 'disabled'}")
+                print(f"Monitoring background processing: {'enabled' if background else 'disabled'}")
         else:
-            print("❌ No configuration available for runtime updates")
+            print(" No configuration available for runtime updates")
     
     def toggle_feature(self, feature: str, enabled: bool) -> None:
         """Toggle a feature on/off at runtime."""
@@ -768,9 +768,9 @@ class SyncLogger(BaseLogger):
             elif feature == "plugins":
                 self._enable_plugins = enabled
             
-            print(f"✅ {feature} {'enabled' if enabled else 'disabled'}")
+            print(f"{feature} {'enabled' if enabled else 'disabled'}")
         else:
-            print("❌ No configuration available for runtime updates")
+            print("No configuration available for runtime updates")
     
     def get_configuration_summary(self) -> Dict[str, Any]:
         """Get a summary of current configuration."""

@@ -2,13 +2,13 @@
 Hydra-Logger: Advanced Modular Logging Framework
 
 A comprehensive, extensible logging system with unified sync/async support,
-modular architecture, and intelligent configuration management. Built for
+modular architecture, and adaptive configuration management. Built for
 performance, flexibility, and ease of use in modern Python applications.
 
 FEATURES:
 - Unified sync/async logging interface
 - Modular handler and formatter system
-- Intelligent configuration management
+- Adaptive configuration management
 - Performance-optimized logging operations
 - Security and data protection features
 - Security and compliance features
@@ -25,18 +25,18 @@ CORE COMPONENTS:
 
 USAGE:
     from hydra_logger import SyncLogger, AsyncLogger, create_logger
-    
+
     # Simple usage
     logger = SyncLogger("my_app")
     logger.info("Application started")
-    
+
     # Async usage
     async_logger = AsyncLogger("my_app")
     await async_logger.info("Async operation completed")
-    
+
     # Factory pattern
     logger = create_logger("my_app", level="INFO")
-    
+
     # Python logging style
     from hydra_logger import getLogger
     logger = getLogger("my_app")
@@ -45,6 +45,15 @@ USAGE:
 __version__ = "0.4.0"
 __author__ = "Savin Ionut Razvan"
 __license__ = "MIT"
+
+# ✅ CRITICAL: Start stderr interception to capture tracemalloc and system errors
+# This must happen early, before any logging operations
+try:
+    from .utils.stderr_interceptor import StderrInterceptor
+    StderrInterceptor.start_intercepting()
+except Exception:
+    # Fail silently if interception can't be set up
+    pass
 
 # Main public API
 from .loggers.sync_logger import SyncLogger
