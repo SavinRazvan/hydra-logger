@@ -15,7 +15,7 @@ A dynamic, scalable, event-driven logging system built with KISS (Keep It Simple
 
 ## 🏗 Architecture Overview
 
-**Total Files**: 48 essential files
+**Core Package**: 49 Python files in `hydra_logger/`
 **Architecture**: Event-driven, modular, scalable, user-controllable
 **Design Principles**: KISS, EDA, zero overhead, consistent naming
 **User Control**: Full control over formats, destinations, configurations, and extensions
