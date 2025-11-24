@@ -59,7 +59,7 @@ config = LoggingConfig(
         "error": LogLayer(
             destinations=[
                 LogDestination(type="file", path="errors.log", format="plain-text"),
-                LogDestination(type="async_cloud", service_type="aws_cloudwatch")
+                LogDestination(type="async_file", path="errors_async.jsonl", format="json-lines")
             ]
         )
     }
@@ -411,7 +411,7 @@ logger.info("This will be plain text without colors", layer="app")
 **Purpose**: Configuration system exports
 **Key Exports**:
 
-* `LoggingConfig`, `LogLayer`, `OutputTarget`
+* `LoggingConfig`, `LogLayer`, `LogDestination`
 * `ConfigurationTemplates`, `register_configuration_template`
 * `get_configuration_template`, `has_configuration_template`
 * `create_default_config`, `create_development_config`, `create_production_config`
@@ -1188,7 +1188,7 @@ logger.info("This will be plain text without colors", layer="app")
 * **Default disabled** — zero cost when not used.
 * **Dynamic loading** — runtime enable/disable via config.
 * **Sensible defaults** for each extension.
-* **Two initial extensions planned**: `data_protection` and `performance`.
+* **Available extensions**: `security` (data redaction and sanitization) and `performance` (performance monitoring).
 
 Example config snippet:
 
@@ -1197,10 +1197,11 @@ from hydra_logger.config import LoggingConfig
 
 config = LoggingConfig(
     extensions={
-        "data_protection": {
+        "security": {
             "enabled": True,
-            "redaction_patterns": ["password", "token"],
-            "encryption_key": "your-key-here"
+            "type": "security",
+            "patterns": ["email", "phone", "api_key"],
+            "redaction_enabled": True
         },
     }
 )
