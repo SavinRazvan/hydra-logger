@@ -66,7 +66,8 @@ Custom Formatting:
     formatter = PlainTextFormatter(timestamp_config=config)
 
 FORMAT STRING PATTERNS:
-- "{timestamp} {level_name} {layer} {message}": DEFAULT - Full format with timestamp
+- "| {timestamp} | {level_name} | {layer} | {message}": DEFAULT - Full format with pipes
+- "{timestamp} {level_name} {layer} {message}": Legacy format with spaces
 - "{level_name} {layer} {message}": Alternative format without timestamp
 - "{timestamp} {level_name} {message}": Format with timestamp but no layer
 - "{level_name} {message}": Minimal format with level only
@@ -81,7 +82,7 @@ from ..utils.time_utility import TimestampConfig
 
 
 class PlainTextFormatter(BaseFormatter):
-    """Plain text formatter with customizable format string. Default format includes timestamp, level, layer, and message."""
+    """Plain text formatter with customizable format string. Default format uses pipe separators: | timestamp | level | layer | message"""
 
     def __init__(
         self,
@@ -100,7 +101,7 @@ class PlainTextFormatter(BaseFormatter):
             timestamp_config = self._get_timestamp_config()
         super().__init__("plain_text", timestamp_config)
         self.format_string = (
-            format_string or "{timestamp} {level_name} {layer} {message}"
+            format_string or "| {timestamp} | {level_name} | {layer} | {message}"
         )
 
         # Simplified formatter - no performance optimization
@@ -156,6 +157,7 @@ class PlainTextFormatter(BaseFormatter):
         """Check if we can use f-string formatting for better performance."""
         # Use f-string for simple, common format patterns
         simple_patterns = [
+            "| {timestamp} | {level_name} | {layer} | {message}",
             "{level_name} {layer} {message}",
             "{timestamp} {level_name} {layer} {message}",
             "{timestamp} {level_name} {message}",
@@ -167,8 +169,12 @@ class PlainTextFormatter(BaseFormatter):
     def _compile_fstring_format(self) -> callable:
         """Compile format string into function with cached timestamp formatting."""
         # Use f-strings with timestamp caching
-        if self.format_string == "{timestamp} {level_name} {layer} {message}":
+        if self.format_string == "| {timestamp} | {level_name} | {layer} | {message}":
             # Pre-cache timestamp formatting method for speed
+            format_ts = self.format_timestamp
+            return lambda r: f"| {format_ts(r)} | {r.level_name} | {r.layer} | {r.message}"
+        elif self.format_string == "{timestamp} {level_name} {layer} {message}":
+            # Legacy format without pipes
             format_ts = self.format_timestamp
             return lambda r: f"{format_ts(r)} {r.level_name} {r.layer} {r.message}"
         elif self.format_string == "{level_name} {layer} {message}":

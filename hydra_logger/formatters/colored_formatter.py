@@ -34,7 +34,7 @@ Custom Format String:
 
     # Custom format with colors
     formatter = ColoredFormatter(
-        format_string="{timestamp} {level_name} {layer} {message}",
+        format_string="| {timestamp} | {level_name} | {layer} | {message}",
         use_colors=True
     )
 """
