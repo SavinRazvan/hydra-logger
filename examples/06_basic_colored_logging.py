@@ -3,7 +3,24 @@
 Example 6: Basic Colored Logging
 Demonstrates the color system for console output.
 """
-from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+import sys
+from pathlib import Path
+
+# Add parent directory to path for local development
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+try:
+    from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+except ImportError:
+    print("=" * 70)
+    print("ERROR: hydra_logger package not found")
+    print("=" * 70)
+    print("\nTo fix this:")
+    print("  1. Activate virtual environment: source .venv/bin/activate")
+    print("  2. Or install package: pip install -e .")
+    print("  3. Or run setup: ./setup_env.sh")
+    print("\n" + "=" * 70)
+    sys.exit(1)
 
 # Create logger with colors
 config = LoggingConfig(
