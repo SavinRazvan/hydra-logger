@@ -2,7 +2,7 @@
 
 - Date: 2026-03-15
 - Owner: @SavinRazvan
-- Status: in_progress
+- Status: complete
 - Expected audit results file: `docs/audit/env-toolchain-stability-2026-03-15.results.md`
 
 ## Outcome
@@ -157,10 +157,10 @@ Run and record evidence for:
 
 ## Definition Of Done
 
-- [ ] Planned scope completed and merged.
+- [x] Planned scope completed and merged.
 - [x] Environment preflight is the default path for local workflow scripts.
 - [x] Known mixed Conda+venv corruption pattern is detected before command execution.
-- [ ] No contradictory environment instructions remain across docs.
+- [x] No contradictory environment instructions remain across docs.
 - [x] Evidence captured in `docs/audit/env-toolchain-stability-2026-03-15.results.md`.
 
 ## Risks And Mitigations

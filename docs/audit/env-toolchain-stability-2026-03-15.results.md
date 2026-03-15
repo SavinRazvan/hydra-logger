@@ -4,7 +4,7 @@
 - Owner: @SavinRazvan
 - Scope: `scripts/dev/check_env_health.py`, `scripts/pr/workflow.py`, environment docs updates
 - Plan: `docs/plans/env-toolchain-stability-2026-03.plan.md`
-- Status: in_progress
+- Status: closed
 
 ## Implemented In This Slice
 
@@ -50,10 +50,9 @@
    - Blocking path: `python scripts/pr/workflow.py --phase review ...` -> blocked by env preflight.
    - Override path: `python scripts/pr/workflow.py --phase review ... --skip-env-check` -> workflow proceeds.
 
-## Open Items
+## Operational Follow-up
 
 - Keep all future direct wrapper entrypoints aligned with env preflight contract (`--strict` default + `--skip-env-check` override).
-- Align docs language where needed to avoid Conda/venv ambiguity across all setup references.
 
 ## Follow-up Slice: Direct Wrapper Integration
 
@@ -76,3 +75,16 @@ Validation updates:
    - Result: success with env preflight active.
 3. CLI contract check:
    - Verified `--skip-env-check` exists across direct wrappers.
+
+## Follow-up Slice: Docs Consistency Closeout
+
+- Standardized environment language to avoid Conda/venv ambiguity:
+  - `docs/ENVIRONMENT_SETUP.md` now defines `.hydra_env` as a single local env path with two supported bootstrap models.
+  - `README.md` now documents `.hydra_env` setup as venv (Option A) and Conda prefix (Option B).
+- Updated plan/index statuses to complete after docs consistency closure.
+
+Validation updates:
+
+1. Environment preflight remained healthy after docs closeout:
+   - Command: `python scripts/dev/check_env_health.py --strict --json`
+   - Result: `healthy` (exit `0`)

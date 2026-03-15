@@ -139,9 +139,17 @@ config = LoggingConfig(
 pip install hydra-logger
 ```
 
-### Development Environment (Conda)
+### Development Environment (`.hydra_env`)
 
 ```bash
+# Option A (venv)
+python3 -m venv .hydra_env
+source .hydra_env/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -e .[dev]
+python -m pip install pyright
+
+# Option B (Conda prefix)
 conda env create -p ./.hydra_env -f environment.yml
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$(pwd)/.hydra_env"
@@ -276,7 +284,7 @@ python3 examples/run_all_examples.py
 python3 performance_benchmark.py
 ```
 
-Use the Conda `.hydra_env` workflow from `docs/ENVIRONMENT_SETUP.md` before running these commands.
+Use the `.hydra_env` workflow from `docs/ENVIRONMENT_SETUP.md` before running these commands.
 
 ---
 
