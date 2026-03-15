@@ -14,8 +14,9 @@ Notes:
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
-from ..types.records import LogRecord
+
 from ..formatters.base import BaseFormatter
+from ..types.records import LogRecord
 from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
 
 

@@ -9,6 +9,7 @@ Depends On:
 Notes:
  - Header standardized by slim-header migration.
 """
+
 import sys
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+    from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 except ImportError:
     print("=" * 70)
     print("ERROR: hydra_logger package not found")
@@ -24,20 +25,24 @@ except ImportError:
     print("\nTo fix this:")
     print("  1. Create env: conda env create -p ./.hydra_env -f environment.yml")
     print("  2. Activate env: conda activate $(pwd)/.hydra_env")
-    print("  3. Or reinstall package: python -m pip install -e \".[dev]\"")
+    print('  3. Or reinstall package: python -m pip install -e ".[dev]"')
     print("  4. See docs: docs/ENVIRONMENT_SETUP.md")
     print("\n" + "=" * 70)
     sys.exit(1)
 
 # Configure logger to write to example-specific file
 config = LoggingConfig(
- layers={
- "default": LogLayer(
- destinations=[
- LogDestination(type="file", path="logs/examples/11_quick_start_basic.jsonl", format="json-lines")
- ]
- )
- }
+    layers={
+        "default": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/examples/11_quick_start_basic.jsonl",
+                    format="json-lines",
+                )
+            ]
+        )
+    }
 )
 
 # Use context manager for automatic cleanup
@@ -57,10 +62,11 @@ with create_logger(config, logger_type="sync") as logger:
 
     def handle_user_action():
         """Handle a user action."""
-        logger.info("[11] User action",
- extra={"user_id": 12345, "action": "login"},
- context={"correlation_id": "corr-123"}
- )
+        logger.info(
+            "[11] User action",
+            extra={"user_id": 12345, "action": "login"},
+            context={"correlation_id": "corr-123"},
+        )
 
     # Test logging from actual functions
     start_application()
@@ -69,4 +75,3 @@ with create_logger(config, logger_type="sync") as logger:
     handle_user_action()
 
 print("Example 11 completed: Quick Start - Basic Usage")
-

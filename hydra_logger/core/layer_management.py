@@ -13,11 +13,12 @@ Notes:
 """
 
 import threading
+from sys import stdout
 from typing import Any, Dict, List, Optional
 
-from ..handlers.base_handler import BaseHandler
 from ..formatters.base import BaseFormatter
-from ..types.levels import LogLevel
+from ..handlers.base_handler import BaseHandler
+from ..types.levels import LogLevel, LogLevelManager
 
 
 class LayerConfiguration:
@@ -51,7 +52,7 @@ class LayerConfiguration:
 
     def get_level_numeric(self) -> int:
         """Get numeric log level for this layer."""
-        return LogLevel.get_level(self.level)
+        return LogLevelManager.get_level(self.level)
 
 
 class LayerManager:
@@ -133,18 +134,17 @@ class LayerManager:
 
             # Import handlers dynamically to avoid circular imports
             if dest_type == "console":
-                from ..handlers.console_handler import SyncConsoleHandler
                 from ..formatters import get_formatter
+                from ..handlers.console_handler import SyncConsoleHandler
 
                 # Get format type from destination config
                 format_type = destination_config.get("format", "plain-text")
                 use_colors = destination_config.get("use_colors", False)
 
                 # Create console handler with appropriate formatter
-                console_handler = SyncConsoleHandler(
-                    stream=destination_config.get("stream", "stdout"),
-                    use_colors=use_colors,
-                )
+                stream_name = destination_config.get("stream", "stdout")
+                stream_obj = stdout if stream_name == "stdout" else None
+                console_handler = SyncConsoleHandler(stream=stream_obj, use_colors=use_colors)
 
                 # Set the appropriate formatter based on format type
                 formatter = get_formatter(format_type, use_colors=use_colors)
@@ -155,11 +155,15 @@ class LayerManager:
             elif dest_type == "file":
                 from ..handlers.file_handler import FileHandler
 
+                filename = destination_config.get("path") or destination_config.get(
+                    "filename"
+                )
+                if not filename:
+                    return None
                 return FileHandler(
-                    filename=destination_config.get("path")
-                    or destination_config.get("filename"),
-                    max_bytes=destination_config.get("max_size", "10MB"),
-                    backup_count=destination_config.get("backup_count", 5),
+                    filename=str(filename),
+                    mode=destination_config.get("mode", "a"),
+                    encoding=destination_config.get("encoding", "utf-8"),
                 )
             elif dest_type == "null":
                 from ..handlers.null_handler import NullHandler
@@ -179,11 +183,12 @@ class LayerManager:
         """Setup a default layer with console output."""
         try:
             from ..handlers.console_handler import SyncConsoleHandler
+
             # from ..formatters.colored_formatter import ColoredFormatter  # unused
 
             # Create default console handler
             console_handler = SyncConsoleHandler(
-                stream="stdout",  # review this and tell me if like this is performant
+                stream=stdout,
                 use_colors=True,
             )
 
@@ -224,15 +229,15 @@ class LayerManager:
             # Try requested layer first
             if layer in self._handlers:
                 return self._handlers[layer]
-            
+
             # Fallback to default layer
             if self._default_layer_name in self._handlers:
                 return self._handlers[self._default_layer_name]
-            
+
             # Fallback to any available layer
             if self._handlers:
                 return list(self._handlers.values())[0]
-            
+
             # No handlers available
             return []
 

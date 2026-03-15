@@ -253,20 +253,31 @@ SUPPORTED_FORMATS = [
 # through the FormattingEngine. Users can customize which columns they want using:
 # - create_minimal_engine() - timestamp, level_name, message only
 # - create_standard_engine() - timestamp, level_name, layer, message, file_name
-# - create_detailed_engine() - all core fields (timestamp, level_name, layer, file_name, function_name, message, level, logger_name, line_number, extra)
+# - create_detailed_engine() - all core fields (timestamp, level_name, layer,
+#   file_name, function_name, message, level, logger_name, line_number, extra)
 # - create_custom_engine(columns) - custom column selection
 #
 CSV_HEADERS = [
-    "timestamp",  # record.timestamp - Unix timestamp (float) when log was created (e.g., 1234567890.123)
-    "level_name",  # record.level_name - Human-readable log level from LogLevelManager (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    "layer",  # record.layer - Application layer string (default: "default", can be "API", "DATABASE", "BUSINESS", etc.)
+    # record.timestamp - Unix timestamp (float) when log was created (e.g.,
+    # 1234567890.123)
+    "timestamp",
+    # record.level_name - Human-readable log level from LogLevelManager
+    # (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    "level_name",
+    # record.layer - Application layer string (default: "default", can be
+    # "API", "DATABASE", "BUSINESS", etc.)
+    "layer",
     "file_name",  # record.file_name - Auto-detected from inspect.currentframe() call stack, or manually set
     "function_name",  # record.function_name - Auto-detected from inspect.currentframe() call stack, or manually set
     "message",  # record.message - The actual log message text passed by the user
-    "level",  # record.level - Numeric log level (10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR, 50=CRITICAL)
+    # record.level - Numeric log level (10=DEBUG, 20=INFO, 30=WARNING,
+    # 40=ERROR, 50=CRITICAL)
+    "level",
     "logger_name",  # record.logger_name - Name of the logger instance
     "line_number",  # record.line_number - Auto-detected from inspect.currentframe() call stack, or manually set
-    "extra",  # record.extra - Additional structured data as JSON string (e.g., {"user": "john", "action": "login"})
+    # record.extra - Additional structured data as JSON string (e.g., {"user":
+    # "john", "action": "login"})
+    "extra",
 ]
 
 # Default format strings

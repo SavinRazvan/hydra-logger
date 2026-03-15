@@ -1,0 +1,14 @@
+---
+description: Enforce module-level tests and coverage evidence
+alwaysApply: true
+---
+
+# Module Test Coverage
+
+- For behavior changes in `hydra_logger/**`, add or update tests in `tests/`.
+- Cover happy path, failure path, and relevant edge cases.
+- Before closing work, run:
+  - `python -m pytest -q`
+  - `python -m pytest --cov=hydra_logger --cov-report=term-missing -q`
+- Report which modules were covered and what gaps remain.
+- Prefer targeted module coverage improvements over broad but shallow test additions.

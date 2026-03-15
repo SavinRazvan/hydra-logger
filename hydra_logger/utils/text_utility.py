@@ -12,13 +12,13 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-import re
 import hashlib
+import re
 import unicodedata
-from typing import Any, Dict, List, Optional, Union, Callable
+from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
-from collections import Counter
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 
 class TextCase(Enum):
@@ -95,7 +95,7 @@ class TextMetrics:
 
 
 class TextProcessor:
-    """ text processing utilities."""
+    """text processing utilities."""
 
     def __init__(self):
         """Initialize text processor."""
@@ -106,7 +106,9 @@ class TextProcessor:
         # Common patterns
         self._compile_patterns()
 
-    def normalize_text(self, text: str, form: str = "NFC") -> str:
+    def normalize_text(
+        self, text: str, form: Literal["NFC", "NFD", "NFKC", "NFKD"] = "NFC"
+    ) -> str:
         """Normalize Unicode text."""
         return unicodedata.normalize(form, text)
 
@@ -732,5 +734,5 @@ class TextAnalyzer:
             "de": german_count,
         }
 
-        detected = max(counts, key=counts.get)
+        detected = max(counts, key=lambda language: counts[language])
         return detected if counts[detected] > 0 else "en"  # Default to English

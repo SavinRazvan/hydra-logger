@@ -14,15 +14,15 @@ Notes:
 
 # Core formatters
 from .base import BaseFormatter
-from .text_formatter import PlainTextFormatter
 from .colored_formatter import ColoredFormatter
 from .json_formatter import JsonLinesFormatter
 from .structured_formatter import (
+    CsvFormatter,
     GelfFormatter,
     LogstashFormatter,
-    CsvFormatter,
     SyslogFormatter,
 )
+from .text_formatter import PlainTextFormatter
 
 
 def get_formatter(format_type: str, use_colors: bool = False):

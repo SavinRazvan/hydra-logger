@@ -1,0 +1,12 @@
+---
+description: Keep module documentation aligned with code reality
+alwaysApply: true
+---
+
+# Module Docs Alignment
+
+- When work changes module boundaries, exports, runtime behavior, or architecture docs, run `audit-module-docs-alignment` before closing the task.
+- Treat code as source of truth; docs must reflect current symbols, module names, and behavior.
+- Flag stale or duplicated doc sections and propose a concrete split/cleanup map when needed.
+- Include a short module coverage summary in task outcomes when docs are affected.
+- Keep progress tracking lightweight: module status, next action, last update.

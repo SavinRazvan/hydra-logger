@@ -13,11 +13,13 @@ Notes:
 """
 
 import json
+
 # import time  # unused
 from typing import Any, Dict, Optional
-from .base import BaseFormatter
+
 from ..types.records import LogRecord
 from ..utils.time_utility import TimestampConfig
+from .base import BaseFormatter
 
 
 class JsonLinesFormatter(BaseFormatter):
@@ -62,6 +64,7 @@ class JsonLinesFormatter(BaseFormatter):
             Timestamp configuration
         """
         import os
+
         from ..utils.time_utility import (
             TimestampConfig,
             TimestampFormat,

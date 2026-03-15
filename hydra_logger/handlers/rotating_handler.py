@@ -12,28 +12,32 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-import os
-import time
+# pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
+# pyright: reportCallIssue=false, reportArgumentType=false
+
 import gzip
+import os
 import shutil
-import threading
 import sys
-from datetime import datetime
-from typing import Optional, Union, List, Dict, Any, Callable
-from dataclasses import dataclass
-from enum import Enum
+import threading
+import time
 from collections import deque
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, Optional
 
 from hydra_logger.handlers.base_handler import BaseHandler
-from hydra_logger.types.records import LogRecord
-from hydra_logger.types.levels import LogLevel
 from hydra_logger.types.enums import TimeUnit
+from hydra_logger.types.levels import LogLevel
+from hydra_logger.types.records import LogRecord
 from hydra_logger.utils.file_utility import FileUtility
 from hydra_logger.utils.time_utility import TimeUtility
 
 
 class RotationStrategy(Enum):
     """Rotation strategies."""
+
     TIME_BASED = "time_based"
     SIZE_BASED = "size_based"
     HYBRID = "hybrid"
@@ -42,6 +46,7 @@ class RotationStrategy(Enum):
 @dataclass
 class RotationConfig:
     """Configuration for file rotation."""
+
     # Time-based rotation
     time_interval: int = 1
     time_unit: TimeUnit = TimeUnit.DAYS
@@ -72,7 +77,7 @@ class RotatingFileHandler(BaseHandler):
         config: Optional[RotationConfig] = None,
         buffer_size: int = 1000,  # Optimal: 1000 (from performance tuner)
         flush_interval: float = 0.5,  # Optimal: 0.5s (from performance tuner)
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize rotating file handler.
@@ -97,7 +102,7 @@ class RotatingFileHandler(BaseHandler):
         self._flush_interval = flush_interval
         self._buffer = deque(maxlen=buffer_size)
         self._last_flush = time.time()
-        
+
         # Pre-allocate string buffer for better performance
         self._string_buffer = []
         self._string_buffer_size = 0
@@ -120,14 +125,14 @@ class RotatingFileHandler(BaseHandler):
         try:
             if not FileUtility.exists(self._filename):
                 # Create empty file
-                with open(self._filename, 'w') as f:
+                with open(self._filename, "w"):
                     pass
 
             # Check if file is writable
             if not FileUtility.is_writable(self._filename):
                 raise PermissionError(f"Cannot write to {self._filename}")
 
-            self._current_file = open(self._filename, 'a', encoding='utf-8')
+            self._current_file = open(self._filename, "a", encoding="utf-8")
         except Exception as e:
             print(f"Error: Failed to initialize log file: {e}", file=sys.stderr)
             raise
@@ -160,7 +165,7 @@ class RotatingFileHandler(BaseHandler):
                         shutil.move(self._filename, backup_path)
 
                 # Compress old file if requested
-                if self._config.compress_old and backup_path.endswith('.log'):
+                if self._config.compress_old and backup_path.endswith(".log"):
                     self._compress_file(backup_path)
 
                 # Clean up old files
@@ -184,10 +189,10 @@ class RotatingFileHandler(BaseHandler):
         """Perform atomic file rotation."""
         # Create temporary backup name
         temp_backup = f"{backup_path}.tmp"
-        
+
         # Move to temporary location first
         shutil.move(self._filename, temp_backup)
-        
+
         # Then rename to final location
         if os.path.exists(backup_path):
             os.remove(backup_path)
@@ -198,7 +203,7 @@ class RotatingFileHandler(BaseHandler):
         timestamp = datetime.now().strftime(self._config.time_format)
         base_name = os.path.basename(self._filename)
         name, ext = os.path.splitext(base_name)
-        
+
         if self._config.preserve_extension:
             return f"{name}.{timestamp}{ext}"
         else:
@@ -215,12 +220,12 @@ class RotatingFileHandler(BaseHandler):
     def _compress_file(self, file_path: str) -> None:
         """Compress a file using gzip."""
         try:
-            if not file_path.endswith('.gz'):
+            if not file_path.endswith(".gz"):
                 compressed_path = f"{file_path}.gz"
-                with open(file_path, 'rb') as f_in:
-                    with gzip.open(compressed_path, 'wb') as f_out:
+                with open(file_path, "rb") as f_in:
+                    with gzip.open(compressed_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
-                
+
                 # Remove original file
                 FileUtility.delete_file(file_path)
         except Exception as e:
@@ -250,7 +255,9 @@ class RotatingFileHandler(BaseHandler):
             elif self._config.strategy == RotationStrategy.SIZE_BASED:
                 max_files = self._config.max_size_files
             else:  # HYBRID
-                max_files = max(self._config.max_time_files, self._config.max_size_files)
+                max_files = max(
+                    self._config.max_time_files, self._config.max_size_files
+                )
 
             # Remove excess files
             while len(backup_files) > max_files:
@@ -258,7 +265,10 @@ class RotatingFileHandler(BaseHandler):
                 try:
                     FileUtility.delete_file(old_file)
                 except Exception as e:
-                    print(f"Warning: Failed to delete old file {old_file}: {e}", file=sys.stderr)
+                    print(
+                        f"Warning: Failed to delete old file {old_file}: {e}",
+                        file=sys.stderr,
+                    )
 
         except Exception as e:
             print(f"Warning: Cleanup failed: {e}", file=sys.stderr)
@@ -277,11 +287,12 @@ class RotatingFileHandler(BaseHandler):
         # Format message
         if self.formatter:
             # Check if this is a streaming formatter that needs special handling
-            if hasattr(self.formatter, 'format_for_streaming'):
+            if hasattr(self.formatter, "format_for_streaming"):
                 message = self.formatter.format_for_streaming(record)
             else:
                 message = self.formatter.format(record)
-                # Add newline for non-streaming formatters, but CSV formatters handle their own
+                # Add newline for non-streaming formatters, but CSV formatters handle
+                # their own
                 if not self._is_csv_formatter:
                     message += "\n"
         else:
@@ -291,14 +302,14 @@ class RotatingFileHandler(BaseHandler):
         self._buffer.append(message)
         self._string_buffer.append(message)
         self._string_buffer_size += len(message)
-        
+
         # Check if we should flush
         current_time = time.time()
         should_flush = (
-            len(self._buffer) >= self._buffer_size or
-            (current_time - self._last_flush) >= self._flush_interval
+            len(self._buffer) >= self._buffer_size
+            or (current_time - self._last_flush) >= self._flush_interval
         )
-        
+
         if should_flush:
             self._flush_buffer()
 
@@ -306,28 +317,29 @@ class RotatingFileHandler(BaseHandler):
         """Flush buffered messages to file."""
         if not self._buffer or not self._current_file:
             return
-        
+
         # Check if rotation is needed before flushing
         if self._should_rotate():
             self._rotate_file()
-            
+
         try:
             # Check if file is closed
-            if hasattr(self._current_file, 'closed') and self._current_file.closed:
+            if hasattr(self._current_file, "closed") and self._current_file.closed:
                 return
-                
-            # Write all buffered messages at once - use string buffer for better performance
+
+            # Write all buffered messages at once - use string buffer for better
+            # performance
             if self._string_buffer:
-                self._current_file.write(''.join(self._string_buffer))
+                self._current_file.write("".join(self._string_buffer))
                 self._current_file.flush()
-            
+
             # Clear buffers and update flush time
             self._buffer.clear()
             self._string_buffer.clear()
             self._string_buffer_size = 0
             self._last_flush = time.time()
-            
-        except (OSError, ValueError) as e:
+
+        except (OSError, ValueError):
             # File is closed or invalid, silently ignore
             pass
         except Exception as e:
@@ -344,23 +356,25 @@ class RotatingFileHandler(BaseHandler):
                 # Smart header handling for streaming formatters
                 if self._needs_header_footer and not self._header_written:
                     # Reset formatter state
-                    if hasattr(self.formatter, 'reset_for_new_file'):
+                    if hasattr(self.formatter, "reset_for_new_file"):
                         self.formatter.reset_for_new_file()
-                    
+
                     # Set file ID for formatters that support it
-                    if hasattr(self.formatter, 'set_file_id'):
+                    if hasattr(self.formatter, "set_file_id"):
                         self.formatter.set_file_id(id(self._current_file))
-                    
+
                     # Check if we need to write header
                     if self._current_file.tell() == 0:  # New file
-                        if hasattr(self.formatter, 'write_header'):
+                        if hasattr(self.formatter, "write_header"):
                             # JSON formatters
                             header = self.formatter.write_header()
                             self._current_file.write(header)
-                        elif hasattr(self.formatter, 'format_headers') and hasattr(self.formatter, 'should_write_headers'):
+                        elif hasattr(self.formatter, "format_headers") and hasattr(
+                            self.formatter, "should_write_headers"
+                        ):
                             # CSV formatters
                             if self.formatter.should_write_headers(self._filename):
-                                header = self.formatter.format_headers() + '\n'
+                                header = self.formatter.format_headers() + "\n"
                                 self._current_file.write(header)
                                 self.formatter.mark_headers_written(self._filename)
                         self._header_written = True
@@ -374,7 +388,7 @@ class RotatingFileHandler(BaseHandler):
         """Close the handler."""
         # Flush any remaining buffered messages
         self.force_flush()
-        
+
         super().close()
         if self._current_file:
             self._current_file.close()
@@ -397,38 +411,48 @@ class RotatingFileHandler(BaseHandler):
                 "time_unit": self._config.time_unit.value,
                 "max_size": self._config.max_size,
                 "compress_old": self._config.compress_old,
-                "cleanup_old": self._config.cleanup_old
-            }
+                "cleanup_old": self._config.cleanup_old,
+            },
         }
 
     def setFormatter(self, formatter):
         """
         Set formatter and detect if it needs special handling.
-        
+
         Args:
             formatter: Formatter instance
         """
         super().setFormatter(formatter)
-        
+
         # Enforce correct file extension based on formatter
-        if formatter and hasattr(formatter, 'validate_filename'):
+        if formatter and hasattr(formatter, "validate_filename"):
             corrected_filename = formatter.validate_filename(self._filename)
             if corrected_filename != self._filename:
-                print(f"Info: RotatingFileHandler: Corrected filename from '{self._filename}' to '{corrected_filename}' to match formatter requirements", file=sys.stdout)
+                print(
+                    "Info: RotatingFileHandler: Corrected filename from "
+                    f"'{self._filename}' to '{corrected_filename}' "
+                    "to match formatter requirements",
+                    file=sys.stdout,
+                )
                 self._filename = corrected_filename
-        
+
         # Detect if this formatter needs header/footer handling
         if formatter and (
-            (hasattr(formatter, 'write_header') and hasattr(formatter, 'write_footer')) or
-            (hasattr(formatter, 'format_headers') and hasattr(formatter, 'should_write_headers'))
+            (hasattr(formatter, "write_header") and hasattr(formatter, "write_footer"))
+            or (
+                hasattr(formatter, "format_headers")
+                and hasattr(formatter, "should_write_headers")
+            )
         ):
             self._needs_header_footer = True
         else:
             self._needs_header_footer = False
-        
+
         # Store formatter type for better handling
-        self._is_csv_formatter = hasattr(formatter, 'format_headers') and hasattr(formatter, 'should_write_headers')
-        
+        self._is_csv_formatter = hasattr(formatter, "format_headers") and hasattr(
+            formatter, "should_write_headers"
+        )
+
         # Reset header written flag
         self._header_written = False
 
@@ -443,7 +467,7 @@ class TimedRotatingFileHandler(RotatingFileHandler):
         interval: int = 1,
         backup_count: int = 30,
         time_unit: TimeUnit = TimeUnit.DAYS,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize timed rotating file handler.
@@ -459,12 +483,12 @@ class TimedRotatingFileHandler(RotatingFileHandler):
         # Validate the rotation interval
         if not TimeUtility.validate_rotation_interval(interval, time_unit):
             raise ValueError(f"Invalid rotation interval: {interval} {time_unit.value}")
-        
+
         config = RotationConfig(
             strategy=RotationStrategy.TIME_BASED,
             time_interval=interval,
             time_unit=time_unit,
-            max_time_files=backup_count
+            max_time_files=backup_count,
         )
 
         super().__init__(filename, config, **kwargs)
@@ -483,7 +507,7 @@ class TimedRotatingFileHandler(RotatingFileHandler):
     def _should_rotate(self) -> bool:
         """Check if time-based rotation is needed."""
         now = datetime.now()
-        
+
         if self._when == "second":
             # Rotate every second
             if (now - self._last_rotation_time).total_seconds() >= self._interval:
@@ -510,8 +534,10 @@ class TimedRotatingFileHandler(RotatingFileHandler):
                 return True
         elif self._when == "month":
             # Rotate every month
-            if (now.year > self._last_rotation_time.year or
-                now.month - self._last_rotation_time.month >= self._interval):
+            if (
+                now.year > self._last_rotation_time.year
+                or now.month - self._last_rotation_time.month >= self._interval
+            ):
                 return True
 
         return False
@@ -521,7 +547,7 @@ class TimedRotatingFileHandler(RotatingFileHandler):
         timestamp = self._last_rotation_time.strftime(self._config.time_format)
         base_name = os.path.basename(self._filename)
         name, ext = os.path.splitext(base_name)
-        
+
         if self._config.preserve_extension:
             return f"{name}.{timestamp}{ext}"
         else:
@@ -536,7 +562,7 @@ class SizeRotatingFileHandler(RotatingFileHandler):
         filename: str,
         max_bytes: int = 1024 * 1024,  # 1MB (optimal from performance tuner)
         backup_count: int = 5,  # Optimal: 5 (from performance tuner)
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize size rotating file handler.
@@ -550,7 +576,7 @@ class SizeRotatingFileHandler(RotatingFileHandler):
         config = RotationConfig(
             strategy=RotationStrategy.SIZE_BASED,
             max_size=max_bytes,
-            max_size_files=backup_count
+            max_size_files=backup_count,
         )
 
         super().__init__(filename, config, **kwargs)
@@ -572,7 +598,7 @@ class SizeRotatingFileHandler(RotatingFileHandler):
         """Generate backup filename with sequence number."""
         base_name = os.path.basename(self._filename)
         name, ext = os.path.splitext(base_name)
-        
+
         # Find next available sequence number
         sequence = 1
         while True:
@@ -580,7 +606,7 @@ class SizeRotatingFileHandler(RotatingFileHandler):
                 backup_name = f"{name}.{sequence}{ext}"
             else:
                 backup_name = f"{name}.{sequence}"
-            
+
             backup_path = self._get_backup_path(backup_name)
             if not FileUtility.exists(backup_path):
                 break
@@ -599,7 +625,7 @@ class HybridRotatingFileHandler(RotatingFileHandler):
         when: str = "midnight",
         interval: int = 1,
         backup_count: int = 30,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize hybrid rotating file handler.
@@ -617,7 +643,7 @@ class HybridRotatingFileHandler(RotatingFileHandler):
             max_size=max_bytes,
             max_size_files=backup_count,
             time_interval=interval,
-            max_time_files=backup_count
+            max_time_files=backup_count,
         )
 
         super().__init__(filename, config, **kwargs)
@@ -657,7 +683,7 @@ class HybridRotatingFileHandler(RotatingFileHandler):
         timestamp = datetime.now().strftime(self._config.time_format)
         base_name = os.path.basename(self._filename)
         name, ext = os.path.splitext(base_name)
-        
+
         # Find next available sequence number for this timestamp
         sequence = 1
         while True:
@@ -665,7 +691,7 @@ class HybridRotatingFileHandler(RotatingFileHandler):
                 backup_name = f"{name}.{timestamp}.{sequence}{ext}"
             else:
                 backup_name = f"{name}.{timestamp}.{sequence}"
-            
+
             backup_path = self._get_backup_path(backup_name)
             if not FileUtility.exists(backup_path):
                 break
@@ -679,9 +705,7 @@ class RotatingFileHandlerFactory:
 
     @staticmethod
     def create_handler(
-        handler_type: str,
-        filename: str,
-        **kwargs
+        handler_type: str, filename: str, **kwargs
     ) -> RotatingFileHandler:
         """
         Create a rotating file handler by type.
@@ -708,13 +732,13 @@ class RotatingFileHandlerFactory:
         """Create timed rotating file handler."""
         # Map common parameter names to constructor parameters
         mapped_kwargs = {}
-        if 'time_interval' in kwargs:
-            mapped_kwargs['interval'] = kwargs.pop('time_interval')
-        if 'max_time_files' in kwargs:
-            mapped_kwargs['backup_count'] = kwargs.pop('max_time_files')
-        if 'time_unit' in kwargs:
-            mapped_kwargs['time_unit'] = kwargs.pop('time_unit')
-        
+        if "time_interval" in kwargs:
+            mapped_kwargs["interval"] = kwargs.pop("time_interval")
+        if "max_time_files" in kwargs:
+            mapped_kwargs["backup_count"] = kwargs.pop("max_time_files")
+        if "time_unit" in kwargs:
+            mapped_kwargs["time_unit"] = kwargs.pop("time_unit")
+
         mapped_kwargs.update(kwargs)
         return TimedRotatingFileHandler(filename, **mapped_kwargs)
 
@@ -723,11 +747,11 @@ class RotatingFileHandlerFactory:
         """Create size rotating file handler."""
         # Map common parameter names to constructor parameters
         mapped_kwargs = {}
-        if 'max_size' in kwargs:
-            mapped_kwargs['max_bytes'] = kwargs.pop('max_size')
-        if 'max_size_files' in kwargs:
-            mapped_kwargs['backup_count'] = kwargs.pop('max_size_files')
-        
+        if "max_size" in kwargs:
+            mapped_kwargs["max_bytes"] = kwargs.pop("max_size")
+        if "max_size_files" in kwargs:
+            mapped_kwargs["backup_count"] = kwargs.pop("max_size_files")
+
         mapped_kwargs.update(kwargs)
         return SizeRotatingFileHandler(filename, **mapped_kwargs)
 
@@ -736,17 +760,17 @@ class RotatingFileHandlerFactory:
         """Create hybrid rotating file handler."""
         # Map common parameter names to constructor parameters
         mapped_kwargs = {}
-        if 'max_size' in kwargs:
-            mapped_kwargs['max_bytes'] = kwargs.pop('max_size')
-        if 'max_size_files' in kwargs:
-            mapped_kwargs['backup_count'] = kwargs.pop('max_size_files')
-        if 'time_interval' in kwargs:
-            mapped_kwargs['interval'] = kwargs.pop('time_interval')
-        if 'max_time_files' in kwargs:
-            mapped_kwargs['backup_count'] = kwargs.pop('max_time_files')
-        if 'time_unit' in kwargs:
+        if "max_size" in kwargs:
+            mapped_kwargs["max_bytes"] = kwargs.pop("max_size")
+        if "max_size_files" in kwargs:
+            mapped_kwargs["backup_count"] = kwargs.pop("max_size_files")
+        if "time_interval" in kwargs:
+            mapped_kwargs["interval"] = kwargs.pop("time_interval")
+        if "max_time_files" in kwargs:
+            mapped_kwargs["backup_count"] = kwargs.pop("max_time_files")
+        if "time_unit" in kwargs:
             # time_unit is not directly supported by constructor
-            kwargs.pop('time_unit')
-        
+            kwargs.pop("time_unit")
+
         mapped_kwargs.update(kwargs)
         return HybridRotatingFileHandler(filename, **mapped_kwargs)

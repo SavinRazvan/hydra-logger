@@ -15,11 +15,12 @@ Notes:
 import csv
 import io
 import os
-from typing import Optional, List
-from .base import BaseFormatter
-from ..types.records import LogRecord
+from typing import List, Optional
+
 from ..core.constants import CSV_HEADERS
+from ..types.records import LogRecord
 from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
+from .base import BaseFormatter
 
 
 def _get_timestamp_config() -> TimestampConfig:
@@ -81,7 +82,6 @@ class CsvFormatter(BaseFormatter):
     def get_headers(self) -> List[str]:
         """Get CSV headers based on default configuration."""
         # Use default headers for backward compatibility
-        from ..core.constants import CSV_HEADERS
 
         return CSV_HEADERS
 
@@ -176,7 +176,7 @@ class CsvFormatter(BaseFormatter):
         """
         return ".csv"
 
-    def should_write_headers(self, file_path: str = None) -> bool:
+    def should_write_headers(self, file_path: Optional[str] = None) -> bool:
         """
         Check if headers should be written for a specific file.
 
@@ -206,7 +206,7 @@ class CsvFormatter(BaseFormatter):
         # File doesn't exist or is empty, write headers
         return True
 
-    def mark_headers_written(self, file_path: str = None) -> None:
+    def mark_headers_written(self, file_path: Optional[str] = None) -> None:
         """
         Mark headers as written for a specific file.
 
@@ -222,7 +222,7 @@ class CsvFormatter(BaseFormatter):
 class SyslogFormatter(BaseFormatter):
     """Syslog format formatter for system logging."""
 
-    def __init__(self, facility: int = 1, app_name: str = None):
+    def __init__(self, facility: int = 1, app_name: Optional[str] = None):
         """
         Initialize syslog formatter.
 
@@ -254,8 +254,8 @@ class SyslogFormatter(BaseFormatter):
         Returns:
             Detected application name
         """
-        import sys
         import os
+        import sys
 
         # Try to get from environment variable first
         app_name = os.environ.get("APP_NAME") or os.environ.get("SERVICE_NAME")
@@ -299,9 +299,15 @@ class SyslogFormatter(BaseFormatter):
 
         # Build message with minimal string operations
         if record.file_name and record.function_name:
-            return f"<{priority}> {timestamp} {self.app_name} {record.level_name} {record.layer} {record.message} {record.file_name}:{record.function_name}:{record.line_number}"
-        else:
-            return f"<{priority}> {timestamp} {self.app_name} {record.level_name} {record.layer} {record.message}"
+            return (
+                f"<{priority}> {timestamp} {self.app_name} {record.level_name} "
+                f"{record.layer} {record.message} "
+                f"{record.file_name}:{record.function_name}:{record.line_number}"
+            )
+        return (
+            f"<{priority}> {timestamp} {self.app_name} "
+            f"{record.level_name} {record.layer} {record.message}"
+        )
 
     def get_required_extension(self) -> str:
         """
@@ -328,7 +334,7 @@ class SyslogFormatter(BaseFormatter):
 class GelfFormatter(BaseFormatter):
     """GELF format formatter for Graylog."""
 
-    def __init__(self, host: str = None, version: str = "1.1"):
+    def __init__(self, host: Optional[str] = None, version: str = "1.1"):
         """
         Initialize GELF formatter.
 
@@ -347,8 +353,8 @@ class GelfFormatter(BaseFormatter):
         Returns:
             Detected hostname
         """
-        import socket
         import os
+        import socket
 
         # Try to get from environment variable first
         hostname = os.environ.get("HOSTNAME") or os.environ.get("HOST")
@@ -389,7 +395,8 @@ class GelfFormatter(BaseFormatter):
         # Pre-format timestamp once
         timestamp = self.format_timestamp(record)
 
-        # GELF level mapping (0-7, where 0 is most severe) - use dict.get for performance
+        # GELF level mapping (0-7, where 0 is most severe) - use dict.get for
+        # performance
         level_map = {0: 7, 10: 7, 20: 6, 30: 4, 40: 3, 50: 2}
 
         # Build GELF message with minimal dictionary operations
@@ -439,7 +446,7 @@ class GelfFormatter(BaseFormatter):
 class LogstashFormatter(BaseFormatter):
     """Logstash format formatter for Elasticsearch."""
 
-    def __init__(self, type_name: str = None, tags: Optional[list] = None):
+    def __init__(self, type_name: Optional[str] = None, tags: Optional[list] = None):
         """
         Initialize Logstash formatter.
 

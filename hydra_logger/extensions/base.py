@@ -11,8 +11,8 @@ Notes:
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 
 @dataclass

@@ -13,13 +13,15 @@ Notes:
 """
 
 import threading
-from typing import Dict, Optional, Union, Any
 from collections import defaultdict
+from typing import Any, Dict, Optional, Union
+
+from ..config.defaults import get_default_config
+from ..config.models import LoggingConfig
+from ..core.exceptions import HydraLoggerError
+
 # from pathlib import Path  # unused
 from ..factories.logger_factory import LoggerFactory
-from ..config.models import LoggingConfig
-from ..config.defaults import get_default_config
-from ..core.exceptions import HydraLoggerError
 
 
 class LoggerManager:
@@ -94,11 +96,11 @@ class LoggerManager:
 
             # Create new logger
             logger = self._create_logger(name, config, logger_type, **kwargs)
-            
+
             # Update registry with global lock (minimal time)
             with self._global_lock:
                 self._loggers[name] = logger
-            
+
             return logger
 
     def _create_logger(

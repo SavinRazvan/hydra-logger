@@ -10,9 +10,9 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, List
 import re
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 
 
 class ExtensionBase(ABC):
@@ -252,7 +252,7 @@ class PerformanceExtension(ExtensionBase):
             # Monitor memory usage
             import psutil
 
-            memory_info = psutil.Process().memory_info()
+            psutil.Process().memory_info()
             # Store or log memory metrics
             pass
 

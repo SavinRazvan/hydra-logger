@@ -8,7 +8,7 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from typing import Optional, Any, Dict
+from typing import Any, Dict, Optional
 
 
 class HydraLoggerError(Exception):

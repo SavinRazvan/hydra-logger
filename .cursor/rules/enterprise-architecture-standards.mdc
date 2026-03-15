@@ -1,0 +1,15 @@
+---
+description: Enforce modular and scalable enterprise implementation standards
+alwaysApply: true
+---
+
+# Enterprise Architecture Standards
+
+- Design for modularity: split responsibilities into cohesive components with clear boundaries.
+- Use stable interfaces and dependency injection where component swapping is expected.
+- Prefer composition over inheritance-heavy coupling.
+- Keep behavior configuration-driven; avoid hardcoded environment/business rules.
+- Add extension points (factories/registries/hooks) only where they solve a current requirement.
+- Keep modules loosely coupled and testable in isolation.
+- Include error handling and observability in production paths (structured logs/metrics where relevant).
+- For large changes, ship incrementally with reversible slices and explicit migration notes.

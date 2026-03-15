@@ -1,0 +1,32 @@
+---
+description: Enforce hydra-logger PR maintainer workflow
+alwaysApply: true
+---
+
+# PR Workflow Enforcement
+
+- Use PR-first delivery for all implementation work:
+  - create or switch to a task branch (`feature/<scope>`, `fix/<scope>`, `chore/<scope>`)
+  - keep branches short-lived and single-slice
+  - implement and test
+  - push branch
+  - open PR
+  - verify publish/linkage (`scripts/pr/verify_publish.py`, `gh pr view`, `gh pr checks`)
+  - run `/review-pr -> /prepare-pr -> /merge-pr`
+  - finalize workflow (`main` sync + local/remote branch cleanup)
+- Do not merge directly to `main` from a local branch.
+- Do not skip maintainer workflow phases; each phase must produce artifacts:
+  - `.local/review.md`
+  - `.local/prep.md`
+  - `.local/merge.md`
+- Before merge, required gates must be green:
+  - `python -m pytest -q`
+  - `python scripts/pr/verify_publish.py --branch "$(git branch --show-current)"`
+- Before merge, branch/PR linkage must be verifiably healthy:
+  - current branch tracks `origin/<branch>`
+  - remote branch exists (`git ls-remote --heads origin <branch>`)
+  - PR head branch matches current branch (`gh pr view --json headRefName`)
+- Use `git push --force-with-lease` only for intentional rewrites on branches you own.
+- Do not use destructive git commands (`reset --hard`, forced history rewrites) unless explicitly requested.
+- Stop and report instead of merging when any required artifact or gate result is missing.
+- Stop and report instead of closing workflow when post-merge sync/cleanup is incomplete.

@@ -44,7 +44,9 @@ def _run_git(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def _changed_python_files(base_ref: str, head_ref: str) -> list[Path]:
-    proc = _run_git(["diff", "--name-only", "--diff-filter=AM", f"{base_ref}...{head_ref}"])
+    proc = _run_git(
+        ["diff", "--name-only", "--diff-filter=AM", f"{base_ref}...{head_ref}"]
+    )
     if proc.returncode != 0:
         raise RuntimeError(proc.stderr.strip() or "git diff failed")
 
@@ -132,7 +134,9 @@ def _analyze_files(files: list[Path]) -> dict[str, Any]:
         try:
             doc = _extract_docstring(path)
         except (OSError, UnicodeDecodeError, SyntaxError) as exc:
-            findings["parse_errors"].append(_format_issue(path, f"unable to parse ({exc})"))
+            findings["parse_errors"].append(
+                _format_issue(path, f"unable to parse ({exc})")
+            )
             continue
 
         if not doc:
@@ -157,7 +161,9 @@ def _analyze_files(files: list[Path]) -> dict[str, Any]:
         disallowed = sorted(fields & DISALLOWED_FIELDS)
         if disallowed:
             findings["disallowed_fields"].append(
-                _format_issue(path, f"disallowed fields present: {', '.join(disallowed)}")
+                _format_issue(
+                    path, f"disallowed fields present: {', '.join(disallowed)}"
+                )
             )
             file_findings += 1
 

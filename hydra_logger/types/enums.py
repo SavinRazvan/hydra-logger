@@ -268,7 +268,7 @@ class MetricType(Enum):
 
 
 class TimeUnit(Enum):
-    """ time units for all Hydra-Logger operations.
+    """time units for all Hydra-Logger operations.
 
     Supports both high-precision measurements and rotation intervals.
     Values are standardized for consistency across the codebase.
@@ -354,17 +354,17 @@ class SizeUnit(Enum):
 
 
 # Utility functions for enum operations
-def get_enum_values(enum_class: type) -> List[Any]:
+def get_enum_values(enum_class: type[Enum]) -> List[Any]:
     """Get all values from an enum class."""
     return [e.value for e in enum_class]
 
 
-def get_enum_names(enum_class: type) -> List[str]:
+def get_enum_names(enum_class: type[Enum]) -> List[str]:
     """Get all names from an enum class."""
     return [e.name for e in enum_class]
 
 
-def get_enum_by_value(enum_class: type, value: Any) -> Any:
+def get_enum_by_value(enum_class: type[Enum], value: Any) -> Any:
     """Get enum member by value."""
     for member in enum_class:
         if member.value == value:
@@ -372,7 +372,7 @@ def get_enum_by_value(enum_class: type, value: Any) -> Any:
     return None
 
 
-def get_enum_by_name(enum_class: type, name: str) -> Any:
+def get_enum_by_name(enum_class: type[Enum], name: str) -> Any:
     """Get enum member by name."""
     try:
         return enum_class[name]
@@ -380,12 +380,12 @@ def get_enum_by_name(enum_class: type, name: str) -> Any:
         return None
 
 
-def is_valid_enum_value(enum_class: type, value: Any) -> bool:
+def is_valid_enum_value(enum_class: type[Enum], value: Any) -> bool:
     """Check if a value is valid for an enum class."""
     return value in [e.value for e in enum_class]
 
 
-def is_valid_enum_name(enum_class: type, name: str) -> bool:
+def is_valid_enum_name(enum_class: type[Enum], name: str) -> bool:
     """Check if a name is valid for an enum class."""
     return name in [e.name for e in enum_class]
 

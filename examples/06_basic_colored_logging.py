@@ -9,6 +9,7 @@ Depends On:
 Notes:
  - Header standardized by slim-header migration.
 """
+
 import sys
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+    from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 except ImportError:
     print("=" * 70)
     print("ERROR: hydra_logger package not found")
@@ -24,29 +25,29 @@ except ImportError:
     print("\nTo fix this:")
     print("  1. Create env: conda env create -p ./.hydra_env -f environment.yml")
     print("  2. Activate env: conda activate $(pwd)/.hydra_env")
-    print("  3. Or reinstall package: python -m pip install -e \".[dev]\"")
+    print('  3. Or reinstall package: python -m pip install -e ".[dev]"')
     print("  4. See docs: docs/ENVIRONMENT_SETUP.md")
     print("\n" + "=" * 70)
     sys.exit(1)
 
 # Create logger with colors
 config = LoggingConfig(
- layers={
- "app": LogLayer(
- destinations=[
- LogDestination(
- type="console",
- format="plain-text",
- use_colors=True # Enable colors
- ),
- LogDestination(
- type="file",
- path="logs/examples/06_basic_colored_logging.log",
- format="json-lines"
- )
- ]
- )
- }
+    layers={
+        "app": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="console",
+                    format="plain-text",
+                    use_colors=True,  # Enable colors
+                ),
+                LogDestination(
+                    type="file",
+                    path="logs/examples/06_basic_colored_logging.log",
+                    format="json-lines",
+                ),
+            ]
+        )
+    }
 )
 
 # Use context manager for automatic cleanup
@@ -54,23 +55,25 @@ with create_logger(config, logger_type="sync") as logger:
     # Functions that demonstrate proper function name tracking
     def log_debug_message():
         """Log a debug message."""
-        logger.debug("[06] Debug message", layer="app") # Blue DEBUG, Cyan app
+        logger.debug("[06] Debug message", layer="app")  # Blue DEBUG, Cyan app
 
     def log_info_message():
         """Log an info message."""
-        logger.info("[06] Info message", layer="app") # Green INFO, Cyan app
+        logger.info("[06] Info message", layer="app")  # Green INFO, Cyan app
 
     def log_warning_message():
         """Log a warning message."""
-        logger.warning("[06] Warning message", layer="app") # Yellow WARNING, Cyan app
+        logger.warning("[06] Warning message", layer="app")  # Yellow WARNING, Cyan app
 
     def log_error_message():
         """Log an error message."""
-        logger.error("[06] Error message", layer="app") # Red ERROR, Cyan app
+        logger.error("[06] Error message", layer="app")  # Red ERROR, Cyan app
 
     def log_critical_message():
         """Log a critical message."""
-        logger.critical("[06] Critical message", layer="app") # Bright Red CRITICAL, Cyan app
+        logger.critical(
+            "[06] Critical message", layer="app"
+        )  # Bright Red CRITICAL, Cyan app
 
     # Test all log levels from actual functions
     log_debug_message()
@@ -80,4 +83,3 @@ with create_logger(config, logger_type="sync") as logger:
     log_critical_message()
 
 print("Example 6 completed: Basic Colored Logging")
-

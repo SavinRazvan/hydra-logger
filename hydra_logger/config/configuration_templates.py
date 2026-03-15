@@ -10,10 +10,12 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from typing import Dict, Callable
-from .models import LoggingConfig
-# from .defaults import ConfigurationTemplates as DefaultConfigurationTemplates  # unused
+from typing import Callable, Dict
+
+# from .defaults import ConfigurationTemplates as
+# DefaultConfigurationTemplates  # unused
 from ..core.exceptions import HydraLoggerError
+from .models import LoggingConfig
 
 
 class ConfigurationTemplates:
@@ -59,10 +61,10 @@ class ConfigurationTemplates:
         """Setup built-in configuration templates using the unified system."""
         # Use the unified ConfigurationTemplates for all built-in configs
         from .defaults import (
+            get_custom_config,
             get_default_config,
             get_development_config,
             get_production_config,
-            get_custom_config,
         )
 
         self.register_template(

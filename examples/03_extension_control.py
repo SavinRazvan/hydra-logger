@@ -8,31 +8,36 @@ Depends On:
 Notes:
  - Header standardized by slim-header migration.
 """
-from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+
+from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 
 # Users can enable/disable and configure any extension
 config = LoggingConfig(
- extensions={
- "security": {
- "enabled": True,
- "type": "security",
- "patterns": ["email", "phone", "api_key"],
- "redaction_enabled": True,
- "sanitization_enabled": True
- },
- "performance": {
- "enabled": False, # User disables for max performance
- "type": "performance"
- }
- },
- layers={
- "app": LogLayer(
- destinations=[
- LogDestination(type="console", format="plain-text", use_colors=True),
- LogDestination(type="file", path="logs/examples/03_extension_control.jsonl", format="json-lines")
- ]
- )
- }
+    extensions={
+        "security": {
+            "enabled": True,
+            "type": "security",
+            "patterns": ["email", "phone", "api_key"],
+            "redaction_enabled": True,
+            "sanitization_enabled": True,
+        },
+        "performance": {
+            "enabled": False,  # User disables for max performance
+            "type": "performance",
+        },
+    },
+    layers={
+        "app": LogLayer(
+            destinations=[
+                LogDestination(type="console", format="plain-text", use_colors=True),
+                LogDestination(
+                    type="file",
+                    path="logs/examples/03_extension_control.jsonl",
+                    format="json-lines",
+                ),
+            ]
+        )
+    },
 )
 
 # Use context manager for automatic cleanup
@@ -51,4 +56,3 @@ with create_logger(config, logger_type="sync") as logger:
     test_warning_with_extensions()
 
 print("Example 3 completed: Extension Control")
-
