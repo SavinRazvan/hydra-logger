@@ -1,138 +1,15 @@
 """
-Rotating File Handlers for Hydra-Logger
-
-This module provides file rotation capabilities for managing
-log file size and age. It includes time-based, size-based, and hybrid
-rotation strategies with automatic compression and cleanup.
-
-ARCHITECTURE:
-- RotatingFileHandler: Base class for all rotating handlers
-- TimedRotatingFileHandler: Time-based file rotation
-- SizeRotatingFileHandler: Size-based file rotation
-- HybridRotatingFileHandler: Combined time and size-based rotation
-- RotatingFileHandlerFactory: Factory for creating rotating handlers
-
-ROTATION STRATEGIES:
-- TIME_BASED: Rotate based on time intervals (daily, hourly, etc.)
-- SIZE_BASED: Rotate when file reaches size limit
-- HYBRID: Rotate based on both time and size criteria
-
-TIME UNITS:
-- SECONDS: Rotate every N seconds
-- MINUTES: Rotate every N minutes
-- HOURS: Rotate every N hours
-- DAYS: Rotate every N days
-- WEEKS: Rotate every N weeks
-- MIDNIGHT: Rotate at midnight
-
-PERFORMANCE FEATURES:
-- Atomic rotation for data integrity
-- Automatic file compression
-- cleanup of old files
-- Configurable backup retention
-- Performance statistics and monitoring
-
-USAGE EXAMPLES:
-
-Time-Based Rotation:
-    from hydra_logger.handlers import TimedRotatingFileHandler
-    from hydra_logger.types.enums import TimeUnit
-    
-    handler = TimedRotatingFileHandler(
-        filename="app.log",
-        when="midnight",
-        interval=1,
-        backup_count=30,
-        time_unit=TimeUnit.DAYS
-    )
-    logger.addHandler(handler)
-
-Size-Based Rotation:
-    from hydra_logger.handlers import SizeRotatingFileHandler
-    
-    handler = SizeRotatingFileHandler(
-        filename="app.log",
-        max_bytes=10 * 1024 * 1024,  # 10MB
-        backup_count=5
-    )
-    logger.addHandler(handler)
-
-Hybrid Rotation:
-    from hydra_logger.handlers import HybridRotatingFileHandler
-    
-    handler = HybridRotatingFileHandler(
-        filename="app.log",
-        max_bytes=10 * 1024 * 1024,  # 10MB
-        when="midnight",
-        interval=1,
-        backup_count=30
-    )
-    logger.addHandler(handler)
-
-Custom Rotation Configuration:
-    from hydra_logger.handlers.rotating import RotationConfig, RotationStrategy
-    from hydra_logger.types.enums import TimeUnit
-    
-    config = RotationConfig(
-        strategy=RotationStrategy.HYBRID,
-        max_size=10 * 1024 * 1024,  # 10MB
-        time_interval=1,
-        time_unit=TimeUnit.DAYS,
-        max_size_files=5,
-        max_time_files=30,
-        compress_old=True,
-        atomic_rotation=True
-    )
-    
-    handler = RotatingFileHandler(
-        filename="app.log",
-        config=config
-    )
-    logger.addHandler(handler)
-
-Factory Pattern:
-    from hydra_logger.handlers import RotatingFileHandlerFactory
-    
-    # Create timed rotating handler
-    handler = RotatingFileHandlerFactory.create_handler(
-        "timed",
-        filename="app.log",
-        when="midnight",
-        backup_count=30
-    )
-    
-    # Create size rotating handler
-    handler = RotatingFileHandlerFactory.create_handler(
-        "size",
-        filename="app.log",
-        max_bytes=10 * 1024 * 1024
-    )
-
-Performance Monitoring:
-    # Get rotation statistics
-    stats = handler.get_rotation_stats()
-    print(f"Rotation count: {stats['rotation_count']}")
-    print(f"Current file size: {stats['current_file_size']}")
-    print(f"Last rotation: {stats['last_rotation']}")
-
-CONFIGURATION:
-- Time settings: when, interval, time_unit, max_time_files
-- Size settings: max_size, max_size_files
-- General settings: backup_dir, compress_old, preserve_extension
-- Rotation settings: atomic_rotation, cleanup_old
-
-ERROR HANDLING:
-- Atomic rotation for data integrity
-- Automatic cleanup of old files
-- Error logging
-- Graceful degradation
-- File system error recovery
-
-THREAD SAFETY:
-- Thread-safe operations with proper locking
-- Safe concurrent access
-- Atomic file operations
-- Safe rotation and cleanup
+Role: Rotating handler implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - os
+ - time
+ - gzip
+ - shutil
+ - threading
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import os

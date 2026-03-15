@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Example 9: All Logger Types with Colors
-Demonstrates colors with SyncLogger, AsyncLogger, and CompositeLogger.
+Role: 09 all logger types colors implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - asyncio
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 import asyncio
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger, create_async_logger, create_composite_logger

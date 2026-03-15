@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Example 5: Custom Configurations
-Demonstrates how users can create completely custom configurations.
+Role: 05 custom configurations implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
 

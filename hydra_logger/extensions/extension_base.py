@@ -1,19 +1,13 @@
 """
-Extension Base Classes for Hydra-Logger
-
-Performance-oriented extension system with zero overhead when disabled.
-Users have full control over all extensions, formats, and destinations.
-
-ARCHITECTURE:
-- ExtensionBase: Abstract base class for all extensions
-- SecurityExtension: Data redaction and sanitization
-- FormattingExtension: Message formatting and enhancement
-- PerformanceExtension: Performance monitoring and optimization
-
-NAMING CONVENTIONS:
-- All classes end with descriptive suffixes: *Extension, *Manager, *Utility
-- Clear, descriptive naming
-- Consistent with project standards
+Role: Extension base implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - abc
+ - typing
+ - re
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from abc import ABC, abstractmethod

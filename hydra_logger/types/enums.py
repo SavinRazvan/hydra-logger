@@ -1,59 +1,12 @@
 """
-System Enums for Hydra-Logger
-
-This module provides  enumeration types for various system
-components and configurations. It includes all standard enums used
-throughout the logging system for consistent type definitions and
-validation.
-
-ENUM CATEGORIES:
-- Handler Types: Console, file, network, database, cloud handlers
-- Formatter Types: JSON, plain text, CSV, syslog formatters
-- Plugin Types: Analytics, security, performance, monitoring plugins
-- Security Levels: Data protection and security levels
-- Queue Policies: Backpressure and queue management policies
-- Rotation Strategies: File rotation and archival strategies
-- Compression Types: Data compression algorithms
-- Encryption Types: Data encryption methods
-- Network Protocols: Remote logging protocols
-- Database Types: Log storage database types
-- Cloud Providers: Cloud service providers
-- Log Formats: Standard log output formats
-- Color Modes: Console color output modes
-- Validation Levels: Configuration validation levels
-- Monitoring Levels: System monitoring detail levels
-- Error Handling: Error handling strategies
-- Async Modes: Asynchronous operation modes
-- Cache Strategies: Caching implementation strategies
-- Backup Strategies: Data backup strategies
-- Health Check Types: System health check types
-- Alert Severity: Alert and notification severity levels
-- Metric Types: Performance metric types
-- Time Units: Time measurement units
-- Size Units: Size measurement units
-
-UTILITY FUNCTIONS:
-- get_enum_values(): Get all values from an enum class
-- get_enum_names(): Get all names from an enum class
-- get_enum_by_value(): Get enum member by value
-- get_enum_by_name(): Get enum member by name
-- is_valid_enum_value(): Check if value is valid for enum
-- is_valid_enum_name(): Check if name is valid for enum
-
-USAGE:
-    from hydra_logger.types import HandlerType, LogLevel, TimeUnit
-
-    # Use handler types
-    if handler_type == HandlerType.CONSOLE:
-        print("Console handler configured")
-
-    # Use time units
-    rotation_interval = 24 * TimeUnit.HOURS.to_seconds()
-
-    # Validate enum values
-    from hydra_logger.types import is_valid_enum_value
-    if is_valid_enum_value(HandlerType, "file"):
-        print("Valid handler type")
+Role: Enums implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - enum
+ - typing
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from enum import Enum

@@ -1,8 +1,13 @@
 """
-Base Extension Class for Hydra Logger Extensions.
-
-This module provides the abstract base class that all extensions must implement.
-Extensions follow a plug-in/plug-out design with zero overhead when disabled.
+Role: Base implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - abc
+ - typing
+ - dataclasses
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from abc import ABC, abstractmethod

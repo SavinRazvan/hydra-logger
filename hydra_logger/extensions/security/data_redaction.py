@@ -1,17 +1,12 @@
 """
-Data Redaction Utility
-
-Data redaction for sensitive information.
-Zero overhead when disabled, regex-based redaction when enabled.
-
-FEATURES:
-- Email redaction
-- Phone number redaction
-- API key redaction
-- Credit card redaction
-- SSN redaction
-- Custom pattern redaction
-- Performance-optimized regex compilation
+Role: Data redaction implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - re
+ - typing
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import re

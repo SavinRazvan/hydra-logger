@@ -1,8 +1,15 @@
 """
-Public handler exports for Hydra-Logger.
-
-Supported families in this package are console, file (including rotating
-variants), network, and null handlers.
+Role: Init implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+ - base_handler
+ - console_handler
+ - file_handler
+ - null_handler
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from hydra_logger.types.enums import TimeUnit

@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Example 12: Quick Start - Async Usage
-Async usage example from README.
+Role: 12 quick start async implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+ - asyncio
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_async_logger
 import asyncio

@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Example 4: Runtime Control
-Demonstrates how users can control extensions at runtime.
+Role: 04 runtime control implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
 from hydra_logger.extensions import ExtensionManager

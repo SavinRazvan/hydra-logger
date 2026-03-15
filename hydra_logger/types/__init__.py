@@ -1,8 +1,14 @@
 """
-Type definitions for the public Hydra-Logger API.
-
-This package re-exports record, level, context, and enum types used across
-logger, handler, formatter, and configuration modules.
+Role: Init implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - records
+ - levels
+ - context
+ - enums
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from .records import LogRecord, LogRecordBatch

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
-Example 14: Class-Based Logging
-Demonstrates how logging works with classes, methods, and inheritance.
-Shows function tracking for class methods, instance methods, static methods, and properties.
+Role: 14 class based logging implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
 

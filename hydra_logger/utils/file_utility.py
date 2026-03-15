@@ -1,55 +1,15 @@
 """
-File System Utilities for Hydra-Logger
-
-This module provides  file and directory utility functions including
-file operations, path management, validation, processing, and directory scanning.
-It supports various file types, permissions, and metadata extraction.
-
-FEATURES:
-- FileUtils: General file operations and information
-- PathManager: Path manipulation and normalization
-- FileValidator: File and directory validation
-- FileProcessor: File reading, writing, and processing
-- DirectoryScanner: Directory scanning and tree structure
-- File type detection and metadata extraction
-- Permission checking and validation
-- Checksum calculation and integrity verification
-
-FILE OPERATIONS:
-- File existence and type checking
-- File copying, moving, and deletion
-- Directory creation and management
-- Permission and access validation
-- File size and timestamp operations
-
-PATH MANAGEMENT:
-- Path normalization and resolution
-- Relative and absolute path conversion
-- Path joining and splitting
-- Extension manipulation
-- Symbolic link resolution
-
-USAGE:
-    from hydra_logger.utils import FileUtility, PathUtility, FileValidator
-
-    # File operations
-    exists = FileUtility.exists("/path/to/file")
-    size = FileUtility.get_size("/path/to/file")
-    info = FileUtility.get_file_info("/path/to/file")
-
-    # Path management
-    normalized = PathUtility.normalize_path("../relative/path")
-    absolute = PathUtility.absolute_path("file.txt")
-    joined = PathUtility.join_paths("dir", "subdir", "file.txt")
-
-    # File validation
-    is_valid = FileValidator.validate_file_exists("/path/to/file")
-    is_readable = FileValidator.validate_file_readable("/path/to/file")
-
-    # File processing
-    from hydra_logger.utils import FileProcessor
-    content = FileProcessor.read_text_file("/path/to/file")
-    success = FileProcessor.write_text_file("/path/to/file", "content")
+Role: File utility implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - os
+ - shutil
+ - hashlib
+ - mimetypes
+ - typing
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import os

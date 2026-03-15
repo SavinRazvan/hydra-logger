@@ -1,54 +1,12 @@
 """
-Base Classes and Mixins for Hydra-Logger
-
-This module provides the foundational base classes and mixins that form the core
-architecture of the Hydra-Logger system. All components inherit from these base
-classes to ensure consistent behavior and interface compliance.
-
-ARCHITECTURE:
-- BaseComponent: Abstract base class for all system components
-- BaseLogger: Abstract base class for all logger implementations
-- BaseHandler: Abstract base class for all log handlers
-- BaseFormatter: Abstract base class for all formatters
-- BasePlugin: Abstract base class for all plugins
-- BaseMonitor: Abstract base class for all monitoring components
-
-FEATURES:
-- Consistent lifecycle management (initialize/shutdown)
-- Standardized configuration handling
-- Enable/disable functionality
-- Abstract method enforcement
-- Common interface patterns
-
-USAGE EXAMPLES:
-
-Creating Custom Components:
-    from hydra_logger.core.base import BaseComponent
-
-    class MyComponent(BaseComponent):
-        def initialize(self):
-            # Component initialization logic
-            self._initialized = True
-
-        def shutdown(self):
-            # Component cleanup logic
-            self._initialized = False
-
-Creating Custom Loggers:
-    from hydra_logger.core.base import BaseLogger
-
-    class MyLogger(BaseLogger):
-        def log(self, level: str, message: str, **kwargs):
-            # Custom logging implementation
-            pass
-
-Creating Custom Handlers:
-    from hydra_logger.core.base import BaseHandler
-
-    class MyHandler(BaseHandler):
-        def emit(self, record):
-            # Custom record emission logic
-            pass
+Role: Base implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - abc
+ - typing
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from abc import ABC, abstractmethod

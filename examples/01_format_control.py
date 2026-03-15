@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Example 1: Format Control
-Demonstrates how users can choose any format for any destination.
+Role: 01 format control implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
 

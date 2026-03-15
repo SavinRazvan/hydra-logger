@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """
-Hydra-Logger Examples Test Runner
-
-Test runner for all example files with detailed reporting,
-log file verification, and professional output formatting.
-
-Features:
-- Individual example execution with timeout protection
-- Detailed success/failure reporting
-- Log file verification for each example
-- Performance timing
-- Professional formatting with clear status indicators
-- Summary statistics and recommendations
+Role: Run all examples implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - subprocess
+ - sys
+ - time
+ - json
+ - pathlib
+Notes:
+ - Header standardized by slim-header migration.
 """
 import subprocess
 import sys

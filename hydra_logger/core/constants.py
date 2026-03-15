@@ -1,74 +1,11 @@
 """
-System Constants and Enums for Hydra-Logger
-
-This module defines all the core constants, enums, and configuration values
-used throughout the Hydra-Logger system. It provides a centralized location
-for all system-wide constants and ensures consistency across all components.
-
-CONSTANT CATEGORIES:
-- Color Codes: ANSI escape sequences for terminal output
-- Log Levels: Numeric and string representations of log levels
-- Queue Policies: Backpressure handling strategies
-- Shutdown Phases: Component lifecycle phases
-- System Constants: Buffer sizes, timeouts, thresholds
-- Format Constants: Supported format types and configurations
-- Security Constants: Sensitive data patterns and threat detection
-- Monitoring Constants: Performance and health thresholds
-
-COLOR SYSTEM:
-- ANSI color code support
-- Basic, bright, and background colors
-- Layer-specific color mappings
-- Consistent with ColoredFormatter color scheme
-- Cross-platform terminal compatibility
-
-FORMAT SUPPORT:
-- 13 standardized format types
-- Consistent format names across all loggers
-- Unified column system for structured formats
-- Format validation and compatibility checking
-
-SECURITY FEATURES:
-- Sensitive data pattern detection
-- Threat pattern recognition
-- Security level configurations
-- Data sanitization patterns
-
-USAGE EXAMPLES:
-
-Color Usage:
-    from hydra_logger.core.constants import Colors
-
-    # Basic colors
-    print(Colors.RED + "Error" + Colors.RESET)
-    print(Colors.GREEN + "Success" + Colors.RESET)
-
-    # Layer-specific colors
-    color = Colors.get_layer_color('api')  # Returns API-specific color
-
-    # Color by name
-    color = Colors.get_color_code('bright_blue')
-
-Format Validation:
-    from hydra_logger.core.constants import SUPPORTED_FORMATS
-
-    if 'json-lines' in SUPPORTED_FORMATS:
-        formatter = get_formatter('json-lines')
-
-System Constants:
-    from hydra_logger.core.constants import DEFAULT_BUFFER_SIZE, DEFAULT_FLUSH_INTERVAL
-
-    processor = BatchProcessor(
-        buffer_size=DEFAULT_BUFFER_SIZE,
-        flush_interval=DEFAULT_FLUSH_INTERVAL
-    )
-
-Queue Policies:
-    from hydra_logger.core.constants import QueuePolicy
-
-    if policy == QueuePolicy.DROP_OLDEST:
-        # Handle backpressure by dropping oldest messages
-        pass
+Role: Constants implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - enum
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from enum import Enum

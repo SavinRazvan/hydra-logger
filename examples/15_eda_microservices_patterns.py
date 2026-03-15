@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Example 15: EDA & Microservices Patterns
-
-Demonstrates how to use Hydra-Logger in Event-Driven Architecture (EDA)
-and microservices with proper resource management.
-
-Key Patterns:
-    1. Long-running async services with proper cleanup
-    2. Context managers for automatic resource management
-    3. Shared logger instances in microservices
-    4. Event-driven logging with correlation IDs
-    5. Graceful shutdown handling
+Role: 15 eda microservices patterns implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - asyncio
+ - signal
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 import asyncio
 import signal

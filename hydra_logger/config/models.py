@@ -1,84 +1,13 @@
 """
-Hydra-Logger Configuration Models
-
-This module provides Pydantic-based configuration models with:
-- Automatic validation and type safety
-- Multi-layered logging architecture (layers + destinations)
-- Support for all major output formats and protocols
-- Built-in destination mapping for console, file, network-adjacent async file/cloud
-- Performance-oriented defaults with optional security features
-- Python logging compatibility and inheritance
-
-ARCHITECTURE:
-The configuration system uses a three-tier architecture:
-
-1. LoggingConfig (Root Container)
-   - Manages global settings and security features
-   - Contains named layers (loggers) with their configurations
-   - Provides validation and lifecycle management
-   - Performance-oriented defaults (security disabled by default)
-
-2. LogLayer (Logger Configuration)
-   - Equivalent to Python's Logger class
-   - Defines log level, enabled state, and custom colors
-   - Contains list of destinations (handlers)
-   - Supports layer-specific settings and inheritance
-
-3. LogDestination (Handler Configuration)
-   - Equivalent to Python's Handler class
-   - Defines output destination and format
-   - Supports built-in destination types that map to current handler families
-   - Configurable retry, timeout, and connection settings
-
-COLOR SYSTEM:
-- LogDestination.use_colors: Enable/disable colors for console destinations
-- Colors only work with console handlers (not file handlers)
-- ColoredFormatter automatically applied when use_colors=True
-- Layer colors can be customized via LogLayer.color field
-- Standardized color system across all 4 core loggers
-
-PERFORMANCE OPTIMIZATIONS:
-- Security features disabled by default
-- LRU caching for frequently accessed configurations
-- Minimal memory footprint with efficient data structures
-- Background processing for non-critical operations
-- Optimized validation with early exit on errors
-
-USAGE EXAMPLES:
-
-Basic Configuration:
-    from hydra_logger.config import LoggingConfig, LogLayer, LogDestination
-
-    config = LoggingConfig(
-        default_level="INFO",
-        layers={
-            "app": LogLayer(
-                level="DEBUG",
-                destinations=[
-                    LogDestination(type="console", format="colored", use_colors=True),
-                    LogDestination(type="file", path="app.log", format="json-lines")
-                ]
-            )
-        }
-    )
-
-Async Cloud Schema (roadmap/custom integration):
-    cloud_dest = LogDestination(
-        type="async_cloud",
-        service_type="aws_cloudwatch",
-        credentials={"access_key": "...", "secret_key": "..."},
-        retry_count=3,
-        timeout=30.0
-    )
-
-Performance-Oriented Configuration:
-    config = LoggingConfig(
-        enable_security=False,
-        enable_sanitization=False,
-        enable_plugins=False,
-        enable_performance_monitoring=False,
-        # ... rest of configuration
-    )
+Role: Models implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - os
+ - typing
+ - pydantic
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import os

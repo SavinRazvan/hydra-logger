@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Example 2: Destination Control
-Demonstrates how users can choose any destination combination.
+Role: 02 destination control implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
 

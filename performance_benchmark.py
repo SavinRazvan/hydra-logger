@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """
-Hydra-Logger Performance Benchmark Suite
-
-This benchmark suite tests the performance characteristics of Hydra-Logger
-implementations. It measures individual logger performance, batch logging
-efficiency, memory usage patterns, configuration impact on performance,
-and concurrent logging capabilities.
-
-Usage:
-    python3 performance_benchmark.py
-
-The benchmark runs various performance tests and provides results showing
-messages per second, memory usage, and efficiency metrics.
+Role: Performance benchmark implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - asyncio
+ - sys
+ - time
+ - statistics
+ - json
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import asyncio

@@ -1,50 +1,15 @@
 """
-Context Types for Hydra-Logger
-
-This module provides  context type definitions for managing
-logging context, caller information, and distributed tracing throughout
-the system. It includes context management, caller detection, and system
-information tracking.
-
-FEATURES:
-- LogContext: Main context container with metadata management
-- ContextType: Different types of logging contexts
-- CallerInfo: Information about calling code and functions
-- SystemInfo: System-level information (thread, process, hostname)
-- ContextManager: Context management and thread-local storage
-- ContextDetector: Automatic caller information detection
-
-CONTEXT TYPES:
-- REQUEST: HTTP request context
-- SESSION: User session context
-- TRANSACTION: Database transaction context
-- TRACE: Distributed tracing context
-- USER: User-specific context
-- ENVIRONMENT: Environment-specific context
-- CUSTOM: Custom application context
-
-USAGE:
-    from hydra_logger.types import LogContext, ContextType, ContextManager
-
-    # Create a new context
-    context = LogContext(
-        context_type=ContextType.REQUEST,
-        metadata={"user_id": "123", "request_id": "req_456"}
-    )
-
-    # Set current context
-    ContextManager.set_current_context(context)
-
-    # Get current context
-    current = ContextManager.get_current_context()
-
-    # Add metadata
-    context.update_metadata({"action": "login", "ip": "192.168.1.1"})
-
-    # Get caller information
-    from hydra_logger.types import get_caller_info
-    caller = get_caller_info(depth=2)
-    print(f"Called from: {caller.filename}:{caller.line_number}")
+Role: Context implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - time
+ - threading
+ - contextvars
+ - typing
+ - dataclasses
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import time

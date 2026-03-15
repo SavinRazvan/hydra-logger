@@ -1,12 +1,12 @@
 """
-Setup script for Hydra-Logger package.
-
-This module configures the package installation, dependencies, and metadata
-for the Hydra-Logger distribution. It includes comprehensive package information,
-development dependencies, and entry points for command-line usage.
-
-The setup configuration supports both basic installation and development
-environments with appropriate dependency management.
+Role: Setup implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - pathlib
+ - setuptools
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from pathlib import Path

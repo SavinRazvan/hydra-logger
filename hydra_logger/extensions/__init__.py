@@ -1,27 +1,12 @@
 """
-Hydra-Logger Extensions System
-
-User-controllable extension system with zero overhead when disabled.
-Users have full control over formats, destinations, configurations, and extensions.
-
-ARCHITECTURE:
-- ExtensionBase: Base class for all extensions
-- ExtensionManager: Central management system
-- SecurityExtension: Data redaction and sanitization
-- FormattingExtension: Message formatting and enhancement
-- PerformanceExtension: Performance monitoring
-
-USER CONTROL:
-- Enable/disable any extension
-- Configure extension parameters
-- Choose processing order
-- Add custom extensions
-- Control via LoggingConfig
-
-NAMING CONVENTIONS:
-- Descriptive naming
-- Consistent with project standards
-- Clear, unambiguous terminology
+Role: Init implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - extension_base
+ - extension_manager
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from .extension_base import (

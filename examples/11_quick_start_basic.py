@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Example 11: Quick Start - Basic Usage
-Basic usage example from README.
+Role: 11 quick start basic implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - sys
+ - pathlib
+Notes:
+ - Header standardized by slim-header migration.
 """
 import sys
 from pathlib import Path

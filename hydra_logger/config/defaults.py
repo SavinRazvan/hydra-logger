@@ -1,59 +1,13 @@
 """
-Hydra-Logger Default Configurations
-
-This module provides default configurations with a performance-oriented approach.
-It offers pre-built configurations for common use cases while maintaining the flexibility
-to customize as needed.
-
-PHILOSOPHY:
-- Performance-oriented: All features disabled by default for speed
-- Clear trade-offs: Users can enable features as needed, trading performance for functionality
-- Python logging compatibility: Follows standard logging patterns and conventions
-- Minimal configuration: Simple, clean defaults that work out of the box
-
-FEATURES:
-- Default configuration with performance focus
-- Custom configuration builder for specific use cases
-- Pre-built templates for development, production, and testing
-- Color system integration for console destinations
-- Security and monitoring features available when needed
-- Type-safe configuration with automatic validation
-
-PERFORMANCE OPTIMIZATIONS:
-- Security features disabled by default (enable_security=False)
-- Sanitization disabled by default (enable_sanitization=False)
-- Plugin system disabled by default (enable_plugins=False)
-- Performance monitoring disabled by default (enable_performance_monitoring=False)
-- Optimized buffering and flush intervals
-- Minimal memory footprint with efficient data structures
-
-USAGE EXAMPLES:
-
-Default Configuration:
-    from hydra_logger.config import get_default_config
-
-    config = get_default_config()
-
-Custom Configuration (Balanced Performance):
-    from hydra_logger.config import get_custom_config
-
-    config = get_custom_config(
-        enable_security=True,  # Enable security features
-        enable_sanitization=True,  # Enable data sanitization
-        console_enabled=True,
-        file_enabled=True,
-        file_path="app.log"
-    )
-
-Production Configuration:
-    from hydra_logger.config import get_production_config
-
-    config = get_production_config()  # Pre-built production config
-
-Development Configuration:
-    from hydra_logger.config import get_development_config
-
-    config = get_development_config()  # Pre-built development config
+Role: Defaults implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - typing
+ - pathlib
+ - models
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from typing import Dict, Optional

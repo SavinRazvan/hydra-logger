@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Example 7: Multi-Layer Colored Logging
-Demonstrates different layers with different colors.
+Role: 07 multi layer colored logging implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
 

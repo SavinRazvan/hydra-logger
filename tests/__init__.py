@@ -1,4 +1,9 @@
 """
-Test package for hydra-logger.
-This will be expanded during extension system implementation.
+Role: Init implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - (none)
+Notes:
+ - Header standardized by slim-header migration.
 """

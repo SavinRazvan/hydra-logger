@@ -1,42 +1,15 @@
 """
-Colored Formatter for Hydra-Logger
-
-This module provides a simple, clean colored formatter for console output.
-Colors are applied to log levels and layers for better readability.
-
-ARCHITECTURE:
-- ColoredFormatter: Simple colored text formatter for console output
-- Color codes for different log levels and layers
-- Clean, readable colored output
-- Simple boolean control: use_colors=True/False
-
-COLOR SCHEME:
-- DEBUG: Blue
-- INFO: Green
-- WARNING: Yellow
-- ERROR: Red
-- CRITICAL: Bright Red
-- LAYER: Cyan
-
-USAGE EXAMPLES:
-
-Basic Colored Formatting:
-    from hydra_logger.formatters.colored_formatter import ColoredFormatter
-
-    # Create colored formatter
-    formatter = ColoredFormatter(use_colors=True)
-
-    # Create non-colored formatter (falls back to plain text)
-    formatter = ColoredFormatter(use_colors=False)
-
-Custom Format String:
-    from hydra_logger.formatters.colored_formatter import ColoredFormatter
-
-    # Custom format with colors
-    formatter = ColoredFormatter(
-        format_string="| {timestamp} | {level_name} | {layer} | {message}",
-        use_colors=True
-    )
+Role: Colored formatter implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - typing
+ - text_formatter
+ - types
+ - utils
+ - core
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from typing import Optional

@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Example 8: Mixed Console and File Output
-Demonstrates console with colors, file without colors.
+Role: 08 mixed console file output implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
 

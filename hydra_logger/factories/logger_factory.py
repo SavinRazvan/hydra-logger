@@ -1,125 +1,13 @@
 """
-Hydra-Logger Factory System
-
-This module provides the core factory system for creating and managing all
-Hydra-Logger components. It implements the Factory Pattern with features
-like caching, magic configurations, and type-safe component creation.
-
-ARCHITECTURE:
-- LoggerFactory: Central factory class for all logger creation
-- Factory Functions: Convenience functions for direct logger creation
-- Magic Configuration Integration: Pre-configured logger creation
-- Caching System: Logger caching and reuse
-- Type Safety: Full type hints and validation
-
-SUPPORTED LOGGER TYPES:
-- SyncLogger: Synchronous logging with immediate output
-- AsyncLogger: Asynchronous logging with queue-based processing
-- CompositeLogger: Composite pattern for multiple logger components
-- CompositeAsyncLogger: Async version of composite logger
-
-COLOR SYSTEM INTEGRATION:
-- All 4 core loggers support the standardized color system
-- Colors enabled via LogDestination.use_colors=True
-- Console handlers only (file handlers don't support colors)
-- ColoredFormatter automatically applied when colors enabled
-- Layer routing determines which destinations receive messages
-- Automatic color detection and fallback
-
-MAGIC CONFIGURATIONS:
-- default: Default configuration with performance focus
-- development: Development-friendly configuration with debug output
-- production: Production-ready configuration with security and monitoring
-- custom: Custom configuration with user-specified features
-
-CACHING FEATURES:
-- Logger caching based on configuration
-- Memory-efficient cache management
-- Cache invalidation and cleanup
-- Performance optimization through reuse
-- Thread-safe caching operations
-
-FACTORY METHODS:
-- create_logger: Main logger creation with type selection
-- create_sync_logger: Direct synchronous logger creation
-- create_async_logger: Direct asynchronous logger creation
-- create_composite_logger: Composite logger creation
-- create_composite_async_logger: Composite async logger creation
-- create_*_logger: Magic configuration logger creation
-
-USAGE EXAMPLES:
-
-Basic Logger Creation:
-    from hydra_logger.factories import create_logger, create_sync_logger
-
-    # Create logger with configuration
-    config = LoggingConfig(...)
-    logger = create_logger(config, logger_type="sync")
-
-    # Create specific logger type
-    sync_logger = create_sync_logger("MyLogger")
-    async_logger = create_async_logger("MyAsyncLogger")
-
-Magic Configuration Loggers:
-    from hydra_logger.factories import create_production_logger
-
-    # Create pre-configured loggers
-    prod_logger = create_production_logger(logger_type="async")
-    dev_logger = create_development_logger(logger_type="sync")
-    test_logger = create_testing_logger(logger_type="composite")
-
-Composite Logger Creation:
-    from hydra_logger.factories import create_composite_logger
-
-    # Create composite logger with multiple components
-    composite = create_composite_logger(
-        components=[sync_logger, async_logger],
-        config=config
-    )
-
-Factory Class Usage:
-    from hydra_logger.factories import LoggerFactory
-
-    factory = LoggerFactory()
-
-    # Create with magic configuration
-    logger = factory.create_logger_with_magic("production", "async")
-
-    # Create with custom configuration
-    logger = factory.create_logger(config, "sync")
-
-    # Cache management
-    factory.cache_logger("my_logger", logger)
-    cached = factory.get_cached_logger("my_logger")
-
-Custom Configuration:
-    # Create logger with custom settings
-    logger = create_logger(
-        config={
-            "layers": [
-                {
-                    "name": "console",
-                    "destinations": [
-                        {
-                            "type": "CONSOLE",
-                            "format": "colored",
-                            "use_colors": True
-                        }
-                    ]
-                }
-            ]
-        },
-        logger_type="async",
-        name="CustomLogger"
-    )
-
-PERFORMANCE FEATURES:
-- Object pooling for LogRecord instances
-- Caching to reduce object creation
-- Lazy initialization of expensive components
-- Memory-efficient configuration handling
-- Logger creation paths
-- Thread-safe operations throughout
+Role: Logger factory implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - typing
+ - config
+ - loggers
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from typing import Optional, Union, Dict, Any

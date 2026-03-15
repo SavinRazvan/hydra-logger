@@ -1,6 +1,11 @@
 """
-Placeholder test file to satisfy pre-commit hook.
-This will be replaced with proper tests during extension system implementation.
+Role: Test placeholder implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - (none)
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 

@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Example 6: Basic Colored Logging
-Demonstrates the color system for console output.
+Role: 06 basic colored logging implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - sys
+ - pathlib
+Notes:
+ - Header standardized by slim-header migration.
 """
 import sys
 from pathlib import Path

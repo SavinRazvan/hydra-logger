@@ -1,20 +1,14 @@
 """
-System Capability Detection and Adaptive Configuration
-
-This module provides system detection to automatically configure
-buffer sizes, flush intervals, and performance parameters based on:
-- Available system memory
-- CPU capabilities
-- System load
-- Safety margins to prevent OOM
-
-FEATURES:
-- Memory-aware buffer sizing (prevents OOM crashes)
-- CPU-aware performance tuning
-- Load-aware adaptation
-- Safe defaults for resource-constrained systems
-- Dynamic scaling for high-performance systems
-- Data integrity guarantees (graceful degradation)
+Role: System detector implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - sys
+ - os
+ - typing
+ - enum
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import sys

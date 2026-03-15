@@ -1,81 +1,14 @@
 """
-Log Record Types for Hydra-Logger
-
-This module defines the core LogRecord class and related types
-used for representing log entries throughout the system. It provides
-optimized record creation with multiple performance profiles and
- batch processing capabilities.
-
-FEATURES:
-- LogRecord: Optimized log record with essential fields
-- LogRecordBatch: High-performance batch processing
-- LogRecordFactory: Factory for creating records with different profiles
-- RecordCreationStrategy: Strategy pattern for record creation
-- Performance-optimized record creation and processing
-
-LOG RECORD STRUCTURE:
-- Essential fields: timestamp, level_name, layer, file_name, function_name, message
-- Optional fields: level, logger_name, line_number
-- Custom fields: extra data and context information
-- Immutable design for performance and thread safety
-
-PERFORMANCE PROFILES:
-- MINIMAL: performance, minimal fields
-- CONTEXT: Balanced performance with context information
-- AUTO_CONTEXT: Convenience with auto-detected context
-
-RECORD CREATION STRATEGIES:
-- Minimal: Fastest creation with essential fields only
-- Context: Balanced performance with explicit context
-- Auto Context: Convenient creation with automatic context detection
-
-BATCH PROCESSING:
-- LogRecordBatch: Optimized batch for high-performance processing
-- Configurable batch sizes and processing limits
-- Efficient memory usage and processing
-
-USAGE:
-    from hydra_logger.types import LogRecord, LogRecordBatch, create_log_record
-
-    # Create log record with minimal strategy
-    record = create_log_record(
-        level="INFO",
-        message="Application started",
-        strategy="minimal"
-    )
-
-    # Create record with context
-    record = create_log_record(
-        level="ERROR",
-        message="Database connection failed",
-        strategy="context",
-        file_name="database.py",
-        function_name="connect",
-        line_number=42
-    )
-
-    # Create record with auto-detected context
-    record = create_log_record(
-        level="DEBUG",
-        message="Processing user request",
-        strategy="auto_context"
-    )
-
-    # Batch processing
-    batch = LogRecordBatch(max_size=1000)
-    batch.add_record(record1)
-    batch.add_record(record2)
-
-    if batch.is_full():
-        # Process batch
-        for record in batch:
-            print(record)
-        batch.clear()
-
-    # Use record creation strategy
-    from hydra_logger.types import RecordCreationStrategy
-    strategy = RecordCreationStrategy("minimal")
-    record = strategy.create_record("INFO", "Message", logger_name="MyLogger")
+Role: Records implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - dataclasses
+ - typing
+ - datetime
+ - time
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from dataclasses import dataclass, field

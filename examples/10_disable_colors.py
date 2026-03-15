@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Example 10: Disable Colors
-Demonstrates how to disable colors for clean output.
+Role: 10 disable colors implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
 

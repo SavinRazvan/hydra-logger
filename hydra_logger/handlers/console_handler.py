@@ -1,100 +1,15 @@
 """
-Console Handlers for Hydra-Logger
-
-This module provides both synchronous and asynchronous console handlers
-optimized for high-performance logging with buffering and
- color support.
-
-ARCHITECTURE:
-- SyncConsoleHandler: Synchronous console output with buffering
-- AsyncConsoleHandler: Asynchronous console output with queue-based processing
-- buffering for high throughput (1000 messages or 0.1s intervals)
-- Color system integration with LRU caching (2.8x performance improvement)
-- Formatter-aware handling for optimal performance
-
-COLOR SYSTEM:
-- Colors are only available for console handlers (not file handlers)
-- Colors are off by default for performance and compatibility
-- Use use_colors=True to enable colored output
-- ColoredFormatter provides level and layer colors with LRU cache
-- 100% data integrity - preserves user ANSI codes and Unicode
-- Adaptive color detection and fallback
-
-PERFORMANCE FEATURES:
-- buffering (1000 messages or 0.1s intervals)
-- LRU cache for color lookups (2.8x speedup)
-- Lazy formatter initialization for reduced overhead
-- Batch writing for throughput
-- Automatic cleanup on exit
-- Performance statistics and monitoring
-
-HANDLER TYPES:
-- SyncConsoleHandler: Synchronous console output with immediate buffering
-- AsyncConsoleHandler: Asynchronous console output with queue-based processing
-
-USAGE EXAMPLES:
-
-Basic Console Handler:
-    from hydra_logger.handlers import SyncConsoleHandler
-    
-    # Create handler with colors
-    handler = SyncConsoleHandler(use_colors=True)
-    logger.addHandler(handler)
-    
-    # Create handler without colors
-    handler = SyncConsoleHandler(use_colors=False)
-    logger.addHandler(handler)
-
-Async Console Handler:
-    from hydra_logger.handlers import AsyncConsoleHandler
-    
-    handler = AsyncConsoleHandler(use_colors=True)
-    logger.addHandler(handler)
-    
-    # Use async emit
-    await handler.emit_async(record)
-
-Custom Buffering:
-    # Custom buffer size and flush interval
-    handler = SyncConsoleHandler(
-        buffer_size=500,      # Flush after 500 messages
-        flush_interval=0.05   # Or flush every 50ms
-    )
-
-Performance Monitoring:
-    # Get handler statistics
-    stats = handler.get_stats()
-    print(f"Messages processed: {stats['messages_processed']}")
-    print(f"Messages per second: {stats['messages_per_second']}")
-    print(f"Total bytes written: {stats['total_bytes_written']}")
-
-Factory Functions:
-    from hydra_logger.handlers.console_handler import create_sync_console_handler
-    
-    handler = create_sync_console_handler(
-        use_colors=True,
-        buffer_size=1000,
-        flush_interval=0.1
-    )
-
-CONFIGURATION OPTIONS:
-- stream: Output stream (defaults to sys.stdout)
-- formatter: Log formatter instance
-- buffer_size: Buffer size for batching (default: 1000)
-- flush_interval: Flush interval in seconds (default: 0.1)
-- use_colors: Whether to use colors (default: False)
-
-THREAD SAFETY:
-- SyncConsoleHandler: Thread-safe with proper locking
-- AsyncConsoleHandler: Thread-safe with asyncio queue
-- Automatic cleanup on exit
-- Safe concurrent access
-
-ERROR HANDLING:
-- Graceful error handling and recovery
-- Automatic fallback mechanisms
--  error logging
-- Non-blocking error recovery
+Role: Console handler implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - asyncio
+ - atexit
+ - sys
+ - time
+ - logging
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import asyncio

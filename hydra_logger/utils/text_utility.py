@@ -1,61 +1,15 @@
 """
-Text Processing Utilities for Hydra-Logger
-
-This module provides  text processing utilities including
-string manipulation, validation, sanitization, analysis, and formatting.
-It supports various text operations with performance optimization and
-extensive pattern matching capabilities.
-
-FEATURES:
-- TextProcessor:  text processing and pattern matching
-- StringFormatter: String formatting and case transformation
-- TextValidator: Text validation and format checking
-- TextSanitizer: Text sanitization and sensitive data protection
-- TextAnalyzer: Text analysis and metrics calculation
-- Unicode normalization and encoding handling
-- Pattern extraction (emails, URLs, phones, IPs)
-- Readability analysis and language detection
-
-TEXT PROCESSING:
-- Unicode normalization and accent removal
-- Whitespace cleaning and normalization
-- Word, sentence, and paragraph extraction
-- Pattern matching and replacement
-- Case transformation (camel, snake, kebab, pascal)
-- Text truncation and padding
-
-VALIDATION FEATURES:
-- Email, URL, and phone number validation
-- IP address and credit card validation
-- Password strength checking
-- Custom validation rule support
-- Format-specific validation
-
-USAGE:
-    from hydra_logger.utils import TextProcessor, StringFormatter, TextValidator
-
-    # Text processing
-    processor = TextProcessor()
-    normalized = processor.normalize_text("Héllo Wörld")
-    words = processor.extract_words("Hello world from Hydra-Logger")
-    emails = processor.extract_emails("Contact: user@example.com")
-
-    # String formatting
-    camel_case = StringFormatter.change_case("hello_world", TextCase.CAMEL)
-    truncated = StringFormatter.truncate("Long text", 10, "...")
-    wrapped = StringFormatter.wrap("Long text", width=20)
-
-    # Text validation
-    validator = TextValidator()
-    is_email = validator.is_email("user@example.com")
-    is_url = validator.is_url("https://example.com")
-    is_strong = validator.is_strong_password("MyStr0ng!Pass")
-
-    # Text analysis
-    from hydra_logger.utils import TextAnalyzer
-    analyzer = TextAnalyzer()
-    metrics = analyzer.analyze_text("Your text here")
-    summary = analyzer.get_text_summary("Long text", max_words=50)
+Role: Text utility implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - re
+ - hashlib
+ - unicodedata
+ - typing
+ - dataclasses
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import re

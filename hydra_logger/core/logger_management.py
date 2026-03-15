@@ -1,94 +1,15 @@
 """
-Centralized Logger Management System for Hydra-Logger
-
-This module provides a logger management system that mimics
-Python's standard logging library's getLogger() functionality with
-additional features like configuration management, logger caching, and
-hierarchical logger support.
-
-ARCHITECTURE:
-- LoggerManager: Centralized logger registry and management
-- Logger Factory Integration: Uses LoggerFactory for logger creation
-- Configuration Management: Per-logger and global configuration support
-- Thread Safety: Thread-safe logger creation and management
-- Hierarchical Support: Logger name hierarchy and inheritance
-
-FEATURES:
-- Python logging.getLogger() compatible interface
-- Logger caching and reuse
-- Hierarchical logger names (e.g., 'package.module')
-- Per-logger configuration support
-- Global default configuration
-- Thread-safe operations
-- Logger lifecycle management
-- Configuration inheritance
-
-LOGGER TYPES:
-- sync: Synchronous loggers
-- async: Asynchronous loggers
-- unified: Unified logger interface (default)
-- Custom logger types via factory
-
-CONFIGURATION SUPPORT:
-- Global default configuration
-- Per-logger custom configurations
-- Hierarchical configuration inheritance
-- Configuration validation and fallback
-
-USAGE EXAMPLES:
-
-Basic Logger Usage (Python logging compatible):
-    from hydra_logger.core.logger_manager import getLogger
-
-    # Most common usage - get module logger
-    logger = getLogger(__name__)
-    logger.info("This is a module log message")
-
-    # Get package logger
-    package_logger = getLogger('myapp')
-
-    # Get root logger
-    root_logger = getLogger()
-
-Custom Configuration:
-    from hydra_logger.core.logger_manager import getLogger
-    from hydra_logger.config import LoggingConfig
-
-    # Custom configuration
-    config = LoggingConfig(...)
-    custom_logger = getLogger('myapp.api', config=config)
-
-Logger Type Selection:
-    from hydra_logger.core.logger_manager import getLogger, getSyncLogger, getAsyncLogger
-
-    # Specific logger types
-    sync_logger = getSyncLogger('myapp')
-    async_logger = getAsyncLogger('myapp')
-    unified_logger = getLogger('myapp', logger_type='unified')
-
-Logger Management:
-    from hydra_logger.core.logger_manager import hasLogger, removeLogger, listLoggers
-
-    # Check if logger exists
-    if hasLogger('myapp'):
-        print("Logger exists")
-
-    # List all loggers
-    all_loggers = listLoggers()
-    print(f"Registered loggers: {all_loggers}")
-
-    # Remove logger
-    removed = removeLogger('myapp')
-    print(f"Logger removed: {removed}")
-
-Configuration Management:
-    from hydra_logger.core.logger_manager import setDefaultConfig, getDefaultConfig
-
-    # Set global default configuration
-    setDefaultConfig(my_config)
-
-    # Get current default configuration
-    default_config = getDefaultConfig()
+Role: Logger management implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - threading
+ - typing
+ - collections
+ - factories
+ - config
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import threading

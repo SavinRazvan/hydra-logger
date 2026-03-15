@@ -1,8 +1,15 @@
 """
-Hydra-Logger public package API.
-
-Exports logger implementations, factory helpers, configuration models, core
-types, and key exception classes for application use.
+Role: Init implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - loggers
+ - factories
+ - core
+ - config
+ - types
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 __version__ = "0.4.0"

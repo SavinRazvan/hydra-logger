@@ -1,78 +1,15 @@
 """
-Base Formatter System for Hydra-Logger
-
-This module provides the abstract base class and core functionality for all
-Hydra-Logger formatters. It establishes the foundation for the standardized
-formatting system with performance optimization, validation, and error handling.
-
-ARCHITECTURE:
-- BaseFormatter: Abstract base class for all formatters
-- FormatterError: Custom exception for formatter errors
-- TimestampConfig: Configuration for timestamp formatting
-- Performance Integration: Standardized format function integration
-- Validation System: Record validation and error handling
-
-CORE FEATURES:
-- Abstract interface for all formatter implementations
-- Timestamp formatting with configurable precision and timezone
-- ANSI color code stripping for clean text output
-- File extension validation and correction
-- Performance statistics and monitoring
-- Error tracking and recovery
-- Memory optimization integration
-- Thread-safe operations
-
-CORE FEATURES:
-- Standardized format function interface
-- Consistent timestamp formatting
-- Structured data support
-- Error handling and validation
-
-VALIDATION SYSTEM:
-- Record validation before formatting
-- File extension validation and correction
-- Error tracking and recovery
-- Performance monitoring and statistics
-- Memory usage optimization
-
-USAGE EXAMPLES:
-
-Creating Custom Formatters:
-    from hydra_logger.formatters.base import BaseFormatter
-    from hydra_logger.types.records import LogRecord
-
-    class CustomFormatter(BaseFormatter):
-        def __init__(self):
-            super().__init__("custom")
-
-        def _format_default(self, record: LogRecord) -> str:
-            return f"[{record.level_name}] {record.message}"
-
-Timestamp Configuration:
-    from hydra_logger.utils.time import TimestampConfig, TimestampFormat, TimestampPrecision
-
-    config = TimestampConfig(
-        format_type=TimestampFormat.RFC3339_MICRO,
-        precision=TimestampPrecision.MICROSECONDS,
-        timezone_name="UTC"
-    )
-
-    formatter = BaseFormatter("my_formatter", timestamp_config=config)
-
-Custom Formatter:
-    class CustomFormatter(BaseFormatter):
-        def __init__(self):
-            super().__init__("custom")
-
-        def _format_default(self, record: LogRecord) -> str:
-            return f"[{record.level_name}] {record.message}"
-
-ERROR HANDLING:
-- FormatterError: Custom exception for formatter-specific errors
-- Error tracking and recovery mechanisms
-- Performance statistics and monitoring
-- Memory usage optimization
-- Thread-safe error handling
+Role: Base implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - logging
+ - time
+ - abc
+ - typing
+ - types
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import logging

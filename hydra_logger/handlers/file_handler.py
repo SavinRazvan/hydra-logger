@@ -1,104 +1,15 @@
 """
-File Handlers for Hydra-Logger
-
-This module provides  file handling capabilities with separate
-synchronous and asynchronous implementations for optimal performance. Each
-handler is designed to do one thing well with minimal overhead.
-
-ARCHITECTURE:
-- SyncFileHandler: Pure synchronous file I/O with buffering
-- AsyncFileHandler: Asynchronous file I/O with queue-based processing
-- FileHandler: Unified interface that automatically selects the best implementation
-- buffering for high throughput
-- Binary format support for specialized use cases
-
-PERFORMANCE FEATURES:
-- buffering (1000 messages or 1s intervals by default)
-- Batch writing for throughput
-- Lazy file opening and automatic cleanup
-- Memory-efficient buffer management
-- Performance statistics and monitoring
-- Automatic cleanup on exit
-
-COLOR SYSTEM NOTE:
-- File handlers do NOT support colors (console handlers only)
-- Always uses plain formatters regardless of use_colors setting
-- LogDestination.use_colors is ignored for file destinations
-- Use console handlers if you need colored output
-
-HANDLER TYPES:
-- SyncFileHandler: Pure synchronous file I/O with minimal overhead
-- AsyncFileHandler: Asynchronous file I/O with queue-based processing
-- FileHandler: Unified interface with automatic implementation selection
-
-USAGE EXAMPLES:
-
-Basic File Handler:
-    from hydra_logger.handlers import FileHandler
-    
-    handler = FileHandler("app.log")
-    logger.addHandler(handler)
-
-Sync File Handler with Custom Buffering:
-    from hydra_logger.handlers.file_handler import SyncFileHandler
-    
-    handler = SyncFileHandler(
-        filename="app.log",
-        buffer_size=500,      # Flush after 500 messages
-        flush_interval=0.5    # Or flush every 500ms
-    )
-    logger.addHandler(handler)
-
-Async File Handler:
-    from hydra_logger.handlers.file_handler import AsyncFileHandler
-    
-    handler = AsyncFileHandler(
-        filename="app.log",
-        bulk_size=100,        # Process in batches of 100
-        max_queue_size=10000  # Max queue size
-    )
-    logger.addHandler(handler)
-    
-    # Use async emit
-    await handler.emit_async(record)
-
-Binary Format Support:
-    # For binary formatters (e.g., compact binary logging)
-    handler = SyncFileHandler(
-        filename="app.bin",
-        mode="ab"  # Binary append mode
-    )
-    # Set binary formatter
-    handler.setFormatter(binary_formatter)
-
-Performance Monitoring:
-    # Get handler statistics
-    stats = handler.get_stats()
-    print(f"Messages processed: {stats['messages_processed']}")
-    print(f"Messages per second: {stats['messages_per_second']}")
-    print(f"Total bytes written: {stats['total_bytes_written']}")
-
-CONFIGURATION OPTIONS:
-- filename: Path to log file
-- mode: File open mode (default: "a" for append)
-- encoding: File encoding (default: "utf-8")
-- buffer_size: Buffer size for batching (default: 1000)
-- flush_interval: Flush interval in seconds (default: 1.0)
-- bulk_size: Batch size for async processing (default: 100)
-- max_queue_size: Queue size limit for async handler (default: 10000)
-
-THREAD SAFETY:
-- SyncFileHandler: Thread-safe with proper locking
-- AsyncFileHandler: Thread-safe with asyncio queue
-- Automatic cleanup on exit
-- Safe concurrent access
-
-ERROR HANDLING:
-- Graceful error handling and recovery
-- Automatic fallback mechanisms
-- Error logging
-- Non-blocking error recovery
-- Automatic cleanup on exit
+Role: File handler implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - asyncio
+ - time
+ - os
+ - sys
+ - atexit
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import asyncio

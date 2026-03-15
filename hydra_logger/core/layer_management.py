@@ -1,80 +1,15 @@
 """
-Layer Management System for Hydra-Logger
-
-This module provides layer management for organizing logging handlers
-into logical groups with fallback strategies, caching, and performance
-optimizations. It supports multi-layer configurations with automatic handler
-creation and routing.
-
-ARCHITECTURE:
-- LayerManager: Centralized layer management with fallback
-- LayerConfiguration: Individual layer configuration and metadata
-- Handler Creation: Automatic handler creation from configuration
-- Cache Integration: Caching for layer lookups
-- Multi-Layer Optimization: Performance optimizations for multiple layers
-
-LAYER FEATURES:
-- Fallback hierarchy (requested → default → any available)
-- Automatic handler creation from configuration
-- Thread-safe operations with RLock
-- Multi-layer performance optimizations
-- Layer-specific level thresholds
-- Dynamic layer addition and removal
-
-HANDLER SUPPORT:
-- Console handlers with color support
-- File handlers with rotation
-- Null handlers for testing
-- Custom handler integration
-- Formatter assignment per handler
-
-COLOR SYSTEM INTEGRATION:
-- LayerConfiguration.color_mode for per-layer color settings
-- LogDestination.use_colors integration for console handlers
-- Color inheritance and layer-specific overrides
-- ColoredFormatter assignment when colors enabled
-- Cross-platform terminal compatibility
-
-CACHING & PERFORMANCE:
-- Caching with fallback strategies
-- Cache hit/miss statistics
-- Multi-layer optimization flags
-- Performance monitoring and statistics
-
-USAGE EXAMPLES:
-
-Basic Layer Setup:
-    from hydra_logger.core.layer_manager import LayerManager
-
-    manager = LayerManager()
-    config_layers = {
-        "api": {"level": "INFO", "destinations": [...]},
-        "database": {"level": "WARNING", "destinations": [...]}
-    }
-    manager.setup_layers(config_layers)
-
-Layer Handler Access:
-    from hydra_logger.core.layer_manager import LayerManager
-
-    manager = LayerManager()
-    handlers = manager.get_handlers_for_layer("api")
-    threshold = manager.get_layer_threshold("api")
-
-Layer Management:
-    from hydra_logger.core.layer_manager import LayerManager
-
-    manager = LayerManager()
-    manager.add_layer("custom", "DEBUG")
-    manager.remove_layer("custom")
-    layer_config = manager.get_layer_config("api")
-
-Performance Monitoring:
-    from hydra_logger.core.layer_manager import LayerManager
-
-    manager = LayerManager()
-    stats = manager.get_multi_layer_stats()
-    print(f"Layer count: {stats['layer_count']}")
-    print(f"Multi-layer mode: {stats['multi_layer_mode']}")
+Role: Layer management implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - threading
+ - typing
+ - handlers
+ - formatters
+ - types
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import threading

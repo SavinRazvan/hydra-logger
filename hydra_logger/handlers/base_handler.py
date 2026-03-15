@@ -1,85 +1,15 @@
 """
-Base Handler for Hydra-Logger
-
-This module provides the abstract base class and core functionality for all
-Hydra-Logger handlers. It defines the standard interface and common features
-that all handlers must implement.
-
-ARCHITECTURE:
-- BaseHandler: Abstract base class with standard handler interface
-- Timestamp formatting with configurable precision and timezone
-- Level filtering and validation
-- Formatter integration and caching
-- Performance optimization features
-- Error handling and recovery
-
-CORE FEATURES:
-- Standardized handler interface (emit, handle, close)
-- Timestamp formatting with multiple precision levels
-- Level-based filtering and validation
-- Formatter integration with performance caching
-- Configuration management and validation
-- Performance metrics and monitoring
-- Thread-safe operations
-
-TIMESTAMP SUPPORT:
-- RFC3339 format with microsecond precision
-- Configurable timezone support
-- Multiple precision levels (seconds, milliseconds, microseconds)
-- Automatic timezone detection and conversion
-
-PERFORMANCE OPTIMIZATIONS:
-- Formatter name caching for reduced overhead
-- Efficient timestamp formatting
-- Minimal memory allocation
-- Thread-safe operations
-- Performance metrics tracking
-
-USAGE EXAMPLES:
-
-Basic Handler Implementation:
-    from hydra_logger.handlers.base_handler import BaseHandler
-    from hydra_logger.types.records import LogRecord
-
-    class CustomHandler(BaseHandler):
-        def emit(self, record: LogRecord) -> None:
-            # Custom implementation
-            formatted = self.format(record)
-            # Send to destination
-            pass
-
-Handler with Custom Timestamp:
-    from hydra_logger.utils.time import TimestampConfig, TimestampFormat, TimestampPrecision
-
-    config = TimestampConfig(
-        format_type=TimestampFormat.RFC3339_MICRO,
-        precision=TimestampPrecision.MICROSECONDS,
-        timezone_name="UTC"
-    )
-
-    handler = CustomHandler(timestamp_config=config)
-
-Performance Monitoring:
-    # Get handler configuration
-    config = handler.get_config()
-    print(f"Handler type: {config['type']}")
-    print(f"Level: {config['level']}")
-
-    # Get performance metrics
-    metrics = handler.get_performance_metrics()
-    print(f"Performance optimized: {metrics['performance_optimized']}")
-
-ERROR HANDLING:
-- Automatic error detection and recovery
-- Fallback mechanisms for failed operations
-- Error logging
-- Graceful degradation
-
-THREAD SAFETY:
-- All operations are thread-safe
-- Proper locking mechanisms
-- Atomic operations where possible
-- Safe concurrent access
+Role: Base handler implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - abc
+ - typing
+ - types
+ - formatters
+ - utils
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from abc import ABC, abstractmethod

@@ -1,8 +1,13 @@
 """
-Public configuration exports for Hydra-Logger.
-
-This module exposes pydantic models plus template-based helpers for building
-validated `LoggingConfig` instances.
+Role: Init implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - models
+ - defaults
+ - configuration_templates
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from .models import (

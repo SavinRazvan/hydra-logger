@@ -1,17 +1,15 @@
 """
-Safe Error Logging Utility for Hydra-Logger
-
-This module provides a failsafe error logging mechanism that can capture
-and log errors even when the main logging system fails. It ensures that
-critical errors (like malloc errors, system errors, etc.) are always logged
-to error.jsonl.
-
-CRITICAL FEATURES:
-- Never fails (failsafe design)
-- Writes directly to error.jsonl even if main logger fails
-- Handles all exception types including system-level errors
-- Thread-safe operation
-- Prevents infinite loops
+Role: Error logger implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - os
+ - sys
+ - json
+ - traceback
+ - threading
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import os

@@ -1,19 +1,12 @@
 """
-Extension Manager for Hydra-Logger
-
-Extension management system with user control.
-Users can enable/disable, configure, and manage all extensions dynamically.
-
-ARCHITECTURE:
-- ExtensionManager: Central management for all extensions
-- Dynamic loading and configuration
-- Zero overhead when extensions are disabled
-- User-controllable via LoggingConfig
-
-NAMING CONVENTIONS:
-- ExtensionManager: Clear, descriptive management class
-- Descriptive naming
-- Consistent with project standards
+Role: Extension manager implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - typing
+ - extension_base
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from typing import Any, Dict, List, Optional, Type

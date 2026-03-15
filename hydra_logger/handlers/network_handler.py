@@ -1,123 +1,15 @@
 """
-Network Handlers for Hydra-Logger
-
-This module provides network-based logging handlers for various
-network protocols and communication patterns. It includes connection management,
-retry mechanisms, and batch processing for optimal performance.
-
-ARCHITECTURE:
-- BaseNetworkHandler: Abstract base class for all network handlers
-- HTTPHandler: HTTP/HTTPS REST API logging
-- WebSocketHandler: WebSocket real-time logging
-- SocketHandler: TCP/UDP socket logging
-- DatagramHandler: UDP datagram logging
-- NetworkHandlerFactory: Factory for creating network handlers
-
-SUPPORTED PROTOCOLS:
-- HTTP/HTTPS: REST API endpoints with authentication
-- WebSocket: Real-time bidirectional communication
-- TCP: Reliable stream-based communication
-- UDP: Fast datagram-based communication
-
-PERFORMANCE FEATURES:
-- batch processing (100 messages or 5s intervals)
-- Connection pooling and management
-- Retry mechanisms with exponential backoff
-- Authentication and security support
-- Formatter-aware handling for optimal performance
-- Error handling and recovery
-
-RETRY POLICIES:
-- NONE: No retry on failure
-- LINEAR: Linear backoff between retries
-- EXPONENTIAL: Exponential backoff between retries
-- FIBONACCI: Fibonacci sequence backoff
-
-USAGE EXAMPLES:
-
-HTTP Handler:
-    from hydra_logger.handlers import HTTPHandler
-    
-    handler = HTTPHandler(
-        url="https://api.example.com/logs",
-        method="POST",
-        headers={"Authorization": "Bearer token"},
-        timeout=30.0
-    )
-    logger.addHandler(handler)
-
-WebSocket Handler:
-    from hydra_logger.handlers import WebSocketHandler
-    
-    handler = WebSocketHandler(
-        url="wss://api.example.com/logs",
-        path="/ws/logs"
-    )
-    logger.addHandler(handler)
-
-Socket Handler:
-    from hydra_logger.handlers import SocketHandler
-    
-    handler = SocketHandler(
-        host="localhost",
-        port=514,
-        protocol="tcp"
-    )
-    logger.addHandler(handler)
-
-Datagram Handler:
-    from hydra_logger.handlers import DatagramHandler
-    
-    handler = DatagramHandler(
-        host="localhost",
-        port=514,
-        max_packet_size=1024
-    )
-    logger.addHandler(handler)
-
-Factory Pattern:
-    from hydra_logger.handlers import NetworkHandlerFactory
-    
-    # Create HTTP handler
-    handler = NetworkHandlerFactory.create_handler(
-        "http",
-        url="https://api.example.com/logs"
-    )
-    
-    # Create WebSocket handler
-    handler = NetworkHandlerFactory.create_handler(
-        "websocket",
-        url="wss://api.example.com/logs"
-    )
-
-Performance Monitoring:
-    # Get network statistics
-    stats = handler.get_network_stats()
-    print(f"Connected: {stats['connected']}")
-    print(f"Messages sent: {stats['messages_sent']}")
-    print(f"Retry count: {stats['retry_count']}")
-    print(f"Error count: {stats['error_count']}")
-
-CONFIGURATION:
-- Connection settings: host, port, protocol, timeout
-- Authentication: username, password, api_key, token
-- HTTP specific: method, headers, verify_ssl, cert_file
-- WebSocket specific: path, subprotocols
-- Socket specific: buffer_size, keep_alive
-- Retry settings: retry_policy, retry_delay, max_retry_delay
-
-ERROR HANDLING:
-- Automatic retry with configurable policies
-- Connection recovery and reconnection
-- Fallback mechanisms for failed operations
-- Error logging
-- Graceful degradation
-
-THREAD SAFETY:
-- Thread-safe operations with proper locking
-- Safe concurrent access
-- Atomic operations where possible
-- Connection pooling and management
+Role: Network handler implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - time
+ - socket
+ - asyncio
+ - typing
+ - dataclasses
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import time

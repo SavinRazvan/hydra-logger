@@ -1,64 +1,13 @@
 """
-Hydra-Logger Configuration Templates System
-
-This module provides a registry system for predefined logging configurations
-that can be applied with simple method calls. It provides a centralized
-system for managing common configuration patterns and templates.
-
-FEATURES:
-- Registry system for predefined logging configurations
-- Simple method calls for configuration application
-- Built-in configurations for common use cases
-- Type-safe configuration with automatic validation
-- Performance-oriented defaults with optional features
-- Easy custom configuration registration
-
-BUILT-IN CONFIGURATIONS:
-- "default": Default configuration with performance focus
-- "development": Development-friendly configuration with debug output
-- "production": Production-ready configuration with security and monitoring
-- "custom": Customizable configuration with user-specified features
-
-USAGE EXAMPLES:
-
-Using Built-in Configurations:
-    from hydra_logger.config import get_configuration_template
-
-    # Get default configuration
-    config = get_configuration_template("default")
-
-    # Get production configuration
-    config = get_configuration_template("production")
-
-    # Get development configuration
-    config = get_configuration_template("development")
-
-Registering Custom Configurations:
-    from hydra_logger.config import register_configuration_template
-
-    @register_configuration_template("my_app", "Custom configuration for my application")
-    def my_app_config():
-        return LoggingConfig(
-            default_level="INFO",
-            layers={
-                "app": LogLayer(
-                    level="DEBUG",
-                    destinations=[
-                        LogDestination(type="console", format="colored", use_colors=True),
-                        LogDestination(type="file", path="my_app.log", format="json-lines")
-                    ]
-                )
-            }
-        )
-
-    # Use the custom configuration
-    config = get_configuration_template("my_app")
-
-Listing Available Configurations:
-    from hydra_logger.config import list_configuration_templates
-
-    configs = list_configuration_templates()
-    print(configs)  # {'default': 'Optimized default...', 'production': '...', ...}
+Role: Configuration templates implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - typing
+ - models
+ - core
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from typing import Dict, Callable

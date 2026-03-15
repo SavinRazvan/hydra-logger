@@ -1,59 +1,15 @@
 """
-Time and Date Utilities for Hydra-Logger
-
-This module provides  time and date utility functions including
-timestamp formatting, timezone handling, duration calculations, and time
-range operations. It follows industry standards (RFC 3339/ISO 8601) and
-provides extensive configuration options.
-
-FEATURES:
-- TimeUtils: General time utility functions
-- TimestampFormatter:  timestamp formatting (RFC 3339/ISO 8601)
-- DateFormatter: Date formatting and relative time display
-- TimeZoneManager: Timezone handling and conversion
-- TimeRange: Time range operations and calculations
-- TimeInterval: Recurring time interval management
-- TimeUtility: Time conversion and validation utilities
-- Business day calculations and date arithmetic
-
-TIMESTAMP FORMATS:
-- RFC3339: Industry standard (2023-12-25T15:30:45Z)
-- Unix timestamps: Seconds, milliseconds, microseconds, nanoseconds
-- Human-readable: Various readable formats
-- Compact: High-volume logging formats
-- Legacy: Backward compatibility formats
-
-TIMEZONE SUPPORT:
-- UTC and local timezone handling
-- Timezone conversion and offset calculation
-- DST (Daylight Saving Time) detection
-- Common timezone management
-- Timezone information and metadata
-
-USAGE:
-    from hydra_logger.utils import TimeUtils, TimestampFormatter, TimeZoneManager
-
-    # General time utilities
-    now = TimeUtils.now()
-    timestamp = TimeUtils.timestamp()
-    formatted = TimeUtils.format_duration(3600)
-
-    # Timestamp formatting
-    rfc3339 = TimestampFormatter.get_current_timestamp(TimestampFormat.RFC3339)
-    unix_ms = TimestampFormatter.get_current_timestamp(TimestampFormat.UNIX_MILLIS)
-    custom = TimestampFormatter.format_timestamp(now, TimestampFormat.HUMAN_READABLE)
-
-    # Timezone management
-    tz_manager = TimeZoneManager()
-    utc_time = tz_manager.convert_timezone(local_time, "UTC")
-    offset = tz_manager.get_current_timezone_offset("America/New_York")
-
-    # Time ranges and intervals
-    from hydra_logger.utils import TimeRange, TimeInterval
-    range_obj = TimeRange(start_time, end_time)
-    duration = range_obj.duration_seconds
-    interval = TimeInterval(1, TimeUnit.HOUR)
-    delta = interval.to_timedelta()
+Role: Time utility implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - time
+ - datetime
+ - typing
+ - dataclasses
+ - enum
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import time

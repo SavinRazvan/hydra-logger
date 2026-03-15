@@ -1,105 +1,15 @@
 """
-JSON Formatters for Hydra-Logger
-
-This module provides JSON-based formatters for structured
-logging with serialization and industry-standard output formats.
-The JSON formatters are designed for throughput while maintaining
-data integrity and compatibility with log aggregation systems.
-
-ARCHITECTURE:
-- JsonLinesFormatter: Primary JSON formatter for structured logging
-- Performance Integration: Standardized format function integration
-- JSON Optimization: Pre-compiled JSON encoder for better performance
-- Data Integrity: Complete record information preservation
-- Industry Standards: JSON Lines format compliance
-
-PERFORMANCE FEATURES:
-- Pre-compiled JSON encoder for better performance
-- Compact JSON output with separators
-- Memory-efficient serialization
-- LRU cache integration for performance optimization
-- JIT optimization for hot code paths
-- Zero-overhead formatting for simple cases
-
-JSON FORMAT FEATURES:
-- JSON Lines format (one JSON object per line)
-- Complete record information preservation
-- Field ordering for performance
-- Compact JSON output (no unnecessary whitespace)
-- Unicode support and proper encoding
-- Industry-standard format compliance
-
-RECORD STRUCTURE:
-The JSON formatter outputs records with the following structure:
-{
-    "timestamp": float,           # Unix timestamp
-    "level": int,                 # Numeric log level
-    "level_name": str,            # String log level name
-    "message": str,               # Log message
-    "logger_name": str,           # Logger name
-    "layer": str,                 # Log layer
-    "file_name": str,             # Source file name
-    "function_name": str,         # Source function name
-    "line_number": int,           # Source line number
-    "extra": dict                 # Additional fields
-}
-
-USAGE EXAMPLES:
-
-Basic JSON Formatting:
-    from hydra_logger.formatters.json import JsonLinesFormatter
-
-    # Create JSON formatter
-    formatter = JsonLinesFormatter()
-
-    # Create with custom configuration
-    formatter = JsonLinesFormatter(ensure_ascii=False)
-
-With Timestamp Configuration:
-    from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-
-    config = TimestampConfig(
-        format_type=TimestampFormat.RFC3339_MICRO,
-        precision=TimestampPrecision.MICROSECONDS,
-        timezone_name="UTC"
-    )
-
-    formatter = JsonLinesFormatter(timestamp_config=config)
-
-Custom Configuration:
-    from hydra_logger.formatters.json_formatter import JsonLinesFormatter
-    from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-
-    # Create formatter with custom timestamp config
-    config = TimestampConfig(
-        format_type=TimestampFormat.RFC3339_MICRO,
-        precision=TimestampPrecision.MICROSECONDS
-    )
-    formatter = JsonLinesFormatter(timestamp_config=config)
-
-JSON LINES FORMAT:
-The JSON Lines format is an industry standard for structured logging where
-each line contains a complete JSON object. This format is:
-- Easy to parse line by line
-- Compatible with log aggregation systems
-- Efficient for streaming and processing
-- Human-readable when needed
-- Machine-parseable for analysis
-
-PERFORMANCE:
-- Pre-compiled JSON encoder with settings
-- Compact JSON output (no unnecessary whitespace)
-- Efficient field ordering and access
-- Memory-efficient serialization
-- LRU cache integration
-- Thread-safe operations
-
-COMPATIBILITY:
-- JSON Lines format (RFC 7464)
-- Compatible with log aggregation systems
-- Elasticsearch, Logstash, Fluentd support
-- Graylog and other log management tools
-- Standard JSON parsing libraries
+Role: Json formatter implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - json
+ - typing
+ - base
+ - types
+ - utils
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import json

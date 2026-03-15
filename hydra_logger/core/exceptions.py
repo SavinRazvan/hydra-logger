@@ -1,77 +1,11 @@
 """
-Exception Hierarchy for Hydra-Logger
-
-This module defines an exception hierarchy that provides detailed
-error context and categorization for all Hydra-Logger operations. Each
-exception includes relevant context information to aid in debugging and
-error handling.
-
-EXCEPTION HIERARCHY:
-- HydraLoggerError: Base exception for all Hydra-Logger errors
-  - ConfigurationError: Configuration and setup related errors
-  - ValidationError: Input validation and data validation errors
-  - HandlerError: Log handler related errors
-  - FormatterError: Log formatter related errors
-  - AsyncError: Asynchronous operation errors
-  - PluginError: Plugin system related errors
-  - DataProtectionError: Security and data protection errors
-  - AnalyticsError: Metrics and analytics related errors
-  - CompatibilityError: Version compatibility and migration errors
-  - PerformanceError: Performance threshold and optimization errors
-  - SecurityError: Security threat and violation errors
-  - RegistryError: Component registry related errors
-  - FactoryError: Component factory related errors
-  - LifecycleError: Component lifecycle management errors
-
-FEATURES:
-- Detailed error context and metadata
-- Hierarchical error categorization
-- Consistent error interface across all components
-- Rich error information for debugging
-- Error details dictionary for structured error data
-- Timestamp support for error tracking
-
-ERROR CONTEXT:
-Each exception includes relevant context information:
-- Error message with human-readable description
-- Details dictionary with structured error data
-- Component-specific information (handlers, formatters, etc.)
-- Operation context (what was being performed)
-- Configuration data when relevant
-- Timestamp for error tracking
-
-USAGE EXAMPLES:
-
-Basic Error Handling:
-    from hydra_logger.core.exceptions import HydraLoggerError, ConfigurationError
-
-    try:
-        # Some operation
-        pass
-    except ConfigurationError as e:
-        print(f"Configuration error: {e.message}")
-        print(f"Details: {e.get_details()}")
-    except HydraLoggerError as e:
-        print(f"Logger error: {e}")
-
-Specific Error Types:
-    from hydra_logger.core.exceptions import HandlerError, FormatterError
-
-    try:
-        handler.emit(record)
-    except HandlerError as e:
-        print(f"Handler error in {e.handler_type}: {e.message}")
-        print(f"Operation: {e.operation}")
-
-Error Details Access:
-    try:
-        # Some operation
-        pass
-    except ValidationError as e:
-        details = e.get_details()
-        print(f"Field: {details.get('field')}")
-        print(f"Value: {details.get('value')}")
-        print(f"Rule: {details.get('rule')}")
+Role: Exceptions implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - typing
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from typing import Optional, Any, Dict

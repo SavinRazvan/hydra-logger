@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Example 16: Multi-Layer Web Application Logging
-
-Demonstrates how to use Hydra-Logger with multiple layers in a web application.
-Each layer (API, Database, Frontend, Auth) writes to separate log files.
-
-Key Features:
-    - Multiple concurrent routes/requests
-    - Separate layers for different concerns
-    - Individual log files per layer
-    - Professional web application structure
+Role: 16 multi layer web app implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - asyncio
+ - random
+ - typing
+ - hydra_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 import asyncio
 import random

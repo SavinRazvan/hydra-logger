@@ -1,128 +1,15 @@
 """
-Structured Formatters for Hydra-Logger
-
-This module provides structured format formatters for different
-logging protocols and systems. These formatters are designed for integration
-with log aggregation systems, monitoring tools, and enterprise logging solutions.
-
-ARCHITECTURE:
-- CsvFormatter: CSV format with proper headers and quoting
-- SyslogFormatter: Syslog format for system logging
-- GelfFormatter: Graylog Extended Log Format
-- LogstashFormatter: Logstash format for Elasticsearch
-- Performance Integration: Standardized format function integration
-- Industry Standards: Compliance with logging protocol standards
-
-FORMATTER TYPES:
-- CSV Format: Structured data with proper headers and quoting
-- Syslog Format: System logging protocol compliance
-- GELF Format: Graylog Extended Log Format for centralized logging
-- Logstash Format: Elasticsearch integration format
-
-PERFORMANCE FEATURES:
-- Serialization for each format type
-- Memory-efficient data handling
-- LRU cache integration for performance optimization
-- JIT optimization for hot code paths
-- Zero-overhead formatting for simple cases
-- Thread-safe operations
-
-CSV FORMAT FEATURES:
-- Proper CSV headers and quoting
-- Industry-standard field ordering
-- Automatic header management per file
-- Proper quote escaping and data handling
-- Compatible with spreadsheet applications
-- Efficient for data analysis and processing
-
-SYSLOG FORMAT FEATURES:
-- RFC 3164 compliance
-- Facility and severity mapping
-- Priority calculation
-- Timestamp formatting
-- Context information inclusion
-- System logging integration
-
-GELF FORMAT FEATURES:
-- Graylog Extended Log Format compliance
-- Structured JSON output
-- Host and version information
-- Level mapping for Graylog
-- Custom field support
-- Centralized logging integration
-
-LOGSTASH FORMAT FEATURES:
-- Elasticsearch integration
-- Structured JSON output
-- Timestamp formatting
-- Field mapping and organization
-- Tag support
-- Custom field inclusion
-
-USAGE EXAMPLES:
-
-CSV Formatting:
-    from hydra_logger.formatters.structured import CsvFormatter
-
-    # Create CSV formatter
-    formatter = CsvFormatter(include_headers=True)
-
-    # Check if headers should be written
-    if formatter.should_write_headers("log.csv"):
-        headers = formatter.format_headers()
-        # Write headers to file
-
-Syslog Formatting:
-    from hydra_logger.formatters.structured import SyslogFormatter
-
-    # Create syslog formatter
-    formatter = SyslogFormatter(facility=1, app_name="my-app")
-
-    # Format record for syslog
-    syslog_message = formatter.format(record)
-
-GELF Formatting:
-    from hydra_logger.formatters.structured import GelfFormatter
-
-    # Create GELF formatter
-    formatter = GelfFormatter(host="localhost", version="1.1")
-
-    # Format record for Graylog
-    gelf_message = formatter.format(record)
-
-Logstash Formatting:
-    from hydra_logger.formatters.structured import LogstashFormatter
-
-    # Create Logstash formatter
-    formatter = LogstashFormatter(type_name="log", tags=["production"])
-
-    # Format record for Elasticsearch
-    logstash_message = formatter.format(record)
-
-Custom Configuration:
-    from hydra_logger.formatters.structured_formatter import CsvFormatter
-    from hydra_logger.utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-
-    # Create formatter with custom timestamp config
-    config = TimestampConfig(
-        format_type=TimestampFormat.RFC3339_MICRO,
-        precision=TimestampPrecision.MICROSECONDS
-    )
-    formatter = CsvFormatter(timestamp_config=config)
-
-INDUSTRY STANDARDS:
-- CSV: RFC 4180 compliance
-- Syslog: RFC 3164 compliance
-- GELF: Graylog Extended Log Format specification
-- Logstash: Elasticsearch integration format
-- JSON: RFC 7159 compliance
-
-COMPATIBILITY:
-- Log aggregation systems (ELK, Graylog, Fluentd)
-- Monitoring tools (Prometheus, Grafana)
-- Enterprise logging solutions
-- Cloud logging services (AWS CloudWatch, Azure Monitor)
-- Data analysis tools (Pandas, Excel, Tableau)
+Role: Structured formatter implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - csv
+ - io
+ - os
+ - typing
+ - base
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import csv

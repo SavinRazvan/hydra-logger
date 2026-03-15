@@ -1,64 +1,13 @@
 """
-Log Level Definitions for Hydra-Logger
-
-This module provides  log level definitions, constants, and
-utilities for managing log levels throughout the system. It includes
-level validation, conversion, and color mapping for console output.
-
-FEATURES:
-- LogLevel: Standard log levels with numeric values
-- LogLevelManager: Utility class for level operations and validation
-- Level validation and conversion functions
-- Color mapping for console output
-- Level comparison and filtering utilities
-
-STANDARD LOG LEVELS:
-- NOTSET (0): No level set
-- DEBUG (10): Detailed information for debugging
-- INFO (20): General information messages
-- WARNING (30): Warning messages
-- ERROR (40): Error messages
-- CRITICAL (50): Critical error messages
-
-LEVEL OPERATIONS:
-- get_name(): Get string name for numeric level
-- get_level(): Get numeric value for string level
-- is_valid_level(): Validate level values
-- all_levels(): Get all available levels
-- all_names(): Get all level names
-- get_color(): Get color code for console output
-- is_enabled(): Check if message level is enabled
-- normalize_level(): Normalize level to LogLevel enum
-
-COLOR SYSTEM INTEGRATION:
-- LogLevelManager.get_color() provides color codes for log levels
-- Level-to-color mapping for console output
-- Used by ColoredFormatter for level-specific colors
-- Supports all standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-- Colors only work with console handlers (not file handlers)
-
-USAGE:
-    from hydra_logger.types import LogLevel, LogLevelManager
-
-    # Use log levels
-    if LogLevel.INFO >= LogLevel.DEBUG:
-        print("Debug logging is enabled")
-
-    # Convert between formats
-    level_name = LogLevelManager.get_name(LogLevel.INFO)
-    level_num = LogLevelManager.get_level("WARNING")
-
-    # Validate levels
-    if LogLevelManager.is_valid_level("ERROR"):
-        print("Valid log level")
-
-    # Get color for console output
-    color = LogLevelManager.get_color(LogLevel.ERROR)
-    print(f"Error color: {color}")
-
-    # Check if level is enabled
-    if LogLevelManager.is_enabled(LogLevel.INFO, LogLevel.DEBUG):
-        print("Debug messages will be logged")
+Role: Levels implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - enum
+ - typing
+ - functools
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 from enum import IntEnum

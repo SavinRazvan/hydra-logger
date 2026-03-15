@@ -1,8 +1,14 @@
 """
-Stderr Interceptor for Capturing Tracemalloc and System Errors
-
-This module intercepts stderr output to capture errors that are printed
-directly to stderr (like tracemalloc errors) but don't raise exceptions.
+Role: Stderr interceptor implementation.
+Used By:
+ - (update when known)
+Depends On:
+ - sys
+ - io
+ - typing
+ - error_logger
+Notes:
+ - Header standardized by slim-header migration.
 """
 
 import sys
