@@ -1,7 +1,8 @@
 """
 Role: File handler implementation.
 Used By:
- - (update when known)
+ - hydra_logger/core/layer_management.py for file destination wiring by layer.
+ - hydra_logger/handlers/__init__.py for package exports.
 Depends On:
  - asyncio
  - time
@@ -9,7 +10,7 @@ Depends On:
  - sys
  - atexit
 Notes:
- - Header standardized by slim-header migration.
+ - Exposes backward-compatible `FileHandler` facade over sync/async file handlers.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false

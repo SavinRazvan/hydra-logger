@@ -1,7 +1,8 @@
 """
-Role: Init implementation.
+Role: Public logger package exports and record-creation helpers.
 Used By:
- - (update when known)
+ - hydra_logger/__init__.py to expose logger classes at package root.
+ - Client code importing `hydra_logger.loggers` convenience symbols.
 Depends On:
  - base
  - sync_logger
@@ -9,7 +10,7 @@ Depends On:
  - composite_logger
  - types
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports logger implementations and record creation strategies.
 """
 
 from typing import Optional

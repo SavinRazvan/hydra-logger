@@ -1,7 +1,9 @@
 """
 Role: Composite logger implementation.
 Used By:
- - (update when known)
+ - hydra_logger/factories/logger_factory.py for composite and composite_async logger creation.
+ - hydra_logger/loggers/__init__.py for package-level exports.
+ - hydra_logger/__init__.py for public top-level imports.
 Depends On:
  - typing
  - asyncio
@@ -9,7 +11,7 @@ Depends On:
  - sys
  - base
 Notes:
- - Header standardized by slim-header migration.
+ - Hosts fan-out logger variants for multi-destination and layered dispatch workflows.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false

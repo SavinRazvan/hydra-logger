@@ -1,7 +1,7 @@
 """
 Role: Rotating handler implementation.
 Used By:
- - (update when known)
+ - hydra_logger/handlers/__init__.py for package exports and factory access.
 Depends On:
  - os
  - time
@@ -9,7 +9,7 @@ Depends On:
  - shutil
  - threading
 Notes:
- - Header standardized by slim-header migration.
+ - Implements timed/size/hybrid rotation variants and a rotation handler factory.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false

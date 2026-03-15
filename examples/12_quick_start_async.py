@@ -2,12 +2,12 @@
 """
 Role: 12 quick start async implementation.
 Used By:
- - (update when known)
+ - examples/run_all_examples.py and developers running examples manually.
 Depends On:
  - hydra_logger
  - asyncio
 Notes:
- - Header standardized by slim-header migration.
+ - Demonstrates quick-start asynchronous usage.
 """
 
 import asyncio

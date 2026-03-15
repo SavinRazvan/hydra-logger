@@ -1,12 +1,13 @@
 """
-Role: Init implementation.
+Role: Public extension package exports.
 Used By:
- - (update when known)
+ - hydra_logger/factories/logger_factory.py for extension manager import.
+ - examples/04_runtime_control.py for user-facing extension APIs.
 Depends On:
  - extension_base
  - extension_manager
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports extension primitives for stable import paths.
 """
 
 from .extension_base import (

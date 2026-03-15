@@ -1,7 +1,7 @@
 """
 Role: Text utility implementation.
 Used By:
- - (update when known)
+ - hydra_logger/utils/__init__.py for package exports.
 Depends On:
  - re
  - hashlib
@@ -9,7 +9,7 @@ Depends On:
  - typing
  - dataclasses
 Notes:
- - Header standardized by slim-header migration.
+ - Hosts text processing, normalization, and analysis helper utilities.
 """
 
 import hashlib

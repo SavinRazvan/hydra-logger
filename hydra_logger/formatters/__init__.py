@@ -1,7 +1,8 @@
 """
-Role: Init implementation.
+Role: Public formatter package exports and factory helpers.
 Used By:
- - (update when known)
+ - hydra_logger/handlers/base_handler.py for formatter type references.
+ - Client code importing `hydra_logger.formatters` symbols and helpers.
 Depends On:
  - base
  - text_formatter
@@ -9,7 +10,7 @@ Depends On:
  - json_formatter
  - structured_formatter
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports formatter classes and creates formatter instances by format name.
 """
 
 # Core formatters

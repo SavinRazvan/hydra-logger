@@ -1,7 +1,9 @@
 """
 Role: Async logger implementation.
 Used By:
- - (update when known)
+ - hydra_logger/factories/logger_factory.py when `logger_type` resolves to async.
+ - hydra_logger/loggers/__init__.py for package-level exports.
+ - hydra_logger/__init__.py for public top-level imports.
 Depends On:
  - asyncio
  - time
@@ -9,7 +11,7 @@ Depends On:
  - typing
  - base
 Notes:
- - Header standardized by slim-header migration.
+ - Implements queue-driven async logging and cooperative shutdown semantics.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false

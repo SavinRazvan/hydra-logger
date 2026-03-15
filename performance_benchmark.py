@@ -2,7 +2,7 @@
 """
 Role: Performance benchmark implementation.
 Used By:
- - (update when known)
+ - Developers running local benchmark suites for logger performance evaluation.
 Depends On:
  - asyncio
  - sys
@@ -10,7 +10,7 @@ Depends On:
  - statistics
  - json
 Notes:
- - Header standardized by slim-header migration.
+ - Benchmarks sync/async/composite logger paths and writes benchmark artifacts.
 """
 
 import asyncio

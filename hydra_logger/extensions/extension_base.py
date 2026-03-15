@@ -1,13 +1,15 @@
 """
 Role: Extension base implementation.
 Used By:
- - (update when known)
+ - hydra_logger/extensions/extension_manager.py to build and run extensions.
+ - hydra_logger/extensions/__init__.py to expose extension APIs.
+ - hydra_logger/loggers/sync_logger.py and hydra_logger/loggers/async_logger.py for security extension integration.
 Depends On:
  - abc
  - typing
  - re
 Notes:
- - Header standardized by slim-header migration.
+ - Defines built-in extension contracts (`ExtensionBase`, `SecurityExtension`, `FormattingExtension`, `PerformanceExtension`).
 """
 
 import re

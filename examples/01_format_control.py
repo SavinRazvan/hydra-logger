@@ -2,11 +2,11 @@
 """
 Role: 01 format control implementation.
 Used By:
- - (update when known)
+ - examples/run_all_examples.py and developers running examples manually.
 Depends On:
  - hydra_logger
 Notes:
- - Header standardized by slim-header migration.
+ - Demonstrates format selection across logging destinations.
 """
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger

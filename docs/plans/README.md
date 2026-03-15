@@ -32,6 +32,18 @@ Audit evidence and results belong in `docs/audit/`.
 3. Record evidence in `docs/audit/<initiative>-<date>.results.md`.
 4. Update `docs/plans/INDEX.md` and `docs/audit/INDEX.md`.
 
+## Automation
+
+Use the plan scaffold script to create a new plan and update `docs/plans/INDEX.md`:
+
+- `python scripts/plans/create_plan.py --initiative "<initiative title>"`
+
+Optional:
+
+- `--owner "@SavinRazvan"` to override profile defaults
+- `--status planned|in_progress|complete`
+- `--dry-run` to preview without writing files
+
 ## Canonical Companions
 
 - Audit evidence: `docs/audit/`

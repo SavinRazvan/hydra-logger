@@ -2,12 +2,12 @@
 """
 Role: 06 basic colored logging implementation.
 Used By:
- - (update when known)
+ - examples/run_all_examples.py and developers running examples manually.
 Depends On:
  - sys
  - pathlib
 Notes:
- - Header standardized by slim-header migration.
+ - Demonstrates baseline colored console logging output.
 """
 
 import sys

@@ -1,7 +1,7 @@
 """
 Role: Error logger implementation.
 Used By:
- - (update when known)
+ - hydra_logger/utils/stderr_interceptor.py for captured stderr/error persistence.
 Depends On:
  - os
  - sys
@@ -9,7 +9,7 @@ Depends On:
  - traceback
  - threading
 Notes:
- - Header standardized by slim-header migration.
+ - Provides safe, fallback-oriented error logging that avoids recursive failures.
 """
 
 import atexit

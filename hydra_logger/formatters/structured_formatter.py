@@ -1,7 +1,7 @@
 """
 Role: Structured formatter implementation.
 Used By:
- - (update when known)
+ - hydra_logger/formatters/__init__.py for formatter factory and exports.
 Depends On:
  - csv
  - io
@@ -9,7 +9,7 @@ Depends On:
  - typing
  - base
 Notes:
- - Header standardized by slim-header migration.
+ - Provides CSV, syslog, GELF, and logstash-compatible formatter implementations.
 """
 
 import csv

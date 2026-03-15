@@ -1,7 +1,10 @@
 """
 Role: Time utility implementation.
 Used By:
- - (update when known)
+ - hydra_logger/loggers/* for high-resolution timestamps and runtime timing.
+ - hydra_logger/handlers/file_handler.py and rotating handlers for rollover timing.
+ - hydra_logger/formatters/* and handler base for timestamp formatting configuration.
+ - hydra_logger/utils/__init__.py for package exports.
 Depends On:
  - time
  - datetime
@@ -9,7 +12,7 @@ Depends On:
  - dataclasses
  - enum
 Notes:
- - Header standardized by slim-header migration.
+ - Provides timestamp formatting, conversion, and interval utility helpers.
 """
 
 import time

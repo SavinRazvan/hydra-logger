@@ -1,14 +1,14 @@
 """
-Role: Init implementation.
+Role: Public core package exports.
 Used By:
- - (update when known)
+ - Consumers importing `hydra_logger.core` symbols directly.
 Depends On:
  - constants
  - types
  - layer_management
  - exceptions
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports core constants, exceptions, and layer management primitives.
 """
 
 from ..types.levels import LogLevel

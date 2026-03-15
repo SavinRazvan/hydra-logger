@@ -1,7 +1,11 @@
 """
 Role: Console handler implementation.
 Used By:
- - (update when known)
+ - hydra_logger/loggers/sync_logger.py for synchronous console logging.
+ - hydra_logger/loggers/async_logger.py for asynchronous console logging.
+ - hydra_logger/loggers/composite_logger.py for async fan-out console output.
+ - hydra_logger/core/layer_management.py for layer-specific console handlers.
+ - hydra_logger/handlers/__init__.py for package exports.
 Depends On:
  - asyncio
  - atexit
@@ -9,7 +13,7 @@ Depends On:
  - time
  - logging
 Notes:
- - Header standardized by slim-header migration.
+ - Provides `SyncConsoleHandler` and `AsyncConsoleHandler` implementations.
 """
 
 import asyncio

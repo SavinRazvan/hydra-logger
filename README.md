@@ -26,20 +26,20 @@ A dynamic, scalable, event-oriented logging system built with KISS (Keep It Simp
 
 ```mermaid
 flowchart TD
-  app[Application Code] --> call[logger.info(...)]
-  call --> loggerLayer[Logger Layer]
-  loggerLayer --> sync[SyncLogger]
-  loggerLayer --> async[AsyncLogger]
-  loggerLayer --> composite[CompositeLogger]
-  loggerLayer --> compositeAsync[CompositeAsyncLogger]
-  sync --> layerManager[Layer Manager]
-  async --> layerManager
-  composite --> layerManager
-  compositeAsync --> layerManager
-  layerManager --> handlers[Handler System]
-  handlers --> console[Console]
-  handlers --> file[File]
-  handlers --> network[Network]
+  n_app["Application Code"] --> n_call["logger.info message call"]
+  n_call --> n_logger_layer["Logger Layer"]
+  n_logger_layer --> n_sync["SyncLogger"]
+  n_logger_layer --> n_async["AsyncLogger"]
+  n_logger_layer --> n_composite["CompositeLogger"]
+  n_logger_layer --> n_composite_async["CompositeAsyncLogger"]
+  n_sync --> n_layer_manager["Layer Manager"]
+  n_async --> n_layer_manager
+  n_composite --> n_layer_manager
+  n_composite_async --> n_layer_manager
+  n_layer_manager --> n_handlers["Handler System"]
+  n_handlers --> n_console["Console"]
+  n_handlers --> n_file["File"]
+  n_handlers --> n_network["Network"]
 ```
 
 ### Data Flow
@@ -283,6 +283,7 @@ Use the Conda `.hydra_env` workflow from `docs/ENVIRONMENT_SETUP.md` before runn
 * Add tests for each new change
 * Update documentation for any behavior or API changes
 * Use `pre-commit` (formatting, linter) and run full test suite locally before PR
+* Local agent governance is maintained in `AGENTS.md` (local-only, ignored)
 
 ---
 

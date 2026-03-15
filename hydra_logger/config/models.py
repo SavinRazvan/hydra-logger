@@ -1,13 +1,15 @@
 """
 Role: Models implementation.
 Used By:
- - (update when known)
+ - hydra_logger/loggers/* and hydra_logger/factories/logger_factory.py for logger configuration contracts.
+ - hydra_logger/core/logger_management.py and defaults/templates config builders.
+ - hydra_logger/__init__.py public exports and performance benchmark scripts.
 Depends On:
  - os
  - typing
  - pydantic
 Notes:
- - Header standardized by slim-header migration.
+ - Defines validated configuration models for destinations, layers, and logger behavior.
 """
 
 import os

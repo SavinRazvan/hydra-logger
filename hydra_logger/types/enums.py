@@ -1,12 +1,15 @@
 """
 Role: Enums implementation.
 Used By:
- - (update when known)
+ - hydra_logger/handlers/rotating_handler.py for time-unit rotation policies.
+ - hydra_logger/handlers/__init__.py for re-exported enum usage.
+ - hydra_logger/utils/time_utility.py for time conversion and interval helpers.
+ - hydra_logger/types/__init__.py for package exports.
 Depends On:
  - enum
  - typing
 Notes:
- - Header standardized by slim-header migration.
+ - Central enum definitions for handlers, formats, destinations, and runtime policies.
 """
 
 from enum import Enum

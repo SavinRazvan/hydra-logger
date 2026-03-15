@@ -1,14 +1,14 @@
 """
-Role: Init implementation.
+Role: Public type package exports.
 Used By:
- - (update when known)
+ - Internal modules and external consumers importing canonical hydra_logger type symbols.
 Depends On:
  - records
  - levels
  - context
  - enums
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports enums, levels, context, and record primitives.
 """
 
 from .context import (

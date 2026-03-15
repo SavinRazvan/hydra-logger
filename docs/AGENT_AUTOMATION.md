@@ -18,6 +18,8 @@ This lets workflow scripts infer attribution defaults instead of passing them ea
 
 ## Single-Phase Orchestration
 
+- Start implementation branch from synced `main`:
+  - `python scripts/pr/workflow.py --phase start --branch "feature/<scope>"`
 - Create PR:
   - `python scripts/pr/workflow.py --phase create --title "<title>" --summary "<item>" --summary "<item>"`
 - Review phase:
@@ -27,7 +29,7 @@ This lets workflow scripts infer attribution defaults instead of passing them ea
 - Merge phase:
   - `python scripts/pr/workflow.py --phase merge`
   - or merge + cleanup in one shot:
-  - `python scripts/pr/workflow.py --phase merge --auto-finalize --feature-branch "<branch-if-running-from-main>"`
+  - `python scripts/pr/workflow.py --phase merge --auto-finalize`
 - Finalize phase:
   - `python scripts/pr/workflow.py --phase finalize --feature-branch "<branch-if-on-main>"`
 
@@ -36,6 +38,19 @@ This lets workflow scripts infer attribution defaults instead of passing them ea
 Run entire flow in one command:
 
 - `python scripts/pr/workflow.py --phase full --title "<title>" --summary "<item>" --summary "<item>"`
+
+## Required Delivery Order
+
+1. `start` a feature branch from fresh `main`
+2. implement changes + add tests
+3. `prepare` gates must pass (pytest + slim header checks)
+4. merge via workflow
+5. finalize cleanup
+
+Notes:
+
+- `create/review/prepare/merge/full` are blocked on `main`; run them from a feature branch.
+- Use `--phase merge --auto-finalize` for one-shot merge + cleanup.
 
 ## Machine-Readable Status
 

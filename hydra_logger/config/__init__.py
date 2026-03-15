@@ -1,13 +1,13 @@
 """
-Role: Init implementation.
+Role: Public configuration package exports.
 Used By:
- - (update when known)
+ - performance_benchmark.py and other consumers importing config helpers from `hydra_logger.config`.
 Depends On:
  - models
  - defaults
  - configuration_templates
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports configuration models, defaults, and template registry helpers.
 """
 
 from .configuration_templates import (

@@ -1,7 +1,8 @@
 """
 Role: Context implementation.
 Used By:
- - (update when known)
+ - hydra_logger/__init__.py for `LogContext` public export.
+ - hydra_logger/types/__init__.py for package exports.
 Depends On:
  - time
  - threading
@@ -9,7 +10,7 @@ Depends On:
  - typing
  - dataclasses
 Notes:
- - Header standardized by slim-header migration.
+ - Provides caller/system/runtime context models and detectors for log enrichment.
 """
 
 import contextvars

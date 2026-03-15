@@ -1,7 +1,7 @@
 """
 Role: Network handler implementation.
 Used By:
- - (update when known)
+ - hydra_logger/handlers/__init__.py for package exports and network factories.
 Depends On:
  - time
  - socket
@@ -9,7 +9,7 @@ Depends On:
  - typing
  - dataclasses
 Notes:
- - Header standardized by slim-header migration.
+ - Provides HTTP, WebSocket, socket, and datagram transport handlers.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false

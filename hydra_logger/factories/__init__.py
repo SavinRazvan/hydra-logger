@@ -1,11 +1,11 @@
 """
-Role: Init implementation.
+Role: Public factory package exports.
 Used By:
- - (update when known)
+ - External consumers importing factory helpers from `hydra_logger.factories`.
 Depends On:
  - logger_factory
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports logger factory creation entrypoints.
 """
 
 from .logger_factory import (

@@ -1,13 +1,15 @@
 """
 Role: Configuration templates implementation.
 Used By:
- - (update when known)
+ - hydra_logger/loggers/base.py for magic config profile shortcuts.
+ - hydra_logger/factories/logger_factory.py for template-driven logger creation.
+ - hydra_logger/config/__init__.py and hydra_logger/__init__.py exports.
 Depends On:
  - typing
  - models
  - core
 Notes:
- - Header standardized by slim-header migration.
+ - Implements template registry, validation, and built-in template APIs.
 """
 
 from typing import Callable, Dict

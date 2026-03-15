@@ -1,11 +1,13 @@
 """
 Role: Constants implementation.
 Used By:
- - (update when known)
+ - hydra_logger/formatters/colored_formatter.py for ANSI color mappings.
+ - hydra_logger/formatters/structured_formatter.py for structured output header constants.
+ - hydra_logger/core/__init__.py for core symbol exports.
 Depends On:
  - enum
 Notes:
- - Header standardized by slim-header migration.
+ - Centralizes framework constants shared by formatters and exported core APIs.
 """
 
 from enum import Enum
