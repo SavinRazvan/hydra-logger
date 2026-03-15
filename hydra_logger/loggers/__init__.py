@@ -1,3 +1,5 @@
+from typing import Optional
+
 """
 Role: Init implementation.
 Used By:
@@ -12,26 +14,25 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from .base import BaseLogger, PerformanceProfiles
-from .sync_logger import SyncLogger
-from .async_logger import AsyncLogger
-from .composite_logger import CompositeLogger, CompositeAsyncLogger
-
 # Standardized record creation
 from ..types.records import (
-    RecordCreationStrategy,
-    get_record_creation_strategy,
-    create_log_record,
-    MINIMAL_STRATEGY,
-    CONTEXT_STRATEGY,
     AUTO_CONTEXT_STRATEGY,
+    CONTEXT_STRATEGY,
+    MINIMAL_STRATEGY,
+    RecordCreationStrategy,
+    create_log_record,
+    get_record_creation_strategy,
 )
+from .async_logger import AsyncLogger
+from .base import BaseLogger, PerformanceProfiles
+from .composite_logger import CompositeAsyncLogger, CompositeLogger
+from .sync_logger import SyncLogger
 
 # No factory imports to avoid circular imports
 
 
 # Convenience function for Python logging style
-def getLogger(name: str = None):
+def getLogger(name: Optional[str] = None):
     """Get a logger instance (Python logging style)."""
     # Import here to avoid circular imports
     from ..factories.logger_factory import create_logger

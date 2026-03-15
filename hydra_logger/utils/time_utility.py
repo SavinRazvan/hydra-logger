@@ -13,13 +13,14 @@ Notes:
 """
 
 import time
+from dataclasses import dataclass
+
 # import calendar  # unused
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
-from dataclasses import dataclass
 from enum import Enum
-import pytz
+from typing import Any, Dict, List, Optional, Tuple
 
+import pytz
 
 # Import the centralized TimeUnit from types
 from hydra_logger.types.enums import TimeUnit
@@ -789,18 +790,18 @@ class TimestampFormatter:
 
 class DateFormatter:
     """Date formatting utility class."""
-    
+
     @staticmethod
     def format_date(date_obj, format_str="%Y-%m-%d"):
         """Format a date object."""
         return date_obj.strftime(format_str)
-    
+
     @staticmethod
     def format_relative_time(timestamp):
         """Format timestamp as relative time."""
         now = datetime.now()
         diff = now - timestamp
-        
+
         if diff.days > 0:
             return f"{diff.days} days ago"
         elif diff.seconds > 3600:
@@ -815,17 +816,15 @@ class DateFormatter:
 
 class TimeZoneUtility:
     """Time zone utility class."""
-    
+
     @staticmethod
     def get_local_timezone():
         """Get local timezone."""
         return datetime.now().astimezone().tzinfo
-    
+
     @staticmethod
     def convert_to_timezone(dt, tz):
         """Convert datetime to timezone."""
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(tz)
-
-

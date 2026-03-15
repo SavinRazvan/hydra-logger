@@ -10,9 +10,10 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from typing import Dict, Optional
 from pathlib import Path
-from .models import LoggingConfig, LogLayer, LogDestination
+from typing import Callable, Dict, Optional
+
+from .models import LogDestination, LoggingConfig, LogLayer
 
 
 class ConfigurationTemplates:
@@ -63,7 +64,7 @@ class ConfigurationTemplates:
         - Console + file output
         - Fast formatting
         - Optimized buffering
-        
+
         Performance optimizations:
         - Uses async_console for better throughput (non-blocking)
         - Larger buffer sizes (5000 messages) for batching
@@ -162,7 +163,9 @@ class ConfigurationTemplates:
         if console_enabled:
             # Use async_console for better performance (non-blocking I/O)
             destinations.append(
-                LogDestination(type="async_console", format="plain-text", use_colors=False)
+                LogDestination(
+                    type="async_console", format="plain-text", use_colors=False
+                )
             )
 
         if file_enabled:
@@ -179,9 +182,12 @@ class ConfigurationTemplates:
             )
 
         if not destinations:
-            # Fallback to async_console if no destinations specified (better performance)
+            # Fallback to async_console if no destinations specified (better
+            # performance)
             destinations.append(
-                LogDestination(type="async_console", format="plain-text", use_colors=False)
+                LogDestination(
+                    type="async_console", format="plain-text", use_colors=False
+                )
             )
 
         # Build layers
@@ -259,7 +265,9 @@ class ConfigurationTemplates:
                         max_size="2MB",
                         backup_count=10,
                     ),
-                    LogDestination(type="async_console", format="plain-text", use_colors=False),
+                    LogDestination(
+                        type="async_console", format="plain-text", use_colors=False
+                    ),
                 ],
             )
 
@@ -288,7 +296,7 @@ class ConfigurationTemplates:
         - DEBUG level for detailed logging
         - Fast flush for immediate feedback
         - Performance monitoring disabled for speed
-        
+
         Performance optimizations:
         - Uses async_console for better throughput
         - Fast-plain format (faster than colored)
@@ -312,7 +320,7 @@ class ConfigurationTemplates:
         - Security and monitoring enabled
         - Larger buffers for performance
         - Dedicated error layer
-        
+
         Performance optimizations:
         - Uses async_console for better throughput
         - Larger buffer sizes for batching
@@ -363,7 +371,7 @@ def get_production_config() -> LoggingConfig:
 
 
 # Configuration registry for backward compatibility
-DEFAULT_CONFIGS: Dict[str, callable] = {
+DEFAULT_CONFIGS: Dict[str, Callable[..., LoggingConfig]] = {
     "default": get_default_config,
     "development": get_development_config,
     "production": get_production_config,
@@ -383,9 +391,8 @@ def get_named_config(name: str, **options) -> LoggingConfig:
         LoggingConfig instance
     """
     if name not in DEFAULT_CONFIGS:
-        raise ValueError(
-            f"Unknown configuration name: {name}. Available: {list(DEFAULT_CONFIGS.keys())}"
-        )
+        available = list(DEFAULT_CONFIGS.keys())
+        raise ValueError(f"Unknown configuration name: {name}. Available: {available}")
 
     if name == "custom":
         return DEFAULT_CONFIGS[name](**options)

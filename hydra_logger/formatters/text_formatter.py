@@ -12,18 +12,23 @@ Notes:
 """
 
 # from datetime import datetime  # unused
-from typing import Optional
-from .base import BaseFormatter
+from typing import Callable, Optional
+
 from ..types.records import LogRecord
 from ..utils.time_utility import TimestampConfig
+from .base import BaseFormatter
 
 
 class PlainTextFormatter(BaseFormatter):
-    """Plain text formatter with customizable format string. Default format uses pipe separators: | timestamp | level | layer | message"""
+    """Plain text formatter with customizable format string.
+
+    Default format uses pipe separators:
+    | timestamp | level | layer | message
+    """
 
     def __init__(
         self,
-        format_string: str = None,
+        format_string: Optional[str] = None,
         timestamp_config: Optional[TimestampConfig] = None,
     ):
         """
@@ -61,6 +66,7 @@ class PlainTextFormatter(BaseFormatter):
             Timestamp configuration
         """
         import os
+
         from ..utils.time_utility import (
             TimestampConfig,
             TimestampFormat,
@@ -103,13 +109,15 @@ class PlainTextFormatter(BaseFormatter):
         ]
         return self.format_string in simple_patterns
 
-    def _compile_fstring_format(self) -> callable:
+    def _compile_fstring_format(self) -> Optional[Callable[[LogRecord], str]]:
         """Compile format string into function with cached timestamp formatting."""
         # Use f-strings with timestamp caching
         if self.format_string == "| {timestamp} | {level_name} | {layer} | {message}":
             # Pre-cache timestamp formatting method for speed
             format_ts = self.format_timestamp
-            return lambda r: f"| {format_ts(r)} | {r.level_name} | {r.layer} | {r.message}"
+            return (
+                lambda r: f"| {format_ts(r)} | {r.level_name} | {r.layer} | {r.message}"
+            )
         elif self.format_string == "{timestamp} {level_name} {layer} {message}":
             # Legacy format without pipes
             format_ts = self.format_timestamp
@@ -157,7 +165,7 @@ class PlainTextFormatter(BaseFormatter):
     def _format_default(self, record: LogRecord) -> str:
         """
         Default formatting implementation for backward compatibility.
-        
+
         Uses f-strings instead of .format() for better performance.
 
         Args:
@@ -174,16 +182,18 @@ class PlainTextFormatter(BaseFormatter):
         layer = record.layer
         file_name = record.file_name or "unknown"
         function_name = record.function_name or "unknown"
-        
+
         # Direct f-string interpolation
         # Replace placeholders with f-string interpolation
-        result = self.format_string.replace("{timestamp}", timestamp_str)\
-                                   .replace("{level_name}", level_name)\
-                                   .replace("{message}", message)\
-                                   .replace("{layer}", layer)\
-                                   .replace("{logger_name}", record.logger_name)\
-                                   .replace("{file_name}", file_name)\
-                                   .replace("{function_name}", function_name)\
-                                   .replace("{line_number}", str(record.line_number or 0))
-        
+        result = (
+            self.format_string.replace("{timestamp}", timestamp_str)
+            .replace("{level_name}", level_name)
+            .replace("{message}", message)
+            .replace("{layer}", layer)
+            .replace("{logger_name}", record.logger_name)
+            .replace("{file_name}", file_name)
+            .replace("{function_name}", function_name)
+            .replace("{line_number}", str(record.line_number or 0))
+        )
+
         return result

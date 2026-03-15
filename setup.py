@@ -54,16 +54,16 @@ setup(
         "charset-normalizer>=3.4.0",
         # Database handlers
         "psycopg2-binary>=2.9.10",  # PostgreSQL
-        "pymongo>=4.10.0",          # MongoDB
-        "redis>=6.1.0",            # Redis
+        "pymongo>=4.10.0",  # MongoDB
+        "redis>=6.1.0",  # Redis
         # Message queue handlers
-        "pika>=1.3.2",             # RabbitMQ
-        "kafka-python>=2.2.0",     # Kafka
+        "pika>=1.3.2",  # RabbitMQ
+        "kafka-python>=2.2.0",  # Kafka
         # Cloud service handlers
-        "boto3>=1.37.0",           # AWS CloudWatch
-        "elasticsearch>=9.0.0",    # Elasticsearch
+        "boto3>=1.37.0",  # AWS CloudWatch
+        "elasticsearch>=9.0.0",  # Elasticsearch
         # Network handlers
-        "websockets>=13.0.0",      # WebSocket support
+        "websockets>=13.0.0",  # WebSocket support
         # System handlers (Windows only - will be skipped on other platforms)
         "pywin32>=306; sys_platform == 'win32'",  # Windows Event Log
     ],

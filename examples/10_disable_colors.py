@@ -8,26 +8,25 @@ Depends On:
 Notes:
  - Header standardized by slim-header migration.
 """
-from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+
+from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 
 # Disable colors for clean output
 config = LoggingConfig(
- layers={
- "app": LogLayer(
- destinations=[
- LogDestination(
- type="console",
- format="plain-text",
- use_colors=False # No colors
- ),
- LogDestination(
- type="file",
- path="logs/examples/10_disable_colors.log",
- format="json-lines"
- )
- ]
- )
- }
+    layers={
+        "app": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="console", format="plain-text", use_colors=False  # No colors
+                ),
+                LogDestination(
+                    type="file",
+                    path="logs/examples/10_disable_colors.log",
+                    format="json-lines",
+                ),
+            ]
+        )
+    }
 )
 
 # Use context manager for automatic cleanup
@@ -51,4 +50,3 @@ with create_logger(config, logger_type="sync") as logger:
     log_plain_error()
 
 print("Example 10 completed: Disable Colors")
-

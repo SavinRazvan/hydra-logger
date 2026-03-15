@@ -12,12 +12,12 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-import time
-import threading
 import contextvars
-from typing import Dict, Any, Optional
+import threading
+import time
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, Optional
 
 
 class ContextType(Enum):
@@ -152,7 +152,9 @@ class ContextManager:
     """Manages logging context throughout the system."""
 
     # Context variable for async operations
-    _context_var = contextvars.ContextVar("log_context", default=None)
+    _context_var: contextvars.ContextVar[Optional[LogContext]] = contextvars.ContextVar(
+        "log_context", default=None
+    )
 
     # Thread-local storage for sync operations
     _thread_local = threading.local()

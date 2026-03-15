@@ -11,10 +11,11 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Union, List
-from datetime import datetime
 import time
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
+
 # import os  # unused
 
 
@@ -35,7 +36,7 @@ def extract_filename(full_path: str) -> Optional[str]:
         return None
 
 
-@dataclass(frozen=True)  # Immutable for performance
+@dataclass
 class LogRecord:
     """
     Optimized log record - minimal fields for performance.
@@ -56,6 +57,16 @@ class LogRecord:
     level: int = 20  # Default to INFO
     logger_name: str = "HydraLogger"
     line_number: Optional[int] = None
+    filename: Optional[str] = None
+    thread_id: Optional[int] = None
+    process_id: Optional[int] = None
+    agent_id: Optional[str] = None
+    user_id: Optional[str] = None
+    request_id: Optional[str] = None
+    correlation_id: Optional[str] = None
+    environment: Optional[str] = None
+    event_id: Optional[str] = None
+    device_id: Optional[str] = None
 
     # CUSTOM FIELDS (user-defined)
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -145,9 +156,9 @@ class LogRecordFactory:
         level_name: str,
         message: str,
         layer: str = "default",
-        file_name: str = None,
-        function_name: str = None,
-        line_number: int = None,
+        file_name: Optional[str] = None,
+        function_name: Optional[str] = None,
+        line_number: Optional[int] = None,
         **kwargs,
     ) -> LogRecord:
         """Create record with context - balanced performance."""
@@ -183,29 +194,34 @@ class LogRecordFactory:
             frame = inspect.currentframe()
             if not frame:
                 frame = None
-            
+
             # Start by skipping this method (create_with_auto_context)
             if frame:
                 frame = frame.f_back
-            
+
             # Skip hydra-logger internal frames
-            # Stack typically: user_code -> logger.info -> logger.log -> create_log_record -> RecordCreationStrategy._create_with_auto_context -> create_with_auto_context
+            # Stack typically: user_code -> logger.info -> logger.log ->
+            # create_log_record -> RecordCreationStrategy._create_with_auto_context ->
+            # create_with_auto_context
             max_skips = 15  # Increased safety limit
             skips = 0
-            
+
             while frame and skips < max_skips:
                 try:
                     full_filename = frame.f_code.co_filename
-                    
+
                     # FIX: Handle case where full_filename might be None or empty
                     if not full_filename:
                         frame = frame.f_back
                         skips += 1
                         continue
-                    
+
                     # Simple check: if filename contains 'hydra_logger', skip it
                     # This works for both absolute and relative paths
-                    if 'hydra_logger' in full_filename or 'hydra-logger' in full_filename.lower():
+                    if (
+                        "hydra_logger" in full_filename
+                        or "hydra-logger" in full_filename.lower()
+                    ):
                         # Still in hydra-logger, skip this frame
                         frame = frame.f_back
                         skips += 1
@@ -214,24 +230,28 @@ class LogRecordFactory:
                         # Found user's code!
                         file_name = extract_filename(full_filename)
                         line_number = frame.f_lineno
-                        function_name = LogRecordFactory._get_enhanced_function_name(frame)
+                        function_name = LogRecordFactory._get_enhanced_function_name(
+                            frame
+                        )
                         break
-                except (AttributeError, KeyError) as e:
+                except (AttributeError, KeyError):
                     # Frame might not have expected attributes, skip it
                     frame = frame.f_back
                     skips += 1
                     continue
-            
-        except Exception as e:
+
+        except Exception:
             # FIX: Log error instead of silently failing - helps debug frame inspection issues
-            # Silent failure - context is optional, but we should at least know if there's a problem
+            # Silent failure - context is optional, but we should at least know if
+            # there's a problem
             import sys
+
             try:
                 # Only log to stderr if in debug mode - don't spam production logs
-                if hasattr(sys, '_getframe'):
+                if hasattr(sys, "_getframe"):
                     # Debug mode - show what went wrong
                     pass  # Silent for now to maintain performance, but can enable for debugging
-            except:
+            except BaseException:
                 pass
 
         return LogRecord(
@@ -292,7 +312,7 @@ class LogRecordFactory:
 
                 return function_name
 
-        except:
+        except BaseException:
             return function_name if "function_name" in locals() else "<unknown>"
 
 
@@ -427,7 +447,8 @@ class RecordCreationStrategy:
         **kwargs,
     ) -> LogRecord:
         """Create minimal record for performance."""
-        # Pass additional parameters through kwargs to respect LogRecordFactory signature
+        # Pass additional parameters through kwargs to respect LogRecordFactory
+        # signature
         kwargs.update(
             {"level": level_int, "logger_name": logger_name, "timestamp": time.time()}
         )
@@ -450,7 +471,8 @@ class RecordCreationStrategy:
         function_name = kwargs.pop("function_name", None)
         line_number = kwargs.pop("line_number", None)
 
-        # Pass additional parameters through kwargs to respect LogRecordFactory signature
+        # Pass additional parameters through kwargs to respect LogRecordFactory
+        # signature
         kwargs.update(
             {"level": level_int, "logger_name": logger_name, "timestamp": time.time()}
         )
@@ -474,7 +496,8 @@ class RecordCreationStrategy:
         **kwargs,
     ) -> LogRecord:
         """Create record with auto-detected context."""
-        # Pass additional parameters through kwargs to respect LogRecordFactory signature
+        # Pass additional parameters through kwargs to respect LogRecordFactory
+        # signature
         kwargs.update(
             {"level": level_int, "logger_name": logger_name, "timestamp": time.time()}
         )

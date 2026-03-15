@@ -11,8 +11,8 @@ Notes:
 """
 
 from enum import IntEnum
-from typing import Union, List, Optional
 from functools import lru_cache
+from typing import Dict, List, Optional, Union
 
 
 class LogLevel(IntEnum):
@@ -30,17 +30,17 @@ class LogLevelManager:
     """Utility class for log level operations and validation."""
 
     # Standard level mappings
-    LEVEL_NAMES = {
-        LogLevel.NOTSET: "NOTSET",
-        LogLevel.DEBUG: "DEBUG",
-        LogLevel.INFO: "INFO",
-        LogLevel.WARNING: "WARNING",
-        LogLevel.ERROR: "ERROR",
-        LogLevel.CRITICAL: "CRITICAL",
+    LEVEL_NAMES: Dict[int, str] = {
+        int(LogLevel.NOTSET): "NOTSET",
+        int(LogLevel.DEBUG): "DEBUG",
+        int(LogLevel.INFO): "INFO",
+        int(LogLevel.WARNING): "WARNING",
+        int(LogLevel.ERROR): "ERROR",
+        int(LogLevel.CRITICAL): "CRITICAL",
     }
 
     # String to level mapping
-    NAME_TO_LEVEL = {
+    NAME_TO_LEVEL: Dict[str, int] = {
         "NOTSET": LogLevel.NOTSET,
         "DEBUG": LogLevel.DEBUG,
         "INFO": LogLevel.INFO,
@@ -53,12 +53,12 @@ class LogLevelManager:
     }
 
     # Level to color mapping (for console output)
-    LEVEL_COLORS = {
-        LogLevel.DEBUG: "cyan",
-        LogLevel.INFO: "green",
-        LogLevel.WARNING: "yellow",
-        LogLevel.ERROR: "red",
-        LogLevel.CRITICAL: "bright_red",
+    LEVEL_COLORS: Dict[int, str] = {
+        int(LogLevel.DEBUG): "cyan",
+        int(LogLevel.INFO): "green",
+        int(LogLevel.WARNING): "yellow",
+        int(LogLevel.ERROR): "red",
+        int(LogLevel.CRITICAL): "bright_red",
     }
 
     @classmethod
@@ -80,9 +80,9 @@ class LogLevelManager:
         elif isinstance(level, LogLevel):
             return int(level)
         elif isinstance(level, str):
-            return cls.NAME_TO_LEVEL.get(level.upper(), LogLevel.INFO)
+            return int(cls.NAME_TO_LEVEL.get(level.upper(), LogLevel.INFO))
         else:
-            return LogLevel.INFO
+            return int(LogLevel.INFO)
 
     @classmethod
     def is_valid_level(cls, level: Union[str, int, LogLevel]) -> bool:
@@ -97,7 +97,7 @@ class LogLevelManager:
             return False
 
     @classmethod
-    def all_levels(cls) -> List[LogLevel]:
+    def all_levels(cls) -> List[int]:
         """Get all available log levels."""
         return list(cls.LEVEL_NAMES.keys())
 
@@ -149,7 +149,7 @@ def is_valid_level(level: Union[str, int, LogLevel]) -> bool:
     return LogLevelManager.is_valid_level(level)
 
 
-def all_levels() -> List[LogLevel]:
+def all_levels() -> List[int]:
     """Get all available log levels."""
     return LogLevelManager.all_levels()
 

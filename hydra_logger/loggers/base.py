@@ -15,10 +15,11 @@ Notes:
 import asyncio
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Union
-from ..types.records import LogRecord
+from typing import Any, Dict, List, Optional, Union
+
 from ..config.models import LoggingConfig
 from ..core.exceptions import HydraLoggerError
+from ..types.records import LogRecord
 
 
 # Performance profile constants for LogRecord creation
@@ -33,9 +34,11 @@ class PerformanceProfiles:
 class BaseLogger(ABC):
     """Abstract base class for all logger implementations."""
 
-    def __init__(self, config: Optional[LoggingConfig] = None, **kwargs):
+    def __init__(
+        self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
+    ):
         """Initialize the base logger."""
-        self._config = config
+        self._config = self._coerce_config(config)
         self._initialized = False
         self._closed = False
         # Disable all features by default for performance
@@ -49,7 +52,8 @@ class BaseLogger(ABC):
         self._name = kwargs.get("name", "root")
 
         # LogRecord creation strategy
-        # Use 'convenient' profile by default to enable auto-detection of file_name, function_name, line_number
+        # Use 'convenient' profile by default to enable auto-detection of
+        # file_name, function_name, line_number
         self._performance_profile = kwargs.get("performance_profile", "convenient")
         self._record_creation_strategy = None
         self._setup_record_creation_strategy()
@@ -59,8 +63,20 @@ class BaseLogger(ABC):
         self._start_time = time.time()
 
         # Initialize if config is provided
-        if config:
-            self._initialize_from_config(config)
+        if self._config:
+            self._initialize_from_config(self._config)
+
+    def _coerce_config(
+        self, config: Optional[Union[LoggingConfig, Dict[str, Any]]]
+    ) -> Optional[LoggingConfig]:
+        """Normalize dict-based configs into LoggingConfig."""
+        if config is None:
+            return None
+        if isinstance(config, LoggingConfig):
+            return config
+        if isinstance(config, dict):
+            return LoggingConfig(**config)
+        return None
 
     # =============================================================================
     # MAGIC CONFIGURATION METHODS
@@ -68,100 +84,100 @@ class BaseLogger(ABC):
 
     def for_production(self) -> "BaseLogger":
         """Apply production configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("production"):
-            self._config = magic_configs.get_config("production")
+        if magic_configs.has_template("production"):
+            self._config = magic_configs.get_template("production")
             self._initialize_from_config(self._config)
         return self
 
     def for_development(self) -> "BaseLogger":
         """Apply development configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("development"):
-            self._config = magic_configs.get_config("development")
+        if magic_configs.has_template("development"):
+            self._config = magic_configs.get_template("development")
             self._initialize_from_config(self._config)
         return self
 
     def for_testing(self) -> "BaseLogger":
         """Apply testing configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("testing"):
-            self._config = magic_configs.get_config("testing")
+        if magic_configs.has_template("testing"):
+            self._config = magic_configs.get_template("testing")
             self._initialize_from_config(self._config)
         return self
 
     def for_microservice(self) -> "BaseLogger":
         """Apply microservice configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("microservice"):
-            self._config = magic_configs.get_config("microservice")
+        if magic_configs.has_template("microservice"):
+            self._config = magic_configs.get_template("microservice")
             self._initialize_from_config(self._config)
         return self
 
     def for_web_app(self) -> "BaseLogger":
         """Apply web application configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("web_app"):
-            self._config = magic_configs.get_config("web_app")
+        if magic_configs.has_template("web_app"):
+            self._config = magic_configs.get_template("web_app")
             self._initialize_from_config(self._config)
         return self
 
     def for_api_service(self) -> "BaseLogger":
         """Apply API service configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("api_service"):
-            self._config = magic_configs.get_config("api_service")
+        if magic_configs.has_template("api_service"):
+            self._config = magic_configs.get_template("api_service")
             self._initialize_from_config(self._config)
         return self
 
     def for_background_worker(self) -> "BaseLogger":
         """Apply background worker configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("background_worker"):
-            self._config = magic_configs.get_config("background_worker")
+        if magic_configs.has_template("background_worker"):
+            self._config = magic_configs.get_template("background_worker")
             self._initialize_from_config(self._config)
         return self
 
     def for_high_performance(self) -> "BaseLogger":
         """Apply high performance configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("high_performance"):
-            self._config = magic_configs.get_config("high_performance")
+        if magic_configs.has_template("high_performance"):
+            self._config = magic_configs.get_template("high_performance")
             self._initialize_from_config(self._config)
         return self
 
     def for_minimal(self) -> "BaseLogger":
         """Apply minimal configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("minimal"):
-            self._config = magic_configs.get_config("minimal")
+        if magic_configs.has_template("minimal"):
+            self._config = magic_configs.get_template("minimal")
             self._initialize_from_config(self._config)
         return self
 
     def for_debug(self) -> "BaseLogger":
         """Apply debug configuration."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config("debug"):
-            self._config = magic_configs.get_config("debug")
+        if magic_configs.has_template("debug"):
+            self._config = magic_configs.get_template("debug")
             self._initialize_from_config(self._config)
         return self
 
     def with_magic_config(self, config_name: str) -> "BaseLogger":
         """Apply a custom magic configuration by name."""
-        from ..config.configuration_templates import magic_configs
+        from ..config.configuration_templates import configuration_templates as magic_configs
 
-        if magic_configs.has_config(config_name):
-            self._config = magic_configs.get_config(config_name)
+        if magic_configs.has_template(config_name):
+            self._config = magic_configs.get_template(config_name)
             self._initialize_from_config(self._config)
         else:
             raise ValueError(f"Unknown magic config: {config_name}")
@@ -211,6 +227,33 @@ class BaseLogger(ABC):
         """Get the health status of the logger."""
         pass
 
+    def initialize(self) -> None:
+        """Initialize logger from current config when available."""
+        if self._config is not None:
+            self._initialize_from_config(self._config)
+
+    async def emit_async(self, record: LogRecord) -> None:
+        """Default async emit delegates to sync log call."""
+        self.log(record.level, record.message, layer=record.layer, extra=record.extra)
+
+    def log_batch(self, records: List[LogRecord]) -> None:
+        """Default batch logging implementation."""
+        for record in records:
+            self.log(record.level, record.message, layer=record.layer, extra=record.extra)
+
+    async def close_async(self) -> None:
+        """Default async close delegates to close()."""
+        self.close()
+
+    async def aclose(self) -> None:
+        """Compatibility alias for async close."""
+        await self.close_async()
+
+    @property
+    def file_path(self) -> Optional[str]:
+        """Optional file destination path exposed by file-based loggers."""
+        return None
+
     def _initialize_from_config(self, config: LoggingConfig) -> None:
         """Initialize the logger from configuration."""
         try:
@@ -242,7 +285,6 @@ class BaseLogger(ABC):
         """Setup monitoring from configuration."""
         # This will be implemented by subclasses
         pass
-
 
     def get_config(self) -> Optional[LoggingConfig]:
         """Get the current configuration."""
@@ -408,12 +450,14 @@ class BaseLogger(ABC):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
         Async context manager exit.
-        
+
         Properly handles async cleanup for all logger types.
         Tries close_async() or aclose() first, then falls back to sync close().
         """
         # Check for async close methods first (close_async, aclose)
-        if hasattr(self, "close_async") and asyncio.iscoroutinefunction(self.close_async):
+        if hasattr(self, "close_async") and asyncio.iscoroutinefunction(
+            self.close_async
+        ):
             await self.close_async()
         elif hasattr(self, "aclose") and asyncio.iscoroutinefunction(self.aclose):
             await self.aclose()
@@ -434,5 +478,5 @@ class BaseLogger(ABC):
                     self._closed = True
                 else:
                     self.close()
-            except:
+            except BaseException:
                 pass

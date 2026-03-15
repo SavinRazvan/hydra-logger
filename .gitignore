@@ -266,3 +266,7 @@ config.local.toml
 .cursor/
 scripts/
 AGENTS.md
+
+
+# Temporary Tools
+.tmp_tools

@@ -9,8 +9,8 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from .base_handler import BaseHandler
 from ..types.records import LogRecord
+from .base_handler import BaseHandler
 
 
 class NullHandler(BaseHandler):

@@ -13,7 +13,14 @@ Notes:
 import os
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, ValidationInfo, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    PrivateAttr,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 
 class LogDestination(BaseModel):
@@ -88,7 +95,11 @@ class LogDestination(BaseModel):
     backup_count: Optional[int] = Field(default=3, description="Number of backup files")
     format: Optional[str] = Field(
         default=None,  # None = auto-detect from extension, explicit value = must match
-        description="Log format: 'plain-text', 'json', 'json-lines', 'csv', 'syslog', 'gelf', 'compact', 'detailed', 'colored'. If None, auto-detects from file extension.",
+        description=(
+            "Log format: 'plain-text', 'json', 'json-lines', 'csv', 'syslog', "
+            "'gelf', 'compact', 'detailed', 'colored'. If None, "
+            "auto-detects from file extension."
+        ),
     )
     use_colors: bool = Field(
         default=False,
@@ -184,7 +195,7 @@ class LogDestination(BaseModel):
         """Validate log format. None is allowed for auto-detection from extension."""
         if v is None or v == "":
             return None  # Allow None for auto-detection
-        
+
         valid_formats = [
             # TEXT-BASED FORMATTERS
             "plain-text",
@@ -221,12 +232,12 @@ class LogDestination(BaseModel):
             not self.path or (self.path and not self.path.strip())
         ):
             raise ValueError("Path is required for file destinations")
-        
+
         # Format-extension validation: enforce strict matching for non-.log files
         if self.type == "file" and self.path:
             # Extract file extension
             file_ext = os.path.splitext(self.path.lower())[1]
-            
+
             # Map extensions to required formats (strict matching)
             extension_format_map = {
                 ".jsonl": "json-lines",
@@ -234,34 +245,36 @@ class LogDestination(BaseModel):
                 ".csv": "csv",
                 ".bin": "binary-compact",  # Binary files
             }
-            
+
             # Strict matching for non-.log files
             if file_ext in extension_format_map:
                 required_format = extension_format_map[file_ext]
-                
+
                 # Check if format was explicitly set by the user
                 format_explicitly_set = self.format is not None
                 current_format = self.format if format_explicitly_set else None
-                
-                # Validation first: reject explicit format mismatches before auto-setting
+
+                # Validation first: reject explicit format mismatches before
+                # auto-setting
                 if format_explicitly_set and current_format != required_format:
-                    # User explicitly set a format that doesn't match - reject immediately
+                    # User explicitly set a format that doesn't match - reject
+                    # immediately
                     raise ValueError(
                         f"Format mismatch: File extension '{file_ext}' requires format '{required_format}', "
                         f"but got '{current_format}'. For '{file_ext}' files, format must be '{required_format}'. "
                         f"(Only .log files are flexible and can use any format)"
                     )
-                
+
                 # Auto-set: only if format was NOT explicitly set (None), auto-set to match extension
                 # This respects explicit user choices, even if they set "plain-text"
                 if not format_explicitly_set:
                     self.format = required_format
-            
+
             # .log files can use any format - no strict validation needed
             # If format is None for .log files, default to plain-text
             elif file_ext == ".log" and (self.format is None or self.format == ""):
                 self.format = "plain-text"
-        
+
         elif self.type == "async_cloud" and (
             not self.service_type
             or (self.service_type and not self.service_type.strip())
@@ -536,6 +549,7 @@ class LoggingConfig(BaseModel):
     # Performance settings
     buffer_size: int = Field(default=8192, description="Buffer size for file handlers")
     flush_interval: float = Field(default=1.0, description="Flush interval in seconds")
+    _verbose: bool = PrivateAttr(default=False)
 
     @field_validator("default_level")
     @classmethod
@@ -715,7 +729,7 @@ class LoggingConfig(BaseModel):
 
         return str(base_path.absolute())
 
-    def ensure_log_directory(self, directory_path: str = None) -> str:
+    def ensure_log_directory(self, directory_path: Optional[str] = None) -> str:
         """Ensure log directory exists and return the path."""
         from pathlib import Path
 
@@ -729,7 +743,9 @@ class LoggingConfig(BaseModel):
 
         return str(target_path.absolute())
 
-    def resolve_log_path(self, destination_path: str, format_type: str = None) -> str:
+    def resolve_log_path(
+        self, destination_path: str, format_type: Optional[str] = None
+    ) -> str:
         """
         Resolve log file path using base directory and log directory name.
 
@@ -770,9 +786,11 @@ class LoggingConfig(BaseModel):
                     # Combine with destination path
                     final_path = base_path / destination_path
             else:
-                # Check if path already starts with 'logs/' - if so, treat as relative to current directory
+                # Check if path already starts with 'logs/' - if so, treat as relative
+                # to current directory
                 if destination_path.startswith("logs/"):
-                    # Path already includes logs/ directory, use as relative to current directory
+                    # Path already includes logs/ directory, use as relative to current
+                    # directory
                     final_path = Path.cwd() / destination_path
                 else:
                     # Build path using base_log_dir and log_dir_name
@@ -802,7 +820,7 @@ class LoggingConfig(BaseModel):
             if hasattr(self, "_verbose") and self._verbose:
                 print(f"Created log directory: {final_path.parent}")
 
-        except Exception as e:
+        except Exception:
             # Fallback: try to create in current directory
             fallback_path = Path.cwd() / "logs" / destination_path
             fallback_path.parent.mkdir(parents=True, exist_ok=True)
@@ -909,7 +927,7 @@ class FileHandlerConfig(HandlerConfig):
     """Configuration for file handlers."""
 
     type: Literal["file"] = "file"
-    file_path: str = Field(description="File path")
+    file_path: str = Field(default="", description="File path")
     buffering: bool = Field(default=True, description="Enable buffering")
     max_size: str = Field(default="5MB", description="Maximum file size")
     backup_count: int = Field(default=3, description="Number of backup files")

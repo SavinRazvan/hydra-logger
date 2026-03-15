@@ -13,10 +13,11 @@ Notes:
 """
 
 from typing import Optional
-from .text_formatter import PlainTextFormatter
+
+from ..core.constants import Colors
 from ..types.records import LogRecord
 from ..utils.time_utility import TimestampConfig
-from ..core.constants import Colors
+from .text_formatter import PlainTextFormatter
 
 
 class ColoredFormatter(PlainTextFormatter):
@@ -39,7 +40,7 @@ class ColoredFormatter(PlainTextFormatter):
 
     def __init__(
         self,
-        format_string: str = None,
+        format_string: Optional[str] = None,
         timestamp_config: Optional[TimestampConfig] = None,
         use_colors: bool = True,
     ):
@@ -114,7 +115,8 @@ class ColoredFormatter(PlainTextFormatter):
             return message
 
         # Apply colors to level and layer in the message
-        # This is a simple approach - we'll replace the level and layer in the formatted string
+        # This is a simple approach - we'll replace the level and layer in the
+        # formatted string
         level_name = getattr(record, "level_name", "INFO")
         layer = getattr(record, "layer", "default")
 

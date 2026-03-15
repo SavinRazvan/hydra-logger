@@ -8,19 +8,24 @@ Depends On:
 Notes:
  - Header standardized by slim-header migration.
 """
-from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+
+from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 from hydra_logger.extensions import ExtensionManager
 
 # Create a basic config
 config = LoggingConfig(
- layers={
- "app": LogLayer(
- destinations=[
- LogDestination(type="console", format="plain-text", use_colors=True),
- LogDestination(type="file", path="logs/examples/04_runtime_control.jsonl", format="json-lines")
- ]
- )
- }
+    layers={
+        "app": LogLayer(
+            destinations=[
+                LogDestination(type="console", format="plain-text", use_colors=True),
+                LogDestination(
+                    type="file",
+                    path="logs/examples/04_runtime_control.jsonl",
+                    format="json-lines",
+                ),
+            ]
+        )
+    }
 )
 
 # Use context manager for automatic cleanup
@@ -30,7 +35,9 @@ with create_logger(config, logger_type="sync") as logger:
         """Create a security extension at runtime."""
         try:
             manager = ExtensionManager()
-            manager.create_extension("my_security", "security", enabled=True, patterns=["email"])
+            manager.create_extension(
+                "my_security", "security", enabled=True, patterns=["email"]
+            )
             logger.info("[04] Extension created", layer="app")
         except Exception as e:
             print(f"ExtensionManager example - this may require additional setup: {e}")
@@ -59,4 +66,3 @@ with create_logger(config, logger_type="sync") as logger:
     enable_security_extension()
 
 print("Example 4 completed: Runtime Control")
-

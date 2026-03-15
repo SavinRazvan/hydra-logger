@@ -9,12 +9,13 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, cast
+
 from .extension_base import (
     ExtensionBase,
-    SecurityExtension,
     FormattingExtension,
     PerformanceExtension,
+    SecurityExtension,
 )
 
 
@@ -184,5 +185,5 @@ class ExtensionManager:
         metrics = {}
         for name, extension in self.extensions.items():
             if hasattr(extension, "get_metrics"):
-                metrics[name] = extension.get_metrics()
+                metrics[name] = cast(Any, extension).get_metrics()
         return metrics

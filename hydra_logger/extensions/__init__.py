@@ -11,9 +11,9 @@ Notes:
 
 from .extension_base import (
     ExtensionBase,
-    SecurityExtension,
     FormattingExtension,
     PerformanceExtension,
+    SecurityExtension,
 )
 from .extension_manager import ExtensionManager
 

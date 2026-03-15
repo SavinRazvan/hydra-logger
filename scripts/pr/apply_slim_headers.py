@@ -38,7 +38,9 @@ def _run_git(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def _changed_python_files(base_ref: str, head_ref: str) -> list[Path]:
-    proc = _run_git(["diff", "--name-only", "--diff-filter=AM", f"{base_ref}...{head_ref}"])
+    proc = _run_git(
+        ["diff", "--name-only", "--diff-filter=AM", f"{base_ref}...{head_ref}"]
+    )
     if proc.returncode != 0:
         raise RuntimeError(proc.stderr.strip() or "git diff failed")
 
@@ -122,7 +124,11 @@ def _parse_field_map(docstring: str) -> dict[str, Any]:
                 field_map[matched_field].append(inline_value.lstrip("- ").strip())
             continue
 
-        if stripped.startswith("-") and current_field in ("Used By", "Depends On", "Notes"):
+        if stripped.startswith("-") and current_field in (
+            "Used By",
+            "Depends On",
+            "Notes",
+        ):
             field_map[current_field].append(stripped.lstrip("- ").strip())
 
     return field_map
@@ -158,7 +164,9 @@ def _default_depends(module: ast.Module) -> list[str]:
     return deps[:5]
 
 
-def _build_header(path: Path, module: ast.Module, existing_docstring: str | None) -> str:
+def _build_header(
+    path: Path, module: ast.Module, existing_docstring: str | None
+) -> str:
     parsed = _parse_field_map(existing_docstring or "")
     role = parsed["Role"] or _default_role(path)
     used_by = parsed["Used By"] or ["(update when known)"]
@@ -219,7 +227,9 @@ def _rewrite_file(path: Path, dry_run: bool) -> tuple[bool, str]:
 
     if span:
         start_line, end_line = span
-        replaced_lines = source_lines[: start_line - 1] + [new_docstring] + source_lines[end_line:]
+        replaced_lines = (
+            source_lines[: start_line - 1] + [new_docstring] + source_lines[end_line:]
+        )
     else:
         insert_at = _insertion_index(source_lines)
         prefix = source_lines[:insert_at]
@@ -240,8 +250,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Apply slim headers to changed files or repository-wide Python files."
     )
-    parser.add_argument("--base", default="origin/main", help="Base ref for changed-file mode.")
-    parser.add_argument("--head", default="HEAD", help="Head ref for changed-file mode.")
+    parser.add_argument(
+        "--base", default="origin/main", help="Base ref for changed-file mode."
+    )
+    parser.add_argument(
+        "--head", default="HEAD", help="Head ref for changed-file mode."
+    )
     parser.add_argument(
         "--all-python",
         action="store_true",
@@ -288,9 +302,8 @@ def main() -> int:
             skipped += 1
             print(f"SKIP {path.as_posix()}: {note}")
 
-    print(
-        f"\nSlim header migration summary -> scanned={len(files)} changed={changed} skipped={skipped} errors={errors}"
-    )
+    print(f"\nSlim header migration summary -> scanned={
+        len(files)} changed={changed} skipped={skipped} errors={errors}")
     return 1 if errors else 0
 
 

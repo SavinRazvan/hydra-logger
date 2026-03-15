@@ -12,20 +12,21 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
+import hashlib
+import json
+import mimetypes
 import os
 import shutil
-import hashlib
-import mimetypes
-from typing import Any, Dict, List, Optional, Tuple, Callable
+import tempfile
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-import tempfile
-import json
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # Optional dependencies - import with graceful fallback
 try:
     import yaml
+
     YAML_AVAILABLE = True
 except ImportError:
     YAML_AVAILABLE = False
@@ -33,6 +34,7 @@ except ImportError:
 
 try:
     import toml
+
     TOML_AVAILABLE = True
 except ImportError:
     TOML_AVAILABLE = False
@@ -175,11 +177,12 @@ class FileUtility:
 
         size_names = ["B", "KB", "MB", "GB", "TB", "PB"]
         i = 0
-        while size_bytes >= 1024 and i < len(size_names) - 1:
-            size_bytes /= 1024.0
+        size_value = float(size_bytes)
+        while size_value >= 1024 and i < len(size_names) - 1:
+            size_value /= 1024.0
             i += 1
 
-        return f"{size_bytes:.1f} {size_names[i]}"
+        return f"{size_value:.1f} {size_names[i]}"
 
     @staticmethod
     def get_timestamps(path: str) -> Dict[str, float]:
@@ -309,8 +312,8 @@ class FileUtility:
         pattern: str, root_path: str = ".", recursive: bool = True
     ) -> List[str]:
         """Find files matching a pattern."""
-        import glob
         import fnmatch
+        import glob
 
         matches = []
 
@@ -786,16 +789,20 @@ class FileProcessor:
     @staticmethod
     def read_yaml_file(path: str) -> Any:
         """Read YAML file."""
-        if not YAML_AVAILABLE:
-            raise ImportError("PyYAML is required for YAML file operations. Install it with: pip install pyyaml")
+        if not YAML_AVAILABLE or yaml is None:
+            raise ImportError(
+                "PyYAML is required for YAML file operations. Install it with: pip install pyyaml"
+            )
         with open(path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
 
     @staticmethod
     def write_yaml_file(path: str, data: Any) -> bool:
         """Write YAML file."""
-        if not YAML_AVAILABLE:
-            raise ImportError("PyYAML is required for YAML file operations. Install it with: pip install pyyaml")
+        if not YAML_AVAILABLE or yaml is None:
+            raise ImportError(
+                "PyYAML is required for YAML file operations. Install it with: pip install pyyaml"
+            )
         try:
             with open(path, "w", encoding="utf-8") as f:
                 yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
@@ -806,16 +813,20 @@ class FileProcessor:
     @staticmethod
     def read_toml_file(path: str) -> Any:
         """Read TOML file."""
-        if not TOML_AVAILABLE:
-            raise ImportError("toml is required for TOML file operations. Install it with: pip install toml")
+        if not TOML_AVAILABLE or toml is None:
+            raise ImportError(
+                "toml is required for TOML file operations. Install it with: pip install toml"
+            )
         with open(path, "r", encoding="utf-8") as f:
             return toml.load(f)
 
     @staticmethod
     def write_toml_file(path: str, data: Any) -> bool:
         """Write TOML file."""
-        if not TOML_AVAILABLE:
-            raise ImportError("toml is required for TOML file operations. Install it with: pip install toml")
+        if not TOML_AVAILABLE or toml is None:
+            raise ImportError(
+                "toml is required for TOML file operations. Install it with: pip install toml"
+            )
         try:
             with open(path, "w", encoding="utf-8") as f:
                 toml.dump(data, f)

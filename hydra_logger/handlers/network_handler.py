@@ -12,35 +12,38 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-import time
-import socket
+# pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
+# pyright: reportCallIssue=false, reportArgumentType=false
+
 import asyncio
-from typing import Optional, Dict, Any, List
+import socket
+import ssl
+import time
 from dataclasses import dataclass, field
 from enum import Enum
+from importlib.util import find_spec
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
-import ssl
+
+from ..types.levels import LogLevel
+from ..types.records import LogRecord
+from .base_handler import BaseHandler
 
 try:
     import requests
+
     REQUESTS_AVAILABLE = True
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-try:
-    import websockets # type: ignore
-    WEBSOCKETS_AVAILABLE = True
-except ImportError:
-    WEBSOCKETS_AVAILABLE = False
+WEBSOCKETS_AVAILABLE = find_spec("websockets") is not None
 
-from ..types.records import LogRecord
-from ..types.levels import LogLevel
-from .base_handler import BaseHandler
 # NetworkUtils removed - simplified network handler
 
 
 class NetworkProtocol(Enum):
     """Network protocols supported."""
+
     HTTP = "http"
     HTTPS = "https"
     WS = "ws"
@@ -51,6 +54,7 @@ class NetworkProtocol(Enum):
 
 class RetryPolicy(Enum):
     """Retry policies for network operations."""
+
     NONE = "none"
     LINEAR = "linear"
     EXPONENTIAL = "exponential"
@@ -60,6 +64,7 @@ class RetryPolicy(Enum):
 @dataclass
 class NetworkConfig:
     """Configuration for network handlers."""
+
     # Connection settings
     host: str = "localhost"
     port: int = 80
@@ -118,13 +123,8 @@ class BaseNetworkHandler(BaseHandler):
         self._connected = False
         self._retry_count = 0
         self._last_retry = 0.0
-        self._stats = {
-            "sent": 0,
-            "failed": 0,
-            "retries": 0,
-            "bytes_sent": 0
-        }
-        
+        self._stats = {"sent": 0, "failed": 0, "retries": 0, "bytes_sent": 0}
+
         # Formatter-aware handling
         self._is_csv_formatter = False
         self._is_json_formatter = False
@@ -137,26 +137,25 @@ class BaseNetworkHandler(BaseHandler):
     def setFormatter(self, formatter):
         """
         Set formatter and detect if it needs special handling.
-        
+
         Args:
             formatter: Formatter instance
         """
         super().setFormatter(formatter)
-        
+
         # Detect formatter type for optimal handling
         if formatter:
-            self._is_csv_formatter = (
-                hasattr(formatter, 'format_headers') and 
-                hasattr(formatter, 'should_write_headers')
+            self._is_csv_formatter = hasattr(formatter, "format_headers") and hasattr(
+                formatter, "should_write_headers"
             )
-            self._is_json_formatter = hasattr(formatter, 'write_header')
-            self._is_streaming_formatter = hasattr(formatter, 'format_for_streaming')
-            
+            self._is_json_formatter = hasattr(formatter, "write_header")
+            self._is_streaming_formatter = hasattr(formatter, "format_for_streaming")
+
             # Determine if special handling is needed
             self._needs_special_handling = (
-                self._is_csv_formatter or 
-                self._is_json_formatter or 
-                self._is_streaming_formatter
+                self._is_csv_formatter
+                or self._is_json_formatter
+                or self._is_streaming_formatter
             )
         else:
             # Reset flags if no formatter
@@ -178,14 +177,14 @@ class BaseNetworkHandler(BaseHandler):
 
         if self._config.max_retries < 0:
             raise ValueError("Max retries cannot be negative")
-    
+
     def _is_valid_hostname(self, hostname: str) -> bool:
         """Simple hostname validation."""
         if not hostname or len(hostname) > 253:
             return False
         # Basic validation - allow localhost, IP addresses, and domain names
         return True
-    
+
     def _is_valid_port(self, port: int) -> bool:
         """Simple port validation."""
         return isinstance(port, int) and 1 <= port <= 65535
@@ -295,8 +294,8 @@ class BaseNetworkHandler(BaseHandler):
                 "port": self._config.port,
                 "protocol": self._config.protocol.value,
                 "timeout": self._config.timeout,
-                "max_retries": self._config.max_retries
-            }
+                "max_retries": self._config.max_retries,
+            },
         }
 
     def close(self) -> None:
@@ -316,7 +315,7 @@ class HTTPHandler(BaseNetworkHandler):
         auth: Optional[tuple] = None,
         timeout: float = 30.0,
         verify_ssl: bool = True,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize HTTP handler.
@@ -334,11 +333,15 @@ class HTTPHandler(BaseNetworkHandler):
         config = NetworkConfig(
             host=parsed_url.hostname or "localhost",
             port=parsed_url.port or (443 if parsed_url.scheme == "https" else 80),
-            protocol=NetworkProtocol.HTTPS if parsed_url.scheme == "https" else NetworkProtocol.HTTP,
+            protocol=(
+                NetworkProtocol.HTTPS
+                if parsed_url.scheme == "https"
+                else NetworkProtocol.HTTP
+            ),
             timeout=timeout,
             method=method,
             headers=headers or {},
-            verify_ssl=verify_ssl
+            verify_ssl=verify_ssl,
         )
 
         super().__init__(config, **kwargs)
@@ -358,9 +361,7 @@ class HTTPHandler(BaseNetworkHandler):
 
             # Test connection
             response = self._session.get(
-                self._url,
-                timeout=self._config.timeout,
-                verify=self._config.verify_ssl
+                self._url, timeout=self._config.timeout, verify=self._config.verify_ssl
             )
             response.raise_for_status()
             self._connected = True
@@ -383,7 +384,7 @@ class HTTPHandler(BaseNetworkHandler):
             # Enhanced formatter handling
             if self.formatter:
                 # Check if this is a streaming formatter that needs special handling
-                if hasattr(self.formatter, 'format_for_streaming'):
+                if hasattr(self.formatter, "format_for_streaming"):
                     message = self.formatter.format_for_streaming(record)
                 else:
                     message = self.formatter.format(record)
@@ -392,7 +393,7 @@ class HTTPHandler(BaseNetworkHandler):
 
             # Prepare data with enhanced record information
             data = {
-                "message": message, 
+                "message": message,
                 "level": record.level_name,
                 "timestamp": self.format_timestamp(record),
                 "layer": record.layer,
@@ -407,7 +408,7 @@ class HTTPHandler(BaseNetworkHandler):
                 "correlation_id": record.correlation_id,
                 "environment": record.environment,
                 "event_id": record.event_id,
-                "device_id": record.device_id
+                "device_id": record.device_id,
             }
 
             response = self._session.request(
@@ -416,11 +417,11 @@ class HTTPHandler(BaseNetworkHandler):
                 json=data,
                 headers=self._config.headers,
                 timeout=self._config.timeout,
-                verify=self._config.verify_ssl
+                verify=self._config.verify_ssl,
             )
             response.raise_for_status()
             self._stats["sent"] += 1
-            self._stats["bytes_sent"] += len(str(data).encode('utf-8'))
+            self._stats["bytes_sent"] += len(str(data).encode("utf-8"))
         except Exception as error:
             self._handle_network_error(error)
 
@@ -439,7 +440,7 @@ class WebSocketHandler(BaseNetworkHandler):
         url: str,
         path: str = "/ws",
         subprotocols: Optional[List[str]] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize WebSocket handler.
@@ -454,9 +455,13 @@ class WebSocketHandler(BaseNetworkHandler):
         config = NetworkConfig(
             host=parsed_url.hostname or "localhost",
             port=parsed_url.port or (443 if parsed_url.scheme == "wss" else 80),
-            protocol=NetworkProtocol.WSS if parsed_url.scheme == "wss" else NetworkProtocol.WS,
+            protocol=(
+                NetworkProtocol.WSS
+                if parsed_url.scheme == "wss"
+                else NetworkProtocol.WS
+            ),
             ws_path=path,
-            ws_subprotocols=subprotocols or []
+            ws_subprotocols=subprotocols or [],
         )
 
         super().__init__(config, **kwargs)
@@ -522,11 +527,7 @@ class SocketHandler(BaseNetworkHandler):
     """Socket-based network handler."""
 
     def __init__(
-        self,
-        host: str = "localhost",
-        port: int = 514,
-        protocol: str = "tcp",
-        **kwargs
+        self, host: str = "localhost", port: int = 514, protocol: str = "tcp", **kwargs
     ):
         """
         Initialize socket handler.
@@ -540,7 +541,7 @@ class SocketHandler(BaseNetworkHandler):
         config = NetworkConfig(
             host=host,
             port=port,
-            protocol=NetworkProtocol.TCP if protocol == "tcp" else NetworkProtocol.UDP
+            protocol=NetworkProtocol.TCP if protocol == "tcp" else NetworkProtocol.UDP,
         )
 
         super().__init__(config, **kwargs)
@@ -578,7 +579,7 @@ class SocketHandler(BaseNetworkHandler):
             else:
                 message = f"{record.level_name}: {record.message}"
 
-            data = message.encode('utf-8')
+            data = message.encode("utf-8")
             if self._protocol == "tcp":
                 self._connection.send(data)
             else:
@@ -603,7 +604,7 @@ class DatagramHandler(BaseNetworkHandler):
         host: str = "localhost",
         port: int = 514,
         max_packet_size: int = 1024,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize datagram handler.
@@ -614,11 +615,7 @@ class DatagramHandler(BaseNetworkHandler):
             max_packet_size: Packet size limit
             **kwargs: Additional arguments
         """
-        config = NetworkConfig(
-            host=host,
-            port=port,
-            protocol=NetworkProtocol.UDP
-        )
+        config = NetworkConfig(host=host, port=port, protocol=NetworkProtocol.UDP)
 
         super().__init__(config, **kwargs)
         self._max_packet_size = max_packet_size
@@ -652,9 +649,9 @@ class DatagramHandler(BaseNetworkHandler):
 
             # Truncate message if too long
             if len(message) > self._max_packet_size:
-                message = message[:self._max_packet_size - 3] + "..."
+                message = message[: self._max_packet_size - 3] + "..."
 
-            data = message.encode('utf-8')
+            data = message.encode("utf-8")
             self._connection.sendto(data, (self._config.host, self._config.port))
             self._stats["sent"] += 1
         except Exception as error:
@@ -671,10 +668,7 @@ class NetworkHandlerFactory:
     """Factory for creating network handlers."""
 
     @staticmethod
-    def create_handler(
-        handler_type: str,
-        **kwargs
-    ) -> BaseNetworkHandler:
+    def create_handler(handler_type: str, **kwargs) -> BaseNetworkHandler:
         """
         Create a network handler by type.
 

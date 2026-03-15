@@ -8,26 +8,41 @@ Depends On:
 Notes:
  - Header standardized by slim-header migration.
 """
-from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+
+from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 
 # Users can choose any destination combination
 config = LoggingConfig(
- layers={
- "auth": LogLayer(
- destinations=[LogDestination(type="file", path="logs/examples/02_destination_control_auth.log", format="json")]
- ),
- "api": LogLayer(
- destinations=[
- LogDestination(type="console", format="colored"),
- LogDestination(type="file", path="logs/examples/02_destination_control_api.jsonl", format="json-lines")
- ]
- ),
- "error": LogLayer(
- destinations=[
- LogDestination(type="file", path="logs/examples/02_destination_control_errors.log", format="plain-text"),
- ]
- )
- }
+    layers={
+        "auth": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/examples/02_destination_control_auth.log",
+                    format="json",
+                )
+            ]
+        ),
+        "api": LogLayer(
+            destinations=[
+                LogDestination(type="console", format="colored"),
+                LogDestination(
+                    type="file",
+                    path="logs/examples/02_destination_control_api.jsonl",
+                    format="json-lines",
+                ),
+            ]
+        ),
+        "error": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="file",
+                    path="logs/examples/02_destination_control_errors.log",
+                    format="plain-text",
+                ),
+            ]
+        ),
+    }
 )
 
 # Use context manager for automatic cleanup

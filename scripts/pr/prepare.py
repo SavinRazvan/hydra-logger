@@ -18,7 +18,6 @@ import argparse
 import subprocess
 from pathlib import Path
 
-
 GATES = [
     ["python", "-m", "pytest", "-q"],
     ["python", "scripts/pr/check_slim_headers.py", "--all-python", "--strict"],
@@ -44,9 +43,13 @@ def _head_sha() -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run PR prepare gates and artifact generation.")
+    parser = argparse.ArgumentParser(
+        description="Run PR prepare gates and artifact generation."
+    )
     parser.add_argument("--pr", required=True, help="PR number or URL")
-    parser.add_argument("--actor", required=True, help="Actor display name performing prepare action")
+    parser.add_argument(
+        "--actor", required=True, help="Actor display name performing prepare action"
+    )
     parser.add_argument(
         "--github-user",
         default="",
@@ -106,7 +109,7 @@ def main() -> int:
         for gate in GATES:
             code, output = _run(gate)
             label = "PASS" if code == 0 else "FAIL"
-            lines.append(f"- `{ ' '.join(gate) }` -> {label}")
+            lines.append(f"- `{' '.join(gate)}` -> {label}")
             if code != 0:
                 failed = True
                 lines.append("")

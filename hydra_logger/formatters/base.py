@@ -16,6 +16,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
+
 from ..types.records import LogRecord
 from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
 
@@ -111,11 +112,14 @@ class BaseFormatter(ABC):
         )
         self._initialized = True
         self._formatting_errors = []
+        self.include_headers = False
+        self._headers_written = False
+        self._file_id = ""
 
     def format_timestamp(self, record: LogRecord) -> str:
         """
         Format timestamp from log record using configured timestamp format.
-        
+
         Caches recent timestamps to avoid expensive datetime conversions.
 
         Args:
@@ -125,15 +129,15 @@ class BaseFormatter(ABC):
             Formatted timestamp string
         """
         from datetime import datetime, timezone
-        
+
         # Cache timestamp formatting
         # Timestamps within the same millisecond share the same formatted string
-        if not hasattr(self, '_timestamp_cache'):
+        if not hasattr(self, "_timestamp_cache"):
             # Initialize cache: (timestamp_bucket, formatted_string)
             self._timestamp_cache = {}
             self._timestamp_cache_size = 100  # Cache last 100 unique timestamps
             self._timestamp_cache_access = []  # LRU tracking
-        
+
         # Get timestamp value
         if hasattr(record, "timestamp") and record.timestamp:
             timestamp = record.timestamp
@@ -141,15 +145,15 @@ class BaseFormatter(ABC):
                 timestamp = timestamp.timestamp()
         else:
             timestamp = time.time()
-        
+
         # Round to millisecond bucket (1000 messages/sec = 1ms resolution)
         # This allows caching timestamps within the same millisecond
         timestamp_bucket = int(timestamp * 1000)  # Millisecond bucket
-        
+
         # Check cache first
         if timestamp_bucket in self._timestamp_cache:
             return self._timestamp_cache[timestamp_bucket]
-        
+
         # Cache miss - format timestamp
         if isinstance(timestamp, (int, float)):
             # Unix timestamp - use local timezone for handlers
@@ -160,20 +164,20 @@ class BaseFormatter(ABC):
         else:
             # Assume it's already a datetime
             dt = timestamp
-        
+
         formatted = self.timestamp_config.format_timestamp(dt)
-        
+
         # Update cache (LRU eviction)
         if len(self._timestamp_cache) >= self._timestamp_cache_size:
             # Remove oldest entry
             if self._timestamp_cache_access:
                 oldest = self._timestamp_cache_access.pop(0)
                 self._timestamp_cache.pop(oldest, None)
-        
+
         self._timestamp_cache[timestamp_bucket] = formatted
         if timestamp_bucket not in self._timestamp_cache_access:
             self._timestamp_cache_access.append(timestamp_bucket)
-        
+
         return formatted
 
     def _strip_ansi_colors(self, text: str) -> str:
@@ -379,3 +383,31 @@ class BaseFormatter(ABC):
             "initialized": self._initialized,
             "formatting_errors": len(self._formatting_errors),
         }
+
+    def format_for_streaming(self, record: LogRecord) -> str:
+        """Fallback streaming formatter."""
+        return self.format(record)
+
+    def reset_for_new_file(self) -> None:
+        """Reset per-file header state."""
+        self._headers_written = False
+
+    def set_file_id(self, file_id: str) -> None:
+        """Associate formatter state with a file identifier."""
+        self._file_id = file_id
+
+    def should_write_headers(self) -> bool:
+        """Return True when headers should be emitted for current file."""
+        return bool(self.include_headers) and not self._headers_written
+
+    def format_headers(self) -> str:
+        """Return a header block when enabled."""
+        return ""
+
+    def write_header(self, _file_obj: Any) -> None:
+        """Mark headers as written for current file."""
+        self._headers_written = True
+
+    def mark_headers_written(self) -> None:
+        """Explicitly mark headers as already emitted."""
+        self._headers_written = True

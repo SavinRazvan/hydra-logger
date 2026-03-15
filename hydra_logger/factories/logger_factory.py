@@ -10,14 +10,15 @@ Notes:
  - Header standardized by slim-header migration.
 """
 
-from typing import Optional, Union, Dict, Any
-from ..config.models import LoggingConfig
+from typing import Any, Dict, Optional, cast, Union
+
 from ..config.configuration_templates import configuration_templates
+from ..config.models import LoggingConfig
+from ..loggers.async_logger import AsyncLogger
+from ..loggers.composite_logger import CompositeAsyncLogger, CompositeLogger
 
 # Setup module removed - simplified architecture
 from ..loggers.sync_logger import SyncLogger
-from ..loggers.async_logger import AsyncLogger
-from ..loggers.composite_logger import CompositeLogger, CompositeAsyncLogger
 
 
 class LoggerFactory:
@@ -141,26 +142,30 @@ class LoggerFactory:
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
     ) -> SyncLogger:
         """Create a synchronous logger."""
-        return self.create_logger(config=config, logger_type="sync", **kwargs)
+        return cast(SyncLogger, self.create_logger(config=config, logger_type="sync", **kwargs))
 
     def create_async_logger(
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
     ) -> AsyncLogger:
         """Create an asynchronous logger."""
-        return self.create_logger(config=config, logger_type="async", **kwargs)
+        return cast(AsyncLogger, self.create_logger(config=config, logger_type="async", **kwargs))
 
     def create_composite_logger(
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
     ) -> CompositeLogger:
         """Create a composite logger for complex scenarios."""
-        return self.create_logger(config=config, logger_type="composite", **kwargs)
+        return cast(
+            CompositeLogger,
+            self.create_logger(config=config, logger_type="composite", **kwargs),
+        )
 
     def create_composite_async_logger(
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
     ) -> CompositeAsyncLogger:
         """Create a composite async logger for complex scenarios."""
-        return self.create_logger(
-            config=config, logger_type="composite-async", **kwargs
+        return cast(
+            CompositeAsyncLogger,
+            self.create_logger(config=config, logger_type="composite-async", **kwargs),
         )
 
     def create_logger_with_template(
@@ -254,7 +259,7 @@ class LoggerFactory:
                 extension_type = extension_config.get("type", extension_name)
 
                 # Create extension with user configuration
-                extension = manager.create_extension(
+                manager.create_extension(
                     extension_name, extension_type, **extension_config
                 )
 
@@ -264,7 +269,7 @@ class LoggerFactory:
                     print(f"Extension '{extension_name}' created but disabled")
 
             # Store manager in config for logger access
-            config._extension_manager = manager
+            setattr(config, "_extension_manager", manager)
 
         except ImportError as e:
             print(f"Extension system not available: {e}")

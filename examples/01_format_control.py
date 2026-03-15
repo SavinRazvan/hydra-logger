@@ -8,7 +8,8 @@ Depends On:
 Notes:
  - Header standardized by slim-header migration.
 """
-from hydra_logger import LoggingConfig, LogLayer, LogDestination, create_logger
+
+from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 
 # Users can choose any format for any destination
 config = LoggingConfig(
@@ -16,10 +17,18 @@ config = LoggingConfig(
         "app": LogLayer(
             destinations=[
                 LogDestination(type="console", format="json", use_colors=True),
-                LogDestination(type="file", path="logs/examples/01_format_control.log", format="plain-text"),
-                LogDestination(type="file", path="logs/examples/01_format_control.jsonl", format="json-lines")
-                ]
-            )
+                LogDestination(
+                    type="file",
+                    path="logs/examples/01_format_control.log",
+                    format="plain-text",
+                ),
+                LogDestination(
+                    type="file",
+                    path="logs/examples/01_format_control.jsonl",
+                    format="json-lines",
+                ),
+            ]
+        )
     }
 )
 
