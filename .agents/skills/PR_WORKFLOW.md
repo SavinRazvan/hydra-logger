@@ -48,6 +48,10 @@ If upstream tracking is missing:
 
 Do not proceed to merge until publication and linkage checks pass.
 
+For one-shot merge + cleanup, use:
+
+- `python scripts/pr/workflow.py --phase merge --auto-finalize [--feature-branch "<branch-if-on-main>"]`
+
 ## Required Verification Before Merge
 
 Run at minimum:

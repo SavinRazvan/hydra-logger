@@ -215,6 +215,9 @@ def _phase_merge(pr_number: str, args: argparse.Namespace, profile: dict[str, An
         write_cmd.extend(["--github-user", github_user])
     _run_or_fail(write_cmd)
 
+    if args.auto_finalize:
+        _phase_finalize(args)
+
 
 def _phase_finalize(args: argparse.Namespace) -> None:
     branch = _current_branch()
@@ -257,6 +260,12 @@ def main() -> int:
     parser.add_argument("--agents", default=None, help="Agent pipeline text.")
     parser.add_argument("--draft", action="store_true", default=False)
     parser.add_argument("--skip-gates", action="store_true", default=False)
+    parser.add_argument(
+        "--auto-finalize",
+        action="store_true",
+        default=False,
+        help="When used with --phase merge, run finalize automatically after merge.",
+    )
     parser.add_argument(
         "--profile",
         default=".local/agent_profile.json",

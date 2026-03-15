@@ -26,6 +26,8 @@ This lets workflow scripts infer attribution defaults instead of passing them ea
   - `python scripts/pr/workflow.py --phase prepare`
 - Merge phase:
   - `python scripts/pr/workflow.py --phase merge`
+  - or merge + cleanup in one shot:
+  - `python scripts/pr/workflow.py --phase merge --auto-finalize --feature-branch "<branch-if-running-from-main>"`
 - Finalize phase:
   - `python scripts/pr/workflow.py --phase finalize --feature-branch "<branch-if-on-main>"`
 
