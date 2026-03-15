@@ -1,5 +1,3 @@
-from typing import Optional
-
 """
 Role: Init implementation.
 Used By:
@@ -13,6 +11,8 @@ Depends On:
 Notes:
  - Header standardized by slim-header migration.
 """
+
+from typing import Optional
 
 # Standardized record creation
 from ..types.records import (

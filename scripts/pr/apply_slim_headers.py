@@ -302,8 +302,10 @@ def main() -> int:
             skipped += 1
             print(f"SKIP {path.as_posix()}: {note}")
 
-    print(f"\nSlim header migration summary -> scanned={
-        len(files)} changed={changed} skipped={skipped} errors={errors}")
+    print(
+        f"\nSlim header migration summary -> scanned={len(files)} "
+        f"changed={changed} skipped={skipped} errors={errors}"
+    )
     return 1 if errors else 0
 
 
