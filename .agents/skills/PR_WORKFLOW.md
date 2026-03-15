@@ -12,14 +12,27 @@ Use these skills in sequence:
 
 Do not skip steps.
 
-## Required Publish Checkpoint (After Commit, Before Merge)
+## Required PR Creation (After Commit/Push)
+
+Create PRs with the project wrapper script so attribution is always present:
+
+1. `git push -u origin HEAD`
+2. `python scripts/pr/create.py --title "<title>" --summary "<bullet-1>" --summary "<bullet-2>" --test-plan "<cmd>" --actor "<name>" --github-user "<@handle>" --agents "<agent-pipeline>"`
+
+The generated PR body must include this attribution block:
+
+- `Author: <name>`
+- `GitHub-User: <@handle>`
+- `Agent/s: <agent-pipeline>`
+- `Made-with: Cursor`
+
+## Required Publish Checkpoint (After PR Create, Before Merge)
 
 After `commit -> push -> PR create`, verify publication and linkage:
 
-1. `git push -u origin HEAD`
-2. `python scripts/pr/verify_publish.py --branch "$(git branch --show-current)"`
-3. `gh pr view --json number,url,headRefName,state,mergeStateStatus`
-4. `gh pr checks --watch` (or `gh pr checks` for non-blocking view)
+1. `python scripts/pr/verify_publish.py --branch "$(git branch --show-current)"`
+2. `gh pr view --json number,url,headRefName,state,mergeStateStatus`
+3. `gh pr checks --watch` (or `gh pr checks` for non-blocking view)
 
 If upstream tracking is missing:
 

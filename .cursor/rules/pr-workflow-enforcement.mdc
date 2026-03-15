@@ -10,10 +10,15 @@ alwaysApply: true
   - keep branches short-lived and single-slice
   - implement and test
   - push branch
-  - open PR
+  - open PR with `python scripts/pr/create.py` (not ad-hoc `gh pr create`)
   - verify publish/linkage (`scripts/pr/verify_publish.py`, `gh pr view`, `gh pr checks`)
   - run `/review-pr -> /prepare-pr -> /merge-pr`
   - finalize workflow (`main` sync + local/remote branch cleanup)
+- PR body must include attribution footer:
+  - `Author: <name>`
+  - `GitHub-User: <@handle>`
+  - `Agent/s: <agent-pipeline>`
+  - `Made-with: Cursor`
 - Do not merge directly to `main` from a local branch.
 - Do not skip maintainer workflow phases; each phase must produce artifacts:
   - `.local/review.md`
