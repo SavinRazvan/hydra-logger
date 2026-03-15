@@ -1,0 +1,16 @@
+{
+  "venvPath": ".",
+  "venv": ".hydra_env",
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic",
+  "include": [
+    "hydra_logger",
+    "tests"
+  ],
+  "exclude": [
+    ".hydra_env",
+    "**/__pycache__",
+    "build",
+    "dist"
+  ]
+}

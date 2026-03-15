@@ -26,14 +26,13 @@ Closes #[issue_number]
 ### Test Commands
 ```bash
 # Run all tests
-python -m pytest tests/ -v
+python -m pytest -q
 
 # Run with coverage
-python -m pytest tests/ --cov=hydra_logger --cov-report=term-missing
+python -m pytest --cov=hydra_logger --cov-report=term-missing -q
 
 # Run examples
-python demos/examples/basic_usage.py
-python demos/multi_module_demo.py
+python examples/run_all_examples.py
 ```
 
 ## 📋 Checklist
@@ -44,6 +43,14 @@ python demos/multi_module_demo.py
 - [ ] CHANGELOG.md updated for significant changes
 - [ ] No new warnings or errors introduced
 - [ ] All CI checks pass
+
+### Module Documentation Completion (required when `hydra_logger/**` changes)
+
+- [ ] Affected module pages in `docs/modules/` were reviewed and updated.
+- [ ] `docs/modules/README.md` index updated if module boundaries changed.
+- [ ] `docs/MODULE_DOCS_AUDIT.md` findings and coverage matrix refreshed.
+- [ ] Mermaid workflow diagrams updated for changed runtime flows.
+- [ ] Links from `README.md` and `docs/ARCHITECTURE.md` to module docs were validated.
 
 ## 📊 Impact Assessment
 

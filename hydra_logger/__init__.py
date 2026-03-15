@@ -1,45 +1,8 @@
 """
-Hydra-Logger: Advanced Modular Logging Framework
+Hydra-Logger public package API.
 
-A comprehensive, extensible logging system with unified sync/async support,
-modular architecture, and adaptive configuration management. Built for
-performance, flexibility, and ease of use in modern Python applications.
-
-FEATURES:
-- Unified sync/async logging interface
-- Modular handler and formatter system
-- Adaptive configuration management
-- Performance-optimized logging operations
-- Security and data protection features
-- Security and compliance features
-- Plugin system for extensibility
-- Multiple output formats and destinations
-
-CORE COMPONENTS:
-- Loggers: SyncLogger, AsyncLogger, CompositeLogger
-- Handlers: Console, file, network, database, cloud handlers
-- Formatters: JSON, plain text, CSV, syslog formatters
-- Configuration: MagicConfigs, LoggingConfig, LogDestination
-- Types: LogRecord, LogLevel, LogContext
-- Utilities: Text processing, time management, file operations
-
-USAGE:
-    from hydra_logger import SyncLogger, AsyncLogger, create_logger
-
-    # Simple usage
-    logger = SyncLogger("my_app")
-    logger.info("Application started")
-
-    # Async usage
-    async_logger = AsyncLogger("my_app")
-    await async_logger.info("Async operation completed")
-
-    # Factory pattern
-    logger = create_logger("my_app", level="INFO")
-
-    # Python logging style
-    from hydra_logger import getLogger
-    logger = getLogger("my_app")
+Exports logger implementations, factory helpers, configuration models, core
+types, and key exception classes for application use.
 """
 
 __version__ = "0.4.0"

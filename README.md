@@ -59,7 +59,16 @@ A dynamic, scalable, event-oriented logging system built with KISS (Keep It Simp
 
 ### Data Flow
 
-![Hydra-Logger Data Flow](data/diagrams/Hydra-Logger%20Data%20Flow-2026-01-22-095325.png)
+```mermaid
+flowchart TD
+  appCall[Application] --> loggerNode[Logger Sync or Async]
+  loggerNode --> recordNode[CreateLogRecord]
+  recordNode --> extNode[ApplyExtensionsIfEnabled]
+  extNode --> layerNode[ResolveLayer]
+  layerNode --> handlerNode[DispatchHandlers]
+  handlerNode --> formatNode[FormatRecord]
+  formatNode --> outputNode[WriteToDestination]
+```
 
 **Simplified Data Flow:**
 
@@ -82,6 +91,7 @@ Handler(s)
 ```
 
 > 📖 **Detailed Documentation**: For comprehensive workflow details, see [WORKFLOW_ARCHITECTURE.md](docs/WORKFLOW_ARCHITECTURE.md)
+> 📚 **Module Documentation**: For package-by-package docs and maintenance workflow, see [docs/modules/README.md](docs/modules/README.md)
 
 ---
 
@@ -143,6 +153,16 @@ config = LoggingConfig(
 ```bash
 pip install hydra-logger
 ```
+
+### Development Environment (Conda)
+
+```bash
+conda env create -p ./.hydra_env -f environment.yml
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "$(pwd)/.hydra_env"
+```
+
+For update, lockfile, and troubleshooting workflows, see `docs/ENVIRONMENT_SETUP.md`.
 
 ### Basic Usage
 
@@ -256,12 +276,17 @@ See [examples/README.md](examples/README.md) for a complete list of all 16 examp
 ## 🧪 Testing
 
 ```bash
+# Canonical test gate
+python -m pytest -q
+
 # Run all examples (includes verification)
 python3 examples/run_all_examples.py
 
 # Run performance benchmarks
 python3 performance_benchmark.py
 ```
+
+Use the Conda `.hydra_env` workflow from `docs/ENVIRONMENT_SETUP.md` before running these commands.
 
 ---
 
