@@ -18,6 +18,10 @@ This lets workflow scripts infer attribution defaults instead of passing them ea
 
 ## Single-Phase Orchestration
 
+Preflight environment health before script-first workflow commands:
+
+- `python scripts/dev/check_env_health.py --strict`
+
 - Start implementation branch from synced `main`:
   - `python scripts/pr/workflow.py --phase start --branch "feature/<scope>"`
 - Create PR:
@@ -51,6 +55,8 @@ Notes:
 
 - `create/review/prepare/merge/full` are blocked on `main`; run them from a feature branch.
 - Use `--phase merge --auto-finalize` for one-shot merge + cleanup.
+- `scripts/pr/workflow.py` now runs env preflight by default for `create/review/prepare/merge/full`.
+- Emergency-only override: `--skip-env-check`.
 
 ## Machine-Readable Status
 
