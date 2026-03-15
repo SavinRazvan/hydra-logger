@@ -263,6 +263,9 @@ See [examples/README.md](examples/README.md) for a complete list of all 16 examp
 ## 🧪 Testing
 
 ```bash
+# Environment preflight (recommended before quality gates)
+python scripts/dev/check_env_health.py --strict
+
 # Canonical test gate
 python -m pytest -q
 

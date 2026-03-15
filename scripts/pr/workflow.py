@@ -39,6 +39,43 @@ def _run_or_fail(cmd: list[str]) -> None:
         raise RuntimeError(f"command failed ({code}): {' '.join(cmd)}")
 
 
+def _phase_requires_env_check(phase: str) -> bool:
+    return phase in {"create", "review", "prepare", "merge", "full"}
+
+
+def _run_env_preflight(skip_env_check: bool) -> None:
+    if skip_env_check:
+        return
+
+    cmd = [_py(), "scripts/dev/check_env_health.py", "--strict", "--json"]
+    code, output = _run(cmd)
+    if code == 0:
+        return
+
+    details = output.strip()
+    if details:
+        try:
+            payload = json.loads(details)
+            checks = payload.get("checks", [])
+            failing = [
+                check.get("recommended_fix", "")
+                for check in checks
+                if check.get("status") in {"warn", "fail"}
+            ]
+            hints = "\n".join(f"- {hint}" for hint in failing if hint)
+            if hints:
+                details = (
+                    f"environment preflight failed ({payload.get('status', 'unknown')}).\n"
+                    f"Suggested fixes:\n{hints}"
+                )
+        except json.JSONDecodeError:
+            pass
+    else:
+        details = "environment preflight failed with no output"
+
+    raise RuntimeError(f"{details}\nUse --skip-env-check to override temporarily.")
+
+
 def _current_branch() -> str:
     code, output = _run(["git", "branch", "--show-current"])
     if code != 0:
@@ -310,6 +347,12 @@ def main() -> int:
     parser.add_argument("--draft", action="store_true", default=False)
     parser.add_argument("--skip-gates", action="store_true", default=False)
     parser.add_argument(
+        "--skip-env-check",
+        action="store_true",
+        default=False,
+        help="Skip `.hydra_env` health preflight (emergency use only).",
+    )
+    parser.add_argument(
         "--auto-finalize",
         action="store_true",
         default=False,
@@ -329,6 +372,9 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        if _phase_requires_env_check(args.phase):
+            _run_env_preflight(skip_env_check=args.skip_env_check)
+
         profile = _load_profile(args.profile)
         pr_number = _resolve_pr_number(args.pr) if args.phase not in {"start", "create"} else ""
 

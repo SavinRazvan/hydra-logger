@@ -265,6 +265,11 @@ config.local.toml
 .agents/
 .cursor/
 scripts/
+!scripts/
+scripts/*
+!scripts/dev/
+scripts/dev/*
+!scripts/dev/check_env_health.py
 AGENTS.md
 docs/AGENT_AUTOMATION.md
 _knowledge/

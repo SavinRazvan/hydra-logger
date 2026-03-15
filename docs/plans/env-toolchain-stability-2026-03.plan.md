@@ -148,20 +148,20 @@ Run and record evidence for:
 
 ## Acceptance Criteria
 
-- [ ] `scripts/dev/check_env_health.py` exists and implements defined checks.
-- [ ] Script supports both human-readable and JSON output with stable schema.
-- [ ] Script exits non-zero for broken state and blocks integrated workflows.
+- [x] `scripts/dev/check_env_health.py` exists and implements defined checks.
+- [x] Script supports both human-readable and JSON output with stable schema.
+- [x] Script exits non-zero for broken state and blocks integrated workflows.
 - [ ] `scripts/pr/*` wrappers run preflight by default (with explicit override flag).
-- [ ] Env repair instructions are documented and tested on current platform.
-- [ ] Results artifact captures evidence for each validation scenario.
+- [x] Env repair instructions are documented and tested on current platform.
+- [x] Results artifact captures evidence for each validation scenario.
 
 ## Definition Of Done
 
 - [ ] Planned scope completed and merged.
-- [ ] Environment preflight is the default path for local workflow scripts.
+- [x] Environment preflight is the default path for local workflow scripts.
 - [ ] Known mixed Conda+venv corruption pattern is detected before command execution.
 - [ ] No contradictory environment instructions remain across docs.
-- [ ] Evidence captured in `docs/audit/env-toolchain-stability-2026-03-15.results.md`.
+- [x] Evidence captured in `docs/audit/env-toolchain-stability-2026-03-15.results.md`.
 
 ## Risks And Mitigations
 
