@@ -263,12 +263,11 @@ config.local.toml
 .hydra_backup
 .local/
 .agents/
-.cursor/*
-!.cursor/rules/
-!.cursor/rules/*.mdc
+.cursor/
 scripts/
 AGENTS.md
-
+docs/AGENT_AUTOMATION.md
+_knowledge/
 
 # Temporary Tools
 .tmp_tools
