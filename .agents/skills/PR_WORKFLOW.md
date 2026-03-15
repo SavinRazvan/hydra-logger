@@ -2,6 +2,13 @@
 
 This file is the maintainer source of truth for PR handling in this repository.
 
+## Script-First Principle
+
+Prefer workflow scripts over manual command chains to reduce token usage and drift:
+
+- `python scripts/pr/workflow.py --phase <create|review|prepare|merge|finalize|full>`
+- `python scripts/pr/status.py --json`
+
 ## Required Skill Order
 
 Use these skills in sequence:
@@ -17,7 +24,7 @@ Do not skip steps.
 Create PRs with the project wrapper script so attribution is always present:
 
 1. `git push -u origin HEAD`
-2. `python scripts/pr/create.py --title "<title>" --summary "<bullet-1>" --summary "<bullet-2>" --test-plan "<cmd>" --actor "<name>" --github-user "<@handle>" --agents "<agent-pipeline>"`
+2. `python scripts/pr/workflow.py --phase create --title "<title>" --summary "<bullet-1>" --summary "<bullet-2>" [--test-plan "<cmd>"]`
 
 The generated PR body must include this attribution block:
 
@@ -30,9 +37,10 @@ The generated PR body must include this attribution block:
 
 After `commit -> push -> PR create`, verify publication and linkage:
 
-1. `python scripts/pr/verify_publish.py --branch "$(git branch --show-current)"`
-2. `gh pr view --json number,url,headRefName,state,mergeStateStatus`
-3. `gh pr checks --watch` (or `gh pr checks` for non-blocking view)
+1. `python scripts/pr/status.py --json`
+2. `python scripts/pr/verify_publish.py --branch "$(git branch --show-current)"`
+3. `gh pr view --json number,url,headRefName,state,mergeStateStatus`
+4. `gh pr checks --watch` (or `gh pr checks` for non-blocking view)
 
 If upstream tracking is missing:
 

@@ -10,10 +10,13 @@ alwaysApply: true
   - keep branches short-lived and single-slice
   - implement and test
   - push branch
-  - open PR with `python scripts/pr/create.py` (not ad-hoc `gh pr create`)
+  - open PR with `python scripts/pr/workflow.py --phase create` (not ad-hoc `gh pr create`)
   - verify publish/linkage (`scripts/pr/verify_publish.py`, `gh pr view`, `gh pr checks`)
   - run `/review-pr -> /prepare-pr -> /merge-pr`
   - finalize workflow (`main` sync + local/remote branch cleanup)
+- Prefer orchestration over prompt-heavy chains:
+  - `python scripts/pr/workflow.py --phase <review|prepare|merge|finalize|full>`
+  - `python scripts/pr/status.py --json`
 - PR body must include attribution footer:
   - `Author: <name>`
   - `GitHub-User: <@handle>`
