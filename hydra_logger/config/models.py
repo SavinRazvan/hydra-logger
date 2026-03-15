@@ -5,7 +5,7 @@ This module provides Pydantic-based configuration models with:
 - Automatic validation and type safety
 - Multi-layered logging architecture (layers + destinations)
 - Support for all major output formats and protocols
-- Async sink configurations for cloud and database logging
+- Built-in destination mapping for console, file, network-adjacent async file/cloud
 - Performance-oriented defaults with optional security features
 - Python logging compatibility and inheritance
 
@@ -27,7 +27,7 @@ The configuration system uses a three-tier architecture:
 3. LogDestination (Handler Configuration)
    - Equivalent to Python's Handler class
    - Defines output destination and format
-   - Supports console, file, async_file, and cloud destinations
+   - Supports built-in destination types that map to current handler families
    - Configurable retry, timeout, and connection settings
 
 COLOR SYSTEM:
@@ -62,7 +62,7 @@ Basic Configuration:
         }
     )
 
-Async Cloud Logging:
+Async Cloud Schema (roadmap/custom integration):
     cloud_dest = LogDestination(
         type="async_cloud",
         service_type="aws_cloudwatch",
@@ -92,22 +92,22 @@ class LogDestination(BaseModel):
     Configuration for a log destination (handler).
 
     This class defines how and where log messages are output, equivalent to Python's
-    Handler class. It supports multiple destination types including console, file,
-    async_file, and cloud services.
+    Handler class. Built-in handler families currently support console, file,
+    rotating file, network, null, plus async console/file and async cloud schema.
 
     Attributes:
-        type: Destination type (console, file, async_file, async_cloud, etc.)
+        type: Destination type currently supported by built-in mapping
         level: Log level for this destination (inherits from layer if None)
         path: File path for file destinations (required for file type)
         format: Output format (plain-text, json-lines, csv, syslog, gelf, etc.)
         use_colors: Enable colors for console destinations only
         max_size: Maximum file size for rotation (e.g., "10MB")
         backup_count: Number of backup files to keep
-        url: URL for async HTTP destinations
-        connection_string: Database connection string for async database
-        queue_url: Queue URL for async queue destinations
+        url: Reserved for custom/roadmap async sink integrations
+        connection_string: Reserved for custom/roadmap async sink integrations
+        queue_url: Reserved for custom/roadmap async sink integrations
         service_type: Cloud service type for async cloud destinations
-        credentials: Authentication credentials for cloud services
+        credentials: Authentication credentials for async cloud integrations
         retry_count: Number of retries for async operations
         retry_delay: Delay between retries in seconds
         timeout: Timeout for async operations in seconds
@@ -167,12 +167,17 @@ class LogDestination(BaseModel):
     )
 
     # Async sink specific fields
-    url: Optional[str] = Field(default=None, description="URL for async HTTP sinks")
+    url: Optional[str] = Field(
+        default=None,
+        description="Reserved for custom/roadmap async sink integrations",
+    )
     connection_string: Optional[str] = Field(
-        default=None, description="Connection string for async database sinks"
+        default=None,
+        description="Reserved for custom/roadmap async sink integrations",
     )
     queue_url: Optional[str] = Field(
-        default=None, description="Queue URL for async queue sinks"
+        default=None,
+        description="Reserved for custom/roadmap async sink integrations",
     )
     service_type: Optional[str] = Field(
         default=None, description="Cloud service type for async cloud sinks"
@@ -216,50 +221,6 @@ class LogDestination(BaseModel):
             and (not v or (v and not v.strip()))
         ):
             raise ValueError("Path is required for file destinations")
-        return v
-
-    @field_validator("url")
-    @classmethod
-    def validate_async_http_url(
-        cls, v: Optional[str], info: ValidationInfo
-    ) -> Optional[str]:
-        """Ensure that async HTTP destinations have a URL specified."""
-        if (
-            info.data
-            and info.data.get("type") == "async_http"
-            and (not v or (v and not v.strip()))
-        ):
-            raise ValueError("URL is required for async HTTP destinations")
-        return v
-
-    @field_validator("connection_string")
-    @classmethod
-    def validate_async_database_connection(
-        cls, v: Optional[str], info: ValidationInfo
-    ) -> Optional[str]:
-        """Ensure that async database destinations have a connection string specified."""
-        if (
-            info.data
-            and info.data.get("type") == "async_database"
-            and (not v or (v and not v.strip()))
-        ):
-            raise ValueError(
-                "Connection string is required for async database destinations"
-            )
-        return v
-
-    @field_validator("queue_url")
-    @classmethod
-    def validate_async_queue_url(
-        cls, v: Optional[str], info: ValidationInfo
-    ) -> Optional[str]:
-        """Ensure that async queue destinations have a queue URL specified."""
-        if (
-            info.data
-            and info.data.get("type") == "async_queue"
-            and (not v or (v and not v.strip()))
-        ):
-            raise ValueError("Queue URL is required for async queue destinations")
         return v
 
     @field_validator("service_type")
@@ -372,21 +333,6 @@ class LogDestination(BaseModel):
             elif file_ext == ".log" and (self.format is None or self.format == ""):
                 self.format = "plain-text"
         
-        elif self.type == "async_http" and (
-            not self.url or (self.url and not self.url.strip())
-        ):
-            raise ValueError("URL is required for async HTTP destinations")
-        elif self.type == "async_database" and (
-            not self.connection_string
-            or (self.connection_string and not self.connection_string.strip())
-        ):
-            raise ValueError(
-                "Connection string is required for async database destinations"
-            )
-        elif self.type == "async_queue" and (
-            not self.queue_url or (self.queue_url and not self.queue_url.strip())
-        ):
-            raise ValueError("Queue URL is required for async queue destinations")
         elif self.type == "async_cloud" and (
             not self.service_type
             or (self.service_type and not self.service_type.strip())

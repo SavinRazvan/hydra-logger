@@ -121,7 +121,7 @@ BENEFITS:
 - Production-ready with monitoring and health checks
 """
 
-from .base import BaseLogger
+from .base import BaseLogger, PerformanceProfiles
 from .sync_logger import SyncLogger
 from .async_logger import AsyncLogger
 from .composite_logger import CompositeLogger, CompositeAsyncLogger
@@ -135,8 +135,6 @@ from ..types.records import (
     CONTEXT_STRATEGY,
     AUTO_CONTEXT_STRATEGY,
 )
-
-# PerformanceProfiles is now in base.py
 
 # No factory imports to avoid circular imports
 

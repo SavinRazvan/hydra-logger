@@ -1,53 +1,8 @@
 """
-Type Definitions and Data Structures for Hydra-Logger
+Type definitions for the public Hydra-Logger API.
 
-This module contains all the core data types used throughout the system
-including log records, levels, context management, metadata handling,
-event processing, and system enums. It provides type definitions for
-consistent data handling across all components.
-
-CORE TYPES:
-- LogRecord: Optimized log record with essential fields
-- LogRecordBatch: High-performance batch processing
-- LogLevel: Standard log level definitions and management
-- LogContext: Context management and caller information
-# LogMetadata removed - simplified architecture
-# Event system removed - simplified architecture
-
-SYSTEM ENUMS:
-- HandlerType: Log handler types (console, file, network, etc.)
-- FormatterType: Log formatter types (JSON, plain text, etc.)
-- PluginType: Plugin categories and types
-- SecurityLevel: Security and data protection levels
-- QueuePolicy: Queue management policies
-- RotationStrategy: File rotation strategies
-
-CONFIGURATION TYPES:
-- HandlerConfig: Handler configuration and settings
-- FormatterConfig: Formatter configuration and options
-- PluginConfig: Plugin configuration and metadata
-- FormatOptions: Formatting options and customization
-
-USAGE:
-    from hydra_logger.types import LogRecord, LogLevel, create_log_record
-
-    # Create a log record
-    record = create_log_record(
-        level="INFO",
-        message="Application started",
-        strategy="minimal"
-    )
-
-    # Use log levels
-    if LogLevel.INFO >= LogLevel.DEBUG:
-        print("Debug logging is enabled")
-
-    # Create context
-    from hydra_logger.types import LogContext, ContextType
-    context = LogContext(
-        context_type=ContextType.REQUEST,
-        metadata={"user_id": "123", "session_id": "abc"}
-    )
+This package re-exports record, level, context, and enum types used across
+logger, handler, formatter, and configuration modules.
 """
 
 from .records import LogRecord, LogRecordBatch
@@ -148,6 +103,4 @@ __all__ = [
     "is_valid_level",
     "all_levels",
     "all_level_names",
-    "create_metadata",
-    "merge_metadata",
 ]

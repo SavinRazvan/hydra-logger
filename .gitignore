@@ -25,8 +25,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-.cursorignore
-.cursor
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -140,6 +138,7 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.hydra_env
 env/
 venv/
 ENV/
@@ -201,16 +200,6 @@ cython_debug/
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
 #  refer to https://docs.cursor.com/context/ignore-files
 
-# Hydra-Logger specific
-demo_logs/
-logs/
-migration/
-test.log
-*.log
-.cursorignore
-.cursorindexingignore
-.hydra_backup
-
 # Marimo
 marimo/_static/
 marimo/_lsp/
@@ -265,8 +254,15 @@ Thumbs.db
 # Local configuration files
 config.local.yaml
 config.local.toml
-.env.local_tests_logs/
+.env.local
 .coveragerc
 
-_old_implementation-knowledge
-._backup_copy
+# Cursor and local workflow artifacts
+.cursorignore
+.cursorindexingignore
+.hydra_backup
+.local/
+.agents/
+.cursor/
+scripts/
+AGENTS.md

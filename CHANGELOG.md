@@ -6,6 +6,23 @@ All notable changes to Hydra-Logger will be documented in this file.
 
 ## Recent Updates
 
+### Documentation System Overhaul (Modules + Mermaid) ✅ COMPLETED
+
+* ✅ **Modular Documentation Baseline**
+  - Added a dedicated module documentation set under `docs/modules/` for all current `hydra_logger/` packages.
+  - Standardized each module page structure for scope, responsibilities, key files, API surface, workflows, caveats, and maintenance.
+  - Added module governance and acceptance criteria to keep docs aligned with code changes.
+
+* ✅ **Architecture And Workflow Reconciliation**
+  - Refactored `docs/ARCHITECTURE.md` to remain high-level and route readers to module-level canonical pages.
+  - Refactored `docs/WORKFLOW_ARCHITECTURE.md` to focus on runtime workflow views aligned with current module behavior.
+  - Added and validated Mermaid workflows for onboarding and execution-path clarity.
+
+* ✅ **Audit And PR Workflow Integration**
+  - Refreshed `docs/MODULE_DOCS_AUDIT.md` with current findings, coverage matrix, and documented gaps.
+  - Updated PR template checklist with module documentation completion gates for `hydra_logger/**` changes.
+  - Replaced removed PNG-based documentation flow references with Mermaid diagrams.
+
 ### Performance Optimizations & Benchmark Improvements ✅ COMPLETED
 
 * ✅ **Benchmark Performance Optimizations**

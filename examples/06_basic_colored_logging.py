@@ -16,9 +16,10 @@ except ImportError:
     print("ERROR: hydra_logger package not found")
     print("=" * 70)
     print("\nTo fix this:")
-    print("  1. Activate virtual environment: source .venv/bin/activate")
-    print("  2. Or install package: pip install -e .")
-    print("  3. Or run setup: ./setup_env.sh")
+    print("  1. Create env: conda env create -p ./.hydra_env -f environment.yml")
+    print("  2. Activate env: conda activate $(pwd)/.hydra_env")
+    print("  3. Or reinstall package: python -m pip install -e \".[dev]\"")
+    print("  4. See docs: docs/ENVIRONMENT_SETUP.md")
     print("\n" + "=" * 70)
     sys.exit(1)
 
