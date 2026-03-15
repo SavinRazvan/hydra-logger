@@ -6,16 +6,15 @@ Audit date: 2026-03-15
 
 ### High
 
-- Configuration models still advertise async destination families (`async_database`, `async_queue`, `async_cloud`) that do not currently map to concrete handlers in `hydra_logger/handlers/`.
+- None.
 
 ### Medium
 
-- `docs/ARCHITECTURE.md` and `docs/WORKFLOW_ARCHITECTURE.md` overlap heavily with module-level pages and can diverge unless the module docs are treated as canonical.
-- Package-level `__init__.py` docstrings were cleaned, but should remain concise to avoid future drift.
+- `docs/ARCHITECTURE.md` and `docs/WORKFLOW_ARCHITECTURE.md` intentionally summarize high-level behavior; keep module pages canonical to prevent future drift.
 
 ### Low
 
-- Prior documentation lacked a strict PR acceptance gate for module-doc completeness; this is now addressed in governance and PR template checklist sections.
+- Module documentation completion gates are now present in governance and PR template checklists; keep this requirement enforced for all `hydra_logger/**` changes.
 
 ## Code-Reality Baseline
 
@@ -48,7 +47,7 @@ Audit date: 2026-03-15
 
 ### Export gaps requiring follow-up
 
-- `config/__init__.py`, `types/__init__.py`, `handlers/__init__.py`, and root `hydra_logger/__init__.py` now have fully bound `__all__` exports.
+- `config/__init__.py`, `types/__init__.py`, `handlers/__init__.py`, `loggers/__init__.py`, and root `hydra_logger/__init__.py` now have fully bound `__all__` exports.
 
 ## Coverage Matrix
 
@@ -103,8 +102,8 @@ Coverage status: 100 percent of current package directories have dedicated modul
 ### Immediate next 3 actions
 
 1. Keep `docs/modules/README.md` as canonical index and keep top-level docs linked to it.
-2. Keep package-level docstrings concise and aligned to the currently exported surface.
-3. Decide whether async destination types in `config/models.py` are roadmap-only (documented as such) or should be implemented with real handlers.
+2. Keep `config/models.py` integration fields explicitly marked as built-in vs custom/roadmap.
+3. On each module change, refresh `docs/audit/MATRIX.md` and add a dated results artifact under `docs/audit/`.
 
 ## Release Notes (Docs Update)
 
@@ -117,4 +116,4 @@ Coverage status: 100 percent of current package directories have dedicated modul
 
 ### Intentionally deferred
 
-- Runtime implementation or deprecation of async destination families in `hydra_logger/config/models.py`.
+- Built-in runtime implementation for custom async sink integrations beyond current handler families.

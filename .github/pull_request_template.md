@@ -43,6 +43,7 @@ python examples/run_all_examples.py
 - [ ] CHANGELOG.md updated for significant changes
 - [ ] No new warnings or errors introduced
 - [ ] All CI checks pass
+- [ ] Advisory slim-header check reviewed (`python scripts/pr/check_slim_headers.py --base origin/main --head HEAD`)
 
 ### Module Documentation Completion (required when `hydra_logger/**` changes)
 

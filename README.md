@@ -17,44 +17,29 @@ A dynamic, scalable, event-oriented logging system built with KISS (Keep It Simp
 
 ## 🏗 Architecture Overview
 
-**Core Package**: 49 Python files in `hydra_logger/`  
+**Core Package**: Modular package under `hydra_logger/`  
 **Architecture**: Event-oriented, modular, scalable, user-controllable  
 **Design Principles**: KISS, event-oriented, zero overhead, consistent naming  
 **User Control**: Full control over formats, destinations, configurations, and extensions
 
 ### High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Application Code                         │
-└──────────────────────┬──────────────────────────────────────┘
-                        │
-                        │ logger.info("message", layer="api")
-                        │
-┌──────────────────────▼──────────────────────────────────────┐
-│                    Logger Layer                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-│  │  Sync    │  │  Async   │  │Composite │  │Composite │     │
-│  │  Logger  │  │  Logger  │  │  Logger  │  │  Async   │     │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
-└───────┼──────────────┼──────────────┼──────────────┼────────┘
-        │              │              │              │
-        └──────────────┴──────────────┴──────────────┘
-                        │
-        ┌───────────────▼───────────────┐
-        │    Layer Manager              │
-        │  (Route to layer handlers)    │
-        └───────────────┬───────────────┘
-                        │
-        ┌───────────────▼───────────────┐
-        │    Handler System             │
-        │  Console │ File │ Network     │
-        └───────────────┬───────────────┘
-                        │
-        ┌───────────────▼───────────────┐
-        │    Output Destinations        │
-        │  Console │ Files │ Network    │
-        └───────────────────────────────┘
+```mermaid
+flowchart TD
+  app[Application Code] --> call[logger.info(...)]
+  call --> loggerLayer[Logger Layer]
+  loggerLayer --> sync[SyncLogger]
+  loggerLayer --> async[AsyncLogger]
+  loggerLayer --> composite[CompositeLogger]
+  loggerLayer --> compositeAsync[CompositeAsyncLogger]
+  sync --> layerManager[Layer Manager]
+  async --> layerManager
+  composite --> layerManager
+  compositeAsync --> layerManager
+  layerManager --> handlers[Handler System]
+  handlers --> console[Console]
+  handlers --> file[File]
+  handlers --> network[Network]
 ```
 
 ### Data Flow
@@ -227,8 +212,7 @@ asyncio.run(main())
 - **Console**: stdout/stderr with color support
 - **File**: Local file storage with rotation
 - **Network**: HTTP, WebSocket, Socket protocols
-- **Database**: PostgreSQL, MongoDB, Redis
-- **Cloud**: AWS CloudWatch, Elasticsearch
+- **Null**: no-op sink for silencing or testing flows
 
 ### Extension System
 - **Security**: Data redaction and sanitization
@@ -248,6 +232,9 @@ asyncio.run(main())
 
 - **[WORKFLOW_ARCHITECTURE.md](docs/WORKFLOW_ARCHITECTURE.md)** - Complete workflow and data flow details
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Detailed package structure and component breakdown
+- **[Module Docs Index](docs/modules/README.md)** - Canonical module-by-module documentation
+- **[Plans](docs/plans/)** - Execution plans and delivery intent
+- **[Audit Results](docs/audit/)** - Audit evidence, matrices, and alignment tracking
 - **[PERFORMANCE.md](docs/PERFORMANCE.md)** - Performance benchmarks and optimization details
 - **[CHANGELOG.md](CHANGELOG.md)** - Recent updates and migration history
 - **[Examples](examples/)** - 16 working examples demonstrating all features

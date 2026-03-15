@@ -39,7 +39,7 @@ flowchart TD
 
 ## Caveats
 
-- `config/__init__.py` currently advertises symbols that are not implemented in the package tree; treat exported API as implementation-verified, not docstring-verified.
+- `async_cloud` is maintained as a schema-level integration point; database/queue async sink fields are reserved for custom or future integrations and are not built-in handler families.
 
 ## Public Surface (module-level)
 
@@ -57,3 +57,4 @@ flowchart TD
 - [ ] Schema fields in docs match `models.py`.
 - [ ] Template names and registry behavior are current.
 - [ ] Exported symbols in `config/__init__.py` are validated against bound names.
+- [ ] Destination and integration fields are clearly marked as built-in vs custom/roadmap.

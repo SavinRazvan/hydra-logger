@@ -34,6 +34,10 @@ flowchart LR
 - Layer management: `LayerManager`, `LayerConfiguration`
 - Exceptions: `HydraLoggerError` family
 
+## Caveats And Known Gaps
+
+- Core module docstrings can drift toward internal implementation details; treat `core/__init__.py` exports as the canonical public surface for user-facing docs.
+
 ## Maintenance Notes
 
 - Keep core exceptions stable; external callers may catch them directly.

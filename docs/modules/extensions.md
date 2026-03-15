@@ -28,6 +28,18 @@ flowchart TD
   E --> F[Continue logger pipeline]
 ```
 
+## Public Surface (module-level)
+
+- `ExtensionBase`
+- `SecurityExtension`
+- `FormattingExtension`
+- `PerformanceExtension`
+- `ExtensionManager`
+
+## Caveats And Known Gaps
+
+- Extension docs should reflect exported classes in `extensions/__init__.py`; avoid documenting non-exported extension variants as stable API.
+
 ## Maintenance Notes
 
 - Keep extension API contracts stable (`process`, enable/disable semantics).

@@ -34,6 +34,16 @@ flowchart LR
   E --> F
 ```
 
+## Public Surface (module-level)
+
+- Text helpers: `TextProcessor`, `TextFormatter`, `TextValidator`, `TextSanitizer`, `TextAnalyzer`
+- Time helpers: `TimeUtility`, `TimestampFormatter`, `TimestampFormat`, `TimestampPrecision`, `TimestampConfig`, `DateFormatter`, `TimeZoneUtility`, `TimeRange`, `TimeInterval`
+- File helpers: `FileUtility`, `PathUtility`, `FileValidator`, `FileProcessor`, `DirectoryScanner`
+
+## Caveats And Known Gaps
+
+- General utility exports are intentionally narrow; helpers outside `utils/__init__.py` should not be documented as public API unless explicitly exported.
+
 ## Maintenance Notes
 
 - Avoid introducing side effects in general utilities beyond explicitly named bootstrap helpers.

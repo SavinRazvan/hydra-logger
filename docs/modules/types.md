@@ -30,7 +30,7 @@ flowchart LR
 
 ## Caveats
 
-- `types/__init__.py` includes exports for `create_metadata`/`merge_metadata`, but those implementations are not present in current package files.
+- The enum surface is broad and used across modules; treat removals/renames as cross-module changes requiring coordinated doc updates.
 
 ## Public Surface (module-level)
 
