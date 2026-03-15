@@ -1,7 +1,7 @@
 """
 Role: Json formatter implementation.
 Used By:
- - (update when known)
+ - hydra_logger/formatters/__init__.py for formatter factory and exports.
 Depends On:
  - json
  - typing
@@ -9,7 +9,7 @@ Depends On:
  - types
  - utils
 Notes:
- - Header standardized by slim-header migration.
+ - Emits newline-delimited JSON records with predictable field serialization.
 """
 
 import json

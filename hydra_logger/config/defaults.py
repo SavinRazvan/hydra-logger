@@ -1,13 +1,16 @@
 """
 Role: Defaults implementation.
 Used By:
- - (update when known)
+ - hydra_logger/core/logger_management.py and factories for default config resolution.
+ - hydra_logger/config/__init__.py for exported convenience constructors.
+ - performance_benchmark.py for benchmark config presets.
+ - hydra_logger/config/configuration_templates.py built-in template registration.
 Depends On:
  - typing
  - pathlib
  - models
 Notes:
- - Header standardized by slim-header migration.
+ - Provides baseline and prebuilt configuration templates with helper accessors.
 """
 
 from pathlib import Path

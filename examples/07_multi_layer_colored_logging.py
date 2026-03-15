@@ -2,11 +2,11 @@
 """
 Role: 07 multi layer colored logging implementation.
 Used By:
- - (update when known)
+ - examples/run_all_examples.py and developers running examples manually.
 Depends On:
  - hydra_logger
 Notes:
- - Header standardized by slim-header migration.
+ - Demonstrates per-layer color and routing behavior.
 """
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger

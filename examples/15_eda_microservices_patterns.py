@@ -2,13 +2,13 @@
 """
 Role: 15 eda microservices patterns implementation.
 Used By:
- - (update when known)
+ - examples/run_all_examples.py and developers running examples manually.
 Depends On:
  - asyncio
  - signal
  - hydra_logger
 Notes:
- - Header standardized by slim-header migration.
+ - Demonstrates EDA/microservice logging patterns.
 """
 
 import asyncio

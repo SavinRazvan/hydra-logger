@@ -1,7 +1,7 @@
 # Module Docs Execution Plan
 
 - Date: 2026-03-15
-- Owner: @maintainer
+- Owner: @SavinRazvan
 - Status: complete
 - Linked audit results: `docs/audit/module-docs-2026-03-15.results.md`
 

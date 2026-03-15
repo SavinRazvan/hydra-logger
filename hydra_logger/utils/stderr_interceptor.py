@@ -1,14 +1,14 @@
 """
 Role: Stderr interceptor implementation.
 Used By:
- - (update when known)
+ - hydra_logger/__init__.py to start stderr interception during package bootstrap.
 Depends On:
  - sys
  - io
  - typing
  - error_logger
 Notes:
- - Header standardized by slim-header migration.
+ - Captures stderr-only runtime diagnostics and forwards them to safe error logging.
 """
 
 import sys

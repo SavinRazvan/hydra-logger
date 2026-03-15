@@ -4,7 +4,8 @@ Tracks latest audit status by domain.
 
 | Domain | Latest Results File | Date | Status | Owner |
 |---|---|---|---|---|
-| Module docs alignment | `docs/audit/module-docs-2026-03-15.results.md` | 2026-03-15 | closed | @maintainer |
+| Header metadata alignment | `docs/audit/header-metadata-alignment-2026-03-15.results.md` | 2026-03-15 | closed | @SavinRazvan |
+| Module docs alignment | `docs/audit/module-docs-2026-03-15.results.md` | 2026-03-15 | closed | @SavinRazvan |
 
 ## Notes
 

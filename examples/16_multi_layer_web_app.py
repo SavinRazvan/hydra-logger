@@ -2,14 +2,14 @@
 """
 Role: 16 multi layer web app implementation.
 Used By:
- - (update when known)
+ - examples/run_all_examples.py and developers running examples manually.
 Depends On:
  - asyncio
  - random
  - typing
  - hydra_logger
 Notes:
- - Header standardized by slim-header migration.
+ - Demonstrates multi-layer web application logging flows.
 """
 
 import asyncio

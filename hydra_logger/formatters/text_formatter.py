@@ -1,14 +1,15 @@
 """
 Role: Text formatter implementation.
 Used By:
- - (update when known)
+ - hydra_logger/formatters/colored_formatter.py as base class for colorized text output.
+ - hydra_logger/formatters/__init__.py for formatter factory and exports.
 Depends On:
  - typing
  - base
  - types
  - utils
 Notes:
- - Header standardized by slim-header migration.
+ - Implements plain text formatter variants with configurable output templates.
 """
 
 # from datetime import datetime  # unused

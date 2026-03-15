@@ -1,7 +1,8 @@
 """
 Role: Layer management implementation.
 Used By:
- - (update when known)
+ - hydra_logger/core/__init__.py for exported layer management symbols.
+ - Internal layer routing paths that map destinations to handler instances.
 Depends On:
  - threading
  - typing
@@ -9,7 +10,7 @@ Depends On:
  - formatters
  - types
 Notes:
- - Header standardized by slim-header migration.
+ - Maps layer configuration to concrete handler/formatter setup for destination-aware dispatch.
 """
 
 import threading

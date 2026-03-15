@@ -1,7 +1,10 @@
 """
-Role: Base implementation.
+Role: Abstract base logger contract and shared logger behavior.
 Used By:
- - (update when known)
+ - hydra_logger/loggers/sync_logger.py for synchronous logger implementation.
+ - hydra_logger/loggers/async_logger.py for asynchronous logger implementation.
+ - hydra_logger/loggers/composite_logger.py for composite logger variants.
+ - hydra_logger/loggers/__init__.py for package exports.
 Depends On:
  - asyncio
  - time
@@ -9,7 +12,7 @@ Depends On:
  - typing
  - types
 Notes:
- - Header standardized by slim-header migration.
+ - Centralizes configuration coercion, record creation strategy, and common lifecycle hooks.
 """
 
 import asyncio

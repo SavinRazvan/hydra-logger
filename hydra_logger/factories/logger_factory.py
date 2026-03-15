@@ -1,13 +1,14 @@
 """
 Role: Logger factory implementation.
 Used By:
- - (update when known)
+ - hydra_logger/core/logger_management.py to create and cache logger instances.
+ - hydra_logger/factories/logger_factory.py module-level `logger_factory` singleton.
 Depends On:
  - typing
  - config
  - loggers
 Notes:
- - Header standardized by slim-header migration.
+ - Central creation path for sync/async/composite logger variants and template-based config selection.
 """
 
 from typing import Any, Dict, Optional, cast, Union

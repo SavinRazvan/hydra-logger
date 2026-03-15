@@ -1,7 +1,11 @@
 """
-Role: Base implementation.
+Role: Abstract formatter contract and shared formatting utilities.
 Used By:
- - (update when known)
+ - hydra_logger/formatters/text_formatter.py for plain text formatting.
+ - hydra_logger/formatters/colored_formatter.py through plain text formatter inheritance.
+ - hydra_logger/formatters/json_formatter.py for JSON Lines formatting.
+ - hydra_logger/formatters/structured_formatter.py for CSV/syslog/GELF/logstash formatting.
+ - hydra_logger/formatters/__init__.py for package exports.
 Depends On:
  - logging
  - time
@@ -9,7 +13,7 @@ Depends On:
  - typing
  - types
 Notes:
- - Header standardized by slim-header migration.
+ - Centralizes timestamp formatting, validation, and formatter error handling behavior.
 """
 
 import logging

@@ -1,7 +1,8 @@
 """
-Role: Init implementation.
+Role: Public handler package exports.
 Used By:
- - (update when known)
+ - hydra_logger/loggers/sync_logger.py for shared handler imports.
+ - Client code importing `hydra_logger.handlers` transport and factory symbols.
 Depends On:
  - hydra_logger
  - base_handler
@@ -9,7 +10,7 @@ Depends On:
  - file_handler
  - null_handler
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports handler implementations, rotation utilities, and network transport classes.
 """
 
 from hydra_logger.types.enums import TimeUnit

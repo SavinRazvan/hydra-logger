@@ -1,13 +1,13 @@
 """
-Role: Init implementation.
+Role: Public utility package exports.
 Used By:
- - (update when known)
+ - Internal modules and external consumers importing utility helpers from `hydra_logger.utils`.
 Depends On:
  - text_utility
  - time_utility
  - file_utility
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports text, time, and file utility components.
 """
 
 from .file_utility import (

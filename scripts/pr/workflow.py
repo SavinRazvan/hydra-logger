@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,11 @@ def _run(cmd: list[str]) -> tuple[int, str]:
     proc = subprocess.run(cmd, capture_output=True, text=True)
     output = ((proc.stdout or "") + (proc.stderr or "")).strip()
     return proc.returncode, output
+
+
+def _py() -> str:
+    """Use the current interpreter for subprocess script calls."""
+    return sys.executable
 
 
 def _run_or_fail(cmd: list[str]) -> None:
@@ -38,6 +44,40 @@ def _current_branch() -> str:
     if code != 0:
         return "unknown"
     return output.strip() or "unknown"
+
+
+def _dirty_worktree() -> list[str]:
+    code, output = _run(["git", "status", "--short"])
+    if code != 0 or not output:
+        return []
+    return [line for line in output.splitlines() if line.strip()]
+
+
+def _require_feature_branch(context: str) -> str:
+    branch = _current_branch()
+    if branch in {"", "unknown", "main"}:
+        raise RuntimeError(
+            f"{context} requires an active feature branch (current: {branch or 'unknown'})"
+        )
+    return branch
+
+
+def _phase_start(args: argparse.Namespace) -> None:
+    target = _require(args.branch or "", "--branch")
+    if target == "main":
+        raise RuntimeError("--branch must not be main")
+    if _dirty_worktree():
+        raise RuntimeError("working tree is dirty; commit/stash before --phase start")
+
+    # Always sync main first to ensure feature branches start clean.
+    _run_or_fail(["git", "checkout", "main"])
+    _run_or_fail(["git", "pull", "--ff-only", "origin", "main"])
+
+    code, _ = _run(["git", "show-ref", "--verify", f"refs/heads/{target}"])
+    if code == 0:
+        _run_or_fail(["git", "checkout", target])
+    else:
+        _run_or_fail(["git", "checkout", "-b", target])
 
 
 def _resolve_pr_number(explicit_pr: str | None) -> str:
@@ -80,6 +120,7 @@ def _require(value: str, flag: str) -> str:
 
 
 def _phase_create(args: argparse.Namespace, profile: dict[str, Any]) -> None:
+    _require_feature_branch("create phase")
     actor = _require(_arg_or_profile(args.actor, profile, "actor"), "--actor")
     github_user = _require(
         _arg_or_profile(args.github_user, profile, "github_user"), "--github-user"
@@ -91,7 +132,7 @@ def _phase_create(args: argparse.Namespace, profile: dict[str, Any]) -> None:
         raise RuntimeError("missing required value: --summary (repeatable)")
 
     cmd = [
-        "python",
+        _py(),
         "scripts/pr/create.py",
         "--title",
         title,
@@ -113,12 +154,13 @@ def _phase_create(args: argparse.Namespace, profile: dict[str, Any]) -> None:
 
 
 def _phase_review(pr_number: str, args: argparse.Namespace, profile: dict[str, Any]) -> None:
+    _require_feature_branch("review phase")
     actor = _require(_arg_or_profile(args.actor, profile, "actor"), "--actor")
     agents = _require(_arg_or_profile(args.agents, profile, "agents"), "--agents")
     github_user = _arg_or_profile(args.github_user, profile, "github_user")
 
     cmd = [
-        "python",
+        _py(),
         "scripts/pr/review.py",
         "--pr",
         pr_number,
@@ -135,12 +177,13 @@ def _phase_review(pr_number: str, args: argparse.Namespace, profile: dict[str, A
 def _phase_prepare(
     pr_number: str, args: argparse.Namespace, profile: dict[str, Any]
 ) -> None:
+    _require_feature_branch("prepare phase")
     actor = _require(_arg_or_profile(args.actor, profile, "actor"), "--actor")
     agents = _require(_arg_or_profile(args.agents, profile, "agents"), "--agents")
     github_user = _arg_or_profile(args.github_user, profile, "github_user")
 
     cmd = [
-        "python",
+        _py(),
         "scripts/pr/prepare.py",
         "--pr",
         pr_number,
@@ -157,13 +200,14 @@ def _phase_prepare(
 
 
 def _phase_merge(pr_number: str, args: argparse.Namespace, profile: dict[str, Any]) -> None:
+    _require_feature_branch("merge phase")
     actor = _require(_arg_or_profile(args.actor, profile, "actor"), "--actor")
     agents = _require(_arg_or_profile(args.agents, profile, "agents"), "--agents")
     github_user = _arg_or_profile(args.github_user, profile, "github_user")
     branch = _current_branch()
 
     precheck_cmd = [
-        "python",
+        _py(),
         "scripts/pr/merge.py",
         "--pr",
         pr_number,
@@ -180,7 +224,7 @@ def _phase_merge(pr_number: str, args: argparse.Namespace, profile: dict[str, An
     _run_or_fail(precheck_cmd)
 
     _run_or_fail(
-        ["python", "scripts/pr/verify_publish.py", "--branch", _current_branch()]
+        [_py(), "scripts/pr/verify_publish.py", "--branch", _current_branch()]
     )
     _run_or_fail(["gh", "pr", "checks", pr_number, "--watch"])
     _run_or_fail(["gh", "pr", "merge", pr_number, "--merge"])
@@ -198,7 +242,7 @@ def _phase_merge(pr_number: str, args: argparse.Namespace, profile: dict[str, An
         raise RuntimeError("merge commit oid missing after merge")
 
     write_cmd = [
-        "python",
+        _py(),
         "scripts/pr/merge.py",
         "--pr",
         pr_number,
@@ -225,7 +269,7 @@ def _phase_finalize(args: argparse.Namespace) -> None:
         target = _require(args.feature_branch or "", "--feature-branch on main")
     else:
         target = branch
-    cmd = ["python", "scripts/pr/finalize.py", "--branch", target]
+    cmd = [_py(), "scripts/pr/finalize.py", "--branch", target]
     if args.delete_merged_local:
         cmd.append("--delete-merged-local")
     _run_or_fail(cmd)
@@ -238,8 +282,13 @@ def main() -> int:
     parser.add_argument(
         "--phase",
         required=True,
-        choices=["create", "review", "prepare", "merge", "finalize", "full"],
+        choices=["start", "create", "review", "prepare", "merge", "finalize", "full"],
         help="Workflow phase to run.",
+    )
+    parser.add_argument(
+        "--branch",
+        default=None,
+        help="Feature branch name used by --phase start.",
     )
     parser.add_argument("--pr", default=None, help="PR number or URL.")
     parser.add_argument("--title", default=None, help="PR title (create/full only).")
@@ -281,9 +330,11 @@ def main() -> int:
 
     try:
         profile = _load_profile(args.profile)
-        pr_number = _resolve_pr_number(args.pr) if args.phase != "create" else ""
+        pr_number = _resolve_pr_number(args.pr) if args.phase not in {"start", "create"} else ""
 
-        if args.phase == "create":
+        if args.phase == "start":
+            _phase_start(args)
+        elif args.phase == "create":
             _phase_create(args, profile)
         elif args.phase == "review":
             _phase_review(pr_number, args, profile)
@@ -294,6 +345,7 @@ def main() -> int:
         elif args.phase == "finalize":
             _phase_finalize(args)
         elif args.phase == "full":
+            _require_feature_branch("full phase")
             _phase_create(args, profile)
             pr_number = _resolve_pr_number(args.pr)
             _phase_review(pr_number, args, profile)

@@ -1,7 +1,7 @@
 """
 Role: Colored formatter implementation.
 Used By:
- - (update when known)
+ - hydra_logger/formatters/__init__.py for formatter factory and exports.
 Depends On:
  - typing
  - text_formatter
@@ -9,7 +9,7 @@ Depends On:
  - utils
  - core
 Notes:
- - Header standardized by slim-header migration.
+ - Adds ANSI color mapping to plain text formatter output paths.
 """
 
 from typing import Optional

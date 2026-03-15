@@ -1,7 +1,8 @@
 """
 Role: File utility implementation.
 Used By:
- - (update when known)
+ - hydra_logger/handlers/rotating_handler.py for file operations and rotation housekeeping.
+ - hydra_logger/utils/__init__.py for package exports.
 Depends On:
  - os
  - shutil
@@ -9,7 +10,7 @@ Depends On:
  - mimetypes
  - typing
 Notes:
- - Header standardized by slim-header migration.
+ - Provides filesystem utility primitives, validation, and batch processing helpers.
 """
 
 import hashlib

@@ -1,11 +1,11 @@
 """
-Role: Init implementation.
+Role: Public security extension package exports.
 Used By:
- - (update when known)
+ - Consumers importing security extension utilities from `hydra_logger.extensions.security`.
 Depends On:
  - data_redaction
 Notes:
- - Header standardized by slim-header migration.
+ - Re-exports `DataRedaction` helper.
 """
 
 from .data_redaction import DataRedaction

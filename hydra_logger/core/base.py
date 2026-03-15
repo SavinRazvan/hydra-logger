@@ -1,12 +1,12 @@
 """
-Role: Base implementation.
+Role: Legacy abstract component contracts for core entities.
 Used By:
- - (update when known)
+ - Compatibility-facing type contracts retained for extension/custom integrations.
 Depends On:
  - abc
  - typing
 Notes:
- - Header standardized by slim-header migration.
+ - Distinct from active logger/handler contracts implemented under `hydra_logger/loggers` and `hydra_logger/handlers`.
 """
 
 from abc import ABC, abstractmethod

@@ -2,12 +2,12 @@
 """
 Role: 11 quick start basic implementation.
 Used By:
- - (update when known)
+ - examples/run_all_examples.py and developers running examples manually.
 Depends On:
  - sys
  - pathlib
 Notes:
- - Header standardized by slim-header migration.
+ - Demonstrates quick-start synchronous usage.
 """
 
 import sys

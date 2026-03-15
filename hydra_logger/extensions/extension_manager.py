@@ -1,12 +1,14 @@
 """
 Role: Extension manager implementation.
 Used By:
- - (update when known)
+ - hydra_logger/factories/logger_factory.py to configure extension processing for created loggers.
+ - hydra_logger/extensions/__init__.py for package exports.
+ - examples/04_runtime_control.py as the runtime extension-control example.
 Depends On:
  - typing
  - extension_base
 Notes:
- - Header standardized by slim-header migration.
+ - Orchestrates registration, lifecycle, ordering, and execution of enabled extensions.
 """
 
 from typing import Any, Dict, List, Optional, Type, cast

@@ -1,14 +1,14 @@
 """
 Role: System detector implementation.
 Used By:
- - (update when known)
+ - hydra_logger/handlers/console_handler.py and file_handler.py for buffer/profile tuning.
 Depends On:
  - sys
  - os
  - typing
  - enum
 Notes:
- - Header standardized by slim-header migration.
+ - Detects host capabilities and derives runtime performance profile hints.
 """
 
 from enum import Enum

@@ -1,7 +1,7 @@
 """
 Role: Logger management implementation.
 Used By:
- - (update when known)
+ - hydra_logger/__init__.py for `getLogger`/`getSyncLogger`/`getAsyncLogger` public API exports.
 Depends On:
  - threading
  - typing
@@ -9,7 +9,7 @@ Depends On:
  - factories
  - config
 Notes:
- - Header standardized by slim-header migration.
+ - Provides cached logger manager and Python-logging-style convenience accessors.
 """
 
 import threading

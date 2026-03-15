@@ -1,9 +1,9 @@
 """
-Role: Init implementation.
+Role: Test package marker module.
 Used By:
- - (update when known)
+ - Pytest test discovery/import resolution for the `tests` package.
 Depends On:
  - (none)
 Notes:
- - Header standardized by slim-header migration.
+ - Intentionally minimal.
 """

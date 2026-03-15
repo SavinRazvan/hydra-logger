@@ -1,13 +1,16 @@
 """
 Role: Levels implementation.
 Used By:
- - (update when known)
+ - hydra_logger/loggers/* implementations for level normalization and comparisons.
+ - hydra_logger/handlers/network_handler.py, file handlers, and rotating handlers.
+ - hydra_logger/core/layer_management.py and hydra_logger/config/models.py.
+ - hydra_logger/types/__init__.py and hydra_logger/__init__.py exports.
 Depends On:
  - enum
  - typing
  - functools
 Notes:
- - Header standardized by slim-header migration.
+ - Defines canonical log levels and level-management helpers.
 """
 
 from enum import IntEnum

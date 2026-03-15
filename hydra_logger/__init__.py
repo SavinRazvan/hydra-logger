@@ -1,7 +1,7 @@
 """
-Role: Init implementation.
+Role: Top-level public package API exports and bootstrap initialization.
 Used By:
- - (update when known)
+ - All package consumers importing `hydra_logger` entrypoints.
 Depends On:
  - loggers
  - factories
@@ -9,7 +9,7 @@ Depends On:
  - config
  - types
 Notes:
- - Header standardized by slim-header migration.
+ - Starts stderr interception early and re-exports stable public API symbols.
 """
 
 __version__ = "0.4.0"

@@ -1,7 +1,11 @@
 """
 Role: Base handler implementation.
 Used By:
- - (update when known)
+ - hydra_logger/handlers/console_handler.py for console transport handlers.
+ - hydra_logger/handlers/file_handler.py for file transport handlers.
+ - hydra_logger/handlers/network_handler.py for network transport handlers.
+ - hydra_logger/handlers/null_handler.py for no-op fallback handling.
+ - hydra_logger/handlers/__init__.py for package exports.
 Depends On:
  - abc
  - typing
@@ -9,7 +13,7 @@ Depends On:
  - formatters
  - utils
 Notes:
- - Header standardized by slim-header migration.
+ - Defines handler contract and shared formatter/timestamp utilities.
 """
 
 from abc import ABC, abstractmethod

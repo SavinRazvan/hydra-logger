@@ -2,12 +2,12 @@
 """
 Role: 09 all logger types colors implementation.
 Used By:
- - (update when known)
+ - examples/run_all_examples.py and developers running examples manually.
 Depends On:
  - asyncio
  - hydra_logger
 Notes:
- - Header standardized by slim-header migration.
+ - Demonstrates color behavior across all logger types.
 """
 
 import asyncio

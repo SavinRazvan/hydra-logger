@@ -1,13 +1,14 @@
 """
-Role: Base implementation.
+Role: Legacy extension interface and config dataclass.
 Used By:
- - (update when known)
+ - Direct user-defined extensions that subclass `Extension`.
+ - Maintained alongside `hydra_logger/extensions/extension_base.py` for compatibility.
 Depends On:
  - abc
  - typing
  - dataclasses
 Notes:
- - Header standardized by slim-header migration.
+ - Internal extension wiring uses `extension_base.py`; this module is compatibility-facing.
 """
 
 from abc import ABC, abstractmethod

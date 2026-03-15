@@ -1,12 +1,12 @@
 """
 Role: Data redaction implementation.
 Used By:
- - (update when known)
+ - hydra_logger/extensions/security/__init__.py for security package exports.
 Depends On:
  - re
  - typing
 Notes:
- - Header standardized by slim-header migration.
+ - Provides standalone pattern-based redaction helper for sensitive content masking.
 """
 
 import re

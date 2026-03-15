@@ -1,11 +1,11 @@
 """
 Role: Test placeholder implementation.
 Used By:
- - (update when known)
+ - Pytest as a placeholder smoke test for baseline test execution.
 Depends On:
  - (none)
 Notes:
- - Header standardized by slim-header migration.
+ - Keeps an always-pass minimal test while fuller test coverage evolves.
 """
 
 

@@ -2,7 +2,7 @@
 """
 Role: Run all examples implementation.
 Used By:
- - (update when known)
+ - Developers and CI-like local checks running the full example suite.
 Depends On:
  - subprocess
  - sys
@@ -10,7 +10,7 @@ Depends On:
  - json
  - pathlib
 Notes:
- - Header standardized by slim-header migration.
+ - Orchestrates sequential execution and summary reporting for all examples.
 """
 
 import subprocess
