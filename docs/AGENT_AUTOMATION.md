@@ -56,6 +56,7 @@ Notes:
 - `create/review/prepare/merge/full` are blocked on `main`; run them from a feature branch.
 - Use `--phase merge --auto-finalize` for one-shot merge + cleanup.
 - `scripts/pr/workflow.py` now runs env preflight by default for `create/review/prepare/merge/full`.
+- Direct tracked wrappers (`scripts/pr/create.py`, `scripts/pr/prepare.py`, `scripts/pr/status.py`) also run env preflight by default.
 - Emergency-only override: `--skip-env-check`.
 
 ## Machine-Readable Status
