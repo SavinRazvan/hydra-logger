@@ -27,6 +27,16 @@ Keep work aligned with library ergonomics, reliability, and clear user-facing AP
 - Keep imports at the top of files and follow existing Python style conventions.
 - For Python code file headers, use slim metadata docstrings (`Role`, `Used By`, `Depends On`, `Notes`) and avoid redundant `File`/`Path` fields.
 - Keep header compliance green with `python scripts/pr/check_slim_headers.py --all-python --strict`.
+- Prefer enterprise-grade design: modular components, clear interfaces, loose coupling, and configuration-driven behavior over hardcoded branching.
+- Favor scalable implementation patterns (composition, factories, extension points) when they reduce future migration and maintenance risk.
+
+## Plan + Change Tracking Workflow
+
+- Start each implementation slice with a short written plan (scope, acceptance criteria, touched modules, validation approach).
+- Update the same plan as work progresses and mark completed items explicitly.
+- Keep a concise change log in the PR body: what changed, why, risks, and follow-up work.
+- Keep each branch focused on one implementation slice and avoid mixing unrelated changes.
+- Treat PR artifacts (`.local/review.md`, `.local/prep.md`, `.local/merge.md`) as required workflow outputs.
 
 ## Local Environment
 
@@ -59,6 +69,7 @@ Helper scripts:
 - Active project rules are in `.cursor/rules/`:
   - `pr-workflow-enforcement.mdc`
   - `execution-workflow-gates.mdc`
+  - `enterprise-architecture-standards.mdc`
   - `slim-file-header.mdc`
 - Worktree bootstrap is in `.cursor/worktrees.json` and should target Conda `.hydra_env` via `environment.yml`.
 - Do not add external-project research packs or provider-specific architecture policies unless this repository explicitly adopts them.
