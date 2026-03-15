@@ -52,6 +52,27 @@
 
 ## Open Items
 
-- Integrate equivalent preflight defaults into direct wrappers under `scripts/pr/*` that may be called outside `workflow.py`.
-- Remove remaining environment inconsistency warnings (`pip_health`, `mypy_available`) in `.hydra_env`.
+- Keep all future direct wrapper entrypoints aligned with env preflight contract (`--strict` default + `--skip-env-check` override).
 - Align docs language where needed to avoid Conda/venv ambiguity across all setup references.
+
+## Follow-up Slice: Direct Wrapper Integration
+
+- Integrated preflight defaults into direct tracked wrappers:
+  - `scripts/pr/create.py`
+  - `scripts/pr/prepare.py`
+  - `scripts/pr/status.py`
+- Each wrapper now:
+  - runs `scripts/dev/check_env_health.py --strict --json` before main logic,
+  - supports `--skip-env-check` as an explicit emergency override,
+  - prints actionable remediation hints on preflight failure.
+
+Validation updates:
+
+1. Healthy environment baseline after rebuild:
+   - Command: `python scripts/dev/check_env_health.py --strict --json`
+   - Result: `healthy` (exit `0`)
+2. Direct wrapper check:
+   - Command: `python scripts/pr/status.py --json`
+   - Result: success with env preflight active.
+3. CLI contract check:
+   - Verified `--skip-env-check` exists across direct wrappers.

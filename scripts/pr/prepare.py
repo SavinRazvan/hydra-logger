@@ -15,7 +15,9 @@ Notes:
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
+import sys
 from pathlib import Path
 
 GATES = [
@@ -40,6 +42,34 @@ def _current_branch() -> str:
 def _head_sha() -> str:
     proc = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True)
     return proc.stdout.strip() or "unknown"
+
+
+def _run_env_preflight(skip_env_check: bool) -> tuple[bool, str]:
+    if skip_env_check:
+        return True, ""
+
+    code, out = _run([sys.executable, "scripts/dev/check_env_health.py", "--strict", "--json"])
+    if code == 0:
+        return True, ""
+
+    details = out or "environment preflight failed"
+    try:
+        payload = json.loads(details)
+        checks = payload.get("checks", [])
+        hints = [
+            str(check.get("recommended_fix", "")).strip()
+            for check in checks
+            if check.get("status") in {"warn", "fail"}
+        ]
+        hint_text = "\n".join(f"- {hint}" for hint in hints if hint)
+        if hint_text:
+            details = (
+                f"environment preflight failed ({payload.get('status', 'unknown')}).\n"
+                f"Suggested fixes:\n{hint_text}"
+            )
+    except json.JSONDecodeError:
+        pass
+    return False, details
 
 
 def main() -> int:
@@ -69,7 +99,19 @@ def main() -> int:
             "verified all gates; the artifact will record gates as externally verified."
         ),
     )
+    parser.add_argument(
+        "--skip-env-check",
+        action="store_true",
+        default=False,
+        help="Skip `.hydra_env` preflight (emergency use only).",
+    )
     args = parser.parse_args()
+
+    preflight_ok, preflight_details = _run_env_preflight(args.skip_env_check)
+    if not preflight_ok:
+        print(f"ERROR: {preflight_details}")
+        print("Use --skip-env-check to override temporarily.")
+        return 2
 
     local_dir = Path(".local")
     local_dir.mkdir(exist_ok=True)
