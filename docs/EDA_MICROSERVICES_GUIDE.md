@@ -4,6 +4,33 @@
 
 Hydra-Logger is **fully compatible** with Event-Driven Architecture (EDA) and microservices. It provides multiple patterns for resource management, automatic cleanup, and long-running services.
 
+## Scope and Guarantees
+
+This guide is usage-oriented. Canonical runtime behavior lives in module docs.
+
+**Guarantees (implemented behavior):**
+
+- Async logger lifecycle APIs exist (`create_async_logger`, `close_async`, context-manager usage).
+- Cleanup safety layers exist (`atexit`/destructor fallbacks in handlers and logger cleanup flows).
+- Queue-based async processing and overflow handling exist for bursty workloads.
+
+**Best-effort guidance (depends on deployment/runtime):**
+
+- "Production-ready" outcomes depend on your shutdown hooks, infrastructure limits, and handler destinations.
+- Throughput/scalability depends on handler type, I/O profile, CPU, memory, and event-loop load.
+- Signal handling behavior depends on process model and operating environment.
+
+## Canonical Module References
+
+Use these pages as source-of-truth for behavior details:
+
+- Logger runtime and lifecycle: `docs/modules/loggers.md`
+- Handler behavior and cleanup characteristics: `docs/modules/handlers.md`
+- Formatter behavior and payload output: `docs/modules/formatters.md`
+- Configuration model and layer routing setup: `docs/modules/config.md`
+- Factory entry points (`create_*` helpers): `docs/modules/factories.md`
+- Extension processing model: `docs/modules/extensions.md`
+
 ## ✅ Key Features for EDA & Microservices
 
 ### 1. **Automatic Cleanup Mechanisms**
