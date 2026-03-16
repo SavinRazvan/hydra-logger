@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 
+from hydra_logger.core.exceptions import HydraLoggerError
 from hydra_logger.loggers.async_logger import AsyncLogger
 
 
@@ -83,3 +84,61 @@ def test_async_logger_close_disables_concurrency_semaphore_in_health_status() ->
     health = logger.get_health_status()
     assert health["closed"] is True
     assert health["concurrency_semaphore"] == "inactive"
+
+
+def test_async_logger_batch_and_concurrent_require_initialization() -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._initialized = False
+        try:
+            await logger.log_batch([("INFO", "x", {})])
+        except HydraLoggerError as exc:
+            assert "not initialized" in str(exc)
+        else:
+            raise AssertionError("Expected log_batch to fail when not initialized")
+
+        try:
+            await logger.log_concurrent([("INFO", "x", {})])
+        except HydraLoggerError as exc:
+            assert "not initialized" in str(exc)
+        else:
+            raise AssertionError("Expected log_concurrent to fail when not initialized")
+
+    asyncio.run(_run())
+
+
+def test_async_logger_aliases_and_runtime_config_helpers() -> None:
+    logger = AsyncLogger()
+    logger.warn("warn-msg")
+    logger.fatal("fatal-msg")
+    assert logger.get_health_status()["log_count"] >= 2
+
+    class StubConfig:
+        def __init__(self) -> None:
+            self.security_level = None
+            self.monitoring = None
+            self.features = {}
+
+        def update_security_level(self, level: str) -> None:
+            self.security_level = level
+
+        def update_monitoring_config(self, detail_level, sample_rate, background) -> None:
+            self.monitoring = (detail_level, sample_rate, background)
+
+        def toggle_feature(self, feature: str, enabled: bool) -> None:
+            self.features[feature] = enabled
+
+        def get_configuration_summary(self):
+            return {"status": "ok", "security": self.security_level}
+
+    cfg = StubConfig()
+    logger._config = cfg  # type: ignore[assignment]
+    logger.update_security_level("high")
+    logger.update_monitoring_config("full", 10, True)
+    logger.toggle_feature("security", True)
+    assert logger.get_configuration_summary()["status"] == "ok"
+    assert logger._enable_security is True
+    assert logger.get_pool_stats()["status"] == "deprecated"
+    logger._concurrency_semaphore = None
+    assert logger.get_concurrency_info()["status"] == "not_initialized"
+    logger.close()

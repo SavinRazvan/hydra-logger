@@ -136,3 +136,91 @@ def test_async_file_handler_csv_header_check_for_non_empty_file(tmp_path: Path) 
     handler.setFormatter(CsvFormatter(include_headers=True))
     assert handler._check_and_write_csv_headers() is False
     handler.close()
+
+
+def test_sync_file_handler_format_message_variants(tmp_path: Path) -> None:
+    class PlainFormatter:
+        name = "plain"
+
+        def format(self, _record):
+            return "formatted"
+
+    class BytesFormatter:
+        name = "binary"
+
+        def format(self, _record):
+            return b"\x01\x02"
+
+    class BrokenFormatter:
+        name = "broken"
+
+        def format(self, _record):
+            raise RuntimeError("format failed")
+
+    record = LogRecord(level=20, level_name="INFO", message="msg")
+    handler = SyncFileHandler(filename=str(tmp_path / "variants.log"), buffer_size=10)
+
+    handler.setFormatter(PlainFormatter())
+    assert handler._format_message(record).endswith("\n")
+
+    handler.setFormatter(BytesFormatter())
+    assert handler._format_message(record) == b"\x01\x02"
+
+    handler.setFormatter(BrokenFormatter())
+    fallback = handler._format_message(record)
+    assert "msg" in fallback
+    handler.close()
+
+
+def test_sync_file_handler_emit_handles_invalid_file_handle(tmp_path: Path) -> None:
+    handler = SyncFileHandler(filename=str(tmp_path / "invalid.log"), buffer_size=1)
+    handler._file_handle = None
+    handler.emit(LogRecord(level=20, level_name="INFO", message="ignored"))
+    assert handler.get_stats()["messages_processed"] == 0
+    handler.close()
+
+
+def test_async_file_handler_csv_header_write_failure_returns_false(tmp_path: Path) -> None:
+    class BrokenCsvFormatter:
+        include_headers = True
+
+        def format_headers(self):
+            raise RuntimeError("header fail")
+
+        def format(self, record):
+            return record.message
+
+    handler = AsyncFileHandler(filename=str(tmp_path / "broken-header.csv"))
+    handler.setFormatter(BrokenCsvFormatter())
+    assert handler._check_and_write_csv_headers() is False
+    handler.close()
+
+
+def test_file_handler_wrapper_async_fallbacks_when_underlying_is_sync(tmp_path: Path) -> None:
+    class SyncOnlyHandler:
+        def __init__(self) -> None:
+            self.emitted = []
+            self.closed = False
+
+        def emit(self, record) -> None:
+            self.emitted.append(record.message)
+
+        def close(self) -> None:
+            self.closed = True
+
+        def get_stats(self):
+            return {"kind": "sync-only"}
+
+        def setFormatter(self, formatter) -> None:
+            self.formatter = formatter
+
+    async def _run() -> None:
+        handler = FileHandler(filename=str(tmp_path / "wrapper-fallback.log"))
+        handler._handler = SyncOnlyHandler()
+        await handler.emit_async(LogRecord(level=20, level_name="INFO", message="fallback"))
+        await handler.aclose()
+        assert handler.get_stats()["kind"] == "sync-only"
+        assert handler._handler.closed is True
+        assert "fallback" in handler._handler.emitted
+
+    asyncio.run(_run())

@@ -119,3 +119,59 @@ def test_network_handler_factory_creates_socket_without_real_connection(
         "socket", host="127.0.0.1", port=7001, protocol="udp"
     )
     assert isinstance(handler, SocketHandler)
+
+
+def test_network_handler_validate_config_rejects_invalid_values() -> None:
+    handler = DummyNetworkHandler(NetworkConfig(host="ok", port=8080))
+    handler._config.host = ""
+    try:
+        handler._validate_network_config()
+    except ValueError as exc:
+        assert "Invalid hostname" in str(exc)
+    else:
+        raise AssertionError("Expected invalid hostname validation error")
+
+    handler._config.host = "localhost"
+    handler._config.port = 70000
+    try:
+        handler._validate_network_config()
+    except ValueError as exc:
+        assert "Invalid port" in str(exc)
+    else:
+        raise AssertionError("Expected invalid port validation error")
+
+    handler._config.port = 8080
+    handler._config.timeout = 0
+    try:
+        handler._validate_network_config()
+    except ValueError as exc:
+        assert "Timeout must be positive" in str(exc)
+    else:
+        raise AssertionError("Expected timeout validation error")
+
+
+def test_network_handler_error_handler_retry_and_disconnect_paths(monkeypatch) -> None:
+    handler = DummyNetworkHandler(NetworkConfig(host="localhost", port=8080, max_retries=1))
+    calls = {"disconnect": 0, "connect": 0, "sleep": 0}
+    handler._disconnect = lambda: calls.__setitem__("disconnect", calls["disconnect"] + 1)  # type: ignore[method-assign]
+    handler._connect = lambda: calls.__setitem__("connect", calls["connect"] + 1) or True  # type: ignore[method-assign]
+    monkeypatch.setattr(network_module.time, "sleep", lambda _s: calls.__setitem__("sleep", calls["sleep"] + 1))
+
+    handler._should_retry = lambda _error: True  # type: ignore[method-assign]
+    handler._handle_network_error(RuntimeError("boom"))
+    assert handler._stats["retries"] == 1
+    assert calls["disconnect"] >= 1
+    assert calls["connect"] == 1
+    assert calls["sleep"] == 1
+
+    handler._should_retry = lambda _error: False  # type: ignore[method-assign]
+    handler._handle_network_error(RuntimeError("stop"))
+    assert calls["disconnect"] >= 2
+
+
+def test_network_handler_close_delegates_to_disconnect() -> None:
+    handler = DummyNetworkHandler(NetworkConfig(host="localhost", port=8080))
+    marker = {"closed": False}
+    handler._disconnect = lambda: marker.__setitem__("closed", True)  # type: ignore[method-assign]
+    handler.close()
+    assert marker["closed"] is True
