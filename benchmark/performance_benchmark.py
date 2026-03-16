@@ -170,6 +170,18 @@ class HydraLoggerBenchmark:
         return str(self._benchmark_logs_dir / filename)
 
     @staticmethod
+    def _count_written_lines(file_path: str) -> int:
+        """Best-effort line counter for line-based output files."""
+        path = Path(file_path)
+        if not path.exists():
+            return 0
+        try:
+            with path.open("r", encoding="utf-8", errors="ignore") as handle:
+                return sum(1 for _ in handle)
+        except Exception:
+            return 0
+
+    @staticmethod
     def _messages_per_second(total_messages: int, duration: float) -> float:
         """Safely compute throughput from message count and elapsed duration."""
         return messages_per_second(total_messages, duration)
@@ -821,8 +833,10 @@ class HydraLoggerBenchmark:
         # Warm-up
         print("   Warm-up period...")
         warmup_count = min(1000, message_count // 100)
+        warmup_start = time.perf_counter()
         for i in range(warmup_count):
             logger.info(generate_realistic_message(i))
+        warmup_duration = time.perf_counter() - warmup_start
 
         # Flush before timing
         self._flush_all_handlers(logger)
@@ -1087,8 +1101,10 @@ class HydraLoggerBenchmark:
         # Warm-up
         print("   Warm-up period...")
         warmup_count = min(1000, message_count // 100)
+        warmup_start = time.perf_counter()
         for i in range(warmup_count):
             logger.info(generate_realistic_message(i))
+        warmup_duration = time.perf_counter() - warmup_start
 
         # Flush before timing
         self._flush_all_handlers(logger)
@@ -1109,7 +1125,9 @@ class HydraLoggerBenchmark:
             logger.info(generate_realistic_message(i))
 
         # Flush after logging to ensure all data is written
+        flush_start = time.perf_counter()
         self._flush_all_handlers(logger)
+        flush_duration = time.perf_counter() - flush_start
 
         # Force OS-level sync and wait for I/O to complete
         import os as os_module
@@ -1178,6 +1196,8 @@ class HydraLoggerBenchmark:
         duration = end_time - start_time
         messages_per_second = message_count / duration
         bytes_per_second = bytes_written / duration if duration > 0 else 0
+        observed_written_lines = self._count_written_lines(benchmark_file)
+        written_lines_observed = observed_written_lines > 0
 
         # Cleanup
         try:
@@ -1191,7 +1211,14 @@ class HydraLoggerBenchmark:
             "bytes_per_second": bytes_per_second,
             "bytes_written": bytes_written,
             "duration": duration,
+            "measured_duration": duration,
+            "warmup_duration": warmup_duration,
+            "flush_duration": flush_duration,
             "total_messages": message_count,
+            "expected_emitted": message_count,
+            "actual_emitted": message_count,
+            "written_lines": observed_written_lines,
+            "written_lines_observed": written_lines_observed,
             "file_path": benchmark_file,
             "status": "COMPLETED",
         }
@@ -1258,10 +1285,12 @@ class HydraLoggerBenchmark:
         # Warm-up
         print("   Warm-up period...")
         warmup_count = min(1000, message_count // 100)
+        warmup_start = time.perf_counter()
         warmup_tasks = []
         for i in range(warmup_count):
             warmup_tasks.append(logger.log("INFO", generate_realistic_message(i)))
         await asyncio.gather(*warmup_tasks)
+        warmup_duration = time.perf_counter() - warmup_start
 
         # Wait for warm-up handlers to complete
         await self._wait_for_async_handlers(logger, timeout=1.0)
@@ -1300,6 +1329,7 @@ class HydraLoggerBenchmark:
 
         # Close logger after timing (cleanup doesn't affect performance measurement)
         print("   Finalizing writes...")
+        flush_start = time.perf_counter()
         if hasattr(logger, "close_async"):
             await logger.close_async()
         elif hasattr(logger, "aclose"):
@@ -1307,6 +1337,7 @@ class HydraLoggerBenchmark:
         else:
             # Fallback: flush handlers manually
             await self._flush_all_handlers_async(logger)
+        flush_duration = time.perf_counter() - flush_start
 
         # Wait for async file operations to complete (for accurate byte counting)
         await asyncio.sleep(0.5)
@@ -1353,6 +1384,8 @@ class HydraLoggerBenchmark:
         duration = end_time - start_time
         messages_per_second = message_count / duration
         bytes_per_second = bytes_written / duration if duration > 0 else 0
+        observed_written_lines = self._count_written_lines(benchmark_file)
+        written_lines_observed = observed_written_lines > 0
 
         result = {
             "logger_type": "Async File Handler Only",
@@ -1360,7 +1393,14 @@ class HydraLoggerBenchmark:
             "bytes_per_second": bytes_per_second,
             "bytes_written": bytes_written,
             "duration": duration,
+            "measured_duration": duration,
+            "warmup_duration": warmup_duration,
+            "flush_duration": flush_duration,
             "total_messages": message_count,
+            "expected_emitted": message_count,
+            "actual_emitted": message_count,
+            "written_lines": observed_written_lines,
+            "written_lines_observed": written_lines_observed,
             "file_path": benchmark_file,
             "status": "COMPLETED",
         }

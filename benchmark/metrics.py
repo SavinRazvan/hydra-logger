@@ -97,6 +97,43 @@ def validate_result_invariants(results: dict[str, Any]) -> list[str]:
     """Validate benchmark math and counting invariants."""
     violations: list[str] = []
 
+    def _validate_counting_and_timing(section: dict[str, Any], label_prefix: str) -> None:
+        expected = section.get("expected_emitted")
+        actual = section.get("actual_emitted")
+        written = section.get("written_lines")
+        written_observed = bool(section.get("written_lines_observed", True))
+        if expected is not None and actual is not None and int(expected) != int(actual):
+            violations.append(
+                f"{label_prefix}.actual_emitted: expected {int(expected)} but found {int(actual)}"
+            )
+        if (
+            written_observed
+            and written is not None
+            and actual is not None
+            and int(written) != int(actual)
+        ):
+            violations.append(
+                f"{label_prefix}.written_lines: expected {int(actual)} but found {int(written)}"
+            )
+        warmup = section.get("warmup_duration")
+        flush = section.get("flush_duration")
+        measured = section.get("measured_duration")
+        duration = section.get("duration")
+        if warmup is not None and float(warmup) < 0:
+            violations.append(f"{label_prefix}.warmup_duration: negative value {float(warmup)}")
+        if flush is not None and float(flush) < 0:
+            violations.append(f"{label_prefix}.flush_duration: negative value {float(flush)}")
+        if measured is not None and duration is not None and not math.isclose(
+            float(measured),
+            float(duration),
+            rel_tol=1e-6,
+            abs_tol=1e-9,
+        ):
+            violations.append(
+                f"{label_prefix}.measured_duration: expected {float(duration):.12f} "
+                f"but found {float(measured):.12f}"
+            )
+
     for key in ("sync_logger", "async_logger"):
         section = results.get(key, {})
         if not isinstance(section, dict):
@@ -170,6 +207,7 @@ def validate_result_invariants(results: dict[str, Any]) -> list[str]:
         section = results.get(key, {})
         if not isinstance(section, dict):
             continue
+        _validate_counting_and_timing(section, key)
         total = float(section.get("total_messages", 0))
         duration = float(section.get("duration", 0))
         msg_rate = float(section.get("messages_per_second", 0))
