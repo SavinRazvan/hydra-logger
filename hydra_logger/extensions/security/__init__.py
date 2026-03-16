@@ -1,11 +1,11 @@
 """
-Role: Public security extension package exports.
+Role: Public exports for hydra_logger.extensions.security; no runtime logic besides import wiring.
 Used By:
- - Consumers importing security extension utilities from `hydra_logger.extensions.security`.
+ - Importers of `hydra_logger.extensions.security` public API.
 Depends On:
- - data_redaction
+ - hydra_logger
 Notes:
- - Re-exports `DataRedaction` helper.
+ - Re-exports the hydra_logger.extensions.security public API with stable import paths.
 """
 
 from .data_redaction import DataRedaction

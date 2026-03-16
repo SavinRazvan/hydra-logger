@@ -1,14 +1,15 @@
 """
-Role: Apply slim module headers across Python code files.
+Role: Repository automation for apply slim headers.
 Used By:
- - maintainers running repository-wide header migration
+ - Repository maintainers invoking automation commands.
 Depends On:
  - argparse
  - ast
  - pathlib
  - subprocess
+ - typing
 Notes:
- - Rewrites module docstrings to the slim header format.
+ - Implements PR workflow automation for apply slim headers actions.
 """
 
 from __future__ import annotations

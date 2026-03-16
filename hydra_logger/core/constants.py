@@ -1,13 +1,11 @@
 """
-Role: Constants implementation.
+Role: Implements hydra_logger.core.constants functionality for Hydra Logger.
 Used By:
- - hydra_logger/formatters/colored_formatter.py for ANSI color mappings.
- - hydra_logger/formatters/structured_formatter.py for structured output header constants.
- - hydra_logger/core/__init__.py for core symbol exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - enum
 Notes:
- - Centralizes framework constants shared by formatters and exported core APIs.
+ - Provides core runtime primitives for constants.
 """
 
 from enum import Enum

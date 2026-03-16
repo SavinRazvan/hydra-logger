@@ -1,13 +1,11 @@
 """
-Role: Public extension package exports.
+Role: Public exports for hydra_logger.extensions; no runtime logic besides import wiring.
 Used By:
- - hydra_logger/factories/logger_factory.py for extension manager import.
- - examples/04_runtime_control.py for user-facing extension APIs.
+ - Importers of `hydra_logger.extensions` public API.
 Depends On:
- - extension_base
- - extension_manager
+ - hydra_logger
 Notes:
- - Re-exports extension primitives for stable import paths.
+ - Re-exports the hydra_logger.extensions public API with stable import paths.
 """
 
 from .extension_base import (

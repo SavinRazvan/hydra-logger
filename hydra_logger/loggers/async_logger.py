@@ -1,17 +1,15 @@
 """
-Role: Async logger implementation.
+Role: Implements hydra_logger.loggers.async_logger functionality for Hydra Logger.
 Used By:
- - hydra_logger/factories/logger_factory.py when `logger_type` resolves to async.
- - hydra_logger/loggers/__init__.py for package-level exports.
- - hydra_logger/__init__.py for public top-level imports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - asyncio
- - time
+ - hydra_logger
+ - psutil
  - sys
  - typing
- - base
 Notes:
- - Implements queue-driven async logging and cooperative shutdown semantics.
+ - Implements logger orchestration and routing for async logger.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
@@ -32,17 +30,8 @@ from ..types.records import LogRecord
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 
-
 class AsyncLogger(BaseLogger):
-    """
-    Simple asynchronous logging system.
-
-    Features:
-    - Async I/O operations
-    - Clean message handling
-    - Basic health monitoring
-    - Graceful shutdown handling
-    """
+    """Asynchronous logger with layer routing and handler-based emission."""
 
     def __init__(
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
@@ -60,7 +49,6 @@ class AsyncLogger(BaseLogger):
         else:
             self._setup_default_configuration()
 
-        # CRITICAL FIX: Setup core systems AFTER configuration (so security flags
         # are set)
         self._setup_core_systems()
 
@@ -105,7 +93,6 @@ class AsyncLogger(BaseLogger):
         self._shutdown_event = None
         self._writer_tasks = {}
 
-        # OPTIMIZATION: Non-blocking concurrency control with overflow handling
         self._concurrency_semaphore = None
         self._optimal_concurrency = None
         self._overflow_queue = asyncio.Queue(maxsize=100000)  # Larger overflow queue
@@ -124,7 +111,7 @@ class AsyncLogger(BaseLogger):
 
     def _setup_core_systems(self):
         """Setup core system integration."""
-        # SIMPLIFIED: No complex security engine - use simple extensions
+
         self._security_engine = None
 
         # Setup data protection if enabled
@@ -194,7 +181,6 @@ class AsyncLogger(BaseLogger):
             self._optimal_concurrency = self._get_optimal_concurrency()
             self._concurrency_semaphore = asyncio.Semaphore(self._optimal_concurrency)
 
-            # OPTIMIZATION: Start overflow worker for non-blocking operation
             if self._overflow_worker_task is None:
                 self._overflow_worker_task = asyncio.create_task(
                     self._overflow_worker()
@@ -207,7 +193,6 @@ class AsyncLogger(BaseLogger):
         else:
             self._config = config
 
-        # CRITICAL FIX: Extract security settings from configuration
         if self._config:
             self._enable_security = self._config.enable_security
             self._enable_sanitization = self._config.enable_sanitization
@@ -216,12 +201,11 @@ class AsyncLogger(BaseLogger):
             )
             self._enable_plugins = self._config.enable_plugins
 
-        # CRITICAL FIX: Setup handlers from configuration
         self._setup_layers()
 
     def _setup_default_configuration(self):
         """Setup SIMPLIFIED configuration for performance."""
-        # SIMPLIFIED: Use only console handler for performance
+
         from ..handlers.console_handler import AsyncConsoleHandler
 
         self._console_handler = AsyncConsoleHandler(
@@ -286,7 +270,6 @@ class AsyncLogger(BaseLogger):
             )
             handler.setFormatter(formatter)
 
-            # CRITICAL FIX: Start the async file worker
             handler._start_worker()
 
         elif destination.type == "null":
@@ -315,7 +298,6 @@ class AsyncLogger(BaseLogger):
             if cache_key in self._formatter_cache:
                 return self._formatter_cache[cache_key]
 
-            # STANDARDIZED: Use the standardized get_formatter function
             from ..formatters import get_formatter
 
             # Map old format types to new standardized types
@@ -412,7 +394,6 @@ class AsyncLogger(BaseLogger):
             # Create log record
             record = self.create_log_record(level, message, **kwargs)
 
-            # SIMPLE SECURITY: Apply data protection if enabled
             if self._data_protection and self._data_protection.is_enabled():
                 try:
                     # Process the message through simple security extension
@@ -421,7 +402,6 @@ class AsyncLogger(BaseLogger):
                     # If security processing fails, continue with original record
                     pass
 
-            # SIMPLIFIED: Direct emission to handlers (no async complexity)
             layer_name = getattr(record, "layer", "default")
             handlers = self._get_handlers_for_layer(layer_name)
 
@@ -443,14 +423,12 @@ class AsyncLogger(BaseLogger):
     async def _log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
         """Internal async logging method - SIMPLIFIED for reliability."""
         try:
-            # SIMPLIFIED: Direct level conversion (no caching overhead)
+
             if isinstance(level, str):
                 level = LogLevelManager.get_level(level)
 
-            # STANDARDIZED: Use standardized LogRecord creation
             record = self.create_log_record(level, message, **kwargs)
 
-            # SIMPLE SECURITY: Apply data protection if enabled
             if self._data_protection and self._data_protection.is_enabled():
                 try:
                     # Process the message through simple security extension
@@ -459,7 +437,6 @@ class AsyncLogger(BaseLogger):
                     # If security processing fails, continue with original record
                     pass
 
-            # SIMPLIFIED: Direct emission to handlers (no complex semaphore)
             await self._emit_to_handlers(record)
 
             # Update statistics
@@ -547,7 +524,6 @@ class AsyncLogger(BaseLogger):
 
         try:
 
-            # PERFORMANCE FIX: Process in optimal chunks without individual tasks
             optimal_chunk_size = min(5000, len(messages) // 10)  # Dynamic chunk sizing
             optimal_chunk_size = max(100, optimal_chunk_size)  # Minimum chunk size
 
@@ -561,7 +537,6 @@ class AsyncLogger(BaseLogger):
             for i in range(0, len(messages), optimal_chunk_size):
                 chunk = messages[i : i + optimal_chunk_size]
 
-                # PERFORMANCE FIX: Process chunk directly without creating tasks
                 await self._process_chunk_optimized(chunk, **kwargs)
 
         except Exception as e:
@@ -571,7 +546,7 @@ class AsyncLogger(BaseLogger):
         self, chunk: List[Tuple[Union[str, int], str, Dict]], **kwargs
     ) -> None:
         """Process a chunk of messages with minimal overhead - NO TASK CANCELLATION ISSUES."""
-        # PERFORMANCE FIX: Use sequential processing for small chunks (most reliable)
+
         if len(chunk) <= 100:
             # Sequential processing - no task management overhead
             for level, message, extra_kwargs in chunk:
@@ -628,7 +603,6 @@ class AsyncLogger(BaseLogger):
 
         try:
 
-            # TRUE ASYNC: Use optimal concurrency based on message count
             if max_concurrent is None:
                 # Dynamic concurrency: more messages = more concurrency (up to limit)
                 concurrency = min(100, max(10, len(messages) // 100))
@@ -642,10 +616,8 @@ class AsyncLogger(BaseLogger):
                     f"with concurrency {concurrency}"
                 )
 
-            # TRUE ASYNC: Create semaphore for controlled concurrency
             semaphore = asyncio.Semaphore(concurrency)
 
-            # TRUE ASYNC: Create tasks for all messages
             tasks = []
             for level, message, extra_kwargs in messages:
                 task = asyncio.create_task(
@@ -655,7 +627,6 @@ class AsyncLogger(BaseLogger):
                 )
                 tasks.append(task)
 
-            # TRUE ASYNC: Wait for all tasks to complete in parallel
             await asyncio.gather(*tasks, return_exceptions=True)
 
         except Exception as e:
@@ -692,16 +663,14 @@ class AsyncLogger(BaseLogger):
             return []
 
         try:
-            # TRUE ASYNC: Use optimal concurrency
+
             if max_concurrent is None:
                 concurrency = min(50, max(5, len(work_tasks) // 10))
             else:
                 concurrency = min(max_concurrent, 50)  # Cap at 50 for work tasks
 
-            # TRUE ASYNC: Create semaphore for controlled concurrency
             semaphore = asyncio.Semaphore(concurrency)
 
-            # TRUE ASYNC: Create tasks for all work
             tasks = []
             for work_task in work_tasks:
                 task = asyncio.create_task(
@@ -709,7 +678,6 @@ class AsyncLogger(BaseLogger):
                 )
                 tasks.append(task)
 
-            # TRUE ASYNC: Wait for all work to complete in parallel
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Filter out exceptions and return only successful results

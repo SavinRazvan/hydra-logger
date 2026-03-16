@@ -1,17 +1,14 @@
 """
-Role: Composite logger implementation.
+Role: Implements hydra_logger.loggers.composite_logger functionality for Hydra Logger.
 Used By:
- - hydra_logger/factories/logger_factory.py for composite and composite_async logger creation.
- - hydra_logger/loggers/__init__.py for package-level exports.
- - hydra_logger/__init__.py for public top-level imports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - typing
  - asyncio
- - time
- - sys
- - base
+ - hydra_logger
+ - pathlib
+ - typing
 Notes:
- - Hosts fan-out logger variants for multi-destination and layered dispatch workflows.
+ - Implements logger orchestration and routing for composite logger.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false

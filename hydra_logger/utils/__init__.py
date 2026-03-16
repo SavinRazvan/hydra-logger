@@ -1,13 +1,11 @@
 """
-Role: Public utility package exports.
+Role: Public exports for hydra_logger.utils; no runtime logic besides import wiring.
 Used By:
- - Internal modules and external consumers importing utility helpers from `hydra_logger.utils`.
+ - Importers of `hydra_logger.utils` public API.
 Depends On:
- - text_utility
- - time_utility
- - file_utility
+ - hydra_logger
 Notes:
- - Re-exports text, time, and file utility components.
+ - Re-exports the hydra_logger.utils public API with stable import paths.
 """
 
 from .file_utility import (

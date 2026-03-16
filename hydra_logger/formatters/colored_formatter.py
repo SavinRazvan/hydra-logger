@@ -1,15 +1,12 @@
 """
-Role: Colored formatter implementation.
+Role: Implements hydra_logger.formatters.colored_formatter functionality for Hydra Logger.
 Used By:
- - hydra_logger/formatters/__init__.py for formatter factory and exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - hydra_logger
  - typing
- - text_formatter
- - types
- - utils
- - core
 Notes:
- - Adds ANSI color mapping to plain text formatter output paths.
+ - Defines output formatting behavior for colored formatter.
 """
 
 from typing import Optional

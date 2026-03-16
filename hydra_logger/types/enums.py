@@ -1,15 +1,12 @@
 """
-Role: Enums implementation.
+Role: Implements hydra_logger.types.enums functionality for Hydra Logger.
 Used By:
- - hydra_logger/handlers/rotating_handler.py for time-unit rotation policies.
- - hydra_logger/handlers/__init__.py for re-exported enum usage.
- - hydra_logger/utils/time_utility.py for time conversion and interval helpers.
- - hydra_logger/types/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - enum
  - typing
 Notes:
- - Central enum definitions for handlers, formats, destinations, and runtime policies.
+ - Defines shared type contracts/constants for enums.
 """
 
 from enum import Enum

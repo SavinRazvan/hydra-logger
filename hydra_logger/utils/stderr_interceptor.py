@@ -1,14 +1,13 @@
 """
-Role: Stderr interceptor implementation.
+Role: Implements hydra_logger.utils.stderr_interceptor functionality for Hydra Logger.
 Used By:
- - hydra_logger/__init__.py to start stderr interception during package bootstrap.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - hydra_logger
+ - os
  - sys
- - io
- - typing
- - error_logger
 Notes:
- - Captures stderr-only runtime diagnostics and forwards them to safe error logging.
+ - Intercepts stderr writes and forwards structured error output to logger sinks.
 """
 
 import sys

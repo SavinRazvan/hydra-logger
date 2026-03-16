@@ -1,13 +1,11 @@
 """
-Role: Public configuration package exports.
+Role: Public exports for hydra_logger.config; no runtime logic besides import wiring.
 Used By:
- - performance_benchmark.py and other consumers importing config helpers from `hydra_logger.config`.
+ - Importers of `hydra_logger.config` public API.
 Depends On:
- - models
- - defaults
- - configuration_templates
+ - hydra_logger
 Notes:
- - Re-exports configuration models, defaults, and template registry helpers.
+ - Re-exports the hydra_logger.config public API with stable import paths.
 """
 
 from .configuration_templates import (

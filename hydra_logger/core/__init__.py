@@ -1,14 +1,11 @@
 """
-Role: Public core package exports.
+Role: Public exports for hydra_logger.core; no runtime logic besides import wiring.
 Used By:
- - Consumers importing `hydra_logger.core` symbols directly.
+ - Importers of `hydra_logger.core` public API.
 Depends On:
- - constants
- - types
- - layer_management
- - exceptions
+ - hydra_logger
 Notes:
- - Re-exports core constants, exceptions, and layer management primitives.
+ - Re-exports the hydra_logger.core public API with stable import paths.
 """
 
 from ..types.levels import LogLevel

@@ -1,15 +1,19 @@
 """
-Role: Structured formatter implementation.
+Role: Implements hydra_logger.formatters.structured_formatter functionality for Hydra Logger.
 Used By:
- - hydra_logger/formatters/__init__.py for formatter factory and exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - csv
+ - hydra_logger
  - io
+ - json
  - os
- - typing
- - base
+ - psutil
+ - socket
+ - sys
+ - ...
 Notes:
- - Provides CSV, syslog, GELF, and logstash-compatible formatter implementations.
+ - Defines output formatting behavior for structured formatter.
 """
 
 import csv

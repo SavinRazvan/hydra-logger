@@ -1,15 +1,19 @@
 """
-Role: Error logger implementation.
+Role: Implements hydra_logger.utils.error_logger functionality for Hydra Logger.
 Used By:
- - hydra_logger/utils/stderr_interceptor.py for captured stderr/error persistence.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - os
- - sys
+ - atexit
+ - datetime
  - json
- - traceback
+ - os
+ - pathlib
+ - sys
  - threading
+ - traceback
+ - ...
 Notes:
- - Provides safe, fallback-oriented error logging that avoids recursive failures.
+ - Captures internal logger errors to resilient sinks to avoid silent failures.
 """
 
 import atexit
@@ -18,7 +22,7 @@ import os
 import sys
 import threading
 import traceback
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -120,7 +124,7 @@ class SafeErrorLogger:
             if isinstance(error, MemoryError):
                 # Minimal error record for memory errors
                 error_record: Dict[str, Any] = {
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "error_type": "MemoryError",
                     "error_message": (
                         str(error) if error else "Memory allocation failed"
@@ -153,7 +157,7 @@ class SafeErrorLogger:
                 error_text = str(error)[:100] if error else "MemoryError"
                 error_msg = f"{error_name}: {error_text}"
                 sys.stderr.write(
-                    f"[MEMORY_ERROR] {datetime.utcnow().isoformat()} {error_msg}\n"
+                    f"[MEMORY_ERROR] {datetime.now(UTC).isoformat()} {error_msg}\n"
                 )
                 sys.stderr.flush()
             except Exception:
@@ -163,7 +167,7 @@ class SafeErrorLogger:
             try:
                 error_msg = str(error) if error else "Unknown error"
                 sys.stderr.write(
-                    f"[ERROR] {datetime.utcnow().isoformat()} {error_msg}\n"
+                    f"[ERROR] {datetime.now(UTC).isoformat()} {error_msg}\n"
                 )
                 sys.stderr.flush()
             except Exception:
@@ -189,7 +193,7 @@ class SafeErrorLogger:
 
         # Build error record
         error_record: Dict[str, Any] = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "error_type": type(error).__name__,
             "error_message": str(error),
             "component": component or "unknown",
@@ -234,7 +238,7 @@ class SafeErrorLogger:
 
             # MEMORY SAFETY: For memory-related messages, use minimal operations
             error_record: Dict[str, Any] = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "level": level,
                 "message": (
                     message[:500] if len(message) > 500 else message
@@ -263,7 +267,7 @@ class SafeErrorLogger:
                 # Minimal stderr output
                 minimal_msg = message[:100] if len(message) > 100 else message
                 sys.stderr.write(
-                    f"[{level}] {datetime.utcnow().isoformat()} {minimal_msg}\n"
+                    f"[{level}] {datetime.now(UTC).isoformat()} {minimal_msg}\n"
                 )
                 sys.stderr.flush()
             except Exception:
@@ -271,7 +275,7 @@ class SafeErrorLogger:
         except Exception:
             try:
                 sys.stderr.write(
-                    f"[{level}] {datetime.utcnow().isoformat()} {message}\n"
+                    f"[{level}] {datetime.now(UTC).isoformat()} {message}\n"
                 )
                 sys.stderr.flush()
             except Exception:

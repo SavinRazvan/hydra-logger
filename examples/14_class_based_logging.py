@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Role: 14 class based logging implementation.
+Role: Runnable example for 14 class based logging.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
  - hydra_logger
+ - sys
 Notes:
- - Demonstrates class-based logger usage patterns.
+ - Demonstrates 14 class based logging usage patterns for manual verification and onboarding.
 """
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger

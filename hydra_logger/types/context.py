@@ -1,16 +1,18 @@
 """
-Role: Context implementation.
+Role: Implements hydra_logger.types.context functionality for Hydra Logger.
 Used By:
- - hydra_logger/__init__.py for `LogContext` public export.
- - hydra_logger/types/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - time
- - threading
  - contextvars
- - typing
  - dataclasses
+ - enum
+ - inspect
+ - os
+ - threading
+ - time
+ - typing
 Notes:
- - Provides caller/system/runtime context models and detectors for log enrichment.
+ - Defines shared type contracts/constants for context.
 """
 
 import contextvars

@@ -1,15 +1,11 @@
 """
-Role: Top-level public package API exports and bootstrap initialization.
+Role: Public exports for hydra_logger; no runtime logic besides import wiring.
 Used By:
- - All package consumers importing `hydra_logger` entrypoints.
+ - Importers of `hydra_logger` public API.
 Depends On:
- - loggers
- - factories
- - core
- - config
- - types
+ - hydra_logger
 Notes:
- - Starts stderr interception early and re-exports stable public API symbols.
+ - Re-exports the hydra_logger public API with stable import paths.
 """
 
 __version__ = "0.4.0"

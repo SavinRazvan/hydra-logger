@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Role: 08 mixed console file output implementation.
+Role: Runnable example for 08 mixed console file output.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
  - hydra_logger
 Notes:
- - Demonstrates mixed console and file destination formatting.
+ - Demonstrates 08 mixed console file output usage patterns for manual verification and onboarding.
 """
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger

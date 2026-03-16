@@ -1,11 +1,11 @@
 """
-Role: Public factory package exports.
+Role: Public exports for hydra_logger.factories; no runtime logic besides import wiring.
 Used By:
- - External consumers importing factory helpers from `hydra_logger.factories`.
+ - Importers of `hydra_logger.factories` public API.
 Depends On:
- - logger_factory
+ - hydra_logger
 Notes:
- - Re-exports logger factory creation entrypoints.
+ - Re-exports the hydra_logger.factories public API with stable import paths.
 """
 
 from .logger_factory import (

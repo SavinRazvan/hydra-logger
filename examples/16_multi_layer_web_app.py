@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """
-Role: 16 multi layer web app implementation.
+Role: Runnable example for 16 multi layer web app.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
  - asyncio
- - random
- - typing
  - hydra_logger
+ - random
 Notes:
- - Demonstrates multi-layer web application logging flows.
+ - Demonstrates 16 multi layer web app usage patterns for manual verification and onboarding.
 """
 
 import asyncio

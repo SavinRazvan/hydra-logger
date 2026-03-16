@@ -1,19 +1,14 @@
 """
-Role: Base handler implementation.
+Role: Implements hydra_logger.handlers.base_handler functionality for Hydra Logger.
 Used By:
- - hydra_logger/handlers/console_handler.py for console transport handlers.
- - hydra_logger/handlers/file_handler.py for file transport handlers.
- - hydra_logger/handlers/network_handler.py for network transport handlers.
- - hydra_logger/handlers/null_handler.py for no-op fallback handling.
- - hydra_logger/handlers/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - abc
+ - datetime
+ - hydra_logger
  - typing
- - types
- - formatters
- - utils
 Notes:
- - Defines handler contract and shared formatter/timestamp utilities.
+ - Implements log destination handling and I/O flow for base handler.
 """
 
 from abc import ABC, abstractmethod

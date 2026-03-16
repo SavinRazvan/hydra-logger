@@ -1,15 +1,15 @@
 """
-Role: Extension base implementation.
+Role: Implements hydra_logger.extensions.extension_base functionality for Hydra Logger.
 Used By:
- - hydra_logger/extensions/extension_manager.py to build and run extensions.
- - hydra_logger/extensions/__init__.py to expose extension APIs.
- - hydra_logger/loggers/sync_logger.py and hydra_logger/loggers/async_logger.py for security extension integration.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - abc
- - typing
+ - datetime
+ - psutil
  - re
+ - typing
 Notes:
- - Defines built-in extension contracts (`ExtensionBase`, `SecurityExtension`, `FormattingExtension`, `PerformanceExtension`).
+ - Implements extension lifecycle or integration logic for extension base.
 """
 
 import re

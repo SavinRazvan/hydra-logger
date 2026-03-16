@@ -1,16 +1,13 @@
 """
-Role: Defaults implementation.
+Role: Implements hydra_logger.config.defaults functionality for Hydra Logger.
 Used By:
- - hydra_logger/core/logger_management.py and factories for default config resolution.
- - hydra_logger/config/__init__.py for exported convenience constructors.
- - performance_benchmark.py for benchmark config presets.
- - hydra_logger/config/configuration_templates.py built-in template registration.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - typing
+ - hydra_logger
  - pathlib
- - models
+ - typing
 Notes:
- - Provides baseline and prebuilt configuration templates with helper accessors.
+ - Builds default/development/production configuration profiles.
 """
 
 from pathlib import Path
@@ -18,62 +15,12 @@ from typing import Callable, Dict, Optional
 
 from .models import LogDestination, LoggingConfig, LogLayer
 
-
 class ConfigurationTemplates:
-    """
-    Configuration template system.
-
-    This class provides pre-built configuration templates for common use cases.
-    It follows a performance-oriented philosophy while offering flexibility for
-    users who need specific features.
-
-    Philosophy:
-    - Default: Performance focus, minimal features
-    - Custom: Let users enable features as needed, trading performance for functionality
-    - Clear trade-offs: Users understand the performance impact of each feature
-    - Python logging compatibility: Follows standard logging patterns
-
-    Available Templates:
-    - get_default_config(): Default configuration with performance focus
-    - get_custom_config(): Customizable configuration with feature toggles
-    - get_development_config(): Development-friendly configuration
-    - get_production_config(): Production-ready configuration with security
-    - get_testing_config(): Testing configuration with minimal overhead
-
-    Examples:
-        # Default configuration
-        config = ConfigurationTemplates.get_default_config()
-
-        # Custom configuration with security
-        config = ConfigurationTemplates.get_custom_config(
-            enable_security=True,
-            enable_sanitization=True,
-            console_enabled=True,
-            file_enabled=True
-        )
-
-        # Production configuration
-        config = ConfigurationTemplates.get_production_config()
-    """
+    """Predefined configuration builders for common runtime profiles."""
 
     @staticmethod
     def get_default_config() -> LoggingConfig:
-        """
-        Get the default configuration with performance focus.
-
-        Features:
-        - INFO level
-        - Performance-heavy features disabled by default
-        - Console + file output
-        - Fast formatting
-        - Optimized buffering
-
-        Performance optimizations:
-        - Uses async_console for better throughput (non-blocking)
-        - Larger buffer sizes (5000 messages) for batching
-        - Longer flush intervals (0.5s) to reduce I/O frequency
-        - Colors disabled by default (enable with use_colors=True)
-        """
+        """Return the performance-focused default configuration."""
         return LoggingConfig(
             # All features disabled by default
             default_level="INFO",
@@ -81,7 +28,7 @@ class ConfigurationTemplates:
             enable_sanitization=False,
             enable_plugins=False,
             enable_performance_monitoring=False,
-            # PERFORMANCE: Larger buffers for better batching (reduces I/O frequency)
+
             buffer_size=16384,  # 16K buffer (larger = better performance)
             flush_interval=0.5,  # 0.5s flush (balance between latency and throughput)
             layers={
@@ -107,22 +54,17 @@ class ConfigurationTemplates:
 
     @staticmethod
     def get_custom_config(
-        # Performance vs Features trade-offs
         enable_security: bool = False,
         enable_sanitization: bool = False,
         enable_plugins: bool = False,
         enable_performance_monitoring: bool = False,
-        # Log level (affects performance)
         default_level: str = "INFO",
-        # Output destinations
         console_enabled: bool = True,
         file_enabled: bool = True,
         file_path: str = "logs/app.log",
         file_format: str = "json-lines",
-        # Performance settings
         buffer_size: int = 8192,
         flush_interval: float = 1.0,
-        # Additional layers (unlimited)
         error_layer: bool = False,
         debug_layer: bool = False,
         warning_layer: bool = False,
@@ -131,35 +73,7 @@ class ConfigurationTemplates:
         custom_layers: Optional[Dict[str, LogLayer]] = None,
         **extra_options,
     ) -> LoggingConfig:
-        """
-        Create a custom configuration with user-specified features.
-
-        This allows users to trade performance for functionality by enabling
-        specific features as needed. Supports UNLIMITED layers and configurations.
-
-        Args:
-            enable_security: Enable security features (reduces performance)
-            enable_sanitization: Enable data sanitization (reduces performance)
-            enable_plugins: Enable plugin system (reduces performance)
-            enable_performance_monitoring: Enable performance monitoring (reduces performance)
-            default_level: Log level (DEBUG reduces performance)
-            console_enabled: Enable console output
-            file_enabled: Enable file output
-            file_path: Path for file output
-            file_format: Format for file output
-            buffer_size: Buffer size (larger = better performance)
-            flush_interval: Flush interval (larger = better performance)
-            error_layer: Add dedicated error layer
-            debug_layer: Add dedicated debug layer
-            warning_layer: Add dedicated warning layer
-            info_layer: Add dedicated info layer
-            critical_layer: Add dedicated critical layer
-            custom_layers: Dictionary of custom layers (UNLIMITED)
-            **extra_options: Additional configuration options
-
-        Returns:
-            LoggingConfig with specified features enabled and unlimited layers
-        """
+        """Build a custom configuration with optional feature toggles and layers."""
         # Build destinations based on user preferences
         destinations = []
 
@@ -292,19 +206,7 @@ class ConfigurationTemplates:
 
     @staticmethod
     def get_development_config() -> LoggingConfig:
-        """
-        Get a development-friendly configuration.
-
-        Trade-offs:
-        - DEBUG level for detailed logging
-        - Fast flush for immediate feedback
-        - Performance monitoring disabled for speed
-
-        Performance optimizations:
-        - Uses async_console for better throughput
-        - Fast-plain format (faster than colored)
-        - Optimized buffer sizes
-        """
+        """Return a development-oriented configuration."""
         config = ConfigurationTemplates.get_custom_config(
             default_level="DEBUG",
             flush_interval=0.1,  # Fast feedback
@@ -316,20 +218,7 @@ class ConfigurationTemplates:
 
     @staticmethod
     def get_production_config() -> LoggingConfig:
-        """
-        Get a production-ready configuration.
-
-        Trade-offs:
-        - Security and monitoring enabled
-        - Larger buffers for performance
-        - Dedicated error layer
-
-        Performance optimizations:
-        - Uses async_console for better throughput
-        - Larger buffer sizes for batching
-        - Longer flush intervals to reduce I/O
-        - Colors disabled (not needed in production logs)
-        """
+        """Return a production-oriented configuration."""
         config = ConfigurationTemplates.get_custom_config(
             enable_security=True,
             enable_sanitization=True,
@@ -347,31 +236,25 @@ class ConfigurationTemplates:
                     dest.use_colors = False  # Disable colors in production
         return config
 
-
 # Global instance for easy access
 templates = ConfigurationTemplates()
-
 
 # Convenience functions
 def get_default_config() -> LoggingConfig:
     """Get the default configuration with performance focus."""
     return templates.get_default_config()
 
-
 def get_custom_config(**options) -> LoggingConfig:
     """Create a custom configuration with user-specified features."""
     return templates.get_custom_config(**options)
-
 
 def get_development_config() -> LoggingConfig:
     """Get a development-friendly configuration."""
     return templates.get_development_config()
 
-
 def get_production_config() -> LoggingConfig:
     """Get a production-ready configuration."""
     return templates.get_production_config()
-
 
 # Configuration registry for backward compatibility
 DEFAULT_CONFIGS: Dict[str, Callable[..., LoggingConfig]] = {
@@ -381,18 +264,8 @@ DEFAULT_CONFIGS: Dict[str, Callable[..., LoggingConfig]] = {
     "custom": get_custom_config,
 }
 
-
 def get_named_config(name: str, **options) -> LoggingConfig:
-    """
-    Get a named configuration.
-
-    Args:
-        name: Configuration name ("default", "development", "production", "custom")
-        **options: Additional options for custom configuration
-
-    Returns:
-        LoggingConfig instance
-    """
+    """Resolve a named configuration builder and return its result."""
     if name not in DEFAULT_CONFIGS:
         available = list(DEFAULT_CONFIGS.keys())
         raise ValueError(f"Unknown configuration name: {name}. Available: {available}")
@@ -401,7 +274,6 @@ def get_named_config(name: str, **options) -> LoggingConfig:
         return DEFAULT_CONFIGS[name](**options)
     else:
         return DEFAULT_CONFIGS[name]()
-
 
 def list_available_configs() -> Dict[str, str]:
     """List all available configurations."""

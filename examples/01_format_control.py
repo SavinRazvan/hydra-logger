@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Role: 01 format control implementation.
+Role: Runnable example for 01 format control.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
  - hydra_logger
 Notes:
- - Demonstrates format selection across logging destinations.
+ - Demonstrates 01 format control usage patterns for manual verification and onboarding.
 """
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger

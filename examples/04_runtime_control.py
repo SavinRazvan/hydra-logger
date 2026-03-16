@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Role: 04 runtime control implementation.
+Role: Runnable example for 04 runtime control.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
  - hydra_logger
 Notes:
- - Demonstrates runtime control of extension manager behavior.
+ - Demonstrates 04 runtime control usage patterns for manual verification and onboarding.
 """
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger

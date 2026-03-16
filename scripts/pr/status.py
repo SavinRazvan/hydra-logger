@@ -1,13 +1,16 @@
 """
-Role: Emits machine-readable PR workflow status.
+Role: Repository automation for status.
 Used By:
- - .agents/skills/PR_WORKFLOW.md
+ - Repository maintainers invoking automation commands.
 Depends On:
  - argparse
  - json
+ - pathlib
  - subprocess
+ - sys
+ - typing
 Notes:
- - Aggregates branch, PR, checks, and artifact readiness into one JSON payload.
+ - Implements PR workflow automation for status actions.
 """
 
 from __future__ import annotations
@@ -96,7 +99,15 @@ def _run_env_preflight(skip_env_check: bool) -> tuple[bool, str]:
     if skip_env_check:
         return True, ""
 
-    code, out = _run([sys.executable, "scripts/dev/check_env_health.py", "--strict", "--json"])
+    code, out = _run(
+        [
+            sys.executable,
+            "scripts/dev/check_env_health.py",
+            "--strict",
+            "--auto-upgrade-toolchain",
+            "--json",
+        ]
+    )
     if code == 0:
         return True, ""
 

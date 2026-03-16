@@ -1,18 +1,18 @@
 """
-Role: Time utility implementation.
+Role: Implements hydra_logger.utils.time_utility functionality for Hydra Logger.
 Used By:
- - hydra_logger/loggers/* for high-resolution timestamps and runtime timing.
- - hydra_logger/handlers/file_handler.py and rotating handlers for rollover timing.
- - hydra_logger/formatters/* and handler base for timestamp formatting configuration.
- - hydra_logger/utils/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - time
- - datetime
- - typing
  - dataclasses
+ - datetime
  - enum
+ - hydra_logger
+ - pytz
+ - re
+ - time
+ - typing
 Notes:
- - Provides timestamp formatting, conversion, and interval utility helpers.
+ - Supplies timestamp formatting, precision handling, and timing abstractions.
 """
 
 import time

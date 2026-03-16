@@ -1,18 +1,15 @@
 """
-Role: Abstract base logger contract and shared logger behavior.
+Role: Implements hydra_logger.loggers.base functionality for Hydra Logger.
 Used By:
- - hydra_logger/loggers/sync_logger.py for synchronous logger implementation.
- - hydra_logger/loggers/async_logger.py for asynchronous logger implementation.
- - hydra_logger/loggers/composite_logger.py for composite logger variants.
- - hydra_logger/loggers/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - asyncio
- - time
  - abc
+ - asyncio
+ - hydra_logger
+ - time
  - typing
- - types
 Notes:
- - Centralizes configuration coercion, record creation strategy, and common lifecycle hooks.
+ - Implements logger orchestration and routing for base.
 """
 
 import asyncio

@@ -1,12 +1,15 @@
 """
-Role: Creates pull requests with required attribution metadata.
+Role: Repository automation for create.
 Used By:
- - .agents/skills/PR_WORKFLOW.md
+ - Repository maintainers invoking automation commands.
 Depends On:
  - argparse
+ - json
+ - pathlib
  - subprocess
+ - sys
 Notes:
- - Standardizes PR body sections and enforces attribution footer fields.
+ - Implements PR workflow automation for create actions.
 """
 
 from __future__ import annotations
@@ -35,7 +38,15 @@ def _run_env_preflight(skip_env_check: bool) -> tuple[bool, str]:
     if skip_env_check:
         return True, ""
 
-    code, out = _run([sys.executable, "scripts/dev/check_env_health.py", "--strict", "--json"])
+    code, out = _run(
+        [
+            sys.executable,
+            "scripts/dev/check_env_health.py",
+            "--strict",
+            "--auto-upgrade-toolchain",
+            "--json",
+        ]
+    )
     if code == 0:
         return True, ""
 

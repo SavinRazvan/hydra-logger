@@ -1,14 +1,13 @@
 """
-Role: Logger factory implementation.
+Role: Create sync, async, and composite logger instances from config models.
 Used By:
- - hydra_logger/core/logger_management.py to create and cache logger instances.
- - hydra_logger/factories/logger_factory.py module-level `logger_factory` singleton.
+ - `hydra_logger.core.logger_management` convenience APIs.
+ - Module-level logger creation helpers in this file.
 Depends On:
+ - hydra_logger
  - typing
- - config
- - loggers
 Notes:
- - Central creation path for sync/async/composite logger variants and template-based config selection.
+ - Creates runtime components through factory APIs for logger factory.
 """
 
 from typing import Any, Dict, Optional, cast, Union
@@ -23,49 +22,7 @@ from ..loggers.sync_logger import SyncLogger
 
 
 class LoggerFactory:
-    """
-    Central factory for creating and managing all Hydra-Logger components.
-
-    This factory implements the Factory Pattern with features including
-    caching, magic configuration integration, and type-safe component creation.
-    It provides a unified interface for creating all logger types and manages
-    their lifecycle efficiently.
-
-    FEATURES:
-    - Type-safe logger creation with full validation
-    - Magic configuration integration for common use cases
-    - Caching system for performance optimization
-    - Support for all 4 core logger types (Sync, Async, Composite, CompositeAsync)
-    - Configuration validation and default handling
-    - Memory-efficient component management
-    - Thread-safe operations throughout
-
-    CACHING SYSTEM:
-    - Automatic logger caching based on configuration hash
-    - Memory-efficient cache management with TTL
-    - Cache invalidation and cleanup mechanisms
-    - Performance optimization through component reuse
-    - Thread-safe cache operations
-
-    MAGIC CONFIGURATIONS:
-    - default: Default configuration with performance focus
-    - development: Development-friendly configuration with debug output
-    - production: Production-ready configuration with security and monitoring
-    - custom: Custom configuration with user-specified features
-
-    USAGE EXAMPLES:
-
-    Basic Usage:
-        factory = LoggerFactory()
-        logger = factory.create_logger(config, "sync")
-
-    Magic Configuration:
-        logger = factory.create_logger_with_magic("production", "async")
-
-    Caching:
-        factory.cache_logger("my_logger", logger)
-        cached = factory.get_cached_logger("my_logger")
-    """
+    """Factory for constructing and caching logger implementations."""
 
     def __init__(self):
         self._logger_cache = {}
@@ -77,44 +34,7 @@ class LoggerFactory:
         logger_type: str = "sync",
         **kwargs,
     ) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-        """
-        Create a logger with the specified configuration and type.
-
-        This is the main factory method that creates loggers based on the provided
-        configuration and type. It handles configuration parsing, validation,
-        and logger instantiation with proper error handling.
-
-        Args:
-            config: Logging configuration. Can be a LoggingConfig object, dict, or None.
-                   If None, uses the default configuration.
-            logger_type: Type of logger to create. Options:
-                - "sync": Synchronous logger with immediate output
-                - "async": Asynchronous logger with queue-based processing
-                - "composite": Composite logger for multiple components
-                - "composite-async": Async version of composite logger
-            **kwargs: Additional keyword arguments passed to the logger constructor
-
-        Returns:
-            Logger instance of the specified type with the given configuration
-
-        Raises:
-            ValueError: If logger_type is not supported
-            ConfigurationError: If configuration is invalid
-
-        Examples:
-            # Create sync logger with custom config
-            logger = factory.create_logger(config, "sync")
-
-            # Create async logger with default config
-            logger = factory.create_logger(logger_type="async")
-
-            # Create composite logger with additional parameters
-            logger = factory.create_logger(
-                config=config,
-                logger_type="composite",
-                name="MyCompositeLogger"
-            )
-        """
+        """Create a logger instance for the requested runtime mode."""
 
         # Logs directory structure - simplified (no automatic creation)
 
@@ -172,39 +92,7 @@ class LoggerFactory:
     def create_logger_with_template(
         self, template_name: str, logger_type: str = "sync", **kwargs
     ) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-        """
-        Create a logger using a pre-configured configuration template.
-
-        Configuration templates are pre-defined configurations for common
-        use cases. They provide sensible defaults and can be customized further
-        through additional parameters.
-
-        Args:
-            template_name: Name of the configuration template to use. Options:
-                - "default": Default configuration with performance focus
-                - "development": Development-friendly configuration with debug output
-                - "production": Production-ready configuration with security and monitoring
-                - "custom": Custom configuration with user-specified features
-            logger_type: Type of logger to create (sync, async, composite, composite-async)
-            **kwargs: Additional keyword arguments passed to the logger constructor
-
-        Returns:
-            Logger instance with the configuration template applied
-
-        Raises:
-            ValueError: If template_name is not found or logger_type is invalid
-
-        Examples:
-            # Create production logger
-            logger = factory.create_logger_with_template("production", "async")
-
-            # Create development logger with custom name
-            logger = factory.create_logger_with_template(
-                "development",
-                "sync",
-                name="MyDevLogger"
-            )
-        """
+        """Create a logger from a named template configuration."""
         if not configuration_templates.has_template(template_name):
             raise ValueError(f"Unknown configuration template: {template_name}")
 
@@ -312,35 +200,7 @@ def create_logger(
     logger_type: str = "sync",
     **kwargs,
 ) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-    """
-    Create a logger with the specified configuration and type.
-
-    This is the main convenience function for creating loggers. It provides a
-    simple interface that handles both string names and configuration objects.
-
-    Args:
-        name_or_config: Logger name (string) or configuration object. If string,
-                       creates logger with default configuration and given name.
-        logger_type: Type of logger to create (sync, async, composite, composite-async)
-        **kwargs: Additional keyword arguments passed to the logger constructor
-
-    Returns:
-        Logger instance of the specified type
-
-    Examples:
-        # Create logger with name
-        logger = create_logger("MyLogger", "sync")
-
-        # Create logger with configuration
-        logger = create_logger(config, "async")
-
-        # Create logger with additional parameters
-        logger = create_logger(
-            "MyLogger",
-            "composite",
-            components=[sync_logger, async_logger]
-        )
-    """
+    """Create a logger from a name string or explicit configuration object."""
     # Handle string name as first argument
     if isinstance(name_or_config, str):
         kwargs["name"] = name_or_config
@@ -413,103 +273,26 @@ def create_composite_async_logger(
 def create_default_logger(
     logger_type: str = "sync", **kwargs
 ) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-    """
-    Create a default logger with default configuration.
-
-    This function creates a logger using the "default" magic configuration,
-    which provides sensible defaults with performance focus.
-
-    Args:
-        logger_type: Type of logger to create (sync, async, composite, composite-async)
-        **kwargs: Additional keyword arguments passed to the logger constructor
-
-    Returns:
-        Default logger instance
-
-    Examples:
-        # Create default async logger
-        logger = create_default_logger("async")
-
-        # Create default logger with custom name
-        logger = create_default_logger("sync", name="MyDefaultLogger")
-    """
+    """Create a logger from the default template."""
     return logger_factory.create_default_logger(logger_type=logger_type, **kwargs)
 
 
 def create_development_logger(
     logger_type: str = "sync", **kwargs
 ) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-    """
-    Create a development logger with debugging features.
-
-    This function creates a logger using the "development" magic configuration,
-    which provides development-friendly features with debug output.
-
-    Args:
-        logger_type: Type of logger to create (sync, async, composite, composite-async)
-        **kwargs: Additional keyword arguments passed to the logger constructor
-
-    Returns:
-        Development logger instance
-
-    Examples:
-        # Create development logger
-        logger = create_development_logger("sync")
-
-        # Create development async logger with custom name
-        logger = create_development_logger("async", name="MyDevLogger")
-    """
+    """Create a logger from the development template."""
     return logger_factory.create_development_logger(logger_type=logger_type, **kwargs)
 
 
 def create_production_logger(
     logger_type: str = "sync", **kwargs
 ) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-    """
-    Create a production-ready logger with security and monitoring.
-
-    This function creates a logger using the "production" magic configuration,
-    which provides production-ready defaults with security features
-    and monitoring.
-
-    Args:
-        logger_type: Type of logger to create (sync, async, composite, composite-async)
-        **kwargs: Additional keyword arguments passed to the logger constructor
-
-    Returns:
-        Production logger instance
-
-    Examples:
-        # Create production async logger
-        logger = create_production_logger("async")
-
-        # Create production logger with custom name
-        logger = create_production_logger("sync", name="MyProdLogger")
-    """
+    """Create a logger from the production template."""
     return logger_factory.create_production_logger(logger_type=logger_type, **kwargs)
 
 
 def create_custom_logger(
     logger_type: str = "sync", **kwargs
 ) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
-    """
-    Create a custom logger with user-specified features.
-
-    This function creates a logger using the "custom" magic configuration,
-    which allows for user-specified features and customizations.
-
-    Args:
-        logger_type: Type of logger to create (sync, async, composite, composite-async)
-        **kwargs: Additional keyword arguments passed to the logger constructor
-
-    Returns:
-        Custom logger instance
-
-    Examples:
-        # Create custom logger
-        logger = create_custom_logger("sync")
-
-        # Create custom async logger with custom name
-        logger = create_custom_logger("async", name="MyCustomLogger")
-    """
+    """Create a logger from the custom template."""
     return logger_factory.create_custom_logger(logger_type=logger_type, **kwargs)

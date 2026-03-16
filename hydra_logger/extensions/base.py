@@ -1,14 +1,13 @@
 """
-Role: Legacy extension interface and config dataclass.
+Role: Implements hydra_logger.extensions.base functionality for Hydra Logger.
 Used By:
- - Direct user-defined extensions that subclass `Extension`.
- - Maintained alongside `hydra_logger/extensions/extension_base.py` for compatibility.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - abc
- - typing
  - dataclasses
+ - typing
 Notes:
- - Internal extension wiring uses `extension_base.py`; this module is compatibility-facing.
+ - Implements extension lifecycle or integration logic for base.
 """
 
 from abc import ABC, abstractmethod

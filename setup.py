@@ -1,12 +1,12 @@
 """
-Role: Setup implementation.
+Role: Package build and distribution entrypoint.
 Used By:
- - (update when known)
+ - `pip`/`setuptools` build and packaging workflows.
 Depends On:
  - pathlib
  - setuptools
 Notes:
- - Header standardized by slim-header migration.
+ - Defines package metadata, dependencies, and distribution settings.
 """
 
 from pathlib import Path
@@ -76,6 +76,7 @@ setup(
             "flake8>=7.0.0",
             "isort>=5.13.0",
             "mypy>=1.14.0",
+            "pyright>=1.1.400",
             "bandit>=1.7.10",
             "safety>=3.6.2",
             "tomli-w>=1.0.0",

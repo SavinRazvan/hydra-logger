@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Role: 05 custom configurations implementation.
+Role: Runnable example for 05 custom configurations.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
  - hydra_logger
 Notes:
- - Demonstrates custom configuration profiles and overrides.
+ - Demonstrates 05 custom configurations usage patterns for manual verification and onboarding.
 """
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger

@@ -1,14 +1,12 @@
 """
-Role: Extension manager implementation.
+Role: Implements hydra_logger.extensions.extension_manager functionality for Hydra Logger.
 Used By:
- - hydra_logger/factories/logger_factory.py to configure extension processing for created loggers.
- - hydra_logger/extensions/__init__.py for package exports.
- - examples/04_runtime_control.py as the runtime extension-control example.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - hydra_logger
  - typing
- - extension_base
 Notes:
- - Orchestrates registration, lifecycle, ordering, and execution of enabled extensions.
+ - Implements extension lifecycle or integration logic for extension manager.
 """
 
 from typing import Any, Dict, List, Optional, Type, cast

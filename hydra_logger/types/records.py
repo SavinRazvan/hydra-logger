@@ -1,17 +1,17 @@
 """
-Role: Records implementation.
+Role: Implements hydra_logger.types.records functionality for Hydra Logger.
 Used By:
- - hydra_logger/loggers/base.py and logger implementations for standardized record creation.
- - hydra_logger/handlers/* and hydra_logger/formatters/* for record consumption.
- - hydra_logger/loggers/__init__.py for record strategy exports.
- - hydra_logger/types/__init__.py and hydra_logger/__init__.py exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - dataclasses
- - typing
  - datetime
+ - inspect
+ - json
+ - sys
  - time
+ - typing
 Notes:
- - Defines `LogRecord` and record creation strategies with performance profiles.
+ - Defines shared type contracts/constants for records.
 """
 
 import time

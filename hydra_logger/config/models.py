@@ -1,15 +1,15 @@
 """
-Role: Models implementation.
+Role: Implements hydra_logger.config.models functionality for Hydra Logger.
 Used By:
- - hydra_logger/loggers/* and hydra_logger/factories/logger_factory.py for logger configuration contracts.
- - hydra_logger/core/logger_management.py and defaults/templates config builders.
- - hydra_logger/__init__.py public exports and performance benchmark scripts.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - hydra_logger
  - os
- - typing
+ - pathlib
  - pydantic
+ - typing
 Notes:
- - Defines validated configuration models for destinations, layers, and logger behavior.
+ - Defines configuration models and validation rules for runtime setup.
 """
 
 import os
@@ -24,61 +24,8 @@ from pydantic import (
     model_validator,
 )
 
-
 class LogDestination(BaseModel):
-    """
-    Configuration for a log destination (handler).
-
-    This class defines how and where log messages are output, equivalent to Python's
-    Handler class. Built-in handler families currently support console, file,
-    rotating file, network, null, plus async console/file and async cloud schema.
-
-    Attributes:
-        type: Destination type currently supported by built-in mapping
-        level: Log level for this destination (inherits from layer if None)
-        path: File path for file destinations (required for file type)
-        format: Output format (plain-text, json-lines, csv, syslog, gelf, etc.)
-        use_colors: Enable colors for console destinations only
-        max_size: Maximum file size for rotation (e.g., "10MB")
-        backup_count: Number of backup files to keep
-        url: Reserved for custom/roadmap async sink integrations
-        connection_string: Reserved for custom/roadmap async sink integrations
-        queue_url: Reserved for custom/roadmap async sink integrations
-        service_type: Cloud service type for async cloud destinations
-        credentials: Authentication credentials for async cloud integrations
-        retry_count: Number of retries for async operations
-        retry_delay: Delay between retries in seconds
-        timeout: Timeout for async operations in seconds
-        max_connections: Maximum connections for async sinks
-        max_queue_size: Maximum queue size before dropping messages
-        extra: Additional handler-specific configuration
-
-    Examples:
-        # Console destination with colors
-        console_dest = LogDestination(
-            type="console",
-            format="colored",
-            use_colors=True
-        )
-
-        # File destination with rotation
-        file_dest = LogDestination(
-            type="file",
-            path="app.log",
-            format="json-lines",
-            max_size="10MB",
-            backup_count=5
-        )
-
-        # Async cloud destination
-        cloud_dest = LogDestination(
-            type="async_cloud",
-            service_type="aws_cloudwatch",
-            credentials={"access_key": "...", "secret_key": "..."},
-            retry_count=3,
-            timeout=30.0
-        )
-    """
+    """Destination-level handler configuration for a logging layer."""
 
     type: Literal[
         "file", "console", "null", "async_console", "async_file", "async_cloud"
@@ -285,52 +232,8 @@ class LogDestination(BaseModel):
 
         return self
 
-
 class LogLayer(BaseModel):
-    """
-    Configuration for a logging layer (logger).
-
-    This class defines a logger configuration, equivalent to Python's Logger class.
-    It controls which messages are accepted and where they are sent through
-    its list of destinations (handlers).
-
-    Attributes:
-        level: Log level for this layer (inherits from global if not set)
-        destinations: List of destinations (handlers) for this layer
-        color: Custom color for this layer (ANSI color code or color name)
-        enabled: Whether this layer is enabled
-
-    Level Inheritance:
-        - If level is None, inherits from LoggingConfig.default_level
-        - Child layers can override parent level settings
-        - Follows Python logging level hierarchy (DEBUG < INFO < WARNING < ERROR < CRITICAL)
-
-    Examples:
-        # Basic layer with console and file destinations
-        layer = LogLayer(
-            level="DEBUG",
-            destinations=[
-                LogDestination(type="console", format="colored", use_colors=True),
-                LogDestination(type="file", path="app.log", format="json-lines")
-            ]
-        )
-
-        # Layer with custom color
-        colored_layer = LogLayer(
-            level="INFO",
-            color="\033[36m",  # Cyan
-            destinations=[
-                LogDestination(type="console", format="colored", use_colors=True)
-            ]
-        )
-
-        # Disabled layer (won't process any messages)
-        disabled_layer = LogLayer(
-            level="DEBUG",
-            enabled=False,
-            destinations=[...]
-        )
-    """
+    """Layer-level logger configuration with destinations and level settings."""
 
     level: str = Field(
         default="INFO",
@@ -398,88 +301,8 @@ class LogLayer(BaseModel):
             raise ValueError("Layer must have at least one destination")
         return self
 
-
 class LoggingConfig(BaseModel):
-    """
-    Root logging configuration for Hydra-Logger.
-
-    This is the main configuration class that defines the complete logging setup
-    including layers (loggers), destinations (handlers), and global settings.
-    It serves as the entry point for all Hydra-Logger configuration.
-
-    Attributes:
-        default_level: Default log level for all layers (inherited if not set)
-        layers: Named layers (loggers) with their configurations
-        layer_colors: Color mapping for different layers in console output
-        enable_security: Enable security features (disabled by default for performance)
-        enable_sanitization: Enable data sanitization (disabled by default)
-        enable_plugins: Enable plugin system (disabled by default)
-        enable_performance_monitoring: Enable performance monitoring (disabled by default)
-        security_level: Security level (low, medium, high, strict)
-        monitoring_detail_level: Monitoring detail level (basic, standard, detailed)
-        monitoring_sample_rate: Sample rate for monitoring metrics
-        monitoring_background: Use background processing for monitoring
-        base_log_dir: Base directory for all log files
-        log_dir_name: Subdirectory name for logs within base directory
-        buffer_size: Buffer size for file handlers
-        flush_interval: Flush interval in seconds
-
-    Performance Considerations:
-        - Security features disabled by default
-        - Monitoring disabled by default to reduce overhead
-        - Optimized validation with early exit on errors
-        - Minimal memory footprint with efficient data structures
-
-    Examples:
-        # Basic configuration
-        config = LoggingConfig(
-            default_level="INFO",
-            layers={
-                "app": LogLayer(
-                    level="DEBUG",
-                    destinations=[
-                        LogDestination(type="console", format="colored", use_colors=True),
-                        LogDestination(type="file", path="app.log", format="json-lines")
-                    ]
-                )
-            }
-        )
-
-        # Performance-optimized configuration
-        fast_config = LoggingConfig(
-            default_level="INFO",
-            enable_security=False,
-            enable_sanitization=False,
-            enable_plugins=False,
-            enable_performance_monitoring=False,
-            layers={
-                "app": LogLayer(
-                    destinations=[
-                        LogDestination(type="console", format="plain-text"),
-                        LogDestination(type="file", path="app.log", format="json-lines")
-                    ]
-                )
-            }
-        )
-
-        # Production configuration with security
-        prod_config = LoggingConfig(
-            default_level="WARNING",
-            enable_security=True,
-            enable_sanitization=True,
-            security_level="high",
-            monitoring_detail_level="standard",
-            layers={
-                "app": LogLayer(
-                    level="INFO",
-                    destinations=[
-                        LogDestination(type="file", path="app.log", format="json-lines"),
-                        LogDestination(type="async_cloud", service_type="aws_cloudwatch")
-                    ]
-                )
-            }
-        )
-    """
+    """Root logging configuration model used by logger factories and runtimes."""
 
     default_level: str = Field(
         default="INFO", description="Default log level for all layers"
@@ -909,7 +732,6 @@ class LoggingConfig(BaseModel):
 
         return self
 
-
 class HandlerConfig(BaseModel):
     """Base configuration for handlers."""
 
@@ -924,7 +746,6 @@ class HandlerConfig(BaseModel):
         default=None, description="File path for file handlers"
     )
 
-
 class FileHandlerConfig(HandlerConfig):
     """Configuration for file handlers."""
 
@@ -934,7 +755,6 @@ class FileHandlerConfig(HandlerConfig):
     max_size: str = Field(default="5MB", description="Maximum file size")
     backup_count: int = Field(default=3, description="Number of backup files")
 
-
 class ConsoleHandlerConfig(HandlerConfig):
     """Configuration for console handlers."""
 
@@ -943,13 +763,11 @@ class ConsoleHandlerConfig(HandlerConfig):
         default="stdout", description="Output stream"
     )
 
-
 class MemoryHandlerConfig(HandlerConfig):
     """Configuration for memory handlers."""
 
     type: Literal["memory"] = "memory"
     capacity: int = Field(default=1000, description="Memory capacity")
-
 
 class ModularConfig(BaseModel):
     """Modular configuration format for backward compatibility."""

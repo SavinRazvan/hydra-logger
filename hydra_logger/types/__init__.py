@@ -1,14 +1,11 @@
 """
-Role: Public type package exports.
+Role: Public exports for hydra_logger.types; no runtime logic besides import wiring.
 Used By:
- - Internal modules and external consumers importing canonical hydra_logger type symbols.
+ - Importers of `hydra_logger.types` public API.
 Depends On:
- - records
- - levels
- - context
- - enums
+ - hydra_logger
 Notes:
- - Re-exports enums, levels, context, and record primitives.
+ - Re-exports the hydra_logger.types public API with stable import paths.
 """
 
 from .context import (

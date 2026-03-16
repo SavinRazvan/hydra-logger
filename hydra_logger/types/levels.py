@@ -1,16 +1,13 @@
 """
-Role: Levels implementation.
+Role: Implements hydra_logger.types.levels functionality for Hydra Logger.
 Used By:
- - hydra_logger/loggers/* implementations for level normalization and comparisons.
- - hydra_logger/handlers/network_handler.py, file handlers, and rotating handlers.
- - hydra_logger/core/layer_management.py and hydra_logger/config/models.py.
- - hydra_logger/types/__init__.py and hydra_logger/__init__.py exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - enum
- - typing
  - functools
+ - typing
 Notes:
- - Defines canonical log levels and level-management helpers.
+ - Defines shared type contracts/constants for levels.
 """
 
 from enum import IntEnum

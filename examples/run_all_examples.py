@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Role: Run all examples implementation.
+Role: Runnable example for run all examples.
 Used By:
- - Developers and CI-like local checks running the full example suite.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
+ - pathlib
  - subprocess
  - sys
  - time
- - json
- - pathlib
+ - typing
 Notes:
- - Orchestrates sequential execution and summary reporting for all examples.
+ - Demonstrates run all examples usage patterns for manual verification and onboarding.
 """
 
 import subprocess
@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 
-# Color codes for terminal output
 class Colors:
     RESET = "\033[0m"
     BOLD = "\033[1m"
@@ -65,10 +64,6 @@ def run_example(filepath: Path) -> Tuple[bool, str, str, float, Dict[str, any]]:
         metadata["has_output"] = bool(result.stdout.strip())
         metadata["has_errors"] = bool(result.stderr.strip())
 
-        # close_async() in examples ensures all writes complete
-        # The examples now use async context managers or close_async() which
-        # handles cleanup automatically
-
         return result.returncode == 0, result.stdout, result.stderr, duration, metadata
     except subprocess.TimeoutExpired:
         duration = time.time() - start_time
@@ -93,11 +88,9 @@ def verify_log_files(example_name: str) -> Tuple[List[str], List[str]]:
     if not logs_dir.exists():
         return [], []
 
-    # Extract example number prefix (e.g., "15" from "15_eda_microservices_patterns.py")
     example_num = example_name.split("_")[0] if "_" in example_name else ""
     example_base = example_name.replace(".py", "").replace("_", "_")
 
-    # Common patterns
     patterns = [
         f"{example_base}.log",
         f"{example_base}.jsonl",
@@ -105,24 +98,17 @@ def verify_log_files(example_name: str) -> Tuple[List[str], List[str]]:
         f"{example_base}_*.jsonl",
     ]
 
-    # Check for files matching patterns
     found_files = []
 
-    # Note: Check multiple patterns to catch all possible log files
-    # 1. Exact base match (e.g., 01_format_control.log)
     all_files = list(logs_dir.glob(f"{example_base}*"))
 
-    # 2. Example number prefix match (e.g., 15_microservice_auto.jsonl from
-    # 15_eda_microservices_patterns.py)
     if example_num and example_num.isdigit():
         prefix_files = list(logs_dir.glob(f"{example_num}_*"))
         all_files.extend(prefix_files)
 
-    # Deduplicate and filter to actual files
     seen = set()
     for file in all_files:
         if file.is_file() and file.name not in seen:
-            # Only include if it matches our patterns (exclude unrelated files)
             file_name = file.name
             if file_name.startswith(example_base) or (
                 example_num and file_name.startswith(f"{example_num}_")
@@ -171,23 +157,20 @@ def print_example_result(
     print(f" [{status_text}]", end=" ")
     print(f"{colorize(f'({format_duration(duration)})', Colors.GRAY)}")
 
-    # Show completion message if available
     if success and "" in stdout:
         for line in stdout.split("\n"):
             if "" in line and "completed" in line:
                 print(f"     {colorize('→', Colors.GRAY)} {line.strip()}")
 
-    # Show log files if created
     if found_logs:
         print(f"     {colorize('Log files:', Colors.CYAN)} {', '.join(found_logs)}")
     elif success:
         print(f"     {colorize('No log files detected', Colors.YELLOW)}")
 
-    # Show errors if any
     if stderr.strip():
         error_preview = stderr.strip().split("\n")[:2]
         for line in error_preview:
-            if line.strip() and "" not in line:  # Skip warnings
+            if line.strip() and "" not in line:
                 print(f"     {colorize('ERROR:', Colors.RED)} {line.strip()[:100]}")
 
 
@@ -205,7 +188,6 @@ def print_summary(
     failed = len(results) - passed
     total_files = sum(len(logs) for _, _, _, logs in results)
 
-    # Overall status
     if failed == 0:
         print(
             f"  {colorize('All Examples:', Colors.GREEN + Colors.BOLD)} "
@@ -223,7 +205,6 @@ def print_summary(
     )
     print()
 
-    # Performance metrics
     durations = [dur for _, _, dur, _ in results]
     if durations:
         avg_duration = sum(durations) / len(durations)
@@ -236,7 +217,6 @@ def print_summary(
         print(f"     Slowest: {format_duration(max_duration)}")
         print()
 
-    # Failed examples details
     if failed > 0:
         print(f"  {colorize('Failed Examples:', Colors.RED)}")
         for name, success, duration, logs in results:
@@ -244,7 +224,6 @@ def print_summary(
                 print(f"     • {name} ({format_duration(duration)})")
         print()
 
-    # Success message
     if failed == 0:
         print(
             f"  {colorize('All examples executed successfully!', Colors.GREEN + Colors.BOLD)}"
@@ -259,27 +238,22 @@ def main():
     """Run all examples and report results."""
     start_time = time.time()
 
-    # Setup
     examples_dir = Path(__file__).parent
     example_files = sorted(examples_dir.glob("*.py"))
 
-    # Exclude this script itself
     example_files = [f for f in example_files if f.name != "run_all_examples.py"]
 
     if not example_files:
         print(colorize("No example files found!", Colors.RED))
         return 1
 
-    # Print header
     print_header()
 
-    # Run all examples
     results = []
     for example_file in example_files:
         success, stdout, stderr, duration, metadata = run_example(example_file)
 
-        # Note: For async examples, wait a moment for async file writes to complete
-        # Even though close_async() should handle it, filesystem might need a moment
+        # Some async examples flush on shutdown; a short delay avoids false negatives.
         is_async_example = (
             "async" in example_file.name.lower()
             or "eda" in example_file.name.lower()
@@ -287,7 +261,7 @@ def main():
             or "multi_layer" in example_file.name.lower()  # Example 16
         )
         if is_async_example and success:
-            time.sleep(0.5)  # Brief wait for async file I/O to complete
+            time.sleep(0.5)
 
         found_logs, _ = verify_log_files(example_file.name)
 
@@ -297,11 +271,9 @@ def main():
 
         results.append((example_file.name, success, duration, found_logs))
 
-    # Print summary
     total_duration = time.time() - start_time
     print_summary(results, total_duration)
 
-    # Return exit code
     failed = sum(1 for _, success, _, _ in results if not success)
     return 1 if failed > 0 else 0
 
