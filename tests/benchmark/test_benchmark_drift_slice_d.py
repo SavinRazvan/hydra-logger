@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from benchmark.drift import evaluate_drift_policy
+from benchmark.drift import evaluate_drift_policy, load_policy_for_profile
 
 
 def _write_result(
@@ -150,4 +150,52 @@ def test_evaluate_drift_policy_passes_when_current_matches_baseline_band(tmp_pat
     assert report["status"] == "passed"
     assert (
         report["metrics"]["sync_logger.individual_messages_per_second"]["status"] == "ok"
+    )
+
+
+def test_load_policy_for_profile_reads_canonical_policy_and_overrides() -> None:
+    policy = load_policy_for_profile(
+        profile_name="pr_gate",
+        policy_overrides={"max_negative_drift_pct_median": 18.0},
+    )
+    assert policy["enabled"] is True
+    assert policy["min_baseline_runs"] == 3
+    assert policy["max_negative_drift_pct_median"] == 18.0
+
+
+def test_evaluate_drift_policy_marks_high_variance_inconclusive(tmp_path) -> None:
+    _write_result(
+        results_dir=tmp_path,
+        filename="benchmark_2026-03-16_00-01-01.json",
+        profile="pr_gate",
+        sync_rate=100.0,
+    )
+    _write_result(
+        results_dir=tmp_path,
+        filename="benchmark_2026-03-16_00-01-02.json",
+        profile="pr_gate",
+        sync_rate=300.0,
+    )
+    _write_result(
+        results_dir=tmp_path,
+        filename="benchmark_2026-03-16_00-01-03.json",
+        profile="pr_gate",
+        sync_rate=500.0,
+    )
+    violations, report = evaluate_drift_policy(
+        current_results={"sync_logger": {"individual_messages_per_second": 200.0}},
+        results_dir=tmp_path,
+        profile_name="pr_gate",
+        policy_overrides={
+            "enabled": True,
+            "metrics": ["sync_logger.individual_messages_per_second"],
+            "min_baseline_runs": 3,
+            "max_variation_cv_pct": 5.0,
+        },
+    )
+    assert violations == []
+    assert report["status"] == "inconclusive"
+    assert (
+        report["metrics"]["sync_logger.individual_messages_per_second"]["status"]
+        == "inconclusive_high_variance"
     )

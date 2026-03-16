@@ -25,6 +25,7 @@ DEFAULT_DRIFT_POLICY: dict[str, Any] = {
     "min_baseline_runs": 5,
     "max_negative_drift_pct_median": 15.0,
     "max_negative_drift_pct_p95": 25.0,
+    "max_variation_cv_pct": 35.0,
     "metrics": [
         "sync_logger.individual_messages_per_second",
         "async_logger.individual_messages_per_second",
@@ -33,6 +34,8 @@ DEFAULT_DRIFT_POLICY: dict[str, Any] = {
         "concurrent.total_messages_per_second",
     ],
 }
+
+POLICY_FILE = Path(__file__).resolve().parent / "policies" / "drift_policy.json"
 
 
 def _percentile(values: list[float], percentile: float) -> float:
@@ -58,6 +61,32 @@ def _merge_policy(overrides: dict[str, Any] | None) -> dict[str, Any]:
     policy = dict(DEFAULT_DRIFT_POLICY)
     if isinstance(overrides, dict):
         policy.update(overrides)
+    return policy
+
+
+def load_policy_for_profile(
+    *,
+    profile_name: str | None,
+    policy_overrides: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Load drift policy from canonical policy file and apply profile/overrides."""
+    policy = dict(DEFAULT_DRIFT_POLICY)
+    if POLICY_FILE.exists():
+        try:
+            payload = json.loads(POLICY_FILE.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                global_defaults = payload.get("defaults", {})
+                if isinstance(global_defaults, dict):
+                    policy.update(global_defaults)
+                profiles = payload.get("profiles", {})
+                if isinstance(profiles, dict):
+                    profile_policy = profiles.get(profile_name or "legacy_default", {})
+                    if isinstance(profile_policy, dict):
+                        policy.update(profile_policy)
+        except Exception:
+            pass
+    if isinstance(policy_overrides, dict):
+        policy.update(policy_overrides)
     return policy
 
 
@@ -112,7 +141,10 @@ def evaluate_drift_policy(
     Returns (violations, report). If policy is disabled, violations are empty and
     report contains status=disabled.
     """
-    policy = _merge_policy(policy_overrides)
+    policy = load_policy_for_profile(
+        profile_name=profile_name,
+        policy_overrides=policy_overrides,
+    )
     normalized_profile = profile_name or "legacy_default"
 
     report: dict[str, Any] = {
@@ -123,6 +155,7 @@ def evaluate_drift_policy(
         "min_baseline_runs": int(policy["min_baseline_runs"]),
         "max_negative_drift_pct_median": float(policy["max_negative_drift_pct_median"]),
         "max_negative_drift_pct_p95": float(policy["max_negative_drift_pct_p95"]),
+        "max_variation_cv_pct": float(policy.get("max_variation_cv_pct", 35.0)),
         "metrics": {},
     }
     if not policy["enabled"]:
@@ -139,6 +172,7 @@ def evaluate_drift_policy(
     min_runs = int(policy["min_baseline_runs"])
     median_limit = float(policy["max_negative_drift_pct_median"])
     p95_limit = float(policy["max_negative_drift_pct_p95"])
+    max_variation_cv_pct = float(policy.get("max_variation_cv_pct", 35.0))
     metric_paths = policy.get("metrics", [])
     if not isinstance(metric_paths, list):
         metric_paths = []
@@ -172,6 +206,8 @@ def evaluate_drift_policy(
 
         baseline_median = statistics.median(baseline_values)
         baseline_p95 = _percentile(baseline_values, 95.0)
+        baseline_stdev = statistics.stdev(baseline_values) if len(baseline_values) > 1 else 0.0
+        variation_cv_pct = (baseline_stdev / baseline_median) * 100.0 if baseline_median > 0 else 0.0
         drift_vs_median_pct = (
             ((current_value - baseline_median) / baseline_median) * 100.0
             if baseline_median > 0
@@ -187,10 +223,17 @@ def evaluate_drift_policy(
             {
                 "baseline_median": baseline_median,
                 "baseline_p95": baseline_p95,
+                "baseline_stdev": baseline_stdev,
+                "variation_cv_pct": variation_cv_pct,
                 "drift_vs_median_pct": drift_vs_median_pct,
                 "drift_vs_p95_pct": drift_vs_p95_pct,
             }
         )
+
+        if variation_cv_pct > max_variation_cv_pct:
+            metric_report["status"] = "inconclusive_high_variance"
+            report["metrics"][metric_path] = metric_report
+            continue
 
         if drift_vs_median_pct < -median_limit:
             violations.append(
@@ -207,5 +250,14 @@ def evaluate_drift_policy(
 
         report["metrics"][metric_path] = metric_report
 
-    report["status"] = "failed" if violations else "passed"
+    has_inconclusive = any(
+        isinstance(item, dict) and item.get("status") == "inconclusive_high_variance"
+        for item in report["metrics"].values()
+    )
+    if violations:
+        report["status"] = "failed"
+    elif has_inconclusive:
+        report["status"] = "inconclusive"
+    else:
+        report["status"] = "passed"
     return violations, report
