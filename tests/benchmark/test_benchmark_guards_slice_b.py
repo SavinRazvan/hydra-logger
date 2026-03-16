@@ -61,6 +61,12 @@ def _minimal_valid_results() -> dict:
         "file_writing": {
             "total_messages": 100,
             "duration": 2.0,
+            "measured_duration": 2.0,
+            "warmup_duration": 0.1,
+            "flush_duration": 0.05,
+            "expected_emitted": 100,
+            "actual_emitted": 100,
+            "written_lines": 100,
             "messages_per_second": 50.0,
             "bytes_written": 1000,
             "bytes_per_second": 500.0,
@@ -69,6 +75,12 @@ def _minimal_valid_results() -> dict:
         "async_file_writing": {
             "total_messages": 100,
             "duration": 2.0,
+            "measured_duration": 2.0,
+            "warmup_duration": 0.1,
+            "flush_duration": 0.05,
+            "expected_emitted": 100,
+            "actual_emitted": 100,
+            "written_lines": 100,
             "messages_per_second": 50.0,
             "bytes_written": 1000,
             "bytes_per_second": 500.0,
@@ -107,6 +119,17 @@ def test_validate_result_invariants_detects_suite_scaling_mismatch() -> None:
     }
     violations = validate_result_invariants(results)
     assert any("async_concurrent.scaling.2.total_messages_per_second" in v for v in violations)
+
+
+def test_validate_result_invariants_detects_counting_and_timing_mismatch() -> None:
+    results = _minimal_valid_results()
+    results["file_writing"]["actual_emitted"] = 90
+    results["file_writing"]["written_lines"] = 80
+    results["file_writing"]["measured_duration"] = 3.0
+    violations = validate_result_invariants(results)
+    assert any("file_writing.actual_emitted" in v for v in violations)
+    assert any("file_writing.written_lines" in v for v in violations)
+    assert any("file_writing.measured_duration" in v for v in violations)
 
 
 def test_validate_result_paths_detects_escape(tmp_path) -> None:
