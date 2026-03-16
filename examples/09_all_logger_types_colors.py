@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Role: 09 all logger types colors implementation.
+Role: Runnable example for 09 all logger types colors.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
  - asyncio
  - hydra_logger
 Notes:
- - Demonstrates color behavior across all logger types.
+ - Demonstrates 09 all logger types colors usage patterns for manual verification and onboarding.
 """
 
 import asyncio

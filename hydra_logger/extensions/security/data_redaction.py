@@ -1,12 +1,12 @@
 """
-Role: Data redaction implementation.
+Role: Implements hydra_logger.extensions.security.data_redaction functionality for Hydra Logger.
 Used By:
- - hydra_logger/extensions/security/__init__.py for security package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - re
  - typing
 Notes:
- - Provides standalone pattern-based redaction helper for sensitive content masking.
+ - Implements extension lifecycle or integration logic for data redaction.
 """
 
 import re

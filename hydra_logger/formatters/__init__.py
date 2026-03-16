@@ -1,16 +1,11 @@
 """
-Role: Public formatter package exports and factory helpers.
+Role: Public exports for hydra_logger.formatters; no runtime logic besides import wiring.
 Used By:
- - hydra_logger/handlers/base_handler.py for formatter type references.
- - Client code importing `hydra_logger.formatters` symbols and helpers.
+ - Importers of `hydra_logger.formatters` public API.
 Depends On:
- - base
- - text_formatter
- - colored_formatter
- - json_formatter
- - structured_formatter
+ - hydra_logger
 Notes:
- - Re-exports formatter classes and creates formatter instances by format name.
+ - Re-exports the hydra_logger.formatters public API with stable import paths.
 """
 
 # Core formatters

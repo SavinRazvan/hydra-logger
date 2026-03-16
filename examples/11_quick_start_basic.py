@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Role: 11 quick start basic implementation.
+Role: Runnable example for 11 quick start basic.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
- - sys
+ - hydra_logger
  - pathlib
+ - sys
 Notes:
- - Demonstrates quick-start synchronous usage.
+ - Demonstrates 11 quick start basic usage patterns for manual verification and onboarding.
 """
 
 import sys

@@ -1,14 +1,11 @@
 """
-Role: Exceptions implementation.
+Role: Implements hydra_logger.core.exceptions functionality for Hydra Logger.
 Used By:
- - hydra_logger/__init__.py for top-level public exception exports.
- - hydra_logger/loggers/base.py and logger implementations for standardized error signaling.
- - hydra_logger/factories/logger_factory.py and hydra_logger/core/logger_management.py for configuration/runtime failures.
- - hydra_logger/config/configuration_templates.py for validation and template errors.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - typing
 Notes:
- - Defines the canonical Hydra Logger exception hierarchy and error metadata helpers.
+ - Provides core runtime primitives for exceptions.
 """
 
 from typing import Any, Dict, Optional

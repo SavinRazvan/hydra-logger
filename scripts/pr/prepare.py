@@ -1,15 +1,15 @@
 """
-Role: Runs preparation gates and emits local prepare artifact.
+Role: Repository automation for prepare.
 Used By:
- - .agents/skills/prepare-pr/SKILL.md
+ - Repository maintainers invoking automation commands.
 Depends On:
  - argparse
+ - json
  - pathlib
  - subprocess
+ - sys
 Notes:
- - Runs required gates (`pytest -q` and strict slim-header check) and writes `.local/prep.md`.
- - Pass `--skip-gates` when gates were already verified externally.
- - The script writes attribution and gate evidence; agents append findings and residual risks.
+ - Implements PR workflow automation for prepare actions.
 """
 
 from __future__ import annotations
@@ -48,7 +48,15 @@ def _run_env_preflight(skip_env_check: bool) -> tuple[bool, str]:
     if skip_env_check:
         return True, ""
 
-    code, out = _run([sys.executable, "scripts/dev/check_env_health.py", "--strict", "--json"])
+    code, out = _run(
+        [
+            sys.executable,
+            "scripts/dev/check_env_health.py",
+            "--strict",
+            "--auto-upgrade-toolchain",
+            "--json",
+        ]
+    )
     if code == 0:
         return True, ""
 

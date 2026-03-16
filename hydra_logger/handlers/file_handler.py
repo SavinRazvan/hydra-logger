@@ -1,16 +1,19 @@
 """
-Role: File handler implementation.
+Role: Implements hydra_logger.handlers.file_handler functionality for Hydra Logger.
 Used By:
- - hydra_logger/core/layer_management.py for file destination wiring by layer.
- - hydra_logger/handlers/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - aiofiles
  - asyncio
- - time
+ - atexit
+ - collections
+ - concurrent
+ - hydra_logger
  - os
  - sys
- - atexit
+ - ...
 Notes:
- - Exposes backward-compatible `FileHandler` facade over sync/async file handlers.
+ - Implements log destination handling and I/O flow for file handler.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
@@ -29,17 +32,8 @@ from ..types.records import LogRecord
 from ..utils.time_utility import TimeUtility
 from .base_handler import BaseHandler
 
-
 class SyncFileHandler(BaseHandler):
-    """
-    Pure synchronous file handler - fast and simple.
-
-    Features:
-    - Direct file I/O operations
-    - No queues or background tasks
-    - Minimal overhead
-    - Thread-safe for sync operations
-    """
+    """Synchronous file handler with buffered writes and periodic flushing."""
 
     def __init__(
         self,
@@ -268,7 +262,6 @@ class SyncFileHandler(BaseHandler):
         try:
             message = self.formatter.format(record)
 
-            # Handle binary vs text formatters
             if isinstance(message, bytes):
                 # Binary formatters - don't add newline, return as-is
                 return message
@@ -325,19 +318,8 @@ class SyncFileHandler(BaseHandler):
             "handler_type": "sync_file",
         }
 
-
 class AsyncFileHandler(BaseHandler):
-    """
-    DYNAMIC & SMART async file handler - Performance + Data Integrity.
-
-    Features:
-    - Dynamic worker management with smart scaling
-    - Adaptive batching based on load and performance
-    - Data integrity with guaranteed delivery
-    - Performance optimization with buffering
-    - Error recovery and resilience
-    - Memory-efficient processing
-    """
+    """Asynchronous file handler with queue-driven batching and worker tasks."""
 
     def __init__(
         self,
@@ -370,13 +352,11 @@ class AsyncFileHandler(BaseHandler):
         self._disk_buffer = []  # Secondary disk buffer
         self._last_disk_flush = time.time()
 
-        # PERFORMANCE: File write lock for thread-safe concurrent writes
         # Multiple workers can process in parallel, but file writes are serialized
         self._file_write_lock = (
             asyncio.Lock()
         )  # Serialize file writes for data integrity
 
-        # CRITICAL FIX: Ensure directory exists
         try:
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         except Exception as e:
@@ -417,7 +397,6 @@ class AsyncFileHandler(BaseHandler):
         self._buffer_capacity = max_queue_size  # Use full queue capacity
         self._overflow_buffer = []  # Overflow protection
 
-        # PERFORMANCE METRICS: Dynamic optimization data
         self._messages_processed = 0
         self._messages_dropped = 0
         self._total_bytes_written = 0
@@ -439,12 +418,12 @@ class AsyncFileHandler(BaseHandler):
 
     def _start_worker(self):
         """Start multiple async worker tasks for high throughput performance."""
-        # CRITICAL FIX: Prevent multiple worker starts
+
         if self._running or self._worker_tasks:
             return
 
         try:
-            # CRITICAL FIX: Check if we're in an event loop
+
             try:
                 loop = asyncio.get_running_loop()
                 # Create multiple workers for high performance
@@ -469,7 +448,7 @@ class AsyncFileHandler(BaseHandler):
 
         while not self._shutdown_event.is_set():
             try:
-                # PERFORMANCE: Remove global lock - use per-worker message collection
+
                 # Each worker collects its own batch from the shared queue
                 # This allows true parallel processing when num_workers > 1
                 messages_to_process = []
@@ -571,7 +550,6 @@ class AsyncFileHandler(BaseHandler):
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
 
-            # PERFORMANCE: Join all messages before writing (single I/O operation)
             combined_message = "".join(messages)
 
             # Write all messages at once for performance (thread-safe)
@@ -608,11 +586,9 @@ class AsyncFileHandler(BaseHandler):
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
 
-            # PERFORMANCE: Join all messages before writing (single I/O operation)
             # This is much faster than writing each message separately
             combined_message = "".join(messages)
 
-            # PERFORMANCE: Serialize file writes for data integrity (multiple workers
             # can process in parallel)
             async with self._file_write_lock:
                 # Use aiofiles for true async I/O if available, otherwise use executor
@@ -955,7 +931,7 @@ class AsyncFileHandler(BaseHandler):
             return
 
         try:
-            # PERFORMANCE: Handle both text and binary messages
+
             first_message = self._message_buffer[0]
             is_binary = isinstance(first_message, bytes)
 
@@ -976,7 +952,6 @@ class AsyncFileHandler(BaseHandler):
                 # For text data, join as strings
                 combined_message = "".join(self._message_buffer)
 
-                # PERFORMANCE: Use aiofiles for true async I/O
                 try:
                     import aiofiles
 
@@ -987,14 +962,14 @@ class AsyncFileHandler(BaseHandler):
                         await f.flush()
 
                 except ImportError:
-                    # PERFORMANCE: Fallback to direct file write (zero overhead)
+
                     with open(
                         self._filename, self._mode, encoding=self._encoding, buffering=1
                     ) as f:  # Line buffering for text files
                         f.write(combined_message)
                         f.flush()
                 except Exception:
-                    # PERFORMANCE: Fallback to direct file write (zero overhead)
+
                     with open(
                         self._filename, self._mode, encoding=self._encoding, buffering=1
                     ) as f:  # Line buffering for text files
@@ -1035,7 +1010,6 @@ class AsyncFileHandler(BaseHandler):
         try:
             message = self.formatter.format(record)
 
-            # Handle binary vs text formatters
             if isinstance(message, bytes):
                 # Binary formatters - don't add newline, return as-is
                 return message
@@ -1098,7 +1072,7 @@ class AsyncFileHandler(BaseHandler):
             record: Log record to emit
         """
         try:
-            # CRITICAL FIX: Start worker if not running
+
             if not self._running:
                 self._start_worker()
 
@@ -1132,14 +1106,12 @@ class AsyncFileHandler(BaseHandler):
             if self._messages_processed == 0:
                 self._check_and_write_csv_headers()
 
-            # CRITICAL FIX: Ensure workers are running
             if not self._running:
                 self._start_worker()
 
             # Format message
             message = self._format_message(record)
 
-            # CRITICAL FIX: If no worker is running, write directly to file
             if not self._running:
                 try:
                     if isinstance(message, bytes):
@@ -1190,7 +1162,7 @@ class AsyncFileHandler(BaseHandler):
     async def aclose(self):
         """Close the async handler."""
         try:
-            # CRITICAL FIX: Force flush any pending messages first
+
             if self._message_buffer:
                 await self._flush_batch()
 
@@ -1349,14 +1321,9 @@ class AsyncFileHandler(BaseHandler):
             "handler_type": "async_file_handler",
         }
 
-
 # Backward compatibility - FileHandler now chooses the right implementation
 class FileHandler(BaseHandler):
-    """
-    Smart file handler that automatically chooses sync or async implementation.
-
-    This is a compatibility layer - for new code, use SyncFileHandler or AsyncFileHandler directly.
-    """
+    """Compatibility wrapper that delegates to the current file handler mode."""
 
     def __init__(
         self,

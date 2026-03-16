@@ -1,16 +1,14 @@
 """
-Role: Layer management implementation.
+Role: Implements hydra_logger.core.layer_management functionality for Hydra Logger.
 Used By:
- - hydra_logger/core/__init__.py for exported layer management symbols.
- - Internal layer routing paths that map destinations to handler instances.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - hydra_logger
+ - sys
  - threading
  - typing
- - handlers
- - formatters
- - types
 Notes:
- - Maps layer configuration to concrete handler/formatter setup for destination-aware dispatch.
+ - Provides core runtime primitives for layer management.
 """
 
 import threading

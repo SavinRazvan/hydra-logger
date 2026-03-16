@@ -1,12 +1,12 @@
 """
-Role: Legacy abstract component contracts for core entities.
+Role: Implements hydra_logger.core.base functionality for Hydra Logger.
 Used By:
- - Compatibility-facing type contracts retained for extension/custom integrations.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - abc
  - typing
 Notes:
- - Distinct from active logger/handler contracts implemented under `hydra_logger/loggers` and `hydra_logger/handlers`.
+ - Provides core runtime primitives for base.
 """
 
 from abc import ABC, abstractmethod

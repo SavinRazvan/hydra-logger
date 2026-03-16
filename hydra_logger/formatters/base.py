@@ -1,19 +1,17 @@
 """
-Role: Abstract formatter contract and shared formatting utilities.
+Role: Implements hydra_logger.formatters.base functionality for Hydra Logger.
 Used By:
- - hydra_logger/formatters/text_formatter.py for plain text formatting.
- - hydra_logger/formatters/colored_formatter.py through plain text formatter inheritance.
- - hydra_logger/formatters/json_formatter.py for JSON Lines formatting.
- - hydra_logger/formatters/structured_formatter.py for CSV/syslog/GELF/logstash formatting.
- - hydra_logger/formatters/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - logging
- - time
  - abc
+ - datetime
+ - hydra_logger
+ - logging
+ - re
+ - time
  - typing
- - types
 Notes:
- - Centralizes timestamp formatting, validation, and formatter error handling behavior.
+ - Defines output formatting behavior for base.
 """
 
 import logging
@@ -29,70 +27,13 @@ from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrec
 # Set up logging for formatters
 logger = logging.getLogger(__name__)
 
-
 class FormatterError(Exception):
     """Custom exception for formatter errors."""
 
     pass
 
-
 class BaseFormatter(ABC):
-    """
-    Abstract base class for all Hydra-Logger formatters.
-
-    This class provides the foundation for all formatter implementations with
-    standardized interfaces, performance optimization, validation, and error
-    handling. It establishes the contract that all formatters must follow
-    while providing common functionality and optimizations.
-
-    FEATURES:
-    - Abstract interface for formatter implementations
-    - Timestamp formatting with configurable precision and timezone
-    - ANSI color code stripping for clean text output
-    - File extension validation and correction
-    - Performance statistics and monitoring
-    - Error tracking and recovery
-    - Memory optimization integration
-    - Thread-safe operations
-
-    CORE FEATURES:
-    - Standardized format function interface
-    - Consistent timestamp formatting
-    - Structured data support
-    - Error handling and validation
-
-    VALIDATION SYSTEM:
-    - Record validation before formatting
-    - File extension validation and correction
-    - Error tracking and recovery
-    - Performance monitoring and statistics
-    - Memory usage optimization
-
-    USAGE EXAMPLES:
-
-    Basic Implementation:
-        class MyFormatter(BaseFormatter):
-            def __init__(self):
-                super().__init__("my_formatter")
-
-            def _format_default(self, record: LogRecord) -> str:
-                return f"[{record.level_name}] {record.message}"
-
-    With Timestamp Configuration:
-        config = TimestampConfig(
-            format_type=TimestampFormat.RFC3339_MICRO,
-            precision=TimestampPrecision.MICROSECONDS
-        )
-        formatter = MyFormatter(timestamp_config=config)
-
-    Custom Formatter:
-        class CustomFormatter(BaseFormatter):
-            def __init__(self):
-                super().__init__("custom")
-
-            def _format_default(self, record: LogRecord) -> str:
-                return f"[{record.level_name}] {record.message}"
-    """
+    """Base formatter contract with shared timestamp and validation helpers."""
 
     def __init__(
         self, name: str = "base", timestamp_config: Optional[TimestampConfig] = None

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Role: 06 basic colored logging implementation.
+Role: Runnable example for 06 basic colored logging.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
- - sys
+ - hydra_logger
  - pathlib
+ - sys
 Notes:
- - Demonstrates baseline colored console logging output.
+ - Demonstrates 06 basic colored logging usage patterns for manual verification and onboarding.
 """
 
 import sys

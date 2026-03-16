@@ -1,14 +1,17 @@
 """
-Role: Validate slim module header format for Python files in a repository.
+Role: Repository automation for check slim headers.
 Used By:
- - scripts/pr/prepare.py
- - .agents/skills/PR_WORKFLOW.md
+ - Repository maintainers invoking automation commands.
 Depends On:
  - argparse
  - ast
+ - json
+ - pathlib
+ - re
  - subprocess
+ - typing
 Notes:
- - Advisory by default (non-blocking). Use --strict to fail on findings.
+ - Implements PR workflow automation for check slim headers actions.
 """
 
 from __future__ import annotations

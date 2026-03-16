@@ -1,16 +1,11 @@
 """
-Role: Null handler implementation.
+Role: Implements hydra_logger.handlers.null_handler functionality for Hydra Logger.
 Used By:
- - hydra_logger/loggers/sync_logger.py as fallback when no active destination handler is available.
- - hydra_logger/loggers/async_logger.py as fallback/no-op handler.
- - hydra_logger/loggers/composite_logger.py for placeholder/fallback handler paths.
- - hydra_logger/core/layer_management.py for safe fallback resolution.
- - hydra_logger/handlers/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - base_handler
- - types
+ - hydra_logger
 Notes:
- - Discards records intentionally to keep logger pipelines safe under failure or disabled routing.
+ - Implements log destination handling and I/O flow for null handler.
 """
 
 from ..types.records import LogRecord

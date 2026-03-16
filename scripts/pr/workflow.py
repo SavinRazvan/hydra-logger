@@ -1,13 +1,16 @@
 """
-Role: Runs deterministic PR workflow phases end-to-end.
+Role: Repository automation for workflow.
 Used By:
- - .agents/skills/PR_WORKFLOW.md
+ - Repository maintainers invoking automation commands.
 Depends On:
  - argparse
  - json
+ - pathlib
  - subprocess
+ - sys
+ - typing
 Notes:
- - Wraps create/review/prepare/merge/finalize steps to reduce prompt-heavy orchestration.
+ - Implements PR workflow automation for workflow actions.
 """
 
 from __future__ import annotations
@@ -47,7 +50,13 @@ def _run_env_preflight(skip_env_check: bool) -> None:
     if skip_env_check:
         return
 
-    cmd = [_py(), "scripts/dev/check_env_health.py", "--strict", "--json"]
+    cmd = [
+        _py(),
+        "scripts/dev/check_env_health.py",
+        "--strict",
+        "--auto-upgrade-toolchain",
+        "--json",
+    ]
     code, output = _run(cmd)
     if code == 0:
         return

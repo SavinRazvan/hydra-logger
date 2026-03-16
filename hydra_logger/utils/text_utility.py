@@ -1,15 +1,18 @@
 """
-Role: Text utility implementation.
+Role: Implements hydra_logger.utils.text_utility functionality for Hydra Logger.
 Used By:
- - hydra_logger/utils/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - re
- - hashlib
- - unicodedata
- - typing
+ - collections
  - dataclasses
+ - enum
+ - hashlib
+ - re
+ - textwrap
+ - typing
+ - unicodedata
 Notes:
- - Hosts text processing, normalization, and analysis helper utilities.
+ - Provides string normalization, formatting, and sanitization helpers.
 """
 
 import hashlib

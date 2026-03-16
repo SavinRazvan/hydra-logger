@@ -1,14 +1,13 @@
 """
-Role: System detector implementation.
+Role: Implements hydra_logger.utils.system_detector functionality for Hydra Logger.
 Used By:
- - hydra_logger/handlers/console_handler.py and file_handler.py for buffer/profile tuning.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - sys
- - os
- - typing
  - enum
+ - psutil
+ - typing
 Notes:
- - Detects host capabilities and derives runtime performance profile hints.
+ - Detects runtime system capabilities to tune buffer and concurrency defaults.
 """
 
 from enum import Enum

@@ -1,15 +1,12 @@
 """
-Role: Configuration templates implementation.
+Role: Implements hydra_logger.config.configuration_templates functionality for Hydra Logger.
 Used By:
- - hydra_logger/loggers/base.py for magic config profile shortcuts.
- - hydra_logger/factories/logger_factory.py for template-driven logger creation.
- - hydra_logger/config/__init__.py and hydra_logger/__init__.py exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - hydra_logger
  - typing
- - models
- - core
 Notes:
- - Implements template registry, validation, and built-in template APIs.
+ - Stores reusable configuration templates selected by name.
 """
 
 from typing import Callable, Dict
@@ -21,38 +18,7 @@ from .models import LoggingConfig
 
 
 class ConfigurationTemplates:
-    """
-    Registry for predefined logging configuration templates.
-
-    This class provides a registry system for logging configurations that can be
-    applied with simple method calls. It provides a centralized system for
-    managing common configuration patterns and templates.
-
-    Features:
-    - Built-in configurations for common use cases
-    - Custom configuration template registration
-    - Type-safe configuration with automatic validation
-    - Performance-oriented defaults with optional features
-    - Easy template management and discovery
-
-    Built-in Configurations:
-    - "default": Default configuration with performance focus
-    - "development": Development-friendly configuration with debug output
-    - "production": Production-ready configuration with security and monitoring
-    - "custom": Customizable configuration with user-specified features
-
-    Examples:
-        # Get built-in configuration template
-        config = configuration_templates.get_template("production")
-
-        # Register custom configuration template
-        @configuration_templates.register_template("my_app", "Custom configuration for my application")
-        def my_app_config():
-            return LoggingConfig(...)
-
-        # List available configuration templates
-        templates = configuration_templates.list_templates()
-    """
+    """Registry for built-in and custom logging configuration templates."""
 
     def __init__(self):
         self._configs: Dict[str, Callable[[], LoggingConfig]] = {}
@@ -61,7 +27,6 @@ class ConfigurationTemplates:
 
     def _setup_builtin_configs(self):
         """Setup built-in configuration templates using the unified system."""
-        # Use the unified ConfigurationTemplates for all built-in configs
         from .defaults import (
             get_custom_config,
             get_default_config,
@@ -83,16 +48,7 @@ class ConfigurationTemplates:
         )(get_custom_config)
 
     def register_template(self, name: str, description: str = "") -> Callable:
-        """
-        Register a custom configuration template.
-
-        Args:
-            name: The name of the configuration template
-            description: Optional description of the template
-
-        Returns:
-            Decorator function that registers the template
-        """
+        """Register a named template and return a decorator for its factory."""
         if not isinstance(name, str) or not name.strip():
             raise HydraLoggerError(
                 "Configuration template name must be a non-empty string"
@@ -147,27 +103,11 @@ class ConfigurationTemplates:
             self.remove_template(name)
 
     def get_available_templates(self) -> Dict[str, str]:
-        """
-        Get all available configuration templates including built-ins and custom ones.
-
-        Returns:
-            Dictionary mapping template names to descriptions
-        """
+        """Return all registered template names with their descriptions."""
         return self._descriptions.copy()
 
     def validate_template(self, name: str) -> bool:
-        """
-        Validate a configuration template by name.
-
-        Args:
-            name: Name of the template to validate
-
-        Returns:
-            True if valid
-
-        Raises:
-            HydraLoggerError: If validation fails
-        """
+        """Build and validate the named template configuration."""
         try:
             config = self.get_template(name)
             return config.validate_configuration()

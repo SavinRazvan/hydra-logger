@@ -1,16 +1,11 @@
 """
-Role: Public handler package exports.
+Role: Public exports for hydra_logger.handlers; no runtime logic besides import wiring.
 Used By:
- - hydra_logger/loggers/sync_logger.py for shared handler imports.
- - Client code importing `hydra_logger.handlers` transport and factory symbols.
+ - Importers of `hydra_logger.handlers` public API.
 Depends On:
  - hydra_logger
- - base_handler
- - console_handler
- - file_handler
- - null_handler
 Notes:
- - Re-exports handler implementations, rotation utilities, and network transport classes.
+ - Re-exports the hydra_logger.handlers public API with stable import paths.
 """
 
 from hydra_logger.types.enums import TimeUnit

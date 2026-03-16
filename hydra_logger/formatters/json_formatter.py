@@ -1,15 +1,14 @@
 """
-Role: Json formatter implementation.
+Role: Implements hydra_logger.formatters.json_formatter functionality for Hydra Logger.
 Used By:
- - hydra_logger/formatters/__init__.py for formatter factory and exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - hydra_logger
  - json
+ - os
  - typing
- - base
- - types
- - utils
 Notes:
- - Emits newline-delimited JSON records with predictable field serialization.
+ - Defines output formatting behavior for json formatter.
 """
 
 import json

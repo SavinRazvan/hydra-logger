@@ -1,15 +1,19 @@
 """
-Role: Network handler implementation.
+Role: Implements hydra_logger.handlers.network_handler functionality for Hydra Logger.
 Used By:
- - hydra_logger/handlers/__init__.py for package exports and network factories.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - time
- - socket
  - asyncio
- - typing
  - dataclasses
+ - enum
+ - hydra_logger
+ - importlib
+ - requests
+ - socket
+ - ssl
+ - ...
 Notes:
- - Provides HTTP, WebSocket, socket, and datagram transport handlers.
+ - Implements log destination handling and I/O flow for network handler.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false

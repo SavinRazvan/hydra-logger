@@ -1,16 +1,12 @@
 """
-Role: Public logger package exports and record-creation helpers.
+Role: Public exports for hydra_logger.loggers; no runtime logic besides import wiring.
 Used By:
- - hydra_logger/__init__.py to expose logger classes at package root.
- - Client code importing `hydra_logger.loggers` convenience symbols.
+ - Importers of `hydra_logger.loggers` public API.
 Depends On:
- - base
- - sync_logger
- - async_logger
- - composite_logger
- - types
+ - hydra_logger
+ - typing
 Notes:
- - Re-exports logger implementations and record creation strategies.
+ - Re-exports the hydra_logger.loggers public API with stable import paths.
 """
 
 from typing import Optional

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Role: 15 eda microservices patterns implementation.
+Role: Runnable example for 15 eda microservices patterns.
 Used By:
- - examples/run_all_examples.py and developers running examples manually.
+ - Developers running examples manually and `examples/run_all_examples.py`.
 Depends On:
  - asyncio
- - signal
  - hydra_logger
+ - signal
 Notes:
- - Demonstrates EDA/microservice logging patterns.
+ - Demonstrates 15 eda microservices patterns usage patterns for manual verification and onboarding.
 """
 
 import asyncio

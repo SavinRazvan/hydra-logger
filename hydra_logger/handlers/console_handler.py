@@ -1,19 +1,16 @@
 """
-Role: Console handler implementation.
+Role: Implements hydra_logger.handlers.console_handler functionality for Hydra Logger.
 Used By:
- - hydra_logger/loggers/sync_logger.py for synchronous console logging.
- - hydra_logger/loggers/async_logger.py for asynchronous console logging.
- - hydra_logger/loggers/composite_logger.py for async fan-out console output.
- - hydra_logger/core/layer_management.py for layer-specific console handlers.
- - hydra_logger/handlers/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
  - asyncio
  - atexit
+ - hydra_logger
  - sys
  - time
- - logging
+ - typing
 Notes:
- - Provides `SyncConsoleHandler` and `AsyncConsoleHandler` implementations.
+ - Implements log destination handling and I/O flow for console handler.
 """
 
 import asyncio

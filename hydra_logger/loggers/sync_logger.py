@@ -1,17 +1,14 @@
 """
-Role: Sync logger implementation.
+Role: Implements hydra_logger.loggers.sync_logger functionality for Hydra Logger.
 Used By:
- - hydra_logger/factories/logger_factory.py when `logger_type` resolves to sync.
- - hydra_logger/loggers/__init__.py for package-level exports.
- - hydra_logger/__init__.py for public top-level imports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
+ - hydra_logger
  - sys
- - time
  - threading
  - typing
- - base
 Notes:
- - Provides low-latency synchronous delivery to configured handlers.
+ - Implements logger orchestration and routing for sync logger.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
@@ -31,18 +28,8 @@ from ..types.records import LogRecord
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 
-
 class SyncLogger(BaseLogger):
-    """
-    High-performance synchronous logging system with multi-layer support.
-
-    Features:
-    - Multi-layer logging with independent configurations
-    - Built-in performance monitoring
-    - Plugin system for extensibility
-    - Security features (PII detection, sanitization)
-    - Memory leak prevention
-    """
+    """Synchronous logger with layer-aware routing and cached handler lookup."""
 
     def __init__(
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
@@ -59,7 +46,6 @@ class SyncLogger(BaseLogger):
         else:
             self._setup_default_configuration()
 
-        # CRITICAL FIX: Setup core systems AFTER configuration (so security flags
         # are set)
         self._setup_core_systems()
 
@@ -141,7 +127,6 @@ class SyncLogger(BaseLogger):
         else:
             self._config = config
 
-        # CRITICAL FIX: Extract security settings from configuration
         if self._config:
             self._enable_security = self._config.enable_security
             self._enable_sanitization = self._config.enable_sanitization
@@ -154,7 +139,7 @@ class SyncLogger(BaseLogger):
 
     def _setup_default_configuration(self):
         """Setup simplified configuration."""
-        # SIMPLIFIED: Use only console handler for performance
+
         from ..handlers.console_handler import SyncConsoleHandler
 
         self._console_handler = SyncConsoleHandler(
@@ -165,7 +150,7 @@ class SyncLogger(BaseLogger):
 
     def _setup_core_systems(self):
         """Setup core system integration."""
-        # SIMPLIFIED: No complex security engine - use simple extensions
+
         self._security_engine = None
 
     def _setup_data_protection(self):
@@ -302,7 +287,6 @@ class SyncLogger(BaseLogger):
             if cache_key in self._formatter_cache:
                 return self._formatter_cache[cache_key]
 
-            # STANDARDIZED: Use the standardized get_formatter function
             from ..formatters import get_formatter
 
             format_mapping = {
@@ -369,14 +353,12 @@ class SyncLogger(BaseLogger):
             return
 
         try:
-            # SIMPLIFIED: Direct level conversion (no caching overhead)
+
             if isinstance(level, str):
                 level = LogLevelManager.get_level(level)
 
-            # STANDARDIZED: Use standardized LogRecord creation
             record = self.create_log_record(level, message, **kwargs)
 
-            # SIMPLE SECURITY: Apply data protection if enabled
             if self._data_protection and self._data_protection.is_enabled():
                 try:
                     # Process the message through simple security extension
@@ -385,17 +367,14 @@ class SyncLogger(BaseLogger):
                     # If security processing fails, continue with original record
                     pass
 
-            # LAYER ROUTING: Route to specific layer handlers
             layer_name = kwargs.get("layer", "default")
             if not self._is_level_enabled_for_layer(layer_name, level):
                 return
 
-            # LAYER HANDLERS: Get handlers for the specific layer
             layer_handlers = self._get_handlers_for_layer(layer_name)
             for handler in layer_handlers:
                 handler.handle(record)
 
-            # PERFORMANCE: Return record to pool
             # Record processing completed
 
         except Exception:

@@ -1,16 +1,19 @@
 """
-Role: File utility implementation.
+Role: Implements hydra_logger.utils.file_utility functionality for Hydra Logger.
 Used By:
- - hydra_logger/handlers/rotating_handler.py for file operations and rotation housekeeping.
- - hydra_logger/utils/__init__.py for package exports.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - os
- - shutil
+ - dataclasses
+ - enum
+ - fnmatch
+ - glob
  - hashlib
+ - json
  - mimetypes
- - typing
+ - os
+ - ...
 Notes:
- - Provides filesystem utility primitives, validation, and batch processing helpers.
+ - Centralizes file/path operations, metadata, and safe filesystem helpers.
 """
 
 import hashlib

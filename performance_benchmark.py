@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-Role: Performance benchmark implementation.
+Role: Benchmark harness for measuring logger performance profiles.
 Used By:
- - Developers running local benchmark suites for logger performance evaluation.
+ - Maintainers validating runtime performance regressions.
 Depends On:
  - asyncio
- - sys
- - time
- - statistics
+ - datetime
+ - gc
+ - hydra_logger
  - json
+ - os
+ - pathlib
+ - psutil
+ - ...
 Notes:
- - Benchmarks sync/async/composite logger paths and writes benchmark artifacts.
+ - Measures throughput/latency scenarios for logger runtime comparisons.
 """
 
 import asyncio

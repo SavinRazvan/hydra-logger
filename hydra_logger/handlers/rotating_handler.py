@@ -1,15 +1,19 @@
 """
-Role: Rotating handler implementation.
+Role: Implements hydra_logger.handlers.rotating_handler functionality for Hydra Logger.
 Used By:
- - hydra_logger/handlers/__init__.py for package exports and factory access.
+ - Internal `hydra_logger` modules importing this component.
 Depends On:
- - os
- - time
+ - collections
+ - dataclasses
+ - datetime
+ - enum
  - gzip
+ - hydra_logger
+ - os
  - shutil
- - threading
+ - ...
 Notes:
- - Implements timed/size/hybrid rotation variants and a rotation handler factory.
+ - Implements log destination handling and I/O flow for rotating handler.
 """
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
