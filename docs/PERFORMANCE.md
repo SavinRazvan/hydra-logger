@@ -6,6 +6,20 @@ This document provides detailed performance benchmarks, optimization strategies,
 
 ## Performance Benchmarks
 
+### Automation Tiers
+
+Benchmarking is automated with explicit tiers:
+
+- `ci_smoke`: fast signal in CI for push/PR.
+- `pr_gate`: pull request gate profile.
+- `nightly_truth`: scheduled regression profile with stricter drift policy.
+
+Reference:
+
+- `benchmark/README.md`
+- `docs/benchmarks/CONTRACT.md`
+- `docs/benchmarks/MIGRATION.md`
+
 ### Latest Benchmark Results
 
 **Test Configuration**: 100K messages, file-only handlers (console I/O is slower)

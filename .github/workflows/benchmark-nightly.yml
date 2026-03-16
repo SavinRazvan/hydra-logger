@@ -1,0 +1,38 @@
+name: Benchmark Nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  benchmark-nightly-truth:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: 3.12
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        pip install -e ".[database,cloud,queues,network]"
+
+    - name: Run benchmark nightly_truth profile
+      run: |
+        python benchmark/performance_benchmark.py --profile nightly_truth
+
+    - name: Upload nightly benchmark artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-nightly-truth-results
+        path: |
+          benchmark/results/benchmark_latest.json
+          benchmark/results/benchmark_*.json
+        retention-days: 30

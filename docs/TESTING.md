@@ -48,6 +48,13 @@ CI pipeline (`.github/workflows/ci.yml`) executes:
 - tests with coverage (`pytest tests/ --cov=hydra_logger ...`);
 - lint and static quality checks;
 - build validation and security scans.
+- benchmark automation profiles:
+  - `ci_smoke` on push/pull request;
+  - `pr_gate` on pull request.
+
+Nightly benchmark workflow (`.github/workflows/benchmark-nightly.yml`) executes:
+
+- `nightly_truth` profile on schedule/manual dispatch.
 
 PR preparation (`scripts/pr/prepare.py`) enforces:
 

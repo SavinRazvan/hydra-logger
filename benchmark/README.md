@@ -37,3 +37,12 @@ python3 benchmark/performance_benchmark.py --profile nightly_truth
   `benchmark/results/` using median and p95 references.
 - When historical sample count is below policy minimum, checks are reported as
   skipped (not failed) to avoid bootstrapping false negatives.
+
+## CI and nightly automation
+
+- CI workflow (`.github/workflows/ci.yml`) runs:
+  - `ci_smoke` profile on push + pull request
+  - `pr_gate` profile on pull request
+- Nightly workflow (`.github/workflows/benchmark-nightly.yml`) runs:
+  - `nightly_truth` profile on schedule and manual dispatch
+- Artifacts are uploaded from `benchmark/results/` for each automation tier.
