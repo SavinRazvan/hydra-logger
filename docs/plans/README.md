@@ -1,20 +1,21 @@
 # Planning Artifacts
 
-This folder stores execution plans and superseded historical plans.
+This folder stores active plan tracking artifacts and templates.
 
 The active architecture execution source of truth is the single master plan in
 `.cursor/plans/` ("Hydra Logger Master Architecture + No-Drift Plan").
-Historical plans in this folder remain for traceability and must be marked
+Historical plans are archived in `docs/archive/plans/` and must be marked
 `superseded` once consolidated.
 
 Audit evidence and results belong in `docs/audit/`.
 
 ## What To Store Here
 
-- Historical/superseded initiative plans (for example:
-  `module-docs-2026-03.plan.md`)
 - Plan templates used by agents and maintainers
 - Execution status index and tracker pointers
+- Cross-references to archived superseded plans
+
+Superseded plan artifacts belong in `docs/archive/plans/`.
 
 ## File Naming Convention
 

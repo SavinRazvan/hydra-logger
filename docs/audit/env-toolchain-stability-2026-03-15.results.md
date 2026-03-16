@@ -3,7 +3,7 @@
 - Date: 2026-03-15
 - Owner: @SavinRazvan
 - Scope: `scripts/dev/check_env_health.py`, `scripts/pr/workflow.py`, environment docs updates
-- Plan: `docs/plans/env-toolchain-stability-2026-03.plan.md`
+- Plan: `docs/archive/plans/env-toolchain-stability-2026-03.plan.md`
 - Status: closed
 
 ## Implemented In This Slice

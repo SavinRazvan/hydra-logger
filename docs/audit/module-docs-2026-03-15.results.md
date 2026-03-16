@@ -3,7 +3,7 @@
 - Date: 2026-03-15
 - Owner: @maintainer
 - Status: closed
-- Related plan: `docs/plans/module-docs-execution.plan.md` (or equivalent plan artifact)
+- Related plan: `docs/archive/plans/module-docs-execution.plan.md` (or equivalent plan artifact)
 
 ## Scope And Inputs
 
