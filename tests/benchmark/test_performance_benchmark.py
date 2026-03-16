@@ -30,6 +30,7 @@ def test_init_sets_paths_and_test_config(tmp_path, monkeypatch) -> None:
     assert bench.results_dir.exists()
     assert bench._benchmark_logs_dir.exists()
     assert bench.test_config["typical_single_messages"] == 100000
+    assert bench.profile_name is None
     assert removed == ["l1", "l2"]
 
 
@@ -161,6 +162,16 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
     )
     monkeypatch.setattr(
         bench,
+        "test_async_concurrent_suite",
+        lambda: order.append("async_suite") or asyncio.sleep(0, result={"ok": True}),
+    )
+    monkeypatch.setattr(
+        bench,
+        "test_parallel_workers_suite",
+        lambda: order.append("parallel_suite") or {"ok": True},
+    )
+    monkeypatch.setattr(
+        bench,
         "test_ultra_high_performance",
         lambda: order.append("ultra") or asyncio.sleep(0, result={"ok": True}),
     )
@@ -173,8 +184,10 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
     exit_code = asyncio.run(bench.run_benchmark())
     assert exit_code == 0
     assert "sync_logger" in bench.results
+    assert "async_concurrent" in bench.results
+    assert "parallel_workers" in bench.results
     assert "ultra_high_performance" in bench.results
-    assert order.count("cleanup") == 11
+    assert order.count("cleanup") == 13
     assert order[-1] == "final_cleanup"
 
 
@@ -199,6 +212,11 @@ def test_run_benchmark_returns_error_and_still_cleans_up(tmp_path, monkeypatch) 
 
 def test_main_returns_run_benchmark_code(monkeypatch) -> None:
     class DummyBenchmark:
+        def __init__(self, save_results=True, results_dir=None, profile=None):
+            assert save_results is True
+            assert results_dir is None
+            assert profile is None
+
         async def run_benchmark(self):
             return 7
 

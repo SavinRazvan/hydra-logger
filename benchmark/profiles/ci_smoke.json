@@ -1,0 +1,12 @@
+{
+  "name": "ci_smoke",
+  "description": "Fast CI smoke benchmark profile.",
+  "test_config_overrides": {
+    "typical_single_messages": 10000,
+    "concurrent_workers": 8,
+    "messages_per_worker": 1000,
+    "suite_matrix_workers_tasks": [1, 2, 4, 8, 16, 32],
+    "suite_matrix_messages_per_worker": 1000,
+    "repetitions": 2
+  }
+}
