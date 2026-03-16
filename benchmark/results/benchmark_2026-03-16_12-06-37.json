@@ -1,0 +1,224 @@
+{
+  "metadata": {
+    "timestamp": "2026-03-16_12-06-37",
+    "test_config": {
+      "typical_single_messages": 100000,
+      "small_batch_size": 50,
+      "medium_batch_size": 200,
+      "large_batch_size": 1000,
+      "concurrent_workers": 8,
+      "messages_per_worker": 100,
+      "message_size_small": 50,
+      "message_size_medium": 150,
+      "message_size_large": 500,
+      "web_request_logs": 20,
+      "database_operation_logs": 10,
+      "background_task_logs": 100,
+      "stress_test_messages": 100000,
+      "stress_concurrent_workers": 50
+    },
+    "python_version": "3.12.3",
+    "platform": "linux",
+    "git_commit_sha": "659c9cf"
+  },
+  "results": {
+    "sync_logger": {
+      "logger_type": "Sync Logger",
+      "individual_messages_per_second": 41720.00567652882,
+      "individual_duration": 2.396931601000688,
+      "total_messages": 100000,
+      "status": "COMPLETED"
+    },
+    "async_logger": {
+      "logger_type": "Async Logger",
+      "individual_messages_per_second": 33384.16547691777,
+      "individual_duration": 2.9954320730030304,
+      "total_messages": 100000,
+      "status": "COMPLETED"
+    },
+    "composite_logger": {
+      "logger_type": "Composite Logger",
+      "individual_messages_per_second": 39878.18738695205,
+      "small_batch_messages_per_second": 49542522.39733586,
+      "batch_messages_per_second": 194421383.92970863,
+      "individual_duration": 2.507636543999979,
+      "small_batch_duration": 0.25000644700048724,
+      "batch_duration": 0.2500064499981818,
+      "total_messages": 100000,
+      "small_batch_size": 50,
+      "small_batch_total_messages": 12385950,
+      "batch_size": 200,
+      "batch_total_messages": 48606600,
+      "status": "COMPLETED"
+    },
+    "composite_async_logger": {
+      "logger_type": "Composite Async Logger",
+      "individual_messages_per_second": 53910.08225465323,
+      "batch_messages_per_second": 620804.7320814912,
+      "individual_duration": 1.8549405939993449,
+      "batch_duration": 0.2500786349992268,
+      "total_messages": 100000,
+      "batch_size": 50,
+      "batch_total_messages": 155250,
+      "status": "COMPLETED"
+    },
+    "configurations": {
+      "default": {
+        "messages_per_second": 46538.4970489307,
+        "duration": 2.148758691000694,
+        "total_messages": 100000,
+        "note": "Real-world config with console handlers (slower I/O)"
+      },
+      "development": {
+        "messages_per_second": 64482.26174203754,
+        "duration": 1.5508140889978677,
+        "total_messages": 100000,
+        "note": "Real-world config with console handlers (slower I/O)"
+      },
+      "production": {
+        "messages_per_second": 39378.00477287518,
+        "duration": 2.539488746999268,
+        "total_messages": 100000,
+        "note": "Real-world config with console handlers (slower I/O)"
+      }
+    },
+    "file_writing": {
+      "logger_type": "File Handler Only",
+      "messages_per_second": 37379.756966015164,
+      "bytes_per_second": 10634307.607147846,
+      "bytes_written": 28449376,
+      "duration": 2.675244787998963,
+      "total_messages": 100000,
+      "file_path": "/home/razvansavin/Projects/hydra-logger/benchmark/bench_logs/benchmark_file_125326785579344_1773655588444841895.log",
+      "status": "COMPLETED"
+    },
+    "async_file_writing": {
+      "logger_type": "Async File Handler Only",
+      "messages_per_second": 26233.78842940099,
+      "bytes_per_second": 7952931.414455024,
+      "bytes_written": 30315604,
+      "duration": 3.811877962998551,
+      "total_messages": 100000,
+      "file_path": "/home/razvansavin/Projects/hydra-logger/benchmark/bench_logs/benchmark_async_file_125326785579344_1773655592147730958.log",
+      "status": "COMPLETED"
+    },
+    "memory": {
+      "initial_memory_mb": 123.625,
+      "final_memory_mb": 123.234375,
+      "memory_increase_mb": -0.390625,
+      "loggers_created": 50,
+      "memory_per_logger_mb": -0.0078125,
+      "initial_samples": [
+        123.625,
+        123.625,
+        123.625
+      ],
+      "final_samples": [
+        123.234375,
+        123.234375,
+        123.234375
+      ],
+      "status": "COMPLETED"
+    },
+    "concurrent": {
+      "total_duration": 0.0015664999991713557,
+      "total_messages_per_second": 510692.62714534474,
+      "thread_results": [
+        {
+          "worker_id": 0,
+          "duration": 0.0001806310028769076,
+          "messages_per_second": 553614.8192021376
+        },
+        {
+          "worker_id": 1,
+          "duration": 0.0001605060024303384,
+          "messages_per_second": 623029.6592390757
+        },
+        {
+          "worker_id": 2,
+          "duration": 0.00015512499885517173,
+          "messages_per_second": 644641.4229685977
+        },
+        {
+          "worker_id": 3,
+          "duration": 0.00013958300041849725,
+          "messages_per_second": 716419.6191526215
+        },
+        {
+          "worker_id": 4,
+          "duration": 0.0001402809975843411,
+          "messages_per_second": 712854.9249150943
+        },
+        {
+          "worker_id": 5,
+          "duration": 0.0001394829996570479,
+          "messages_per_second": 716933.2481081835
+        },
+        {
+          "worker_id": 6,
+          "duration": 0.00025007400108734146,
+          "messages_per_second": 399881.6332973125
+        },
+        {
+          "worker_id": 7,
+          "duration": 0.000254556998697808,
+          "messages_per_second": 392839.3267973469
+        }
+      ],
+      "num_threads": 8,
+      "messages_per_thread": 100,
+      "total_messages": 800,
+      "avg_thread_speed": 595026.8317100462,
+      "min_thread_speed": 392839.3267973469,
+      "max_thread_speed": 716933.2481081835,
+      "status": "COMPLETED"
+    },
+    "advanced_concurrent": {
+      "shared_logger_scalability": {
+        "1": {
+          "messages_per_second": 603042.4701509693,
+          "duration": 0.0008291289996122941,
+          "efficiency": 603042.4701509693
+        },
+        "2": {
+          "messages_per_second": 659463.1309404509,
+          "duration": 0.001516385000286391,
+          "efficiency": 329731.56547022547
+        },
+        "5": {
+          "messages_per_second": 588419.8504050673,
+          "duration": 0.004248666999046691,
+          "efficiency": 117683.97008101347
+        },
+        "10": {
+          "messages_per_second": 621195.7197197247,
+          "duration": 0.008048993000556948,
+          "efficiency": 62119.57197197247
+        },
+        "20": {
+          "messages_per_second": 595892.299796898,
+          "duration": 0.016781556001660647,
+          "efficiency": 29794.6149898449
+        }
+      },
+      "async_concurrent": {
+        "messages_per_second": 61630.467481926426,
+        "duration": 0.3245148190035252,
+        "num_tasks": 20,
+        "messages_per_task": 1000
+      },
+      "mixed_concurrent": {
+        "messages_per_second": 295290.57599858736,
+        "duration": 0.008466236999083776,
+        "num_threads": 10
+      },
+      "status": "COMPLETED"
+    },
+    "ultra_high_performance": {
+      "messages_per_second": 94585.73323193452,
+      "duration": 0.3171725690008316,
+      "total_messages": 30000,
+      "status": "COMPLETED"
+    }
+  }
+}
