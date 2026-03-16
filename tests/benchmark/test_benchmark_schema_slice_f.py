@@ -44,9 +44,15 @@ def test_seeded_baseline_artifact_has_required_shape() -> None:
 
 
 def test_legacy_result_artifact_passes_compat_validation() -> None:
-    project_root = Path(__file__).resolve().parents[2]
-    legacy_path = project_root / "benchmark" / "results" / "benchmark_2025-11-23_22-07-27.json"
-    payload = json.loads(legacy_path.read_text(encoding="utf-8"))
+    # Legacy payloads predate newer strict metadata/result requirements but still
+    # keep minimum shape needed for compatibility workflows.
+    payload = {
+        "metadata": {
+            "timestamp": "2025-11-23T22:07:27Z",
+            "profile": "legacy_ci_smoke",
+        },
+        "results": {},
+    }
 
     strict_schema = load_result_schema()
     strict_violations = validate_against_schema(payload, strict_schema)

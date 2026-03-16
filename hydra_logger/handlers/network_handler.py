@@ -127,10 +127,17 @@ class BaseNetworkHandler(BaseHandler):
         """
         super().__init__(name="network", level=LogLevel.NOTSET)
         self._config = config
+        self._connection = None
         self._connected = False
         self._retry_count = 0
         self._last_retry = 0.0
-        self._stats = {"sent": 0, "failed": 0, "retries": 0, "bytes_sent": 0}
+        self._stats = {
+            "sent": 0,
+            "failed": 0,
+            "retries": 0,
+            "bytes_sent": 0,
+            "connection_errors": 0,
+        }
 
         # Formatter-aware handling
         self._is_csv_formatter = False
@@ -357,10 +364,10 @@ class HTTPHandler(BaseNetworkHandler):
             verify_ssl=verify_ssl,
         )
 
-        super().__init__(config, **kwargs)
         self._url = url
         self._auth = auth
         self._session = None
+        super().__init__(config, **kwargs)
 
     def _establish_connection(self) -> bool:
         """Establish HTTP connection."""

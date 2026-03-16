@@ -1242,8 +1242,6 @@ class AsyncFileHandler(BaseHandler):
             self._shutdown_event.set()
 
         except Exception:
-            # Just mark as closed
-            self._shutdown_event.set()
             _logger.exception("Sync close fallback path triggered for async file handler")
 
     def _auto_cleanup(self):

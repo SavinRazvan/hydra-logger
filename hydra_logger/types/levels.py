@@ -75,10 +75,10 @@ class LogLevelManager:
     @lru_cache(maxsize=128)
     def get_level(cls, level: Union[str, int, LogLevel]) -> int:
         """Get the numeric value for a log level."""
-        if isinstance(level, int):
-            return level
-        elif isinstance(level, LogLevel):
+        if isinstance(level, LogLevel):
             return int(level)
+        elif isinstance(level, int):
+            return level
         elif isinstance(level, str):
             return int(cls.NAME_TO_LEVEL.get(level.upper(), LogLevel.INFO))
         else:
@@ -87,10 +87,10 @@ class LogLevelManager:
     @classmethod
     def is_valid_level(cls, level: Union[str, int, LogLevel]) -> bool:
         """Check if a log level is valid."""
-        if isinstance(level, int):
-            return level in cls.LEVEL_NAMES
-        elif isinstance(level, LogLevel):
+        if isinstance(level, LogLevel):
             return True
+        elif isinstance(level, int):
+            return level in cls.LEVEL_NAMES
         elif isinstance(level, str):
             return level.upper() in cls.NAME_TO_LEVEL
         else:

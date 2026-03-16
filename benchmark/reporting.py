@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import shutil
 from typing import Any
@@ -23,6 +24,7 @@ from benchmark.dev_logging import get_logger
 
 
 _logger = get_logger(__name__)
+_DETAILED_REPORT_ENV = "HYDRA_BENCHMARK_VERBOSE_REPORTS"
 
 def make_serializable(obj: Any) -> Any:
     """Recursively convert values to JSON-serializable forms."""
@@ -138,34 +140,63 @@ def _write_auxiliary_reports(
         prefix="summary",
         body="\n".join(summary_lines) + "\n",
     )
-    _write_report_files(
+    drift_status = (
+        str(drift.get("status", "unknown")) if isinstance(drift, dict) else "unknown"
+    )
+    drift_items = _flatten_metric_statuses(
+        drift.get("metrics", {}) if isinstance(drift, dict) else {}
+    )
+    invariant_status = "failed" if invariant_violations else "passed"
+    invariant_items = [str(item) for item in invariant_violations]
+    leak_status = "failed" if leak_violations or path_violations else "passed"
+    leak_items = [str(item) for item in [*path_violations, *leak_violations]]
+
+    verbose_reports = str(os.getenv(_DETAILED_REPORT_ENV, "")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    report_plan = {
+        "drift": verbose_reports
+        or drift_status not in {"disabled", "passed"}
+        or len(drift_items) > 0,
+        "invariants": verbose_reports
+        or invariant_status != "passed"
+        or len(invariant_items) > 0,
+        "leaks": verbose_reports or leak_status != "passed" or len(leak_items) > 0,
+    }
+
+    _conditionally_write_or_clear_report(
+        should_write=report_plan["drift"],
         results_dir=results_dir,
         timestamp=timestamp,
         prefix="drift",
         body=_report_section(
             title="Drift Verdict",
-            status=str(drift.get("status", "unknown")) if isinstance(drift, dict) else "unknown",
-            items=_flatten_metric_statuses(drift.get("metrics", {}) if isinstance(drift, dict) else {}),
+            status=drift_status,
+            items=drift_items,
         ),
     )
-    _write_report_files(
+    _conditionally_write_or_clear_report(
+        should_write=report_plan["invariants"],
         results_dir=results_dir,
         timestamp=timestamp,
         prefix="invariants",
         body=_report_section(
             title="Invariant Report",
-            status="failed" if invariant_violations else "passed",
-            items=[str(item) for item in invariant_violations],
+            status=invariant_status,
+            items=invariant_items,
         ),
     )
-    _write_report_files(
+    _conditionally_write_or_clear_report(
+        should_write=report_plan["leaks"],
         results_dir=results_dir,
         timestamp=timestamp,
         prefix="leaks",
         body=_report_section(
             title="Leak Guard Report",
-            status="failed" if leak_violations or path_violations else "passed",
-            items=[str(item) for item in [*path_violations, *leak_violations]],
+            status=leak_status,
+            items=leak_items,
         ),
     )
 
@@ -216,3 +247,31 @@ def _write_report_files(
         raise OSError(
             f"Failed to persist benchmark report files for prefix '{prefix}'"
         ) from exc
+
+
+def _conditionally_write_or_clear_report(
+    *,
+    should_write: bool,
+    results_dir: Path,
+    timestamp: str,
+    prefix: str,
+    body: str,
+) -> None:
+    """Write report only when useful; clear stale latest otherwise."""
+    timestamped = results_dir / f"benchmark_{timestamp}_{prefix}.md"
+    latest = results_dir / f"benchmark_latest_{prefix}.md"
+    if should_write:
+        _write_report_files(
+            results_dir=results_dir,
+            timestamp=timestamp,
+            prefix=prefix,
+            body=body,
+        )
+        return
+    try:
+        if timestamped.exists():
+            timestamped.unlink()
+        if latest.exists():
+            latest.unlink()
+    except OSError:
+        _logger.exception("Failed clearing suppressed benchmark report prefix=%s", prefix)

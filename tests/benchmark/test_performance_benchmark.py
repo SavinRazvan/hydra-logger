@@ -50,19 +50,47 @@ def test_create_performance_config_uses_expected_destination_types(tmp_path) -> 
 
     sync_config = bench._create_performance_config("sync")
     sync_dest = sync_config.layers["default"].destinations[0]
-    assert sync_dest.type == "file"
-    assert sync_dest.path is not None
-    assert "perf_sync" in sync_dest.path
+    assert sync_dest.type == "null"
+    assert sync_dest.path is None
 
     async_config = bench._create_performance_config("async")
     async_dest = async_config.layers["default"].destinations[0]
-    assert async_dest.type == "async_file"
-    assert async_dest.path is not None
-    assert "perf_async" in async_dest.path
+    assert async_dest.type == "null"
+    assert async_dest.path is None
 
     composite_async_config = bench._create_performance_config("composite-async")
     composite_async_dest = composite_async_config.layers["default"].destinations[0]
-    assert composite_async_dest.type == "async_file"
+    assert composite_async_dest.type == "null"
+
+
+def test_create_output_matrix_config_builds_console_and_file_variants(tmp_path) -> None:
+    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+
+    console_config = bench._create_output_matrix_config(
+        sink="console",
+        logger_type="sync",
+        log_format="colored",
+        customization="hardened",
+        config_name="generated",
+    )
+    console_dest = console_config.layers["default"].destinations[0]
+    assert console_dest.type == "console"
+    assert console_dest.path is None
+    assert console_dest.use_colors is True
+    assert console_config.enable_security is True
+    assert console_config.enable_sanitization is True
+
+    file_config = bench._create_output_matrix_config(
+        sink="file",
+        logger_type="composite-async",
+        log_format="json-lines",
+        customization="baseline",
+        config_name="generated",
+    )
+    file_dest = file_config.layers["default"].destinations[0]
+    assert file_dest.type == "async_file"
+    assert file_dest.path is not None
+    assert "matrix_generated_composite-async_json-lines_baseline" in file_dest.path
 
 
 def test_git_commit_sha_returns_unknown_on_failure(tmp_path, monkeypatch) -> None:
@@ -147,6 +175,11 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
         lambda: order.append("config") or {"ok": True},
     )
     monkeypatch.setattr(
+        bench,
+        "test_output_matrix_performance",
+        lambda: order.append("output_matrix") or asyncio.sleep(0, result={"ok": True}),
+    )
+    monkeypatch.setattr(
         bench, "test_file_writing_performance", lambda: order.append("file") or {"ok": True}
     )
     monkeypatch.setattr(
@@ -192,7 +225,8 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
     assert "async_concurrent" in bench.results
     assert "parallel_workers" in bench.results
     assert "ultra_high_performance" in bench.results
-    assert order.count("cleanup") == 13
+    assert "output_matrix" in order
+    assert order.count("cleanup") == 14
     assert order[-1] == "final_cleanup"
 
 

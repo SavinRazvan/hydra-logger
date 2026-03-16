@@ -17,6 +17,7 @@ Active plan: `.cursor/plans/master-architecture-no-drift_5a0a318c.plan.md`
 - evidence-and-tracking: complete
 - implementation-prep-package: complete
 - enterprise-coverage-95-alignment: in_progress
+- implementation-agent-rollout: in_progress
 
 ## Benchmark Gap-Closure Slice Status
 

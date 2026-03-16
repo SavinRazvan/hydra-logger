@@ -113,7 +113,16 @@ def test_run_async_concurrent_suite_rejects_non_positive_task_count() -> None:
 
 def test_reporting_build_and_write_outputs(tmp_path) -> None:
     payload = build_output_payload(
-        results={"sync_logger": {"messages_per_second": 1.0}},
+        results={
+            "sync_logger": {"messages_per_second": 1.0},
+            "drift_policy": {"status": "disabled", "metrics": {}},
+            "reliability_guards": {
+                "status": "passed",
+                "invariant_violations": [],
+                "path_violations": [],
+                "leak_violations": [],
+            },
+        },
         profile_name="ci_smoke",
         test_config={"typical_single_messages": 10000},
         python_version="3.12.3",
@@ -133,9 +142,9 @@ def test_reporting_build_and_write_outputs(tmp_path) -> None:
     latest_payload = json.loads(latest_path.read_text(encoding="utf-8"))
     assert latest_payload["metadata"]["profile"] == "ci_smoke"
     assert (tmp_path / "benchmark_latest_summary.md").exists()
-    assert (tmp_path / "benchmark_latest_drift.md").exists()
-    assert (tmp_path / "benchmark_latest_invariants.md").exists()
-    assert (tmp_path / "benchmark_latest_leaks.md").exists()
+    assert not (tmp_path / "benchmark_latest_drift.md").exists()
+    assert not (tmp_path / "benchmark_latest_invariants.md").exists()
+    assert not (tmp_path / "benchmark_latest_leaks.md").exists()
 
 
 def test_reporting_write_results_artifacts_validates_missing_timestamp(tmp_path) -> None:

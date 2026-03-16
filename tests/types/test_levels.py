@@ -26,6 +26,7 @@ def test_get_level_name_handles_known_and_unknown_values() -> None:
 
 
 def test_get_level_supports_aliases_and_default_fallback() -> None:
+    assert get_level(LogLevel.ERROR) == int(LogLevel.ERROR)
     assert get_level("warn") == int(LogLevel.WARNING)
     assert get_level("fatal") == int(LogLevel.CRITICAL)
     assert get_level("not-a-real-level") == int(LogLevel.INFO)
@@ -38,6 +39,7 @@ def test_is_valid_level_accepts_only_known_values() -> None:
     assert is_valid_level(LogLevel.ERROR)
     assert not is_valid_level("INVALID")
     assert not is_valid_level(25)
+    assert not is_valid_level(object())
 
 
 def test_level_manager_enablement_and_normalization() -> None:

@@ -115,6 +115,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
         # so benchmark output never spills into the project root.
         self._benchmark_logs_dir = benchmark_root / "bench_logs"
         self._benchmark_logs_dir.mkdir(parents=True, exist_ok=True)
+        self._prune_benchmark_logs()
         logs_dir = self._project_root / "logs"
         self._preexisting_root_log_names = (
             {path.name for path in logs_dir.glob("*") if path.is_file()}
@@ -175,6 +176,15 @@ class HydraLoggerBenchmark:  # pragma: no cover
         filename = f"{safe_prefix}_{id(self)}_{time.time_ns()}.log"
         return str(self._benchmark_logs_dir / filename)
 
+    def _prune_benchmark_logs(self) -> None:
+        """Delete existing benchmark-generated logs before a new run."""
+        try:
+            for path in self._benchmark_logs_dir.glob("*"):
+                if path.is_file():
+                    path.unlink()
+        except Exception:
+            pass
+
     @staticmethod
     def _count_written_lines(file_path: str) -> int:
         """Best-effort line counter for line-based output files."""
@@ -219,10 +229,11 @@ class HydraLoggerBenchmark:  # pragma: no cover
 
     def _create_performance_config(self, logger_type: str = "sync") -> LoggingConfig:
         """
-        Create a performance-optimized configuration without console handlers.
+        Create a performance-optimized configuration without output I/O.
 
-        Console I/O is inherently slow (10-15K msg/s), so for performance tests
-        we use file-only handlers to measure true logger performance.
+        Core throughput tests should measure logger/runtime overhead and avoid
+        generating benchmark output files unless a file-writing benchmark
+        explicitly requests them.
 
         Args:
             logger_type: Type of logger (sync/async) to determine handler type
@@ -230,14 +241,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
         Returns:
             LoggingConfig optimized for performance testing
         """
-        # Use file-only handlers (much faster than console)
-        if logger_type in ["async", "composite-async"]:
-            file_type = "async_file"
-        else:
-            file_type = "file"
-
-        benchmark_file = self._build_benchmark_log_path(f"perf_{logger_type}")
-
         return LoggingConfig(
             default_level="INFO",
             enable_security=False,  # Disable for performance
@@ -249,14 +252,220 @@ class HydraLoggerBenchmark:  # pragma: no cover
                     level="INFO",
                     destinations=[
                         LogDestination(
-                            type=file_type,
-                            path=benchmark_file,
-                            format="json-lines",  # Fast format
+                            type="null",
+                            format="plain-text",
                         ),
                     ],
                 )
             },
         )
+
+    def _create_output_matrix_config(
+        self,
+        *,
+        sink: str,
+        logger_type: str,
+        log_format: str,
+        customization: str,
+        config_name: str,
+    ) -> LoggingConfig:
+        """Create output benchmark configs for console/file matrix scenarios."""
+        is_async_logger = logger_type in {"async", "composite-async"}
+        destination_type = sink
+        destination_path = None
+        if sink == "file":
+            destination_type = "async_file" if is_async_logger else "file"
+            destination_path = self._build_benchmark_log_path(
+                f"matrix_{config_name}_{logger_type}_{log_format}_{customization}"
+            )
+
+        enable_security = customization == "hardened"
+        enable_sanitization = customization == "hardened"
+
+        return LoggingConfig(
+            default_level="INFO",
+            enable_security=enable_security,
+            enable_sanitization=enable_sanitization,
+            enable_plugins=False,
+            enable_performance_monitoring=False,
+            layers={
+                "default": LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type=destination_type,
+                            path=destination_path,
+                            format=log_format,
+                            use_colors=(sink == "console" and log_format == "colored"),
+                        )
+                    ],
+                )
+            },
+        )
+
+    @staticmethod
+    def _force_console_destinations(config: LoggingConfig) -> LoggingConfig:
+        """Rewrite all layer destinations to console-only for console matrix tests."""
+        for layer in config.layers.values():
+            layer.destinations = [
+                LogDestination(type="console", format="plain-text", use_colors=False)
+            ]
+        return config
+
+    def _create_logger_for_type(
+        self, *, logger_name: str, logger_type: str, config: LoggingConfig
+    ):
+        """Create logger instance by requested runtime type."""
+        if logger_type == "sync":
+            return getSyncLogger(logger_name, config=config)
+        if logger_type == "async":
+            return getAsyncLogger(logger_name, config=config)
+        return getLogger(logger_name, logger_type=logger_type, config=config, use_direct_io=False)
+
+    async def _close_logger_instance(self, logger: Any) -> None:
+        """Close logger while supporting sync and async variants."""
+        try:
+            if hasattr(logger, "aclose") and asyncio.iscoroutinefunction(logger.aclose):
+                await logger.aclose()
+            elif hasattr(logger, "close_async") and asyncio.iscoroutinefunction(
+                logger.close_async
+            ):
+                await logger.close_async()
+            elif hasattr(logger, "close"):
+                logger.close()
+        except Exception:
+            pass
+
+    async def test_output_matrix_performance(self) -> Dict[str, Any]:
+        """Benchmark console and file outputs across logger/format/customization matrix."""
+        print("\nTesting Output Matrix Performance...")
+        print("   Testing console and file outputs across logger variants...")
+
+        logger_types = ["sync", "async", "composite", "composite-async"]
+        console_formats = ["plain-text", "colored", "json-lines"]
+        file_formats = ["plain-text", "json-lines", "csv"]
+        customizations = ["baseline", "hardened"]
+        console_message_count = 10
+        file_message_count = max(100, int(self.test_config.get("small_batch_size", 50) * 2))
+
+        results: Dict[str, Any] = {"console": {}, "file": {}, "status": "COMPLETED"}
+
+        async def _run_case(
+            *,
+            sink: str,
+            logger_type: str,
+            log_format: str,
+            customization: str,
+            config_name: str,
+            config: LoggingConfig,
+        ) -> Dict[str, Any]:
+            logger_name = (
+                f"matrix_{sink}_{logger_type}_{log_format}_{customization}_{config_name}_{id(self)}"
+            )
+            logger = self._create_logger_for_type(
+                logger_name=logger_name, logger_type=logger_type, config=config
+            )
+            self._disable_direct_io_if_available(logger)
+            self._created_loggers.append(logger)
+            self._logger_names.append(logger_name)
+
+            start = time.perf_counter()
+            if logger_type in {"async", "composite-async"}:
+                target_count = file_message_count if sink == "file" else console_message_count
+                for i in range(target_count):
+                    await logger.log(
+                        "INFO", f"matrix sink={sink} type={logger_type} format={log_format} msg={i}"
+                    )
+                await self._flush_all_handlers_async(logger)
+            else:
+                target_count = file_message_count if sink == "file" else console_message_count
+                for i in range(target_count):
+                    logger.info(
+                        f"matrix sink={sink} type={logger_type} format={log_format} msg={i}"
+                    )
+                self._flush_all_handlers(logger)
+            duration = time.perf_counter() - start
+
+            file_path = None
+            destinations = config.layers.get("default").destinations if config.layers.get("default") else []
+            if destinations:
+                file_path = destinations[0].path
+            written_lines = self._count_written_lines(file_path) if file_path else None
+            await self._close_logger_instance(logger)
+            return {
+                "messages_per_second": self._messages_per_second(target_count, duration),
+                "duration": duration,
+                "total_messages": target_count,
+                "format": log_format,
+                "customization": customization,
+                "config_name": config_name,
+                "file_path": file_path,
+                "written_lines": written_lines,
+            }
+
+        for logger_type in logger_types:
+            for log_format in console_formats:
+                for customization in customizations:
+                    config = self._create_output_matrix_config(
+                        sink="console",
+                        logger_type=logger_type,
+                        log_format=log_format,
+                        customization=customization,
+                        config_name="generated",
+                    )
+                    key = f"{logger_type}:{log_format}:{customization}:generated"
+                    results["console"][key] = await _run_case(
+                        sink="console",
+                        logger_type=logger_type,
+                        log_format=log_format,
+                        customization=customization,
+                        config_name="generated",
+                        config=config,
+                    )
+
+        template_configs = {
+            "default": get_default_config(),
+            "development": get_development_config(),
+            "production": get_production_config(),
+        }
+        for logger_type in logger_types:
+            for config_name, base_config in template_configs.items():
+                config = self._force_console_destinations(base_config.model_copy(deep=True))
+                key = f"{logger_type}:template:{config_name}"
+                results["console"][key] = await _run_case(
+                    sink="console",
+                    logger_type=logger_type,
+                    log_format="template",
+                    customization="template",
+                    config_name=config_name,
+                    config=config,
+                )
+
+        for logger_type in logger_types:
+            for log_format in file_formats:
+                for customization in customizations:
+                    config = self._create_output_matrix_config(
+                        sink="file",
+                        logger_type=logger_type,
+                        log_format=log_format,
+                        customization=customization,
+                        config_name="generated",
+                    )
+                    key = f"{logger_type}:{log_format}:{customization}:generated"
+                    results["file"][key] = await _run_case(
+                        sink="file",
+                        logger_type=logger_type,
+                        log_format=log_format,
+                        customization=customization,
+                        config_name="generated",
+                        config=config,
+                    )
+
+        print(
+            f"   Console matrix cases: {len(results['console'])}, file matrix cases: {len(results['file'])}"
+        )
+        print("   Output Matrix Performance: COMPLETED")
+        return results
 
     def _rebase_file_destinations_to_benchmark_logs(
         self, config: LoggingConfig, config_name: str
@@ -812,7 +1021,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
             use_direct_io=False,
         )
         self._disable_direct_io_if_available(logger)
-        self._ensure_composite_file_target(logger, f"composite_{logger_name}")
         self._created_loggers.append(logger)
         self._logger_names.append(logger_name)
         message_count = self.test_config["typical_single_messages"]
@@ -947,7 +1155,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
             use_direct_io=False,
         )
         self._disable_direct_io_if_available(logger)
-        self._ensure_composite_file_target(logger, f"composite_{logger_name}")
         self._created_loggers.append(logger)
         self._logger_names.append(logger_name)
         message_count = self.test_config["typical_single_messages"]
@@ -1594,9 +1801,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
             use_direct_io=False,
         )
         self._disable_direct_io_if_available(shared_logger)
-        self._ensure_composite_file_target(
-            shared_logger, f"composite_{logger_name}"
-        )
         self._created_loggers.append(shared_logger)
         self._logger_names.append(logger_name)
 
@@ -1738,9 +1942,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 use_direct_io=False,
             )
             self._disable_direct_io_if_available(shared_logger)
-            self._ensure_composite_file_target(
-                shared_logger, f"composite_{logger_name}"
-            )
             self._created_loggers.append(shared_logger)
             self._logger_names.append(logger_name)
             messages_per_worker = 500
@@ -1816,9 +2017,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 use_direct_io=False,
             )
             self._disable_direct_io_if_available(async_logger)
-            self._ensure_composite_file_target(
-                async_logger, f"composite_{logger_name}"
-            )
             self._created_loggers.append(async_logger)
             self._logger_names.append(logger_name)
             messages_per_task = 1000
@@ -1880,7 +2078,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 use_direct_io=False,
             )
             self._disable_direct_io_if_available(logger)
-            self._ensure_composite_file_target(logger, f"composite_{logger_name}")
             self._created_loggers.append(logger)
             self._logger_names.append(logger_name)
 
@@ -1964,7 +2161,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 use_direct_io=False,
             )
             self._disable_direct_io_if_available(logger)
-            self._ensure_composite_file_target(logger, f"composite_{logger_name}")
             self._created_loggers.append(logger)
             self._logger_names.append(logger_name)
             return logger
@@ -2046,7 +2242,6 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 use_direct_io=False,
             )
             self._disable_direct_io_if_available(logger)
-            self._ensure_composite_file_target(logger, f"composite_{logger_name}")
             self._created_loggers.append(logger)
             self._logger_names.append(logger_name)
 
@@ -2593,6 +2788,9 @@ class HydraLoggerBenchmark:  # pragma: no cover
             self._cleanup_logger_cache()
 
             self.results["configurations"] = self.test_configuration_performance()
+            self._cleanup_logger_cache()
+
+            self.results["output_matrix"] = await self.test_output_matrix_performance()
             self._cleanup_logger_cache()
 
             self.results["file_writing"] = self.test_file_writing_performance()

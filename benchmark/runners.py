@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
-from pathlib import Path
 import time
 from typing import Any, Callable
 
@@ -35,17 +34,13 @@ def parallel_sync_worker(
     messages_per_worker: int,
 ) -> int:
     """Process worker for real parallel benchmark throughput."""
-    log_path = (
-        Path(bench_logs_dir)
-        / f"parallel_worker_{worker_count}_{worker_id}_{time.time_ns()}.jsonl"
-    )
     config = LoggingConfig(
         default_level="INFO",
         layers={
             "default": LogLayer(
                 level="INFO",
                 destinations=[
-                    LogDestination(type="file", path=str(log_path), format="json-lines"),
+                    LogDestination(type="null", format="plain-text"),
                 ],
             )
         },

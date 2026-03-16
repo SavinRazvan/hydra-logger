@@ -17,7 +17,9 @@ from hydra_logger.types.context import (
     SystemInfo,
     clear_current_context,
     create_context,
+    get_caller_info,
     get_current_context,
+    set_current_context,
 )
 
 
@@ -130,3 +132,50 @@ def test_context_detector_logs_on_inspect_failure(monkeypatch, caplog) -> None:
         ContextDetector.get_caller_info(depth=1)
     assert "Caller info detection failed at depth=1" in caplog.text
     ContextDetector.enable_cache()
+
+
+def test_caller_info_string_and_convenience_helpers() -> None:
+    info = CallerInfo(filename="worker.py", function_name="run", line_number=77)
+    assert str(info) == "worker.py:77 in run"
+
+    clear_current_context()
+    context = create_context(ContextType.REQUEST, {"request_id": "r-1"})
+    set_current_context(context)
+    assert get_current_context() is context
+
+    caller = get_caller_info(depth=1)
+    assert isinstance(caller, CallerInfo)
+
+
+def test_get_or_create_context_creates_and_sets_when_missing() -> None:
+    ContextManager.clear_current_context()
+    created = ContextManager.get_or_create_context(ContextType.USER, {"user_id": "u-7"})
+    assert created.context_type == ContextType.USER
+    assert created.get_metadata("user_id") == "u-7"
+    assert ContextManager.get_current_context() is created
+    ContextManager.clear_current_context()
+
+
+def test_context_detector_cache_hit_eviction_and_unknown_frame_path() -> None:
+    ContextDetector.enable_cache()
+    ContextDetector._clear_cache()
+    ContextDetector.set_cache_size(10)
+
+    first = ContextDetector.get_caller_info(depth=1)
+    second = ContextDetector.get_caller_info(depth=1)
+    assert first is second
+
+    ContextDetector._cache["manual:1"] = first
+    ContextDetector._cache["manual:2"] = second
+    ContextDetector.set_cache_size(1)
+    assert ContextDetector._cache == {}
+
+    ContextDetector.set_cache_size(1)
+    ContextDetector._clear_cache()
+    ContextDetector.get_caller_info(depth=1)
+    ContextDetector.get_caller_info(depth=2)
+    assert len(ContextDetector._cache) <= 1
+
+    unknown = ContextDetector._get_caller_info_uncached(depth=10_000)
+    assert unknown.filename == "<unknown>"
+    assert unknown.function_name == "<unknown>"
