@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 import benchmark.runners as runners_mod
 from benchmark.reporting import (
+    _conditionally_write_or_clear_report,
     _flatten_metric_statuses,
     _report_section,
     build_output_payload,
@@ -166,3 +167,49 @@ def test_reporting_helpers_cover_metric_and_detail_formatting() -> None:
     assert "- a" in with_details
     without_details = _report_section(title="Y", status="passed", items=[])
     assert "## Details" not in without_details
+
+
+def test_reporting_conditionally_clear_report_removes_stale_files(tmp_path) -> None:
+    timestamped = tmp_path / "benchmark_2026-03-16_16-00-01_drift.md"
+    latest = tmp_path / "benchmark_latest_drift.md"
+    timestamped.write_text("old", encoding="utf-8")
+    latest.write_text("old", encoding="utf-8")
+
+    _conditionally_write_or_clear_report(
+        should_write=False,
+        results_dir=tmp_path,
+        timestamp="2026-03-16_16-00-01",
+        prefix="drift",
+        body="unused",
+    )
+    assert not timestamped.exists()
+    assert not latest.exists()
+
+
+def test_reporting_conditionally_clear_report_logs_unlink_failure(
+    monkeypatch, caplog, tmp_path
+) -> None:
+    timestamped = tmp_path / "benchmark_2026-03-16_16-00-02_leaks.md"
+    latest = tmp_path / "benchmark_latest_leaks.md"
+    timestamped.write_text("old", encoding="utf-8")
+    latest.write_text("old", encoding="utf-8")
+
+    original_unlink = Path.unlink
+    call_count = {"n": 0}
+
+    def _broken_unlink(path_obj, *args, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            raise OSError("cannot unlink")
+        return original_unlink(path_obj, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", _broken_unlink)
+    with caplog.at_level("ERROR", logger="benchmark.reporting"):
+        _conditionally_write_or_clear_report(
+            should_write=False,
+            results_dir=tmp_path,
+            timestamp="2026-03-16_16-00-02",
+            prefix="leaks",
+            body="unused",
+        )
+    assert "Failed clearing suppressed benchmark report prefix=leaks" in caplog.text
