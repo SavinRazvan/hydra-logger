@@ -18,6 +18,7 @@ Notes:
 """
 
 import asyncio
+import copy
 import gc
 import json
 import statistics
@@ -26,6 +27,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict, List, Tuple
 
 # Add the project root to Python path
@@ -121,6 +123,61 @@ class HydraLoggerBenchmark:
         filename = f"{safe_prefix}_{id(self)}_{time.time_ns()}.log"
         return str(self._benchmark_logs_dir / filename)
 
+    @staticmethod
+    def _messages_per_second(total_messages: int, duration: float) -> float:
+        """Safely compute throughput from message count and elapsed duration."""
+        if duration <= 0:
+            return 0.0
+        return total_messages / duration
+
+    def _measure_sync_batch_throughput(
+        self,
+        logger,
+        messages: List[Tuple[str, str, Dict[str, Any]]],
+        min_duration_seconds: float = 0.25,
+        min_iterations: int = 5,
+    ) -> Tuple[int, float, float]:
+        """Measure sync batch throughput over multiple iterations for stable results."""
+        total_messages = 0
+        iterations = 0
+        start_time = time.perf_counter()
+
+        while iterations < min_iterations or (
+            time.perf_counter() - start_time < min_duration_seconds
+        ):
+            logger.log_batch(messages)
+            total_messages += len(messages)
+            iterations += 1
+
+        self._flush_all_handlers(logger)
+        end_time = time.perf_counter()
+        duration = end_time - start_time
+        return total_messages, duration, self._messages_per_second(total_messages, duration)
+
+    async def _measure_async_batch_throughput(
+        self,
+        logger,
+        messages: List[Tuple[str, str, Dict[str, Any]]],
+        min_duration_seconds: float = 0.25,
+        min_iterations: int = 5,
+    ) -> Tuple[int, float, float]:
+        """Measure async batch throughput over multiple iterations for stable results."""
+        total_messages = 0
+        iterations = 0
+        start_time = time.perf_counter()
+
+        while iterations < min_iterations or (
+            time.perf_counter() - start_time < min_duration_seconds
+        ):
+            await logger.log_batch(messages)
+            total_messages += len(messages)
+            iterations += 1
+
+        await self._flush_all_handlers_async(logger)
+        end_time = time.perf_counter()
+        duration = end_time - start_time
+        return total_messages, duration, self._messages_per_second(total_messages, duration)
+
     def _create_performance_config(self, logger_type: str = "sync") -> LoggingConfig:
         """
         Create a performance-optimized configuration without console handlers.
@@ -161,6 +218,43 @@ class HydraLoggerBenchmark:
                 )
             },
         )
+
+    def _rebase_file_destinations_to_benchmark_logs(
+        self, config: LoggingConfig, config_name: str
+    ) -> LoggingConfig:
+        """Copy config and redirect file destinations into benchmark/bench_logs."""
+        rebased = copy.deepcopy(config)
+        for layer_name, layer in rebased.layers.items():
+            for index, destination in enumerate(layer.destinations):
+                destination_type = str(getattr(destination, "type", "")).lower()
+                if "file" not in destination_type and "jsonl" not in destination_type:
+                    continue
+                destination.path = self._build_benchmark_log_path(
+                    f"config_{config_name}_{layer_name}_{index}"
+                )
+        return rebased
+
+    @staticmethod
+    def _disable_direct_io_if_available(logger: Any) -> None:
+        """Force-disable composite direct-I/O fallback when logger supports it."""
+        if hasattr(logger, "_use_direct_io"):
+            try:
+                logger._use_direct_io = False
+            except Exception:
+                pass
+
+    def _ensure_composite_file_target(self, logger: Any, prefix: str) -> None:
+        """Attach a file-path component shim so composite fallback writes into bench_logs."""
+        components = getattr(logger, "components", None)
+        if not isinstance(components, list):
+            return
+
+        for component in components:
+            if getattr(component, "file_path", None):
+                return
+
+        shim_path = self._build_benchmark_log_path(prefix)
+        components.append(SimpleNamespace(file_path=shim_path))
 
     def _flush_all_handlers(self, logger):
         """Flush all synchronous handlers in a logger.
@@ -677,7 +771,14 @@ class HydraLoggerBenchmark:
         # Use file-only config for performance (console I/O is slow)
         logger_name = f"benchmark_composite_{id(self)}"
         perf_config = self._create_performance_config(logger_type="sync")
-        logger = getLogger(logger_name, logger_type="composite", config=perf_config)
+        logger = getLogger(
+            logger_name,
+            logger_type="composite",
+            config=perf_config,
+            use_direct_io=False,
+        )
+        self._disable_direct_io_if_available(logger)
+        self._ensure_composite_file_target(logger, f"composite_{logger_name}")
         self._created_loggers.append(logger)
         self._logger_names.append(logger_name)
         message_count = self.test_config["typical_single_messages"]
@@ -742,13 +843,11 @@ class HydraLoggerBenchmark:
             ("INFO", generate_realistic_message(i), {}) for i in range(batch_size)
         ]
 
-        start_time = time.perf_counter()
-        logger.log_batch(messages)
-        self._flush_all_handlers(logger)
-        end_time = time.perf_counter()
-
-        small_batch_duration = end_time - start_time
-        small_batch_messages_per_second = batch_size / small_batch_duration
+        (
+            small_batch_total_messages,
+            small_batch_duration,
+            small_batch_messages_per_second,
+        ) = self._measure_sync_batch_throughput(logger, messages)
 
         print(
             f"   Small Batch ({batch_size} msgs): {small_batch_messages_per_second:,.0f} msg/s"
@@ -761,13 +860,11 @@ class HydraLoggerBenchmark:
             ("INFO", generate_realistic_message(i), {}) for i in range(batch_size)
         ]
 
-        start_time = time.perf_counter()
-        logger.log_batch(messages)
-        self._flush_all_handlers(logger)
-        end_time = time.perf_counter()
-
-        batch_duration = end_time - start_time
-        batch_messages_per_second = batch_size / batch_duration
+        (
+            medium_batch_total_messages,
+            batch_duration,
+            batch_messages_per_second,
+        ) = self._measure_sync_batch_throughput(logger, messages)
 
         # Cleanup
         try:
@@ -785,7 +882,9 @@ class HydraLoggerBenchmark:
             "batch_duration": batch_duration,
             "total_messages": message_count,
             "small_batch_size": self.test_config["small_batch_size"],
+            "small_batch_total_messages": small_batch_total_messages,
             "batch_size": batch_size,
+            "batch_total_messages": medium_batch_total_messages,
             "status": "COMPLETED",
         }
 
@@ -810,8 +909,13 @@ class HydraLoggerBenchmark:
         logger_name = f"benchmark_composite_async_{id(self)}"
         perf_config = self._create_performance_config(logger_type="async")
         logger = getLogger(
-            logger_name, logger_type="composite-async", config=perf_config
+            logger_name,
+            logger_type="composite-async",
+            config=perf_config,
+            use_direct_io=False,
         )
+        self._disable_direct_io_if_available(logger)
+        self._ensure_composite_file_target(logger, f"composite_{logger_name}")
         self._created_loggers.append(logger)
         self._logger_names.append(logger_name)
         message_count = self.test_config["typical_single_messages"]
@@ -876,12 +980,11 @@ class HydraLoggerBenchmark:
             ("INFO", generate_realistic_message(i), {}) for i in range(batch_size)
         ]
 
-        start_time = time.perf_counter()
-        await logger.log_batch(messages)
-        end_time = time.perf_counter()
-
-        batch_duration = end_time - start_time
-        batch_messages_per_second = batch_size / batch_duration
+        (
+            batch_total_messages,
+            batch_duration,
+            batch_messages_per_second,
+        ) = await self._measure_async_batch_throughput(logger, messages)
 
         # Close logger after timing (cleanup doesn't affect performance measurement)
         # Standard: use aclose() first (standard async context manager protocol)
@@ -901,6 +1004,7 @@ class HydraLoggerBenchmark:
             "batch_duration": batch_duration,
             "total_messages": message_count,
             "batch_size": batch_size,
+            "batch_total_messages": batch_total_messages,
             "status": "COMPLETED",
         }
 
@@ -1281,8 +1385,11 @@ class HydraLoggerBenchmark:
         config_results = {}
         message_count = self.test_config["typical_single_messages"]
 
-        for config_name, config in configs.items():
+        for config_name, base_config in configs.items():
             print(f"   Testing {config_name.title()} configuration...")
+            config = self._rebase_file_destinations_to_benchmark_logs(
+                base_config, config_name
+            )
             # Use unique logger name to avoid cache conflicts
             logger_name = f"benchmark_{config_name}_{id(self)}"
             logger = getLogger(logger_name, config=config)
@@ -1462,6 +1569,11 @@ class HydraLoggerBenchmark:
             logger_name,
             logger_type="composite-async",
             config=self._create_performance_config("composite-async"),
+            use_direct_io=False,
+        )
+        self._disable_direct_io_if_available(shared_logger)
+        self._ensure_composite_file_target(
+            shared_logger, f"composite_{logger_name}"
         )
         self._created_loggers.append(shared_logger)
         self._logger_names.append(logger_name)
@@ -1601,6 +1713,11 @@ class HydraLoggerBenchmark:
                 logger_name,
                 logger_type="composite-async",
                 config=self._create_performance_config("composite-async"),
+                use_direct_io=False,
+            )
+            self._disable_direct_io_if_available(shared_logger)
+            self._ensure_composite_file_target(
+                shared_logger, f"composite_{logger_name}"
             )
             self._created_loggers.append(shared_logger)
             self._logger_names.append(logger_name)
@@ -1674,6 +1791,11 @@ class HydraLoggerBenchmark:
                 logger_name,
                 logger_type="composite-async",
                 config=self._create_performance_config("composite-async"),
+                use_direct_io=False,
+            )
+            self._disable_direct_io_if_available(async_logger)
+            self._ensure_composite_file_target(
+                async_logger, f"composite_{logger_name}"
             )
             self._created_loggers.append(async_logger)
             self._logger_names.append(logger_name)
@@ -1729,7 +1851,14 @@ class HydraLoggerBenchmark:
             # Use file-only config for performance (console I/O is slow)
             logger_name = f"mixed_sync_{thread_id}_{id(self)}"
             perf_config = self._create_performance_config(logger_type="sync")
-            logger = getLogger(logger_name, logger_type="composite", config=perf_config)
+            logger = getLogger(
+                logger_name,
+                logger_type="composite",
+                config=perf_config,
+                use_direct_io=False,
+            )
+            self._disable_direct_io_if_available(logger)
+            self._ensure_composite_file_target(logger, f"composite_{logger_name}")
             self._created_loggers.append(logger)
             self._logger_names.append(logger_name)
 
@@ -1818,7 +1947,10 @@ class HydraLoggerBenchmark:
                 logger_name,
                 logger_type="composite-async",
                 config=self._create_performance_config("composite-async"),
+                use_direct_io=False,
             )
+            self._disable_direct_io_if_available(logger)
+            self._ensure_composite_file_target(logger, f"composite_{logger_name}")
             self._created_loggers.append(logger)
             self._logger_names.append(logger_name)
 
@@ -1846,28 +1978,14 @@ class HydraLoggerBenchmark:
             # Track actual messages logged (not total_messages, which is just a target)
             actual_messages_logged = 0
 
-            # Test bulk logging if available
-            print("   Testing bulk logging performance...")
+            # Use explicit batch logging path for deterministic measurements.
+            # `log_bulk` has implementation-specific behavior across logger variants.
+            print("   Testing large-batch logging performance...")
             remaining = total_messages
-            try:
-                if hasattr(logger, "log_bulk"):
-                    bulk_messages = [f"Bulk message {i}" for i in range(batch_size)]
-                    await logger.log_bulk("INFO", bulk_messages)
-                    actual_messages_logged += len(bulk_messages)
-                    remaining = total_messages - batch_size
-                else:
-                    # Fallback: use batch logging
-                    batch_messages = [
-                        ("INFO", f"Bulk message {i}", {}) for i in range(batch_size)
-                    ]
-                    await logger.log_batch(batch_messages)
-                    actual_messages_logged += len(batch_messages)
-                    remaining = total_messages - batch_size
-            except Exception as e:
-                print(
-                    f"   Warning: Bulk logging not available: {e}, using batch instead"
-                )
-                batch_size = 0
+            batch_messages = [("INFO", f"Bulk message {i}", {}) for i in range(batch_size)]
+            await logger.log_batch(batch_messages)
+            actual_messages_logged += len(batch_messages)
+            remaining = total_messages - len(batch_messages)
 
             # Test batch logging
             if remaining > 0:
