@@ -159,3 +159,66 @@ jobs:
           bandit-report.json
           safety-report.json
 
+  benchmark-ci-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: 3.12
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        pip install -e ".[database,cloud,queues,network]"
+
+    - name: Run benchmark ci_smoke profile
+      run: |
+        python benchmark/performance_benchmark.py --profile ci_smoke
+
+    - name: Upload ci_smoke benchmark artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-ci-smoke-results
+        path: |
+          benchmark/results/benchmark_latest.json
+          benchmark/results/benchmark_*.json
+        retention-days: 7
+
+  benchmark-pr-gate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: 3.12
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        pip install -e ".[database,cloud,queues,network]"
+
+    - name: Run benchmark pr_gate profile
+      run: |
+        python benchmark/performance_benchmark.py --profile pr_gate
+
+    - name: Upload pr_gate benchmark artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-pr-gate-results
+        path: |
+          benchmark/results/benchmark_latest.json
+          benchmark/results/benchmark_*.json
+        retention-days: 14
+
