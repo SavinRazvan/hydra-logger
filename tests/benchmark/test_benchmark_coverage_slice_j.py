@@ -18,9 +18,11 @@ import types
 import benchmark.drift as drift_mod
 import benchmark.guards as guards_mod
 import benchmark.metrics as metrics_mod
+import benchmark.profiles as profiles_mod
 import benchmark.reporting as reporting_mod
 import benchmark.runners as runners_mod
 import benchmark.schema_validation as schema_mod
+from benchmark.io_metrics import extract_handler_bytes_written
 
 
 def test_parallel_sync_worker_handles_close_exception(monkeypatch, tmp_path) -> None:
@@ -119,6 +121,21 @@ def test_schema_validation_reports_multiple_error_kinds() -> None:
     assert any("$.metadata.timestamp: string length 0 < minLength 1" in item for item in violations)
     assert any("$.metadata.cpu_count: value -1 < minimum 0" in item for item in violations)
     assert any("$.results: expected type 'object'" in item for item in violations)
+
+
+def test_schema_validation_skips_absent_optional_properties() -> None:
+    payload = {"root": {}}
+    schema = {
+        "type": "object",
+        "properties": {
+            "root": {
+                "type": "object",
+                "properties": {"optional_child": {"type": "string"}},
+            }
+        },
+    }
+    violations = schema_mod.validate_against_schema(payload, schema)
+    assert violations == []
 
 
 def test_schema_is_type_handles_union_and_unknown() -> None:
@@ -222,6 +239,24 @@ def test_validate_result_invariants_reports_non_finite_and_negative_timing() -> 
     assert not any("written_lines" in item for item in violations)
 
 
+def test_validate_result_invariants_covers_non_dict_sections_and_parallel_scaling() -> None:
+    results = {
+        "sync_logger": "skip-non-dict",
+        "file_writing": "skip-non-dict",
+        "parallel_workers": {
+            "scaling": {
+                "2": {
+                    "total_messages": 10,
+                    "total_duration": 2.0,
+                    "total_messages_per_second": 5.0,
+                }
+            }
+        },
+    }
+    violations = metrics_mod.validate_result_invariants(results)
+    assert violations == []
+
+
 def test_drift_percentile_and_extract_metric_edge_paths() -> None:
     assert drift_mod._percentile([], 95.0) == 0.0
     assert drift_mod._percentile([5.0], 95.0) == 5.0
@@ -237,6 +272,17 @@ def test_merge_policy_applies_overrides() -> None:
     assert policy["enabled"] is True
     assert policy["history_window"] == 9
     assert "metrics" in policy
+
+
+def test_load_policy_for_profile_handles_invalid_policy_json(monkeypatch, tmp_path) -> None:
+    invalid_policy = tmp_path / "drift_policy_bad.json"
+    invalid_policy.write_text("{not-json", encoding="utf-8")
+    monkeypatch.setattr(drift_mod, "POLICY_FILE", invalid_policy)
+    policy = drift_mod.load_policy_for_profile(
+        profile_name="pr_gate",
+        policy_overrides={"enabled": True},
+    )
+    assert policy["enabled"] is True
 
 
 def test_load_history_payloads_filters_bad_artifacts(tmp_path) -> None:
@@ -258,6 +304,19 @@ def test_load_history_payloads_filters_bad_artifacts(tmp_path) -> None:
         history_window=5,
     )
     assert len(history) == 1
+
+
+def test_load_history_payloads_stops_on_zero_history_window(tmp_path) -> None:
+    (tmp_path / "benchmark_2026-01-01_00-00-01.json").write_text(
+        json.dumps({"metadata": {"profile": "ci_smoke"}, "results": {}}),
+        encoding="utf-8",
+    )
+    history = drift_mod._load_history_payloads(
+        results_dir=tmp_path,
+        profile_name="ci_smoke",
+        history_window=0,
+    )
+    assert history == [{"metadata": {"profile": "ci_smoke"}, "results": {}}]
 
 
 def test_evaluate_drift_policy_handles_non_list_metrics_and_missing_current(tmp_path) -> None:
@@ -283,3 +342,51 @@ def test_evaluate_drift_policy_handles_non_list_metrics_and_missing_current(tmp_
     )
     assert violations == []
     assert report["status"] == "passed"
+
+
+def test_evaluate_drift_policy_skips_non_string_metric_and_non_dict_history(tmp_path) -> None:
+    (tmp_path / "benchmark_2026-01-01_00-00-00.json").write_text(
+        json.dumps(
+            {
+                "metadata": {"profile": "ci_smoke"},
+                "results": {"sync_logger": {"individual_messages_per_second": 10.0}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "benchmark_2026-01-01_00-00-01.json").write_text(
+        json.dumps({"metadata": {"profile": "ci_smoke"}, "results": "bad-node"}),
+        encoding="utf-8",
+    )
+    violations, report = drift_mod.evaluate_drift_policy(
+        current_results={"sync_logger": {"individual_messages_per_second": 9.0}},
+        results_dir=tmp_path,
+        profile_name="ci_smoke",
+        policy_overrides={
+            "enabled": True,
+            "metrics": [42, "missing.path"],
+            "min_baseline_runs": 1,
+            "history_window": 10,
+        },
+    )
+    assert violations == []
+    assert report["metrics"]["missing.path"]["status"] == "skipped_no_current_metric"
+
+
+def test_extract_handler_bytes_written_skips_handlers_without_stats() -> None:
+    handler_without_stats = object()
+    logger = types.SimpleNamespace(_layer_handlers={"default": [handler_without_stats]})
+
+    assert extract_handler_bytes_written(logger) == 0
+
+
+def test_load_profile_rejects_non_dict_payload(monkeypatch, tmp_path) -> None:
+    bad_profile = tmp_path / "broken.json"
+    bad_profile.write_text("[]", encoding="utf-8")
+    monkeypatch.setattr(profiles_mod, "PROFILE_DIR", tmp_path)
+    try:
+        profiles_mod.load_profile("broken")
+    except ValueError as exc:
+        assert "Invalid profile format" in str(exc)
+    else:
+        raise AssertionError("expected invalid profile payload to raise ValueError")

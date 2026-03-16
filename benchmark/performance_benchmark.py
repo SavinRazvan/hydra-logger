@@ -72,7 +72,7 @@ from benchmark.runners import (
 from benchmark.workloads import build_batch_messages
 
 
-class HydraLoggerBenchmark:
+class HydraLoggerBenchmark:  # pragma: no cover
     """
     Performance benchmark for Hydra-Logger.
 
@@ -2535,7 +2535,8 @@ class HydraLoggerBenchmark:
     def _enforce_reliability_guards(self) -> None:
         """Hard-fail benchmark on formula or path-confinement violations."""
         violations: list[str] = []
-        violations.extend(validate_result_invariants(self.results))
+        invariant_violations = validate_result_invariants(self.results)
+        violations.extend(invariant_violations)
         drift_violations, drift_report = evaluate_drift_policy(
             current_results=self.results,
             results_dir=self.results_dir,
@@ -2544,12 +2545,11 @@ class HydraLoggerBenchmark:
         )
         self.results["drift_policy"] = drift_report
         violations.extend(drift_violations)
-        violations.extend(
-            validate_result_paths(
-                results=self.results,
-                allowed_roots=[self._benchmark_logs_dir, self.results_dir],
-            )
+        path_violations = validate_result_paths(
+            results=self.results,
+            allowed_roots=[self._benchmark_logs_dir, self.results_dir],
         )
+        violations.extend(path_violations)
         leaked_files = detect_new_root_log_leaks(
             project_root=self._project_root,
             preexisting_log_names=self._preexisting_root_log_names,
@@ -2559,6 +2559,14 @@ class HydraLoggerBenchmark:
                 "new benchmark-related files detected under project logs/: "
                 + ", ".join(leaked_files)
             )
+        self.results["reliability_guards"] = {
+            "status": "failed" if violations else "passed",
+            "invariant_violations": invariant_violations,
+            "drift_violations": drift_violations,
+            "path_violations": path_violations,
+            "leak_violations": leaked_files,
+            "total_violations": len(violations),
+        }
         if violations:
             details = "\n - ".join(["Benchmark reliability guard violations:", *violations])
             raise RuntimeError(details)
@@ -2661,7 +2669,7 @@ async def main(
     return await benchmark.run_benchmark()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser(description="Hydra benchmark runner")
     parser.add_argument(
         "--profile",

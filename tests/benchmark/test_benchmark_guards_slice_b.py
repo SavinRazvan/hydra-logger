@@ -242,3 +242,22 @@ def test_enforce_reliability_guards_fails_on_drift_violations(tmp_path, monkeypa
         raise AssertionError("expected drift violation to raise RuntimeError")
 
     assert bench.results["drift_policy"]["status"] == "failed"
+
+
+def test_enforce_reliability_guards_records_pass_report(tmp_path, monkeypatch) -> None:
+    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench.results = _minimal_valid_results()
+
+    monkeypatch.setattr(perf_mod, "validate_result_invariants", lambda _results: [])
+    monkeypatch.setattr(
+        perf_mod,
+        "evaluate_drift_policy",
+        lambda **_kwargs: ([], {"status": "passed"}),
+    )
+    monkeypatch.setattr(perf_mod, "validate_result_paths", lambda **_kwargs: [])
+    monkeypatch.setattr(perf_mod, "detect_new_root_log_leaks", lambda **_kwargs: [])
+
+    bench._enforce_reliability_guards()
+    guards = bench.results["reliability_guards"]
+    assert guards["status"] == "passed"
+    assert guards["total_violations"] == 0

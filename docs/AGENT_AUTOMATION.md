@@ -60,6 +60,11 @@ Prepare phase (runs `pytest -q` + slim header check):
 
 - `python scripts/pr/workflow.py --phase prepare`
 
+Prepare with explicit benchmark gate options:
+
+- `python scripts/pr/workflow.py --phase prepare --benchmark-profile ci_smoke`
+- `python scripts/pr/workflow.py --phase prepare --skip-benchmark-gate` (emergency-only)
+
 Merge phase:
 
 - `python scripts/pr/workflow.py --phase merge`
@@ -102,6 +107,26 @@ Use one command for branch/PR/artifact/check status:
 - `python scripts/pr/status.py --json`
 
 This avoids repeated manual checks (`git status`, `gh pr view`, `gh pr checks`, artifact inspection).
+
+## Agent Checkpoint Cadence
+
+Run these checkpoints at minimum:
+
+1. Before implementation starts on a slice branch:
+   - `python scripts/pr/status.py --json`
+2. After commit, before review:
+   - `python scripts/pr/status.py --json`
+3. After prepare and before merge:
+   - `python scripts/pr/status.py --json`
+4. After merge/finalize:
+   - `python scripts/pr/status.py --json`
+
+Mandatory evidence for each slice:
+
+- `.local/review.md`
+- `.local/prep.md`
+- `.local/merge.md`
+- latest benchmark artifact set in `benchmark/results/` (JSON + summary/drift/invariants/leaks)
 
 ## Notes
 
