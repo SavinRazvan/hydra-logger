@@ -1,16 +1,19 @@
 """
-Role: Environment health guard for local toolchain stability.
+Role: Repository automation for check env health.
 Used By:
- - scripts/pr/workflow.py before PR workflow phases.
- - Maintainers validating `.hydra_env` integrity before local commands.
+ - Repository maintainers invoking automation commands.
 Depends On:
  - argparse
+ - dataclasses
+ - datetime
  - json
+ - os
  - pathlib
  - subprocess
  - tempfile
+ - ...
 Notes:
- - Detects broken/mixed environment states and prints deterministic fix hints.
+ - Provides local development tooling for check env health tasks.
 """
 
 from __future__ import annotations
@@ -142,13 +145,32 @@ def _check_pip_health(python_bin: Path) -> CheckResult:
 
     check_code, check_out = _run([str(python_bin), "-m", "pip", "check"])
     if check_code != 0:
+        fatal_markers = (
+            "Traceback (most recent call last):",
+            "ModuleNotFoundError",
+            "ImportError",
+            "No module named pip",
+            "pip._internal",
+        )
+        if any(marker in check_out for marker in fatal_markers):
+            return CheckResult(
+                check_id="pip_health",
+                status=STATUS_FAIL,
+                evidence=check_out or "`python -m pip check` crashed",
+                recommended_fix=(
+                    "pip is not healthy in `.hydra_env`. Rebuild the environment "
+                    "or repair pip first (`python -m ensurepip --upgrade`, then "
+                    "`python -m pip install --upgrade pip setuptools wheel`)."
+                ),
+            )
         return CheckResult(
             check_id="pip_health",
             status=STATUS_WARN,
             evidence=check_out or "`python -m pip check` reported issues",
             recommended_fix=(
                 "Resolve dependency mismatches reported by `python -m pip check` "
-                "inside `.hydra_env`."
+                "inside `.hydra_env`. You can also run this preflight with "
+                "`--auto-upgrade-toolchain` to repair pip/setuptools/wheel first."
             ),
         )
 
@@ -156,6 +178,69 @@ def _check_pip_health(python_bin: Path) -> CheckResult:
         check_id="pip_health",
         status=STATUS_PASS,
         evidence=version_out,
+        recommended_fix="No action needed.",
+    )
+
+
+def _check_packaging_toolchain(python_bin: Path) -> CheckResult:
+    code, output = _run(
+        [
+            str(python_bin),
+            "-c",
+            (
+                "import pip, setuptools, wheel; "
+                "print("
+                "f'pip {pip.__version__}; "
+                "setuptools {setuptools.__version__}; "
+                "wheel {wheel.__version__}'"
+                ")"
+            ),
+        ]
+    )
+    if code != 0:
+        return CheckResult(
+            check_id="packaging_toolchain",
+            status=STATUS_WARN,
+            evidence=output or "unable to import pip/setuptools/wheel",
+            recommended_fix=(
+                "Repair packaging toolchain in `.hydra_env` with: "
+                "`python -m pip install --upgrade pip setuptools wheel`."
+            ),
+        )
+    return CheckResult(
+        check_id="packaging_toolchain",
+        status=STATUS_PASS,
+        evidence=output,
+        recommended_fix="No action needed.",
+    )
+
+
+def _upgrade_packaging_toolchain(python_bin: Path) -> CheckResult:
+    code, output = _run(
+        [
+            str(python_bin),
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+            "setuptools",
+            "wheel",
+        ]
+    )
+    if code != 0:
+        return CheckResult(
+            check_id="packaging_toolchain_repair",
+            status=STATUS_WARN,
+            evidence=output or "toolchain upgrade command failed",
+            recommended_fix=(
+                "Rebuild `.hydra_env` from scratch if automatic toolchain repair fails."
+            ),
+        )
+    return CheckResult(
+        check_id="packaging_toolchain_repair",
+        status=STATUS_PASS,
+        evidence=output or "pip/setuptools/wheel upgraded successfully.",
         recommended_fix="No action needed.",
     )
 
@@ -288,6 +373,15 @@ def main() -> int:
         default=False,
         help="Print only remediation hints for non-pass checks.",
     )
+    parser.add_argument(
+        "--auto-upgrade-toolchain",
+        action="store_true",
+        default=False,
+        help=(
+            "Attempt automatic repair of pip/setuptools/wheel when related health "
+            "checks are degraded."
+        ),
+    )
     args = parser.parse_args()
 
     env_path = Path(args.env_path).resolve()
@@ -311,7 +405,32 @@ def main() -> int:
         )
     else:
         results.append(_check_python_subprocess_import(python_bin))
-        results.append(_check_pip_health(python_bin))
+        pip_health = _check_pip_health(python_bin)
+        results.append(pip_health)
+        toolchain_health = _check_packaging_toolchain(python_bin)
+        results.append(toolchain_health)
+
+        if args.auto_upgrade_toolchain and (
+            pip_health.status != STATUS_PASS or toolchain_health.status != STATUS_PASS
+        ):
+            results.append(_upgrade_packaging_toolchain(python_bin))
+            results.append(
+                CheckResult(
+                    check_id="post_repair_note",
+                    status=STATUS_PASS,
+                    evidence=(
+                        "Re-ran pip/toolchain checks after automatic repair attempt."
+                    ),
+                    recommended_fix="No action needed.",
+                )
+            )
+            pip_health_after = _check_pip_health(python_bin)
+            pip_health_after.check_id = "pip_health_post_repair"
+            results.append(pip_health_after)
+            toolchain_health_after = _check_packaging_toolchain(python_bin)
+            toolchain_health_after.check_id = "packaging_toolchain_post_repair"
+            results.append(toolchain_health_after)
+
         results.append(_check_mypy_available(python_bin))
         results.append(_check_pyright_available(env_path, cache_path))
 
