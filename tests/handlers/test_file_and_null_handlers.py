@@ -12,7 +12,7 @@ from pathlib import Path
 import asyncio
 
 from hydra_logger.formatters.structured_formatter import CsvFormatter
-from hydra_logger.handlers.file_handler import AsyncFileHandler, SyncFileHandler
+from hydra_logger.handlers.file_handler import AsyncFileHandler, FileHandler, SyncFileHandler
 from hydra_logger.handlers.null_handler import NullHandler
 from hydra_logger.types.records import LogRecord
 
@@ -76,3 +76,38 @@ def test_async_file_handler_emit_async_and_close(tmp_path: Path) -> None:
         assert "async file event" in content
 
     asyncio.run(_run())
+
+
+def test_sync_file_handler_reopens_for_binary_formatter(tmp_path: Path) -> None:
+    class BinaryFormatter:
+        name = "binary_payload"
+
+        def format(self, _record):
+            return b"abc"
+
+    log_path = tmp_path / "binary.log"
+    handler = SyncFileHandler(filename=str(log_path), buffer_size=1, flush_interval=60.0)
+    handler.setFormatter(BinaryFormatter())
+    handler.emit(LogRecord(level=20, level_name="INFO", message="ignored"))
+    handler.close()
+    assert log_path.read_bytes() == b"abc"
+
+
+def test_file_handler_emit_async_falls_back_to_sync_handler(tmp_path: Path) -> None:
+    async def _run() -> None:
+        log_path = tmp_path / "wrapper.log"
+        handler = FileHandler(filename=str(log_path))
+        await handler.emit_async(LogRecord(level=20, level_name="INFO", message="wrapped"))
+        await handler.aclose()
+        assert "wrapped" in log_path.read_text(encoding="utf-8")
+
+    asyncio.run(_run())
+
+
+def test_async_file_handler_drops_messages_when_queue_is_full(tmp_path: Path) -> None:
+    handler = AsyncFileHandler(filename=str(tmp_path / "queue.log"), max_queue_size=1)
+    handler._running = True
+    handler._message_queue.put_nowait("occupied")
+    handler.emit(LogRecord(level=20, level_name="INFO", message="dropped"))
+    assert handler.get_stats()["messages_dropped"] >= 1
+    handler.close()

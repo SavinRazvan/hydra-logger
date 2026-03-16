@@ -58,3 +58,28 @@ def test_async_logger_log_concurrent_and_background_work() -> None:
         await logger.aclose()
 
     asyncio.run(_run())
+
+
+def test_async_logger_background_work_filters_task_exceptions() -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+
+        async def ok_async():
+            return "ok-async"
+
+        def fail_sync():
+            raise RuntimeError("boom")
+
+        results = await logger.log_background_work([ok_async, fail_sync], max_concurrent=2)
+        assert results == ["ok-async"]
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_close_disables_concurrency_semaphore_in_health_status() -> None:
+    logger = AsyncLogger()
+    logger.close()
+    health = logger.get_health_status()
+    assert health["closed"] is True
+    assert health["concurrency_semaphore"] == "inactive"

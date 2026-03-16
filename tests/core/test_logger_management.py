@@ -36,3 +36,10 @@ def test_logger_manager_default_config_setter_getter() -> None:
     config = get_default_config()
     manager.setDefaultConfig(config)
     assert manager.getDefaultConfig() is config
+
+
+def test_logger_manager_uses_root_name_when_name_missing() -> None:
+    manager = LoggerManager()
+    root_logger = manager.getLogger()
+    assert root_logger is manager.getLogger("root")
+    assert manager.hasLogger("root") is True
