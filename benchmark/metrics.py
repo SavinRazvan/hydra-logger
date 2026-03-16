@@ -1,0 +1,233 @@
+"""
+Role: Shared benchmark metric calculation helpers.
+Used By:
+ - benchmark.performance_benchmark
+Depends On:
+ - asyncio
+ - time
+ - typing
+Notes:
+ - Keeps throughput calculations centralized for consistency.
+"""
+
+from __future__ import annotations
+
+import time
+from collections.abc import Awaitable, Callable
+import math
+from typing import Any
+
+
+def messages_per_second(total_messages: int, duration: float) -> float:
+    """Safely compute throughput from message count and elapsed duration."""
+    if duration <= 0:
+        return 0.0
+    return total_messages / duration
+
+
+def measure_sync_batch_throughput(
+    *,
+    logger: Any,
+    messages: list[tuple[str, str, dict[str, Any]]],
+    flush_sync: Callable[[Any], None],
+    min_duration_seconds: float = 0.25,
+    min_iterations: int = 5,
+) -> tuple[int, float, float]:
+    """Measure sync batch throughput over multiple iterations for stable results."""
+    total_messages = 0
+    iterations = 0
+    start_time = time.perf_counter()
+
+    while iterations < min_iterations or (time.perf_counter() - start_time < min_duration_seconds):
+        logger.log_batch(messages)
+        total_messages += len(messages)
+        iterations += 1
+
+    flush_sync(logger)
+    end_time = time.perf_counter()
+    duration = end_time - start_time
+    return total_messages, duration, messages_per_second(total_messages, duration)
+
+
+async def measure_async_batch_throughput(
+    *,
+    logger: Any,
+    messages: list[tuple[str, str, dict[str, Any]]],
+    flush_async: Callable[[Any], Awaitable[None]],
+    min_duration_seconds: float = 0.25,
+    min_iterations: int = 5,
+) -> tuple[int, float, float]:
+    """Measure async batch throughput over multiple iterations for stable results."""
+    total_messages = 0
+    iterations = 0
+    start_time = time.perf_counter()
+
+    while iterations < min_iterations or (time.perf_counter() - start_time < min_duration_seconds):
+        await logger.log_batch(messages)
+        total_messages += len(messages)
+        iterations += 1
+
+    await flush_async(logger)
+    end_time = time.perf_counter()
+    duration = end_time - start_time
+    return total_messages, duration, messages_per_second(total_messages, duration)
+
+
+def _validate_rate(
+    *,
+    numerator: float,
+    duration: float,
+    reported_rate: float,
+    label: str,
+    violations: list[str],
+    rel_tol: float = 1e-6,
+    abs_tol: float = 1e-9,
+) -> None:
+    expected = messages_per_second(int(numerator), duration) if numerator >= 0 else 0.0
+    if not math.isfinite(reported_rate):
+        violations.append(f"{label}: reported rate is not finite ({reported_rate!r})")
+        return
+    if not math.isclose(reported_rate, expected, rel_tol=rel_tol, abs_tol=abs_tol):
+        violations.append(
+            f"{label}: expected {expected:.12f} but found {reported_rate:.12f}"
+        )
+
+
+def validate_result_invariants(results: dict[str, Any]) -> list[str]:
+    """Validate benchmark math and counting invariants."""
+    violations: list[str] = []
+
+    for key in ("sync_logger", "async_logger"):
+        section = results.get(key, {})
+        if not isinstance(section, dict):
+            continue
+        total = float(section.get("total_messages", 0))
+        duration = float(section.get("individual_duration", 0))
+        rate = float(section.get("individual_messages_per_second", 0))
+        _validate_rate(
+            numerator=total,
+            duration=duration,
+            reported_rate=rate,
+            label=f"{key}.individual_messages_per_second",
+            violations=violations,
+        )
+
+    composite = results.get("composite_logger", {})
+    if isinstance(composite, dict):
+        _validate_rate(
+            numerator=float(composite.get("total_messages", 0)),
+            duration=float(composite.get("individual_duration", 0)),
+            reported_rate=float(composite.get("individual_messages_per_second", 0)),
+            label="composite_logger.individual_messages_per_second",
+            violations=violations,
+        )
+        _validate_rate(
+            numerator=float(composite.get("small_batch_total_messages", 0)),
+            duration=float(composite.get("small_batch_duration", 0)),
+            reported_rate=float(composite.get("small_batch_messages_per_second", 0)),
+            label="composite_logger.small_batch_messages_per_second",
+            violations=violations,
+        )
+        _validate_rate(
+            numerator=float(composite.get("batch_total_messages", 0)),
+            duration=float(composite.get("batch_duration", 0)),
+            reported_rate=float(composite.get("batch_messages_per_second", 0)),
+            label="composite_logger.batch_messages_per_second",
+            violations=violations,
+        )
+
+    composite_async = results.get("composite_async_logger", {})
+    if isinstance(composite_async, dict):
+        _validate_rate(
+            numerator=float(composite_async.get("total_messages", 0)),
+            duration=float(composite_async.get("individual_duration", 0)),
+            reported_rate=float(composite_async.get("individual_messages_per_second", 0)),
+            label="composite_async_logger.individual_messages_per_second",
+            violations=violations,
+        )
+        _validate_rate(
+            numerator=float(composite_async.get("batch_total_messages", 0)),
+            duration=float(composite_async.get("batch_duration", 0)),
+            reported_rate=float(composite_async.get("batch_messages_per_second", 0)),
+            label="composite_async_logger.batch_messages_per_second",
+            violations=violations,
+        )
+
+    configurations = results.get("configurations", {})
+    if isinstance(configurations, dict):
+        for config_name, config_result in configurations.items():
+            if not isinstance(config_result, dict):
+                continue
+            _validate_rate(
+                numerator=float(config_result.get("total_messages", 0)),
+                duration=float(config_result.get("duration", 0)),
+                reported_rate=float(config_result.get("messages_per_second", 0)),
+                label=f"configurations.{config_name}.messages_per_second",
+                violations=violations,
+            )
+
+    for key in ("file_writing", "async_file_writing"):
+        section = results.get(key, {})
+        if not isinstance(section, dict):
+            continue
+        total = float(section.get("total_messages", 0))
+        duration = float(section.get("duration", 0))
+        msg_rate = float(section.get("messages_per_second", 0))
+        bytes_written = float(section.get("bytes_written", 0))
+        byte_rate = float(section.get("bytes_per_second", 0))
+        _validate_rate(
+            numerator=total,
+            duration=duration,
+            reported_rate=msg_rate,
+            label=f"{key}.messages_per_second",
+            violations=violations,
+        )
+        _validate_rate(
+            numerator=bytes_written,
+            duration=duration,
+            reported_rate=byte_rate,
+            label=f"{key}.bytes_per_second",
+            violations=violations,
+        )
+
+    concurrent = results.get("concurrent", {})
+    if isinstance(concurrent, dict):
+        _validate_rate(
+            numerator=float(concurrent.get("total_messages", 0)),
+            duration=float(concurrent.get("total_duration", 0)),
+            reported_rate=float(concurrent.get("total_messages_per_second", 0)),
+            label="concurrent.total_messages_per_second",
+            violations=violations,
+        )
+
+    async_concurrent = results.get("async_concurrent", {})
+    if isinstance(async_concurrent, dict):
+        scaling = async_concurrent.get("scaling", {})
+        if isinstance(scaling, dict):
+            for key, row in scaling.items():
+                if not isinstance(row, dict):
+                    continue
+                _validate_rate(
+                    numerator=float(row.get("total_messages", 0)),
+                    duration=float(row.get("total_duration", 0)),
+                    reported_rate=float(row.get("total_messages_per_second", 0)),
+                    label=f"async_concurrent.scaling.{key}.total_messages_per_second",
+                    violations=violations,
+                )
+
+    parallel_workers = results.get("parallel_workers", {})
+    if isinstance(parallel_workers, dict):
+        scaling = parallel_workers.get("scaling", {})
+        if isinstance(scaling, dict):
+            for key, row in scaling.items():
+                if not isinstance(row, dict):
+                    continue
+                _validate_rate(
+                    numerator=float(row.get("total_messages", 0)),
+                    duration=float(row.get("total_duration", 0)),
+                    reported_rate=float(row.get("total_messages_per_second", 0)),
+                    label=f"parallel_workers.scaling.{key}.total_messages_per_second",
+                    violations=violations,
+                )
+
+    return violations

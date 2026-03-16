@@ -18,16 +18,16 @@ Notes:
 """
 
 import asyncio
-import copy
+import argparse
 import gc
 import json
+from concurrent.futures import ProcessPoolExecutor
 import statistics
 import subprocess
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Dict, List, Tuple
 
 # Add the project root to Python path
@@ -44,6 +44,58 @@ from hydra_logger.config import (
 from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.core.logger_management import clearLoggers, listLoggers, removeLogger
 
+from benchmark.guards import (
+    detect_new_root_log_leaks,
+    disable_direct_io_if_available,
+    ensure_composite_file_target,
+    rebase_file_destinations_to_benchmark_logs,
+    validate_result_paths,
+)
+from benchmark.metrics import (
+    measure_async_batch_throughput,
+    measure_sync_batch_throughput,
+    messages_per_second,
+    validate_result_invariants,
+)
+from benchmark.profiles import load_profile
+from benchmark.workloads import build_batch_messages
+
+
+def _parallel_sync_worker(
+    bench_logs_dir: str,
+    worker_count: int,
+    worker_id: int,
+    messages_per_worker: int,
+) -> int:
+    """Process worker for real parallel benchmark throughput."""
+    log_path = (
+        Path(bench_logs_dir)
+        / f"parallel_worker_{worker_count}_{worker_id}_{time.time_ns()}.jsonl"
+    )
+    config = LoggingConfig(
+        default_level="INFO",
+        layers={
+            "default": LogLayer(
+                level="INFO",
+                destinations=[
+                    LogDestination(type="file", path=str(log_path), format="json-lines"),
+                ],
+            )
+        },
+    )
+    logger_name = f"parallel_worker_{worker_count}_{worker_id}_{time.time_ns()}"
+    logger = getLogger(logger_name, logger_type="sync", config=config)
+    try:
+        for i in range(messages_per_worker):
+            logger.info(f"Parallel worker {worker_id} message {i}")
+    finally:
+        try:
+            if hasattr(logger, "close"):
+                logger.close()
+        except Exception:
+            pass
+    return messages_per_worker
+
 
 class HydraLoggerBenchmark:
     """
@@ -54,10 +106,18 @@ class HydraLoggerBenchmark:
     and configuration performance comparison.
     """
 
-    def __init__(self, save_results: bool = True, results_dir: str | None = None):
+    def __init__(
+        self,
+        save_results: bool = True,
+        results_dir: str | None = None,
+        profile: str | None = None,
+    ):
         self.results = {}
         self.save_results = save_results
+        self.profile_name = profile
+        self.profile = load_profile(profile)
         benchmark_root = Path(__file__).resolve().parent
+        self._project_root = benchmark_root.parent
         self.results_dir = (
             Path(results_dir)
             if results_dir is not None
@@ -77,6 +137,12 @@ class HydraLoggerBenchmark:
         # so benchmark output never spills into the project root.
         self._benchmark_logs_dir = benchmark_root / "bench_logs"
         self._benchmark_logs_dir.mkdir(parents=True, exist_ok=True)
+        logs_dir = self._project_root / "logs"
+        self._preexisting_root_log_names = (
+            {path.name for path in logs_dir.glob("*") if path.is_file()}
+            if logs_dir.exists()
+            else set()
+        )
 
         # Clear any existing loggers from global cache to ensure clean state
         # This prevents state pollution from previous benchmark runs
@@ -115,7 +181,15 @@ class HydraLoggerBenchmark:
             # Stress test parameters
             "stress_test_messages": 100000,
             "stress_concurrent_workers": 50,
+            # Suite split matrix defaults (profile overrides preferred).
+            "suite_matrix_workers_tasks": [1, 2, 4, 8, 16, 32],
+            "suite_matrix_messages_per_worker": 1000,
+            "repetitions": 1,
+            "soak_enabled": False,
         }
+        overrides = self.profile.get("test_config_overrides", {})
+        if isinstance(overrides, dict):
+            self.test_config.update(overrides)
 
     def _build_benchmark_log_path(self, prefix: str) -> str:
         """Create a unique benchmark log path under benchmark_logs."""
@@ -126,9 +200,7 @@ class HydraLoggerBenchmark:
     @staticmethod
     def _messages_per_second(total_messages: int, duration: float) -> float:
         """Safely compute throughput from message count and elapsed duration."""
-        if duration <= 0:
-            return 0.0
-        return total_messages / duration
+        return messages_per_second(total_messages, duration)
 
     def _measure_sync_batch_throughput(
         self,
@@ -138,21 +210,13 @@ class HydraLoggerBenchmark:
         min_iterations: int = 5,
     ) -> Tuple[int, float, float]:
         """Measure sync batch throughput over multiple iterations for stable results."""
-        total_messages = 0
-        iterations = 0
-        start_time = time.perf_counter()
-
-        while iterations < min_iterations or (
-            time.perf_counter() - start_time < min_duration_seconds
-        ):
-            logger.log_batch(messages)
-            total_messages += len(messages)
-            iterations += 1
-
-        self._flush_all_handlers(logger)
-        end_time = time.perf_counter()
-        duration = end_time - start_time
-        return total_messages, duration, self._messages_per_second(total_messages, duration)
+        return measure_sync_batch_throughput(
+            logger=logger,
+            messages=messages,
+            flush_sync=self._flush_all_handlers,
+            min_duration_seconds=min_duration_seconds,
+            min_iterations=min_iterations,
+        )
 
     async def _measure_async_batch_throughput(
         self,
@@ -162,21 +226,13 @@ class HydraLoggerBenchmark:
         min_iterations: int = 5,
     ) -> Tuple[int, float, float]:
         """Measure async batch throughput over multiple iterations for stable results."""
-        total_messages = 0
-        iterations = 0
-        start_time = time.perf_counter()
-
-        while iterations < min_iterations or (
-            time.perf_counter() - start_time < min_duration_seconds
-        ):
-            await logger.log_batch(messages)
-            total_messages += len(messages)
-            iterations += 1
-
-        await self._flush_all_handlers_async(logger)
-        end_time = time.perf_counter()
-        duration = end_time - start_time
-        return total_messages, duration, self._messages_per_second(total_messages, duration)
+        return await measure_async_batch_throughput(
+            logger=logger,
+            messages=messages,
+            flush_async=self._flush_all_handlers_async,
+            min_duration_seconds=min_duration_seconds,
+            min_iterations=min_iterations,
+        )
 
     def _create_performance_config(self, logger_type: str = "sync") -> LoggingConfig:
         """
@@ -223,38 +279,24 @@ class HydraLoggerBenchmark:
         self, config: LoggingConfig, config_name: str
     ) -> LoggingConfig:
         """Copy config and redirect file destinations into benchmark/bench_logs."""
-        rebased = copy.deepcopy(config)
-        for layer_name, layer in rebased.layers.items():
-            for index, destination in enumerate(layer.destinations):
-                destination_type = str(getattr(destination, "type", "")).lower()
-                if "file" not in destination_type and "jsonl" not in destination_type:
-                    continue
-                destination.path = self._build_benchmark_log_path(
-                    f"config_{config_name}_{layer_name}_{index}"
-                )
-        return rebased
+        return rebase_file_destinations_to_benchmark_logs(
+            config=config,
+            config_name=config_name,
+            build_log_path=self._build_benchmark_log_path,
+        )
 
     @staticmethod
     def _disable_direct_io_if_available(logger: Any) -> None:
         """Force-disable composite direct-I/O fallback when logger supports it."""
-        if hasattr(logger, "_use_direct_io"):
-            try:
-                logger._use_direct_io = False
-            except Exception:
-                pass
+        disable_direct_io_if_available(logger)
 
     def _ensure_composite_file_target(self, logger: Any, prefix: str) -> None:
         """Attach a file-path component shim so composite fallback writes into bench_logs."""
-        components = getattr(logger, "components", None)
-        if not isinstance(components, list):
-            return
-
-        for component in components:
-            if getattr(component, "file_path", None):
-                return
-
-        shim_path = self._build_benchmark_log_path(prefix)
-        components.append(SimpleNamespace(file_path=shim_path))
+        ensure_composite_file_target(
+            logger=logger,
+            prefix=prefix,
+            build_log_path=self._build_benchmark_log_path,
+        )
 
     def _flush_all_handlers(self, logger):
         """Flush all synchronous handlers in a logger.
@@ -552,6 +594,8 @@ class HydraLoggerBenchmark:
         print("=" * 80)
         print("HYDRA-LOGGER PERFORMANCE BENCHMARK")
         print("=" * 80)
+        if self.profile_name:
+            print(f"Profile: {self.profile_name}")
         print(f"Test Configuration:")
         print(
             f"   Typical Single Messages: {self.test_config['typical_single_messages']:,}"
@@ -561,6 +605,13 @@ class HydraLoggerBenchmark:
         print(f"   Large Batch Size: {self.test_config['large_batch_size']:,}")
         print(f"   Concurrent Workers: {self.test_config['concurrent_workers']}")
         print(f"   Messages per Worker: {self.test_config['messages_per_worker']:,}")
+        print(
+            f"   Async/Parallel Matrix: {self.test_config['suite_matrix_workers_tasks']}"
+        )
+        print(
+            f"   Matrix Messages/Worker: {self.test_config['suite_matrix_messages_per_worker']:,}"
+        )
+        print(f"   Repetitions: {self.test_config.get('repetitions', 1)}")
         print(f"   Scenario Parameters:")
         print(
             f"     - Web Request Logs: {self.test_config['web_request_logs']} msgs/request"
@@ -839,9 +890,7 @@ class HydraLoggerBenchmark:
         # Test with batch sizes
         print("   Testing small batch...")
         batch_size = self.test_config["small_batch_size"]
-        messages = [
-            ("INFO", generate_realistic_message(i), {}) for i in range(batch_size)
-        ]
+        messages = build_batch_messages(batch_size, generate_realistic_message)
 
         (
             small_batch_total_messages,
@@ -856,9 +905,7 @@ class HydraLoggerBenchmark:
         # Test medium batch
         print("   Testing medium batch...")
         batch_size = self.test_config["medium_batch_size"]
-        messages = [
-            ("INFO", generate_realistic_message(i), {}) for i in range(batch_size)
-        ]
+        messages = build_batch_messages(batch_size, generate_realistic_message)
 
         (
             medium_batch_total_messages,
@@ -976,9 +1023,7 @@ class HydraLoggerBenchmark:
         # Test with batch sizes
         print("   Testing small batch...")
         batch_size = self.test_config["small_batch_size"]
-        messages = [
-            ("INFO", generate_realistic_message(i), {}) for i in range(batch_size)
-        ]
+        messages = build_batch_messages(batch_size, generate_realistic_message)
 
         (
             batch_total_messages,
@@ -1927,6 +1972,116 @@ class HydraLoggerBenchmark:
         print("   Advanced Concurrent Logging: COMPLETED")
         return result
 
+    async def test_async_concurrent_suite(self) -> Dict[str, Any]:
+        """Explicit async-concurrent suite (event-loop concurrency only)."""
+        print("\nTesting Async Concurrent Suite...")
+        matrix = list(self.test_config.get("suite_matrix_workers_tasks", [1, 2, 4, 8, 16, 32]))
+        messages_per_task = int(self.test_config.get("suite_matrix_messages_per_worker", 1000))
+        scaling: Dict[str, Any] = {}
+
+        for task_count in matrix:
+            logger_name = f"async_suite_{task_count}_{id(self)}"
+            logger = getLogger(
+                logger_name,
+                logger_type="composite-async",
+                config=self._create_performance_config("composite-async"),
+                use_direct_io=False,
+            )
+            self._disable_direct_io_if_available(logger)
+            self._ensure_composite_file_target(logger, f"composite_{logger_name}")
+            self._created_loggers.append(logger)
+            self._logger_names.append(logger_name)
+
+            async def _task(task_id: int) -> None:
+                messages = [
+                    ("INFO", f"AsyncSuite task={task_id} msg={i}", {})
+                    for i in range(messages_per_task)
+                ]
+                await logger.log_batch(messages)
+
+            start = time.perf_counter()
+            await asyncio.gather(*[_task(i) for i in range(task_count)])
+            duration = time.perf_counter() - start
+            await self._flush_all_handlers_async(logger)
+            total_messages = task_count * messages_per_task
+            total_messages_per_second = self._messages_per_second(total_messages, duration)
+            scaling[str(task_count)] = {
+                "total_messages": total_messages,
+                "total_duration": duration,
+                "total_messages_per_second": total_messages_per_second,
+                "tasks": task_count,
+                "messages_per_task": messages_per_task,
+            }
+
+            try:
+                if hasattr(logger, "aclose") and asyncio.iscoroutinefunction(logger.aclose):
+                    await logger.aclose()
+                elif hasattr(logger, "close_async") and asyncio.iscoroutinefunction(
+                    logger.close_async
+                ):
+                    await logger.close_async()
+                elif hasattr(logger, "close"):
+                    logger.close()
+            except Exception:
+                pass
+
+            print(
+                f"   {task_count:2d} tasks: {total_messages_per_second:>10,.0f} msg/s (event-loop concurrent)"
+            )
+
+        print("   Async Concurrent Suite: COMPLETED")
+        return {
+            "suite": "async_concurrent",
+            "workers_tasks": matrix,
+            "messages_per_worker": messages_per_task,
+            "scaling": scaling,
+            "status": "COMPLETED",
+        }
+
+    def test_parallel_workers_suite(self) -> Dict[str, Any]:
+        """Explicit parallel-workers suite (real process-level parallelism)."""
+        print("\nTesting Parallel Workers Suite...")
+        matrix = list(self.test_config.get("suite_matrix_workers_tasks", [1, 2, 4, 8, 16, 32]))
+        messages_per_worker = int(self.test_config.get("suite_matrix_messages_per_worker", 1000))
+        scaling: Dict[str, Any] = {}
+
+        for worker_count in matrix:
+            start = time.perf_counter()
+            with ProcessPoolExecutor(max_workers=worker_count) as executor:
+                futures = [
+                    executor.submit(
+                        _parallel_sync_worker,
+                        str(self._benchmark_logs_dir),
+                        worker_count,
+                        worker_id,
+                        messages_per_worker,
+                    )
+                    for worker_id in range(worker_count)
+                ]
+                completed_messages = sum(f.result() for f in futures)
+            duration = time.perf_counter() - start
+            total_messages_per_second = self._messages_per_second(completed_messages, duration)
+
+            scaling[str(worker_count)] = {
+                "total_messages": completed_messages,
+                "total_duration": duration,
+                "total_messages_per_second": total_messages_per_second,
+                "workers": worker_count,
+                "messages_per_worker": messages_per_worker,
+            }
+            print(
+                f"   {worker_count:2d} workers: {total_messages_per_second:>10,.0f} msg/s (process parallel)"
+            )
+
+        print("   Parallel Workers Suite: COMPLETED")
+        return {
+            "suite": "parallel_workers",
+            "workers_tasks": matrix,
+            "messages_per_worker": messages_per_worker,
+            "scaling": scaling,
+            "status": "COMPLETED",
+        }
+
     async def test_ultra_high_performance(self) -> Dict[str, Any]:
         """
         Test high performance scenarios.
@@ -2193,6 +2348,32 @@ class HydraLoggerBenchmark:
                 f"Max Worker Speed:         {concurrent['max_thread_speed']:>8,.0f} msg/s"
             )
 
+        if "async_concurrent" in self.results:
+            print("\nASYNC CONCURRENT SUITE")
+            print("-" * 60)
+            async_suite = self.results["async_concurrent"]
+            print(f"Workers/Tasks Matrix:     {async_suite['workers_tasks']}")
+            print(
+                f"Messages per Task:        {async_suite['messages_per_worker']:>8,}"
+            )
+            for task_count, row in async_suite.get("scaling", {}).items():
+                print(
+                    f"Tasks {int(task_count):>2d}:                {row['total_messages_per_second']:>8,.0f} msg/s"
+                )
+
+        if "parallel_workers" in self.results:
+            print("\nPARALLEL WORKERS SUITE")
+            print("-" * 60)
+            parallel_suite = self.results["parallel_workers"]
+            print(f"Workers Matrix:           {parallel_suite['workers_tasks']}")
+            print(
+                f"Messages per Worker:      {parallel_suite['messages_per_worker']:>8,}"
+            )
+            for worker_count, row in parallel_suite.get("scaling", {}).items():
+                print(
+                    f"Workers {int(worker_count):>2d}:             {row['total_messages_per_second']:>8,.0f} msg/s"
+                )
+
         # Performance summary
         print("\nPERFORMANCE SUMMARY")
         print("-" * 60)
@@ -2278,6 +2459,26 @@ class HydraLoggerBenchmark:
                                 ],
                                 "type": "mixed",
                                 "test_key": f"{test_key}.mixed",
+                            }
+                        )
+                if "async_concurrent" in test_key and "scaling" in result:
+                    for task_count, row in result["scaling"].items():
+                        all_performance_data.append(
+                            {
+                                "name": f"Async Concurrent Suite ({task_count} tasks)",
+                                "speed": row["total_messages_per_second"],
+                                "type": "async_concurrent_suite",
+                                "test_key": f"{test_key}.{task_count}",
+                            }
+                        )
+                if "parallel_workers" in test_key and "scaling" in result:
+                    for worker_count, row in result["scaling"].items():
+                        all_performance_data.append(
+                            {
+                                "name": f"Parallel Workers Suite ({worker_count} workers)",
+                                "speed": row["total_messages_per_second"],
+                                "type": "parallel_workers",
+                                "test_key": f"{test_key}.{worker_count}",
                             }
                         )
                 # High performance
@@ -2378,6 +2579,7 @@ class HydraLoggerBenchmark:
             output = {
                 "metadata": {
                     "timestamp": timestamp,
+                    "profile": self.profile_name or "legacy_default",
                     "test_config": self.test_config,
                     "python_version": sys.version.split()[0],
                     "platform": sys.platform,
@@ -2420,6 +2622,29 @@ class HydraLoggerBenchmark:
         except Exception:
             return "unknown"
 
+    def _enforce_reliability_guards(self) -> None:
+        """Hard-fail benchmark on formula or path-confinement violations."""
+        violations: list[str] = []
+        violations.extend(validate_result_invariants(self.results))
+        violations.extend(
+            validate_result_paths(
+                results=self.results,
+                allowed_roots=[self._benchmark_logs_dir, self.results_dir],
+            )
+        )
+        leaked_files = detect_new_root_log_leaks(
+            project_root=self._project_root,
+            preexisting_log_names=self._preexisting_root_log_names,
+        )
+        if leaked_files:
+            violations.append(
+                "new benchmark-related files detected under project logs/: "
+                + ", ".join(leaked_files)
+            )
+        if violations:
+            details = "\n - ".join(["Benchmark reliability guard violations:", *violations])
+            raise RuntimeError(details)
+
     async def run_benchmark(self):
         """Run the complete benchmark suite."""
         self.print_header()
@@ -2458,6 +2683,12 @@ class HydraLoggerBenchmark:
             self.results["concurrent"] = await self.test_concurrent_logging()
             self._cleanup_logger_cache()
 
+            self.results["async_concurrent"] = await self.test_async_concurrent_suite()
+            self._cleanup_logger_cache()
+
+            self.results["parallel_workers"] = self.test_parallel_workers_suite()
+            self._cleanup_logger_cache()
+
             self.results["advanced_concurrent"] = (
                 await self.test_advanced_concurrent_logging()
             )
@@ -2467,6 +2698,9 @@ class HydraLoggerBenchmark:
                 await self.test_ultra_high_performance()
             )
             self._cleanup_logger_cache()
+
+            # Enforce hard reliability rules before reporting/saving artifacts.
+            self._enforce_reliability_guards()
 
             # Print detailed results
             self.print_detailed_results()
@@ -2495,12 +2729,44 @@ class HydraLoggerBenchmark:
             return 1
 
 
-async def main():
+async def main(
+    profile: str | None = None,
+    save_results: bool = True,
+    results_dir: str | None = None,
+):
     """Main entry point for the benchmark suite."""
-    benchmark = HydraLoggerBenchmark()
+    benchmark = HydraLoggerBenchmark(
+        save_results=save_results,
+        results_dir=results_dir,
+        profile=profile,
+    )
     return await benchmark.run_benchmark()
 
 
 if __name__ == "__main__":
-    exit_code = asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Hydra benchmark runner")
+    parser.add_argument(
+        "--profile",
+        default=None,
+        help="Benchmark profile name under benchmark/profiles (ci_smoke, pr_gate, nightly_truth).",
+    )
+    parser.add_argument(
+        "--no-save-results",
+        action="store_true",
+        default=False,
+        help="Do not persist benchmark result artifacts.",
+    )
+    parser.add_argument(
+        "--results-dir",
+        default=None,
+        help="Custom directory for benchmark result artifacts.",
+    )
+    args = parser.parse_args()
+    exit_code = asyncio.run(
+        main(
+            profile=args.profile,
+            save_results=not args.no_save_results,
+            results_dir=args.results_dir,
+        )
+    )
     sys.exit(exit_code)

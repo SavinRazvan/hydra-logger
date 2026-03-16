@@ -1,0 +1,13 @@
+{
+  "name": "nightly_truth",
+  "description": "Nightly regression and truth-set benchmark profile.",
+  "test_config_overrides": {
+    "typical_single_messages": 1000000,
+    "concurrent_workers": 8,
+    "messages_per_worker": 10000,
+    "suite_matrix_workers_tasks": [1, 2, 4, 8, 16, 32],
+    "suite_matrix_messages_per_worker": 10000,
+    "repetitions": 10,
+    "soak_enabled": true
+  }
+}
