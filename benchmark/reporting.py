@@ -19,6 +19,10 @@ from pathlib import Path
 import shutil
 from typing import Any
 
+from benchmark.dev_logging import get_logger
+
+
+_logger = get_logger(__name__)
 
 def make_serializable(obj: Any) -> Any:
     """Recursively convert values to JSON-serializable forms."""
@@ -72,19 +76,28 @@ def write_results_artifacts(
     results_dir: Path,
 ) -> Path:
     """Write timestamped and latest benchmark result artifacts."""
-    results_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = str(output_payload["metadata"]["timestamp"])
-    output_file = results_dir / f"benchmark_{timestamp}.json"
-    output_file.write_text(json.dumps(output_payload, indent=2), encoding="utf-8")
+    try:
+        results_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = str(output_payload["metadata"]["timestamp"])
+        output_file = results_dir / f"benchmark_{timestamp}.json"
+        output_file.write_text(json.dumps(output_payload, indent=2), encoding="utf-8")
 
-    latest_file = results_dir / "benchmark_latest.json"
-    shutil.copy2(output_file, latest_file)
-    _write_auxiliary_reports(
-        output_payload=output_payload,
-        results_dir=results_dir,
-        timestamp=timestamp,
-    )
-    return output_file
+        latest_file = results_dir / "benchmark_latest.json"
+        shutil.copy2(output_file, latest_file)
+        _write_auxiliary_reports(
+            output_payload=output_payload,
+            results_dir=results_dir,
+            timestamp=timestamp,
+        )
+        return output_file
+    except KeyError as exc:
+        _logger.exception("Benchmark output payload is missing required metadata fields")
+        raise ValueError(
+            "Invalid benchmark output payload: missing metadata.timestamp"
+        ) from exc
+    except OSError as exc:
+        _logger.exception("Benchmark artifact persistence failed in %s", results_dir)
+        raise OSError(f"Failed to persist benchmark artifacts in {results_dir}") from exc
 
 
 def _write_auxiliary_reports(
@@ -189,7 +202,17 @@ def _write_report_files(
     body: str,
 ) -> None:
     """Write timestamped and latest markdown report files."""
-    timestamped = results_dir / f"benchmark_{timestamp}_{prefix}.md"
-    latest = results_dir / f"benchmark_latest_{prefix}.md"
-    timestamped.write_text(body, encoding="utf-8")
-    shutil.copy2(timestamped, latest)
+    try:
+        timestamped = results_dir / f"benchmark_{timestamp}_{prefix}.md"
+        latest = results_dir / f"benchmark_latest_{prefix}.md"
+        timestamped.write_text(body, encoding="utf-8")
+        shutil.copy2(timestamped, latest)
+    except OSError as exc:
+        _logger.exception(
+            "Benchmark report persistence failed for prefix=%s timestamp=%s",
+            prefix,
+            timestamp,
+        )
+        raise OSError(
+            f"Failed to persist benchmark report files for prefix '{prefix}'"
+        ) from exc

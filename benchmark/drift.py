@@ -18,6 +18,11 @@ from pathlib import Path
 import statistics
 from typing import Any
 
+from benchmark.dev_logging import get_logger
+
+
+_logger = get_logger(__name__)
+
 
 DEFAULT_DRIFT_POLICY: dict[str, Any] = {
     "enabled": False,
@@ -84,7 +89,7 @@ def load_policy_for_profile(
                     if isinstance(profile_policy, dict):
                         policy.update(profile_policy)
         except Exception:
-            pass
+            _logger.exception("Failed loading benchmark drift policy file: %s", POLICY_FILE)
     if isinstance(policy_overrides, dict):
         policy.update(policy_overrides)
     return policy

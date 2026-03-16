@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
+import pytest
 from benchmark.guards import (
     disable_direct_io_if_available,
     ensure_composite_file_target,
@@ -161,3 +162,21 @@ def test_build_batch_messages_uses_factory() -> None:
         ("INFO", "m1", {}),
         ("INFO", "m2", {}),
     ]
+
+
+def test_build_batch_messages_validates_batch_size() -> None:
+    with pytest.raises(ValueError, match="batch_size must be >= 0"):
+        build_batch_messages(-1, lambda i: f"m{i}")
+
+
+def test_build_batch_messages_validates_message_factory() -> None:
+    with pytest.raises(TypeError, match="message_factory must be callable"):
+        build_batch_messages(1, "not-callable")
+
+
+def test_build_batch_messages_bubbles_factory_errors() -> None:
+    def _broken_factory(_index: int) -> str:
+        raise RuntimeError("boom")
+
+    with pytest.raises(RuntimeError, match="boom"):
+        build_batch_messages(2, _broken_factory)
