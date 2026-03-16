@@ -20,8 +20,6 @@ Notes:
 import asyncio
 import argparse
 import gc
-import json
-from concurrent.futures import ProcessPoolExecutor
 import statistics
 import subprocess
 import sys
@@ -60,43 +58,12 @@ from benchmark.metrics import (
     validate_result_invariants,
 )
 from benchmark.profiles import load_profile
+from benchmark.reporting import build_output_payload, write_results_artifacts
+from benchmark.runners import (
+    run_async_concurrent_suite,
+    run_parallel_workers_suite,
+)
 from benchmark.workloads import build_batch_messages
-
-
-def _parallel_sync_worker(
-    bench_logs_dir: str,
-    worker_count: int,
-    worker_id: int,
-    messages_per_worker: int,
-) -> int:
-    """Process worker for real parallel benchmark throughput."""
-    log_path = (
-        Path(bench_logs_dir)
-        / f"parallel_worker_{worker_count}_{worker_id}_{time.time_ns()}.jsonl"
-    )
-    config = LoggingConfig(
-        default_level="INFO",
-        layers={
-            "default": LogLayer(
-                level="INFO",
-                destinations=[
-                    LogDestination(type="file", path=str(log_path), format="json-lines"),
-                ],
-            )
-        },
-    )
-    logger_name = f"parallel_worker_{worker_count}_{worker_id}_{time.time_ns()}"
-    logger = getLogger(logger_name, logger_type="sync", config=config)
-    try:
-        for i in range(messages_per_worker):
-            logger.info(f"Parallel worker {worker_id} message {i}")
-    finally:
-        try:
-            if hasattr(logger, "close"):
-                logger.close()
-        except Exception:
-            pass
-    return messages_per_worker
 
 
 class HydraLoggerBenchmark:
@@ -1982,9 +1949,8 @@ class HydraLoggerBenchmark:
         print("\nTesting Async Concurrent Suite...")
         matrix = list(self.test_config.get("suite_matrix_workers_tasks", [1, 2, 4, 8, 16, 32]))
         messages_per_task = int(self.test_config.get("suite_matrix_messages_per_worker", 1000))
-        scaling: Dict[str, Any] = {}
-
-        for task_count in matrix:
+        
+        def _create_logger(task_count: int):
             logger_name = f"async_suite_{task_count}_{id(self)}"
             logger = getLogger(
                 logger_name,
@@ -1996,28 +1962,12 @@ class HydraLoggerBenchmark:
             self._ensure_composite_file_target(logger, f"composite_{logger_name}")
             self._created_loggers.append(logger)
             self._logger_names.append(logger_name)
+            return logger
 
-            async def _task(task_id: int) -> None:
-                messages = [
-                    ("INFO", f"AsyncSuite task={task_id} msg={i}", {})
-                    for i in range(messages_per_task)
-                ]
-                await logger.log_batch(messages)
-
-            start = time.perf_counter()
-            await asyncio.gather(*[_task(i) for i in range(task_count)])
-            duration = time.perf_counter() - start
+        async def _flush_logger(logger) -> None:
             await self._flush_all_handlers_async(logger)
-            total_messages = task_count * messages_per_task
-            total_messages_per_second = self._messages_per_second(total_messages, duration)
-            scaling[str(task_count)] = {
-                "total_messages": total_messages,
-                "total_duration": duration,
-                "total_messages_per_second": total_messages_per_second,
-                "tasks": task_count,
-                "messages_per_task": messages_per_task,
-            }
 
+        async def _close_logger(logger) -> None:
             try:
                 if hasattr(logger, "aclose") and asyncio.iscoroutinefunction(logger.aclose):
                     await logger.aclose()
@@ -2030,62 +1980,43 @@ class HydraLoggerBenchmark:
             except Exception:
                 pass
 
+        result = await run_async_concurrent_suite(
+            matrix=matrix,
+            messages_per_task=messages_per_task,
+            create_logger=_create_logger,
+            flush_async=_flush_logger,
+            close_async=_close_logger,
+            messages_per_second=self._messages_per_second,
+        )
+        scaling = result.get("scaling", {})
+        for task_count in matrix:
+            row = scaling.get(str(task_count), {})
             print(
-                f"   {task_count:2d} tasks: {total_messages_per_second:>10,.0f} msg/s (event-loop concurrent)"
+                f"   {task_count:2d} tasks: {float(row.get('total_messages_per_second', 0.0)):>10,.0f} msg/s (event-loop concurrent)"
             )
-
         print("   Async Concurrent Suite: COMPLETED")
-        return {
-            "suite": "async_concurrent",
-            "workers_tasks": matrix,
-            "messages_per_worker": messages_per_task,
-            "scaling": scaling,
-            "status": "COMPLETED",
-        }
+        return result
 
     def test_parallel_workers_suite(self) -> Dict[str, Any]:
         """Explicit parallel-workers suite (real process-level parallelism)."""
         print("\nTesting Parallel Workers Suite...")
         matrix = list(self.test_config.get("suite_matrix_workers_tasks", [1, 2, 4, 8, 16, 32]))
         messages_per_worker = int(self.test_config.get("suite_matrix_messages_per_worker", 1000))
-        scaling: Dict[str, Any] = {}
-
+        result = run_parallel_workers_suite(
+            matrix=matrix,
+            messages_per_worker=messages_per_worker,
+            bench_logs_dir=self._benchmark_logs_dir,
+            messages_per_second=self._messages_per_second,
+        )
+        scaling = result.get("scaling", {})
         for worker_count in matrix:
-            start = time.perf_counter()
-            with ProcessPoolExecutor(max_workers=worker_count) as executor:
-                futures = [
-                    executor.submit(
-                        _parallel_sync_worker,
-                        str(self._benchmark_logs_dir),
-                        worker_count,
-                        worker_id,
-                        messages_per_worker,
-                    )
-                    for worker_id in range(worker_count)
-                ]
-                completed_messages = sum(f.result() for f in futures)
-            duration = time.perf_counter() - start
-            total_messages_per_second = self._messages_per_second(completed_messages, duration)
-
-            scaling[str(worker_count)] = {
-                "total_messages": completed_messages,
-                "total_duration": duration,
-                "total_messages_per_second": total_messages_per_second,
-                "workers": worker_count,
-                "messages_per_worker": messages_per_worker,
-            }
+            row = scaling.get(str(worker_count), {})
             print(
-                f"   {worker_count:2d} workers: {total_messages_per_second:>10,.0f} msg/s (process parallel)"
+                f"   {worker_count:2d} workers: {float(row.get('total_messages_per_second', 0.0)):>10,.0f} msg/s (process parallel)"
             )
 
         print("   Parallel Workers Suite: COMPLETED")
-        return {
-            "suite": "parallel_workers",
-            "workers_tasks": matrix,
-            "messages_per_worker": messages_per_worker,
-            "scaling": scaling,
-            "status": "COMPLETED",
-        }
+        return result
 
     async def test_ultra_high_performance(self) -> Dict[str, Any]:
         """
@@ -2560,58 +2491,23 @@ class HydraLoggerBenchmark:
         Creates timestamped files: benchmark/results/benchmark_YYYY-MM-DD_HH-MM-SS.json
         """
         try:
-            # Create timestamped filename
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            filename = self.results_dir / f"benchmark_{timestamp}.json"
-
-            # Prepare results for JSON serialization
-            def make_serializable(obj):
-                """Recursively convert objects to JSON-serializable format."""
-                if isinstance(obj, dict):
-                    return {k: make_serializable(v) for k, v in obj.items()}
-                elif isinstance(obj, (list, tuple)):
-                    return [make_serializable(item) for item in obj]
-                elif isinstance(obj, (int, float, str, bool, type(None))):
-                    return obj
-                elif hasattr(obj, "__dict__"):
-                    return str(obj)
-                else:
-                    return str(obj)
-
-            json_results = make_serializable(self.results)
-
-            # Add metadata
-            output = {
-                "metadata": {
-                    "timestamp": timestamp,
-                    "profile": self.profile_name or "legacy_default",
-                    "test_config": self.test_config,
-                    "python_version": sys.version.split()[0],
-                    "platform": sys.platform,
-                    "git_commit_sha": self._git_commit_sha(),
-                    "machine": platform.platform(),
-                    "cpu_count": os.cpu_count() or 1,
-                    "disk_mode": self.disk_mode,
-                    "payload_profile": self.payload_profile,
-                },
-                "results": json_results,
-            }
-
-            # Write to file
-            with open(filename, "w") as f:
-                json.dump(output, f, indent=2)
-
+            output = build_output_payload(
+                results=self.results,
+                profile_name=self.profile_name,
+                test_config=self.test_config,
+                python_version=sys.version.split()[0],
+                platform_name=sys.platform,
+                git_commit_sha=self._git_commit_sha(),
+                machine=platform.platform(),
+                cpu_count=os.cpu_count() or 1,
+                disk_mode=self.disk_mode,
+                payload_profile=self.payload_profile,
+                timestamp=timestamp,
+            )
+            filename = write_results_artifacts(output_payload=output, results_dir=self.results_dir)
             print(f"\nResults saved to: {filename}")
             print(f"   You can review results later or compare with previous runs")
-
-            # Also create a "latest" copy for easy access
-            latest_file = self.results_dir / "benchmark_latest.json"
-            try:
-                import shutil
-
-                shutil.copy2(filename, latest_file)
-            except Exception:
-                pass
 
         except Exception as e:
             print(f"\nWarning: Could not save results to file: {e}")
