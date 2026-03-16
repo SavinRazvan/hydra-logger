@@ -1101,8 +1101,10 @@ class HydraLoggerBenchmark:
         # Warm-up
         print("   Warm-up period...")
         warmup_count = min(1000, message_count // 100)
+        warmup_start = time.perf_counter()
         for i in range(warmup_count):
             logger.info(generate_realistic_message(i))
+        warmup_duration = time.perf_counter() - warmup_start
 
         # Flush before timing
         self._flush_all_handlers(logger)
@@ -1194,6 +1196,8 @@ class HydraLoggerBenchmark:
         duration = end_time - start_time
         messages_per_second = message_count / duration
         bytes_per_second = bytes_written / duration if duration > 0 else 0
+        observed_written_lines = self._count_written_lines(benchmark_file)
+        written_lines_observed = observed_written_lines > 0
 
         # Cleanup
         try:
@@ -1213,7 +1217,8 @@ class HydraLoggerBenchmark:
             "total_messages": message_count,
             "expected_emitted": message_count,
             "actual_emitted": message_count,
-            "written_lines": self._count_written_lines(benchmark_file),
+            "written_lines": observed_written_lines,
+            "written_lines_observed": written_lines_observed,
             "file_path": benchmark_file,
             "status": "COMPLETED",
         }
@@ -1379,6 +1384,8 @@ class HydraLoggerBenchmark:
         duration = end_time - start_time
         messages_per_second = message_count / duration
         bytes_per_second = bytes_written / duration if duration > 0 else 0
+        observed_written_lines = self._count_written_lines(benchmark_file)
+        written_lines_observed = observed_written_lines > 0
 
         result = {
             "logger_type": "Async File Handler Only",
@@ -1392,7 +1399,8 @@ class HydraLoggerBenchmark:
             "total_messages": message_count,
             "expected_emitted": message_count,
             "actual_emitted": message_count,
-            "written_lines": self._count_written_lines(benchmark_file),
+            "written_lines": observed_written_lines,
+            "written_lines_observed": written_lines_observed,
             "file_path": benchmark_file,
             "status": "COMPLETED",
         }

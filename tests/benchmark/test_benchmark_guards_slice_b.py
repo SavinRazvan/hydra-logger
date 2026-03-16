@@ -67,6 +67,7 @@ def _minimal_valid_results() -> dict:
             "expected_emitted": 100,
             "actual_emitted": 100,
             "written_lines": 100,
+            "written_lines_observed": True,
             "messages_per_second": 50.0,
             "bytes_written": 1000,
             "bytes_per_second": 500.0,
@@ -81,6 +82,7 @@ def _minimal_valid_results() -> dict:
             "expected_emitted": 100,
             "actual_emitted": 100,
             "written_lines": 100,
+            "written_lines_observed": True,
             "messages_per_second": 50.0,
             "bytes_written": 1000,
             "bytes_per_second": 500.0,
@@ -125,6 +127,7 @@ def test_validate_result_invariants_detects_counting_and_timing_mismatch() -> No
     results = _minimal_valid_results()
     results["file_writing"]["actual_emitted"] = 90
     results["file_writing"]["written_lines"] = 80
+    results["file_writing"]["written_lines_observed"] = True
     results["file_writing"]["measured_duration"] = 3.0
     violations = validate_result_invariants(results)
     assert any("file_writing.actual_emitted" in v for v in violations)

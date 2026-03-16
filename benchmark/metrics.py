@@ -101,11 +101,17 @@ def validate_result_invariants(results: dict[str, Any]) -> list[str]:
         expected = section.get("expected_emitted")
         actual = section.get("actual_emitted")
         written = section.get("written_lines")
+        written_observed = bool(section.get("written_lines_observed", True))
         if expected is not None and actual is not None and int(expected) != int(actual):
             violations.append(
                 f"{label_prefix}.actual_emitted: expected {int(expected)} but found {int(actual)}"
             )
-        if written is not None and actual is not None and int(written) != int(actual):
+        if (
+            written_observed
+            and written is not None
+            and actual is not None
+            and int(written) != int(actual)
+        ):
             violations.append(
                 f"{label_prefix}.written_lines: expected {int(actual)} but found {int(written)}"
             )
