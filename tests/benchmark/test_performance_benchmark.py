@@ -111,6 +111,10 @@ def test_save_results_to_file_writes_metadata_and_latest_copy(
 
     payload = json.loads(latest_path.read_text())
     assert payload["metadata"]["git_commit_sha"] == "deadbee"
+    assert payload["metadata"]["machine"]
+    assert payload["metadata"]["cpu_count"] >= 1
+    assert payload["metadata"]["disk_mode"]
+    assert payload["metadata"]["payload_profile"]
     assert payload["results"]["sample"]["messages_per_second"] == 123.0
 
 

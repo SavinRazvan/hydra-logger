@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "timestamp": "2026-03-16_14-09-55",
+    "timestamp": "2026-03-16_15-40-41",
     "profile": "ci_smoke",
     "test_config": {
       "typical_single_messages": 10000,
@@ -31,158 +31,162 @@
     },
     "python_version": "3.12.3",
     "platform": "linux",
-    "git_commit_sha": "d1e4007"
+    "git_commit_sha": "57eed09",
+    "machine": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "cpu_count": 12,
+    "disk_mode": "buffered_default",
+    "payload_profile": "mixed_default"
   },
   "results": {
     "sync_logger": {
       "logger_type": "Sync Logger",
-      "individual_messages_per_second": 37896.412581474906,
-      "individual_duration": 0.26387722000072245,
+      "individual_messages_per_second": 39982.810909611515,
+      "individual_duration": 0.25010747800115496,
       "total_messages": 10000,
       "status": "COMPLETED"
     },
     "async_logger": {
       "logger_type": "Async Logger",
-      "individual_messages_per_second": 27235.852701155723,
-      "individual_duration": 0.36716309600160457,
+      "individual_messages_per_second": 34168.33570468622,
+      "individual_duration": 0.29266862999793375,
       "total_messages": 10000,
       "status": "COMPLETED"
     },
     "composite_logger": {
       "logger_type": "Composite Logger",
-      "individual_messages_per_second": 39273.75352003489,
-      "small_batch_messages_per_second": 42993032.81819668,
-      "batch_messages_per_second": 161876539.79931572,
-      "individual_duration": 0.2546229760009737,
-      "small_batch_duration": 0.25000911299866857,
-      "batch_duration": 0.2500201700022444,
+      "individual_messages_per_second": 35520.75102903358,
+      "small_batch_messages_per_second": 43880651.04506644,
+      "batch_messages_per_second": 150661181.11805946,
+      "individual_duration": 0.2815255790010269,
+      "small_batch_duration": 0.25000426699989475,
+      "batch_duration": 0.2500060050006141,
       "total_messages": 10000,
       "small_batch_size": 50,
-      "small_batch_total_messages": 10748650,
+      "small_batch_total_messages": 10970350,
       "batch_size": 200,
-      "batch_total_messages": 40472400,
+      "batch_total_messages": 37666200,
       "status": "COMPLETED"
     },
     "composite_async_logger": {
       "logger_type": "Composite Async Logger",
-      "individual_messages_per_second": 52136.20949666553,
-      "batch_messages_per_second": 605183.7049219226,
-      "individual_duration": 0.1918052750006609,
-      "batch_duration": 0.2500893510004971,
+      "individual_messages_per_second": 46206.497391071964,
+      "batch_messages_per_second": 550797.1832548003,
+      "individual_duration": 0.2164197800011607,
+      "batch_duration": 0.25009205600144924,
       "total_messages": 10000,
       "batch_size": 50,
-      "batch_total_messages": 151350,
+      "batch_total_messages": 137750,
       "status": "COMPLETED"
     },
     "configurations": {
       "default": {
-        "messages_per_second": 43141.72223614142,
-        "duration": 0.23179417699793703,
+        "messages_per_second": 37612.49681540136,
+        "duration": 0.2658690819989715,
         "total_messages": 10000,
         "note": "Real-world config with console handlers (slower I/O)"
       },
       "development": {
-        "messages_per_second": 61951.41480103165,
-        "duration": 0.16141681400040397,
+        "messages_per_second": 62311.517396126714,
+        "duration": 0.16048397499980638,
         "total_messages": 10000,
         "note": "Real-world config with console handlers (slower I/O)"
       },
       "production": {
-        "messages_per_second": 42499.43657451947,
-        "duration": 0.23529723699903116,
+        "messages_per_second": 39360.89726842995,
+        "duration": 0.2540592490004201,
         "total_messages": 10000,
         "note": "Real-world config with console handlers (slower I/O)"
       }
     },
     "file_writing": {
       "logger_type": "File Handler Only",
-      "messages_per_second": 37367.97055248426,
-      "bytes_per_second": 10593868.229991006,
+      "messages_per_second": 33607.225838857914,
+      "bytes_per_second": 9527692.214709809,
       "bytes_written": 2835013,
-      "duration": 0.2676088599982904,
+      "duration": 0.2975550569972256,
       "total_messages": 10000,
-      "file_path": "/home/razvansavin/Projects/hydra-logger/benchmark/bench_logs/benchmark_file_132985971562768_1773662991141256344.log",
+      "file_path": "/home/razvansavin/Projects/hydra-logger/benchmark/bench_logs/benchmark_file_137976308846176_1773668437858096641.log",
       "status": "COMPLETED"
     },
     "async_file_writing": {
       "logger_type": "Async File Handler Only",
-      "messages_per_second": 30958.359770877294,
-      "bytes_per_second": 9341437.393984055,
+      "messages_per_second": 31984.948036934315,
+      "bytes_per_second": 9651202.190560633,
       "bytes_written": 3017420,
-      "duration": 0.32301452899992,
+      "duration": 0.3126470610004617,
       "total_messages": 10000,
-      "file_path": "/home/razvansavin/Projects/hydra-logger/benchmark/bench_logs/benchmark_async_file_132985971562768_1773662992413816625.log",
+      "file_path": "/home/razvansavin/Projects/hydra-logger/benchmark/bench_logs/benchmark_async_file_137976308846176_1773668439160399692.log",
       "status": "COMPLETED"
     },
     "memory": {
-      "initial_memory_mb": 103.98046875,
-      "final_memory_mb": 103.98046875,
+      "initial_memory_mb": 102.15625,
+      "final_memory_mb": 102.15625,
       "memory_increase_mb": 0.0,
       "loggers_created": 50,
       "memory_per_logger_mb": 0.0,
       "initial_samples": [
-        103.98046875,
-        103.98046875,
-        103.98046875
+        102.15625,
+        102.15625,
+        102.15625
       ],
       "final_samples": [
-        103.98046875,
-        103.98046875,
-        103.98046875
+        102.15625,
+        102.15625,
+        102.15625
       ],
       "status": "COMPLETED"
     },
     "concurrent": {
-      "total_duration": 0.014309897000202909,
-      "total_messages_per_second": 559053.6395815122,
+      "total_duration": 0.019783138999628136,
+      "total_messages_per_second": 404384.76422525145,
       "thread_results": [
         {
           "worker_id": 0,
-          "duration": 0.001749129998643184,
-          "messages_per_second": 571712.7948041077
+          "duration": 0.001751908002916025,
+          "messages_per_second": 570806.2286007683
         },
         {
           "worker_id": 1,
-          "duration": 0.0019808350007224362,
-          "messages_per_second": 504837.6061788524
+          "duration": 0.002128751999407541,
+          "messages_per_second": 469758.8071688542
         },
         {
           "worker_id": 2,
-          "duration": 0.0017369090019201394,
-          "messages_per_second": 575735.4005848941
+          "duration": 0.002771858999039978,
+          "messages_per_second": 360768.71166475135
         },
         {
           "worker_id": 3,
-          "duration": 0.0015630809975846205,
-          "messages_per_second": 639762.1118453031
+          "duration": 0.0020420260007085744,
+          "messages_per_second": 489709.72928503563
         },
         {
           "worker_id": 4,
-          "duration": 0.0016555680012970697,
-          "messages_per_second": 604022.3048624647
+          "duration": 0.0024463940026180353,
+          "messages_per_second": 408764.9000650913
         },
         {
           "worker_id": 5,
-          "duration": 0.0018510990012146067,
-          "messages_per_second": 540219.620530207
+          "duration": 0.0020800769998459145,
+          "messages_per_second": 480751.43375657575
         },
         {
           "worker_id": 6,
-          "duration": 0.0015614200019626878,
-          "messages_per_second": 640442.673171223
+          "duration": 0.0031054360006237403,
+          "messages_per_second": 322015.9745037881
         },
         {
           "worker_id": 7,
-          "duration": 0.0016803029975562822,
-          "messages_per_second": 595130.7600202651
+          "duration": 0.0025266499978897627,
+          "messages_per_second": 395780.97513909393
         }
       ],
       "num_threads": 8,
       "messages_per_thread": 1000,
       "total_messages": 8000,
-      "avg_thread_speed": 583982.9089996646,
-      "min_thread_speed": 504837.6061788524,
-      "max_thread_speed": 640442.673171223,
+      "avg_thread_speed": 437294.5950229948,
+      "min_thread_speed": 322015.9745037881,
+      "max_thread_speed": 570806.2286007683,
       "status": "COMPLETED"
     },
     "async_concurrent": {
@@ -199,43 +203,43 @@
       "scaling": {
         "1": {
           "total_messages": 1000,
-          "total_duration": 0.0016285839992633555,
-          "total_messages_per_second": 614030.3481136509,
+          "total_duration": 0.0025100380007643253,
+          "total_messages_per_second": 398400.34282169933,
           "tasks": 1,
           "messages_per_task": 1000
         },
         "2": {
           "total_messages": 2000,
-          "total_duration": 0.004289184998924611,
-          "total_messages_per_second": 466289.0503677137,
+          "total_duration": 0.0037381129986897577,
+          "total_messages_per_second": 535029.3050801349,
           "tasks": 2,
           "messages_per_task": 1000
         },
         "4": {
           "total_messages": 4000,
-          "total_duration": 0.006967872999666724,
-          "total_messages_per_second": 574063.2758650052,
+          "total_duration": 0.006575643998075975,
+          "total_messages_per_second": 608305.4376378033,
           "tasks": 4,
           "messages_per_task": 1000
         },
         "8": {
           "total_messages": 8000,
-          "total_duration": 0.013826639999024337,
-          "total_messages_per_second": 578593.2085137467,
+          "total_duration": 0.01378502599982312,
+          "total_messages_per_second": 580339.8557320567,
           "tasks": 8,
           "messages_per_task": 1000
         },
         "16": {
           "total_messages": 16000,
-          "total_duration": 0.030363546997250523,
-          "total_messages_per_second": 526947.6586990588,
+          "total_duration": 0.02712686100130668,
+          "total_messages_per_second": 589821.2844910177,
           "tasks": 16,
           "messages_per_task": 1000
         },
         "32": {
           "total_messages": 32000,
-          "total_duration": 0.08934424900144222,
-          "total_messages_per_second": 358165.19090650644,
+          "total_duration": 0.054911990999244153,
+          "total_messages_per_second": 582750.6782706253,
           "tasks": 32,
           "messages_per_task": 1000
         }
@@ -256,43 +260,43 @@
       "scaling": {
         "1": {
           "total_messages": 1000,
-          "total_duration": 0.061425631000020076,
-          "total_messages_per_second": 16279.849042164064,
+          "total_duration": 0.03592425999886473,
+          "total_messages_per_second": 27836.34235003315,
           "workers": 1,
           "messages_per_worker": 1000
         },
         "2": {
           "total_messages": 2000,
-          "total_duration": 0.08087449499726063,
-          "total_messages_per_second": 24729.675283508648,
+          "total_duration": 0.038242594000621466,
+          "total_messages_per_second": 52297.70762850184,
           "workers": 2,
           "messages_per_worker": 1000
         },
         "4": {
           "total_messages": 4000,
-          "total_duration": 0.07650582600035705,
-          "total_messages_per_second": 52283.59994415761,
+          "total_duration": 0.048593049999908544,
+          "total_messages_per_second": 82316.29831853585,
           "workers": 4,
           "messages_per_worker": 1000
         },
         "8": {
           "total_messages": 8000,
-          "total_duration": 0.109827182997833,
-          "total_messages_per_second": 72841.7116931593,
+          "total_duration": 0.07353726799919968,
+          "total_messages_per_second": 108788.37652885153,
           "workers": 8,
           "messages_per_worker": 1000
         },
         "16": {
           "total_messages": 16000,
-          "total_duration": 0.1532162760013307,
-          "total_messages_per_second": 104427.54789224245,
+          "total_duration": 0.16092079200097942,
+          "total_messages_per_second": 99427.79799332966,
           "workers": 16,
           "messages_per_worker": 1000
         },
         "32": {
           "total_messages": 32000,
-          "total_duration": 0.2890816469989659,
-          "total_messages_per_second": 110695.37043323429,
+          "total_duration": 0.35218736099704984,
+          "total_messages_per_second": 90860.72796424985,
           "workers": 32,
           "messages_per_worker": 1000
         }
@@ -302,49 +306,59 @@
     "advanced_concurrent": {
       "shared_logger_scalability": {
         "1": {
-          "messages_per_second": 461159.31883632764,
-          "duration": 0.00108422399716801,
-          "efficiency": 461159.31883632764
+          "messages_per_second": 230579.97817533152,
+          "duration": 0.002168444996641483,
+          "efficiency": 230579.97817533152
         },
         "2": {
-          "messages_per_second": 512450.7606097331,
-          "duration": 0.0019514069972501602,
-          "efficiency": 256225.38030486656
+          "messages_per_second": 535693.5277265772,
+          "duration": 0.0018667389995243866,
+          "efficiency": 267846.7638632886
         },
         "5": {
-          "messages_per_second": 482085.9741695947,
-          "duration": 0.005185797002923209,
-          "efficiency": 96417.19483391894
+          "messages_per_second": 486488.6533834195,
+          "duration": 0.005138865999469999,
+          "efficiency": 97297.7306766839
         },
         "10": {
-          "messages_per_second": 516476.9044784155,
-          "duration": 0.009680974999355385,
-          "efficiency": 51647.69044784155
+          "messages_per_second": 581611.1537049921,
+          "duration": 0.008596808998845518,
+          "efficiency": 58161.11537049922
         },
         "20": {
-          "messages_per_second": 404265.1591268781,
-          "duration": 0.024736240000493126,
-          "efficiency": 20213.257956343903
+          "messages_per_second": 563496.8541769589,
+          "duration": 0.017746327997883782,
+          "efficiency": 28174.842708847944
         }
       },
       "async_concurrent": {
-        "messages_per_second": 40257.79408569807,
-        "duration": 0.4967982089983707,
+        "messages_per_second": 53365.283341724265,
+        "duration": 0.37477548600145383,
         "num_tasks": 20,
         "messages_per_task": 1000
       },
       "mixed_concurrent": {
-        "messages_per_second": 195397.55901022,
-        "duration": 0.012794427999324398,
+        "messages_per_second": 310042.40997838235,
+        "duration": 0.00806341300267377,
         "num_threads": 10
       },
       "status": "COMPLETED"
     },
     "ultra_high_performance": {
-      "messages_per_second": 80717.89484016478,
-      "duration": 0.37166479699953925,
+      "messages_per_second": 151677.9732214995,
+      "duration": 0.19778745300209266,
       "total_messages": 30000,
       "status": "COMPLETED"
+    },
+    "drift_policy": {
+      "enabled": false,
+      "profile": "ci_smoke",
+      "status": "disabled",
+      "history_window": 20,
+      "min_baseline_runs": 5,
+      "max_negative_drift_pct_median": 15.0,
+      "max_negative_drift_pct_p95": 25.0,
+      "metrics": {}
     }
   }
 }

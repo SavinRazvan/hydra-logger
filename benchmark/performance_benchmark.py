@@ -28,6 +28,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+import platform
 from typing import Any, Dict, List, Tuple
 
 # Add the project root to Python path
@@ -118,6 +119,8 @@ class HydraLoggerBenchmark:
         self.profile_name = profile
         self.profile = load_profile(profile)
         self.drift_policy = self.profile.get("drift_policy", {})
+        self.disk_mode = str(self.profile.get("disk_mode", "buffered_default"))
+        self.payload_profile = str(self.profile.get("payload_profile", "mixed_default"))
         benchmark_root = Path(__file__).resolve().parent
         self._project_root = benchmark_root.parent
         self.results_dir = (
@@ -2586,6 +2589,10 @@ class HydraLoggerBenchmark:
                     "python_version": sys.version.split()[0],
                     "platform": sys.platform,
                     "git_commit_sha": self._git_commit_sha(),
+                    "machine": platform.platform(),
+                    "cpu_count": os.cpu_count() or 1,
+                    "disk_mode": self.disk_mode,
+                    "payload_profile": self.payload_profile,
                 },
                 "results": json_results,
             }

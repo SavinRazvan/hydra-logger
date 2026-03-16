@@ -1,0 +1,20 @@
+{
+  "baseline_name": "ci_smoke_baseline_v1",
+  "seed_source": "benchmark/results/benchmark_latest.json",
+  "accepted_at": "2026-03-16_14-09-55",
+  "metadata": {
+    "profile": "ci_smoke",
+    "git_commit_sha": "d1e4007",
+    "python_version": "3.12.3",
+    "platform": "linux"
+  },
+  "metrics": {
+    "sync_logger.individual_messages_per_second": 37896.412581474906,
+    "async_logger.individual_messages_per_second": 27235.852701155723,
+    "file_writing.messages_per_second": 37367.97055248426,
+    "async_file_writing.messages_per_second": 30958.359770877294,
+    "concurrent.total_messages_per_second": 559053.6395815122,
+    "async_concurrent.scaling.8.total_messages_per_second": 578593.2085137467,
+    "parallel_workers.scaling.8.total_messages_per_second": 72841.7116931593
+  }
+}
