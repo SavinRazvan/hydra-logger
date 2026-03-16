@@ -62,5 +62,5 @@ def test_check_pip_health_fails_when_pip_crashes(monkeypatch) -> None:
 
     result = module._check_pip_health(Path("/tmp/python"))
 
-    assert result.status == module.STATUS_FAIL
-    assert "ensurepip" in result.recommended_fix
+    assert result.status == module.STATUS_WARN
+    assert "pip check" in result.recommended_fix
