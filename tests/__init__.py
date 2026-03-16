@@ -1,9 +1,9 @@
 """
-Role: Test package marker module.
+Role: Public exports for tests; no runtime logic besides import wiring.
 Used By:
- - Pytest test discovery/import resolution for the `tests` package.
+ - Importers of `tests` public API.
 Depends On:
  - (none)
 Notes:
- - Intentionally minimal.
+ - Marks test package boundaries for discovery/import stability.
 """

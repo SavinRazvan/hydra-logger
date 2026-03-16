@@ -1,0 +1,90 @@
+"""
+Role: Pytest coverage for composite logger behavior.
+Used By:
+ - Pytest discovery and local CI quality gates.
+Depends On:
+ - hydra_logger
+Notes:
+ - Validates component fan-out, failure isolation, and close lifecycle.
+"""
+
+import asyncio
+
+from hydra_logger.loggers.composite_logger import CompositeAsyncLogger, CompositeLogger
+
+
+class DummyComponent:
+    def __init__(self, name: str, should_fail: bool = False):
+        self.name = name
+        self.should_fail = should_fail
+        self.messages = []
+        self.closed = False
+
+    def log(self, level, message, **kwargs):
+        if self.should_fail:
+            raise RuntimeError("component failure")
+        self.messages.append((level, message))
+
+    def info(self, message, **kwargs):
+        self.log("INFO", message, **kwargs)
+
+    def close(self):
+        self.closed = True
+
+    def get_health_status(self):
+        return {"health": "healthy", "closed": self.closed}
+
+
+class DummyAsyncComponent:
+    def __init__(self, name: str):
+        self.name = name
+        self.messages = []
+        self.closed = False
+
+    async def log(self, level, message, **kwargs):
+        self.messages.append((level, message))
+
+    async def aclose(self):
+        self.closed = True
+
+
+def test_composite_logger_fan_out_and_failure_isolation() -> None:
+    ok = DummyComponent("ok")
+    bad = DummyComponent("bad", should_fail=True)
+    logger = CompositeLogger(components=[ok, bad])
+    logger.info("hello composite")
+    assert ok.messages
+    logger.close()
+    assert ok.closed is True
+
+
+def test_composite_logger_add_remove_component() -> None:
+    logger = CompositeLogger()
+    comp = DummyComponent("c1")
+    logger.add_component(comp)
+    assert logger.get_component("c1") is comp
+    logger.remove_component(comp)
+    assert logger.get_component("c1") is None
+
+
+def test_composite_logger_batch_updates_log_count() -> None:
+    comp = DummyComponent("batch")
+    logger = CompositeLogger(components=[comp])
+    logger.log_batch(
+        [
+            ("INFO", "m1", {}),
+            ("ERROR", "m2", {}),
+        ]
+    )
+    health = logger.get_health_status()
+    assert health["component_count"] == 1
+    logger.close()
+
+
+def test_composite_async_logger_log_and_close() -> None:
+    component = DummyAsyncComponent("async")
+    logger = CompositeAsyncLogger(components=[component], use_direct_io=False)
+    asyncio.run(logger.log("INFO", "async composite message"))
+    asyncio.run(logger.aclose())
+    assert component.messages
+    assert component.closed is True
