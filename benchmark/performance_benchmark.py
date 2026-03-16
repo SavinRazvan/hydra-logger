@@ -51,6 +51,12 @@ from benchmark.guards import (
     validate_result_paths,
 )
 from benchmark.drift import evaluate_drift_policy
+from benchmark.io_metrics import (
+    build_file_io_result,
+    count_written_lines,
+    extract_handler_bytes_written,
+    resolve_bytes_written,
+)
 from benchmark.metrics import (
     measure_async_batch_throughput,
     measure_sync_batch_throughput,
@@ -172,14 +178,7 @@ class HydraLoggerBenchmark:
     @staticmethod
     def _count_written_lines(file_path: str) -> int:
         """Best-effort line counter for line-based output files."""
-        path = Path(file_path)
-        if not path.exists():
-            return 0
-        try:
-            with path.open("r", encoding="utf-8", errors="ignore") as handle:
-                return sum(1 for _ in handle)
-        except Exception:
-            return 0
+        return count_written_lines(file_path)
 
     @staticmethod
     def _messages_per_second(total_messages: int, duration: float) -> float:
@@ -1156,25 +1155,17 @@ class HydraLoggerBenchmark:
         # Wait for file system to sync (for accurate byte counting, not performance measurement)
         time.sleep(0.5)
 
-        # Get bytes written from handler stats (more reliable than file size)
-        bytes_written = 0
-        handler_bytes = 0
-        try:
-            for handler in getattr(logger, "_layer_handlers", {}).get("default", []):
-                if hasattr(handler, "get_stats"):
-                    stats = handler.get_stats()
-                    if "total_bytes_written" in stats:
-                        handler_bytes = max(handler_bytes, stats["total_bytes_written"])
-        except Exception:
-            pass
-
-        # Verify file size increased (use handler stats if available, otherwise file size)
-        final_size = 0
-        if os.path.exists(benchmark_file):
-            final_size = os.path.getsize(benchmark_file)
-            file_bytes = final_size - initial_size
-            # Use handler stats if available (more accurate), otherwise use file size
-            bytes_written = handler_bytes if handler_bytes > 0 else file_bytes
+        # Get bytes written from handler stats (more reliable than file size).
+        handler_bytes = extract_handler_bytes_written(logger)
+        byte_summary = resolve_bytes_written(
+            file_path=benchmark_file,
+            initial_size=initial_size,
+            handler_bytes=handler_bytes,
+        )
+        bytes_written = int(byte_summary["bytes_written"])
+        if bool(byte_summary["file_exists"]):
+            final_size = int(byte_summary["final_size"])
+            file_bytes = int(byte_summary["file_bytes"])
             print(f"   Initial file size: {initial_size:,} bytes")
             print(f"   Final file size: {final_size:,} bytes")
             print(f"   Handler bytes written: {handler_bytes:,} bytes")
@@ -1194,34 +1185,25 @@ class HydraLoggerBenchmark:
                 bytes_written = 0
 
         duration = end_time - start_time
-        messages_per_second = message_count / duration
-        bytes_per_second = bytes_written / duration if duration > 0 else 0
         observed_written_lines = self._count_written_lines(benchmark_file)
-        written_lines_observed = observed_written_lines > 0
+        result = build_file_io_result(
+            logger_type="File Handler Only",
+            total_messages=message_count,
+            duration=duration,
+            warmup_duration=warmup_duration,
+            flush_duration=flush_duration,
+            bytes_written=bytes_written,
+            written_lines=observed_written_lines,
+            file_path=benchmark_file,
+        )
+        messages_per_second = float(result["messages_per_second"])
+        bytes_per_second = float(result["bytes_per_second"])
 
         # Cleanup
         try:
             logger.close()
         except Exception:
             pass
-
-        result = {
-            "logger_type": "File Handler Only",
-            "messages_per_second": messages_per_second,
-            "bytes_per_second": bytes_per_second,
-            "bytes_written": bytes_written,
-            "duration": duration,
-            "measured_duration": duration,
-            "warmup_duration": warmup_duration,
-            "flush_duration": flush_duration,
-            "total_messages": message_count,
-            "expected_emitted": message_count,
-            "actual_emitted": message_count,
-            "written_lines": observed_written_lines,
-            "written_lines_observed": written_lines_observed,
-            "file_path": benchmark_file,
-            "status": "COMPLETED",
-        }
 
         print(f"   File Writing: {messages_per_second:,.0f} msg/s")
         print(f"   File I/O Speed: {bytes_per_second:,.0f} bytes/s")
@@ -1342,25 +1324,17 @@ class HydraLoggerBenchmark:
         # Wait for async file operations to complete (for accurate byte counting)
         await asyncio.sleep(0.5)
 
-        # Get bytes written from handler stats (more reliable than file size)
-        bytes_written = 0
-        handler_bytes = 0
-        try:
-            for handler in getattr(logger, "_layer_handlers", {}).get("default", []):
-                if hasattr(handler, "get_stats"):
-                    stats = handler.get_stats()
-                    if "total_bytes_written" in stats:
-                        handler_bytes = max(handler_bytes, stats["total_bytes_written"])
-        except Exception:
-            pass
-
-        # Verify file size increased (use handler stats if available, otherwise file size)
-        final_size = 0
-        if os.path.exists(benchmark_file):
-            final_size = os.path.getsize(benchmark_file)
-            file_bytes = final_size - initial_size
-            # Use handler stats if available (more accurate), otherwise use file size
-            bytes_written = handler_bytes if handler_bytes > 0 else file_bytes
+        # Get bytes written from handler stats (more reliable than file size).
+        handler_bytes = extract_handler_bytes_written(logger)
+        byte_summary = resolve_bytes_written(
+            file_path=benchmark_file,
+            initial_size=initial_size,
+            handler_bytes=handler_bytes,
+        )
+        bytes_written = int(byte_summary["bytes_written"])
+        if bool(byte_summary["file_exists"]):
+            final_size = int(byte_summary["final_size"])
+            file_bytes = int(byte_summary["file_bytes"])
             print(f"   Initial file size: {initial_size:,} bytes")
             print(f"   Final file size: {final_size:,} bytes")
             print(f"   Handler bytes written: {handler_bytes:,} bytes")
@@ -1382,28 +1356,19 @@ class HydraLoggerBenchmark:
                 bytes_written = 0
 
         duration = end_time - start_time
-        messages_per_second = message_count / duration
-        bytes_per_second = bytes_written / duration if duration > 0 else 0
         observed_written_lines = self._count_written_lines(benchmark_file)
-        written_lines_observed = observed_written_lines > 0
-
-        result = {
-            "logger_type": "Async File Handler Only",
-            "messages_per_second": messages_per_second,
-            "bytes_per_second": bytes_per_second,
-            "bytes_written": bytes_written,
-            "duration": duration,
-            "measured_duration": duration,
-            "warmup_duration": warmup_duration,
-            "flush_duration": flush_duration,
-            "total_messages": message_count,
-            "expected_emitted": message_count,
-            "actual_emitted": message_count,
-            "written_lines": observed_written_lines,
-            "written_lines_observed": written_lines_observed,
-            "file_path": benchmark_file,
-            "status": "COMPLETED",
-        }
+        result = build_file_io_result(
+            logger_type="Async File Handler Only",
+            total_messages=message_count,
+            duration=duration,
+            warmup_duration=warmup_duration,
+            flush_duration=flush_duration,
+            bytes_written=bytes_written,
+            written_lines=observed_written_lines,
+            file_path=benchmark_file,
+        )
+        messages_per_second = float(result["messages_per_second"])
+        bytes_per_second = float(result["bytes_per_second"])
 
         print(f"   Async File Writing: {messages_per_second:,.0f} msg/s")
         print(f"   Async File I/O Speed: {bytes_per_second:,.0f} bytes/s")

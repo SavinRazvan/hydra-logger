@@ -2,7 +2,9 @@
 
 Use script-first workflow commands to reduce prompt tokens and agent drift.
 
-This document does not replace `AGENTS.md`. Agent behavior and policy stay authoritative in `AGENTS.md`.
+This document is a human-facing command reference.
+Agent behavior and policy are authoritative in `AGENTS.md`.
+When instructions conflict, follow `AGENTS.md`.
 Canonical workflow skill guidance lives in `.agents/skills/PR_WORKFLOW.md`.
 
 ## Profile Defaults
@@ -28,6 +30,11 @@ Preflight environment health before any workflow phase:
 Preferred one-command implementation start (clean branch + draft PR):
 
 - `python scripts/pr/start_impl.py --branch "feature/<scope>" --title "<title>" --summary "<item>"`
+
+Bootstrap note:
+
+- If GitHub rejects draft PR creation because there are no unique commits yet on the new branch, `start_impl.py` now prints an explicit defer message and exits successfully.
+- In that case, continue implementation, create the first commit via workflow, then run `python scripts/pr/workflow.py --phase create --draft ...`.
 
 Start implementation branch from synced `main`:
 
