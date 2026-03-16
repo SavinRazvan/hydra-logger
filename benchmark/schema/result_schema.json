@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hydra-logger.dev/benchmark/result_schema.json",
+  "title": "Hydra Logger Benchmark Result Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata",
+    "results"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "timestamp",
+        "profile",
+        "test_config",
+        "python_version",
+        "platform",
+        "git_commit_sha",
+        "machine",
+        "cpu_count",
+        "disk_mode",
+        "payload_profile"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_config": {
+          "type": "object"
+        },
+        "python_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1
+        },
+        "git_commit_sha": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cpu_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "disk_mode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_profile": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "results": {
+      "type": "object",
+      "required": [
+        "sync_logger",
+        "async_logger",
+        "composite_logger",
+        "composite_async_logger",
+        "configurations",
+        "file_writing",
+        "async_file_writing",
+        "memory",
+        "concurrent",
+        "async_concurrent",
+        "parallel_workers",
+        "advanced_concurrent",
+        "ultra_high_performance"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "sync_logger": {
+          "type": "object"
+        },
+        "async_logger": {
+          "type": "object"
+        },
+        "composite_logger": {
+          "type": "object"
+        },
+        "composite_async_logger": {
+          "type": "object"
+        },
+        "configurations": {
+          "type": "object"
+        },
+        "file_writing": {
+          "type": "object"
+        },
+        "async_file_writing": {
+          "type": "object"
+        },
+        "memory": {
+          "type": "object"
+        },
+        "concurrent": {
+          "type": "object"
+        },
+        "async_concurrent": {
+          "type": "object"
+        },
+        "parallel_workers": {
+          "type": "object"
+        },
+        "advanced_concurrent": {
+          "type": "object"
+        },
+        "ultra_high_performance": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

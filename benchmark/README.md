@@ -5,6 +5,8 @@ This folder is the canonical workspace for Hydra Logger performance benchmarking
 ## Layout
 
 - `performance_benchmark.py`: benchmark entrypoint.
+- `schema/result_schema.json`: canonical benchmark result schema.
+- `baselines/`: accepted baseline snapshots used for drift comparison.
 - `results/`: benchmark snapshots and latest result symlink/copy targets.
 - `bench_logs/`: transient run logs and generated logger output during benchmark runs.
 
