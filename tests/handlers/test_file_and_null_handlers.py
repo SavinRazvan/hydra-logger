@@ -111,3 +111,28 @@ def test_async_file_handler_drops_messages_when_queue_is_full(tmp_path: Path) ->
     handler.emit(LogRecord(level=20, level_name="INFO", message="dropped"))
     assert handler.get_stats()["messages_dropped"] >= 1
     handler.close()
+
+
+def test_async_file_handler_direct_write_path_when_worker_start_is_noop(
+    monkeypatch, tmp_path: Path
+) -> None:
+    async def _run() -> None:
+        log_path = tmp_path / "direct-write.log"
+        handler = AsyncFileHandler(filename=str(log_path))
+        monkeypatch.setattr(handler, "_start_worker", lambda: None)
+        await handler.emit_async(
+            LogRecord(level=20, level_name="INFO", message="direct fallback")
+        )
+        await handler.aclose()
+        assert "direct fallback" in log_path.read_text(encoding="utf-8")
+
+    asyncio.run(_run())
+
+
+def test_async_file_handler_csv_header_check_for_non_empty_file(tmp_path: Path) -> None:
+    log_path = tmp_path / "events.csv"
+    log_path.write_text("already here\n", encoding="utf-8")
+    handler = AsyncFileHandler(filename=str(log_path))
+    handler.setFormatter(CsvFormatter(include_headers=True))
+    assert handler._check_and_write_csv_headers() is False
+    handler.close()

@@ -123,3 +123,26 @@ def test_composite_logger_health_marks_unhealthy_on_component_exception() -> Non
     health = logger.get_health_status()
     assert health["overall_health"] == "unhealthy"
     assert health["components"][0]["health"] == "error"
+
+
+def test_composite_async_logger_health_for_empty_components() -> None:
+    logger = CompositeAsyncLogger(components=[], use_direct_io=True)
+    health = logger.get_health_status()
+    assert health["component_count"] == 0
+    assert health["overall_health"] == "unknown"
+    logger.close()
+
+
+def test_composite_async_logger_flush_direct_io_clears_buffer_on_write_failure(
+    monkeypatch,
+) -> None:
+    logger = CompositeAsyncLogger(components=[], use_direct_io=True)
+    logger._direct_io_buffer = ["line one\n"]
+
+    def _raise_open(*_args, **_kwargs):
+        raise OSError("disk down")
+
+    monkeypatch.setattr("builtins.open", _raise_open)
+    logger._flush_direct_io()
+    assert logger._direct_io_buffer == []
+    logger.close()
