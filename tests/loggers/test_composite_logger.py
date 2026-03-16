@@ -10,6 +10,7 @@ Notes:
 
 import asyncio
 
+from hydra_logger.core.exceptions import HydraLoggerError
 from hydra_logger.loggers.composite_logger import CompositeAsyncLogger, CompositeLogger
 
 
@@ -46,6 +47,13 @@ class DummyAsyncComponent:
 
     async def aclose(self):
         self.closed = True
+
+
+class FailingHealthComponent:
+    name = "broken-health"
+
+    def get_health_status(self):
+        raise RuntimeError("health failure")
 
 
 def test_composite_logger_fan_out_and_failure_isolation() -> None:
@@ -88,3 +96,53 @@ def test_composite_async_logger_log_and_close() -> None:
     asyncio.run(logger.aclose())
     assert component.messages
     assert component.closed is True
+
+
+def test_composite_logger_rejects_log_when_not_initialized_or_closed() -> None:
+    logger = CompositeLogger()
+    logger._initialized = False
+    try:
+        logger.log("INFO", "x")
+    except HydraLoggerError as exc:
+        assert "not initialized" in str(exc)
+    else:
+        raise AssertionError("Expected log failure when logger is not initialized")
+
+    logger._initialized = True
+    logger._closed = True
+    try:
+        logger.log("INFO", "x")
+    except HydraLoggerError as exc:
+        assert "closed" in str(exc)
+    else:
+        raise AssertionError("Expected log failure when logger is closed")
+
+
+def test_composite_logger_health_marks_unhealthy_on_component_exception() -> None:
+    logger = CompositeLogger(components=[FailingHealthComponent()])
+    health = logger.get_health_status()
+    assert health["overall_health"] == "unhealthy"
+    assert health["components"][0]["health"] == "error"
+
+
+def test_composite_async_logger_health_for_empty_components() -> None:
+    logger = CompositeAsyncLogger(components=[], use_direct_io=True)
+    health = logger.get_health_status()
+    assert health["component_count"] == 0
+    assert health["overall_health"] == "unknown"
+    logger.close()
+
+
+def test_composite_async_logger_flush_direct_io_clears_buffer_on_write_failure(
+    monkeypatch,
+) -> None:
+    logger = CompositeAsyncLogger(components=[], use_direct_io=True)
+    logger._direct_io_buffer = ["line one\n"]
+
+    def _raise_open(*_args, **_kwargs):
+        raise OSError("disk down")
+
+    monkeypatch.setattr("builtins.open", _raise_open)
+    logger._flush_direct_io()
+    assert logger._direct_io_buffer == []
+    logger.close()

@@ -55,3 +55,21 @@ def test_safe_error_logger_stops_logging_after_session_limit(monkeypatch, tmp_pa
     assert len(lines) == 1
     assert "first" in lines[0]
     SafeErrorLogger._max_errors_per_session = 10000
+
+
+def test_safe_error_logger_memory_error_record_path(monkeypatch, tmp_path) -> None:
+    _reset_error_logger_state()
+    monkeypatch.chdir(tmp_path)
+
+    SafeErrorLogger.log_error(
+        MemoryError("oom"),
+        component="mem_guard",
+        context={"stage": "serialize"},
+    )
+    SafeErrorLogger.close()
+
+    error_file = Path(tmp_path) / "logs" / "error.jsonl"
+    payload = json.loads(error_file.read_text(encoding="utf-8").splitlines()[0])
+    assert payload["error_type"] == "MemoryError"
+    assert payload["component"] == "mem_guard"
+    assert "minimal traceback" in payload["traceback"]
