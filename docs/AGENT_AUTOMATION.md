@@ -41,6 +41,10 @@ Create/update PR:
 
 - `python scripts/pr/workflow.py --phase create --title "<title>" --summary "<item>" --summary "<item>"`
 
+Create structured commit with required attribution trailers:
+
+- `python scripts/pr/workflow.py --phase commit --commit-all --commit-subject "<type(scope): subject>" --commit-body "<why>" --commit-body "<risk/follow-up>"`
+
 Review phase:
 
 - `python scripts/pr/workflow.py --phase review`
@@ -72,11 +76,12 @@ Run entire flow in one command:
 1. `start` a feature branch from fresh `main`
 2. `create --draft` PR immediately from the new branch
 3. implement changes + add tests
-4. `create` update PR title/body as needed
-5. `review` — produces `.local/review.md`
-6. `prepare` — runs gates, produces `.local/prep.md`
-7. `merge` — checks artifacts, merges, produces `.local/merge.md`
-8. `finalize` — cleans up local and remote branches
+4. `commit` via workflow commit phase (enforces attribution trailers)
+5. `create` update PR title/body as needed
+6. `review` — produces `.local/review.md`
+7. `prepare` — runs gates, produces `.local/prep.md`
+8. `merge` — checks artifacts, merges, produces `.local/merge.md`
+9. `finalize` — cleans up local and remote branches
 
 ## Required Gates (enforced by `prepare`)
 
@@ -99,3 +104,4 @@ This avoids repeated manual checks (`git status`, `gh pr view`, `gh pr checks`, 
 - Direct wrappers (`scripts/pr/create.py`, `scripts/pr/prepare.py`, `scripts/pr/status.py`) also run env preflight by default.
 - Emergency-only override: `--skip-env-check`.
 - Use `--phase merge --auto-finalize` for one-shot merge + cleanup.
+- `--phase commit` blocks commits on `main` unless `--allow-main-commit` is explicitly set.

@@ -90,6 +90,13 @@ def _dirty_worktree() -> list[str]:
     return [line for line in output.splitlines() if line.strip()]
 
 
+def _staged_paths() -> list[str]:
+    code, output = _run(["git", "diff", "--cached", "--name-only"])
+    if code != 0 or not output:
+        return []
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+
 def _require_feature_branch(context: str) -> str:
     branch = _current_branch()
     if branch in {"", "unknown", "main"}:
@@ -312,6 +319,48 @@ def _phase_finalize(args: argparse.Namespace) -> None:
     _run_or_fail(cmd)
 
 
+def _phase_commit(args: argparse.Namespace, profile: dict[str, Any]) -> None:
+    branch = _current_branch()
+    if branch in {"", "unknown", "main"} and not args.allow_main_commit:
+        raise RuntimeError(
+            "commit phase requires a non-main feature branch (use --allow-main-commit to override)"
+        )
+
+    actor = _require(_arg_or_profile(args.actor, profile, "actor"), "--actor")
+    github_user = _require(
+        _arg_or_profile(args.github_user, profile, "github_user"), "--github-user"
+    )
+    agents = _require(_arg_or_profile(args.agents, profile, "agents"), "--agents")
+    subject = _require(args.commit_subject or "", "--commit-subject")
+
+    if args.commit_all:
+        _run_or_fail(["git", "add", "-A"])
+    for path in args.commit_path or []:
+        _run_or_fail(["git", "add", path])
+
+    staged = _staged_paths()
+    if not staged:
+        raise RuntimeError(
+            "no staged changes for commit phase; stage files first or use --commit-all/--commit-path"
+        )
+
+    body_lines = [line.strip() for line in (args.commit_body or []) if line.strip()]
+    trailers = [
+        f"Author: {actor}",
+        f"GitHub-User: {github_user}",
+        f"Agent/s: {agents}",
+        f"Made-with: {args.made_with}",
+    ]
+
+    message_lines = [subject]
+    if body_lines:
+        message_lines.extend(["", *body_lines])
+    message_lines.extend(["", *trailers])
+    message = "\n".join(message_lines)
+
+    _run_or_fail(["git", "commit", "-m", message])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run PR workflow phases with deterministic script wrappers."
@@ -319,7 +368,16 @@ def main() -> int:
     parser.add_argument(
         "--phase",
         required=True,
-        choices=["start", "create", "review", "prepare", "merge", "finalize", "full"],
+        choices=[
+            "start",
+            "create",
+            "review",
+            "prepare",
+            "merge",
+            "finalize",
+            "commit",
+            "full",
+        ],
         help="Workflow phase to run.",
     )
     parser.add_argument(
@@ -344,6 +402,40 @@ def main() -> int:
     parser.add_argument("--actor", default=None, help="Author name.")
     parser.add_argument("--github-user", default=None, help="GitHub handle with @.")
     parser.add_argument("--agents", default=None, help="Agent pipeline text.")
+    parser.add_argument(
+        "--commit-subject",
+        default=None,
+        help="Commit subject line (commit phase only).",
+    )
+    parser.add_argument(
+        "--commit-body",
+        action="append",
+        default=[],
+        help="Commit body paragraph line (repeatable; commit phase only).",
+    )
+    parser.add_argument(
+        "--made-with",
+        default="Cursor",
+        help='Tool attribution label for commit trailer (default: "Cursor").',
+    )
+    parser.add_argument(
+        "--commit-all",
+        action="store_true",
+        default=False,
+        help="Stage all changes before commit (commit phase only).",
+    )
+    parser.add_argument(
+        "--commit-path",
+        action="append",
+        default=[],
+        help="Path to stage before commit (repeatable; commit phase only).",
+    )
+    parser.add_argument(
+        "--allow-main-commit",
+        action="store_true",
+        default=False,
+        help="Allow commit phase on main branch (emergency/manual override).",
+    )
     parser.add_argument("--draft", action="store_true", default=False)
     parser.add_argument("--skip-gates", action="store_true", default=False)
     parser.add_argument(
@@ -376,7 +468,11 @@ def main() -> int:
             _run_env_preflight(skip_env_check=args.skip_env_check)
 
         profile = _load_profile(args.profile)
-        pr_number = _resolve_pr_number(args.pr) if args.phase not in {"start", "create"} else ""
+        pr_number = (
+            _resolve_pr_number(args.pr)
+            if args.phase not in {"start", "create", "commit"}
+            else ""
+        )
 
         if args.phase == "start":
             _phase_start(args)
@@ -390,6 +486,8 @@ def main() -> int:
             _phase_merge(pr_number, args, profile)
         elif args.phase == "finalize":
             _phase_finalize(args)
+        elif args.phase == "commit":
+            _phase_commit(args, profile)
         elif args.phase == "full":
             _require_feature_branch("full phase")
             _phase_create(args, profile)
