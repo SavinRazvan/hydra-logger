@@ -167,7 +167,7 @@ python -m pytest -q
 python3 examples/run_all_examples.py
 
 # Performance benchmark
-python3 performance_benchmark.py
+python3 benchmark/performance_benchmark.py
 ```
 
 Selected examples:

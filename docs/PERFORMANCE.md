@@ -25,13 +25,13 @@ This document provides detailed performance benchmarks, optimization strategies,
 - Machine profile: `Linux 6.6.87.2-microsoft-standard-WSL2 x86_64 GNU/Linux`
 - Python version: `3.11.15` (from artifact metadata)
 - Benchmark commit SHA: `dafd295` (current repo HEAD; include exact run SHA per benchmark run)
-- Artifact path: `benchmark_results/benchmark_latest.json`
+- Artifact path: `benchmark/results/benchmark_latest.json`
 
 Provenance capture requirement for future benchmark runs:
 
 ```bash
 # 1) Run benchmark
-python3 performance_benchmark.py
+python3 benchmark/performance_benchmark.py
 
 # 2) Capture exact run SHA and machine profile next to benchmark artifacts
 git rev-parse --short HEAD
@@ -80,8 +80,8 @@ Larger buffers improve throughput but increase memory usage and latency. The def
 
 ## Benchmark Results Storage
 
-- Results automatically saved to `benchmark_results/benchmark_YYYY-MM-DD_HH-MM-SS.json`
-- Latest results also saved to `benchmark_results/benchmark_latest.json`
+- Results automatically saved to `benchmark/results/benchmark_YYYY-MM-DD_HH-MM-SS.json`
+- Latest results also saved to `benchmark/results/benchmark_latest.json`
 - Includes metadata: timestamp, test config, Python version, platform
 - Full performance metrics for all logger types and test scenarios
 
@@ -91,7 +91,7 @@ Larger buffers improve throughput but increase memory usage and latency. The def
 
 ```bash
 # Run the comprehensive performance benchmark suite
-python3 performance_benchmark.py
+python3 benchmark/performance_benchmark.py
 
 # The benchmark tests:
 # - SyncLogger, AsyncLogger, CompositeLogger performance

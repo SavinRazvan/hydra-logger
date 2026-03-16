@@ -21,6 +21,7 @@ import asyncio
 import gc
 import json
 import statistics
+import subprocess
 import sys
 import time
 from datetime import datetime
@@ -28,7 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 # Add the project root to Python path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import os
 
@@ -51,12 +52,15 @@ class HydraLoggerBenchmark:
     and configuration performance comparison.
     """
 
-    def __init__(
-        self, save_results: bool = True, results_dir: str = "benchmark_results"
-    ):
+    def __init__(self, save_results: bool = True, results_dir: str | None = None):
         self.results = {}
         self.save_results = save_results
-        self.results_dir = Path(results_dir)
+        benchmark_root = Path(__file__).resolve().parent
+        self.results_dir = (
+            Path(results_dir)
+            if results_dir is not None
+            else benchmark_root / "results"
+        )
         # Create results directory if saving
         if self.save_results:
             self.results_dir.mkdir(exist_ok=True)
@@ -67,9 +71,9 @@ class HydraLoggerBenchmark:
         # Track logger names for cache cleanup
         self._logger_names = []
 
-        # Persist benchmark logs under benchmark_results/benchmark_logs
+        # Persist benchmark logs under benchmark/bench_logs
         # so benchmark output never spills into the project root.
-        self._benchmark_logs_dir = self.results_dir / "benchmark_logs"
+        self._benchmark_logs_dir = benchmark_root / "bench_logs"
         self._benchmark_logs_dir.mkdir(parents=True, exist_ok=True)
 
         # Clear any existing loggers from global cache to ensure clean state
@@ -2229,7 +2233,7 @@ class HydraLoggerBenchmark:
     def save_results_to_file(self):
         """Save benchmark results to JSON file for later analysis.
 
-        Creates timestamped files: benchmark_results/benchmark_YYYY-MM-DD_HH-MM-SS.json
+        Creates timestamped files: benchmark/results/benchmark_YYYY-MM-DD_HH-MM-SS.json
         """
         try:
             # Create timestamped filename
@@ -2259,6 +2263,7 @@ class HydraLoggerBenchmark:
                     "test_config": self.test_config,
                     "python_version": sys.version.split()[0],
                     "platform": sys.platform,
+                    "git_commit_sha": self._git_commit_sha(),
                 },
                 "results": json_results,
             }
@@ -2282,6 +2287,20 @@ class HydraLoggerBenchmark:
         except Exception as e:
             print(f"\nWarning: Could not save results to file: {e}")
             print(f"   Results are still available in console output above")
+
+    def _git_commit_sha(self) -> str:
+        """Return short git SHA for benchmark provenance."""
+        try:
+            return (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"],
+                    cwd=Path(__file__).resolve().parent.parent,
+                    text=True,
+                )
+                .strip()
+            )
+        except Exception:
+            return "unknown"
 
     async def run_benchmark(self):
         """Run the complete benchmark suite."""

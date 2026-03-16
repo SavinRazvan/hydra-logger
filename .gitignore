@@ -214,6 +214,7 @@ logs/
 workflow_logs/
 demo_logs/
 _tests_logs/
+benchmark/bench_logs/
 *.log
 
 # Test artifacts
