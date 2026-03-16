@@ -25,6 +25,9 @@ def test_load_profile_known_profiles() -> None:
     assert ci["name"] == "ci_smoke"
     assert pr["name"] == "pr_gate"
     assert nightly["name"] == "nightly_truth"
+    assert ci["drift_policy"]["enabled"] is False
+    assert pr["drift_policy"]["enabled"] is True
+    assert nightly["drift_policy"]["enabled"] is True
 
 
 def test_load_profile_unknown_raises() -> None:
@@ -42,3 +45,4 @@ def test_benchmark_init_applies_profile_overrides(tmp_path) -> None:
     assert bench.test_config["typical_single_messages"] == 10000
     assert bench.test_config["suite_matrix_workers_tasks"] == [1, 2, 4, 8, 16, 32]
     assert bench.test_config["suite_matrix_messages_per_worker"] == 1000
+    assert bench.drift_policy.get("enabled") is False

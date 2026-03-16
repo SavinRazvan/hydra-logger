@@ -38,6 +38,10 @@ This document defines the canonical benchmark contract for `hydra-logger`.
 ## Validation Contract
 
 - Every benchmark run must be invariant-checked before accepted.
+- Profile drift policy (when enabled) must compare current throughput against
+  same-profile history using median/p95 thresholds.
+- If baseline history is below the configured minimum sample count, drift checks
+  are reported as `skipped_insufficient_baseline` and do not hard-fail.
 - Every suspicious regression must trigger:
   - rerun
   - targeted code-path review

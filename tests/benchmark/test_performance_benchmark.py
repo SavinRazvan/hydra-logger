@@ -31,6 +31,7 @@ def test_init_sets_paths_and_test_config(tmp_path, monkeypatch) -> None:
     assert bench._benchmark_logs_dir.exists()
     assert bench.test_config["typical_single_messages"] == 100000
     assert bench.profile_name is None
+    assert bench.drift_policy == {}
     assert removed == ["l1", "l2"]
 
 

@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import benchmark.performance_benchmark as perf_mod
 from benchmark.guards import detect_new_root_log_leaks, validate_result_paths
 from benchmark.metrics import validate_result_invariants
 from benchmark.performance_benchmark import HydraLoggerBenchmark
@@ -192,3 +193,26 @@ def test_run_benchmark_returns_error_when_reliability_guard_fails(
 
     exit_code = asyncio.run(bench.run_benchmark())
     assert exit_code == 1
+
+
+def test_enforce_reliability_guards_fails_on_drift_violations(tmp_path, monkeypatch) -> None:
+    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench.results = _minimal_valid_results()
+
+    monkeypatch.setattr(perf_mod, "validate_result_invariants", lambda _results: [])
+    monkeypatch.setattr(
+        perf_mod,
+        "evaluate_drift_policy",
+        lambda **_kwargs: (["sync_logger.individual_messages_per_second drift"], {"status": "failed"}),
+    )
+    monkeypatch.setattr(perf_mod, "validate_result_paths", lambda **_kwargs: [])
+    monkeypatch.setattr(perf_mod, "detect_new_root_log_leaks", lambda **_kwargs: [])
+
+    try:
+        bench._enforce_reliability_guards()
+    except RuntimeError as exc:
+        assert "drift" in str(exc)
+    else:
+        raise AssertionError("expected drift violation to raise RuntimeError")
+
+    assert bench.results["drift_policy"]["status"] == "failed"

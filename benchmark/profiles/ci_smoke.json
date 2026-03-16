@@ -1,6 +1,9 @@
 {
   "name": "ci_smoke",
   "description": "Fast CI smoke benchmark profile.",
+  "drift_policy": {
+    "enabled": false
+  },
   "test_config_overrides": {
     "typical_single_messages": 10000,
     "concurrent_workers": 8,

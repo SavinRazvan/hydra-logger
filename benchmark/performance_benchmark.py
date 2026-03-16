@@ -51,6 +51,7 @@ from benchmark.guards import (
     rebase_file_destinations_to_benchmark_logs,
     validate_result_paths,
 )
+from benchmark.drift import evaluate_drift_policy
 from benchmark.metrics import (
     measure_async_batch_throughput,
     measure_sync_batch_throughput,
@@ -116,6 +117,7 @@ class HydraLoggerBenchmark:
         self.save_results = save_results
         self.profile_name = profile
         self.profile = load_profile(profile)
+        self.drift_policy = self.profile.get("drift_policy", {})
         benchmark_root = Path(__file__).resolve().parent
         self._project_root = benchmark_root.parent
         self.results_dir = (
@@ -2626,6 +2628,14 @@ class HydraLoggerBenchmark:
         """Hard-fail benchmark on formula or path-confinement violations."""
         violations: list[str] = []
         violations.extend(validate_result_invariants(self.results))
+        drift_violations, drift_report = evaluate_drift_policy(
+            current_results=self.results,
+            results_dir=self.results_dir,
+            profile_name=self.profile_name,
+            policy_overrides=self.drift_policy,
+        )
+        self.results["drift_policy"] = drift_report
+        violations.extend(drift_violations)
         violations.extend(
             validate_result_paths(
                 results=self.results,
