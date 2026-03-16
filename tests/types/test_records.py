@@ -110,3 +110,13 @@ def test_log_record_batch_lifecycle() -> None:
     batch.clear()
     assert len(batch) == 0
     assert not batch.is_full()
+
+
+def test_auto_context_creation_logs_when_inspection_fails(monkeypatch, caplog) -> None:
+    import inspect
+
+    monkeypatch.setattr(inspect, "currentframe", lambda: (_ for _ in ()).throw(Exception()))
+    with caplog.at_level("ERROR", logger="hydra_logger.types.records"):
+        record = LogRecordFactory.create_with_auto_context("INFO", "hello")
+    assert record.message == "hello"
+    assert "Auto-context extraction failed; proceeding without caller info" in caplog.text

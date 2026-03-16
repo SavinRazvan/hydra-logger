@@ -12,9 +12,13 @@ Notes:
 """
 
 import asyncio
+import logging
 from typing import Any, Iterable
 
 from ...types.records import LogRecord
+
+
+_logger = logging.getLogger(__name__)
 
 
 class HandlerDispatcher:
@@ -29,7 +33,10 @@ class HandlerDispatcher:
                 elif hasattr(handler, "emit"):
                     handler.emit(record)
             except Exception:
-                pass
+                _logger.exception(
+                    "Sync handler dispatch failed for handler type=%s",
+                    type(handler).__name__,
+                )
 
     async def dispatch_async(self, record: LogRecord, handlers: Iterable[Any]) -> None:
         """Dispatch record through async-aware handler path."""
@@ -48,4 +55,7 @@ class HandlerDispatcher:
                     else:
                         emit(record)
             except Exception:
-                pass
+                _logger.exception(
+                    "Async handler dispatch failed for handler type=%s",
+                    type(handler).__name__,
+                )

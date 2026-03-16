@@ -38,6 +38,15 @@ def test_text_formatter_case_padding_wrap_and_template() -> None:
     assert TextFormatter.format_template("hi {name}", name="bob") == "hi bob"
 
 
+def test_text_formatter_logs_missing_template_key(caplog) -> None:
+    with caplog.at_level("ERROR", logger="hydra_logger.utils.text_utility"):
+        try:
+            TextFormatter.format_template("hi {name}", missing="x")
+        except ValueError:
+            pass
+    assert "Template formatting failed due to missing key" in caplog.text
+
+
 def test_text_validator_rules_and_custom_validator() -> None:
     validator = TextValidator()
     assert validator.validate("user@example.com", "email")

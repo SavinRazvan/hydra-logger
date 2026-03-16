@@ -63,3 +63,10 @@ def test_time_unit_conversion_and_short_names() -> None:
 def test_enum_name_lookup_is_case_sensitive() -> None:
     assert get_enum_by_name(HandlerType, "FILE") == HandlerType.FILE
     assert get_enum_by_name(HandlerType, "file") is None
+
+
+def test_enum_name_lookup_logs_invalid_name(caplog) -> None:
+    with caplog.at_level("DEBUG", logger="hydra_logger.types.enums"):
+        result = get_enum_by_name(HandlerType, "missing_name")
+    assert result is None
+    assert "Enum name lookup failed for HandlerType.missing_name" in caplog.text

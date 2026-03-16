@@ -10,9 +10,13 @@ Notes:
  - Shares layer fallback and level-threshold checks across runtimes.
 """
 
+import logging
 from typing import Any, Dict, List
 
 from ...types.levels import LogLevelManager
+
+
+_logger = logging.getLogger(__name__)
 
 
 class LayerRouter:
@@ -32,31 +36,43 @@ class LayerRouter:
 
     def handlers_for_layer(self, layer_name: str) -> List[Any]:
         """Return handlers for layer using default fallback."""
-        if layer_name in self._handler_cache:
-            return self._handler_cache[layer_name]
+        try:
+            if layer_name in self._handler_cache:
+                return self._handler_cache[layer_name]
 
-        if layer_name in self._layer_handlers:
-            handlers = self._layer_handlers[layer_name]
-        elif "default" in self._layer_handlers:
-            handlers = self._layer_handlers["default"]
-        else:
-            handlers = []
+            if layer_name in self._layer_handlers:
+                handlers = self._layer_handlers[layer_name]
+            elif "default" in self._layer_handlers:
+                handlers = self._layer_handlers["default"]
+            else:
+                handlers = []
 
-        self._handler_cache[layer_name] = handlers
-        return handlers
+            self._handler_cache[layer_name] = handlers
+            return handlers
+        except Exception:
+            _logger.exception("Layer handler resolution failed for layer=%s", layer_name)
+            return []
 
     def layer_threshold(self, layer_name: str, default_level: str) -> int:
         """Resolve numeric threshold for layer with cache fallback."""
-        if layer_name in self._layer_cache:
-            return self._layer_cache[layer_name]
+        try:
+            if layer_name in self._layer_cache:
+                return self._layer_cache[layer_name]
 
-        if layer_name in self._layers:
-            threshold = LogLevelManager.get_level(self._layers[layer_name].level)
-        else:
-            threshold = LogLevelManager.get_level(default_level)
+            if layer_name in self._layers:
+                threshold = LogLevelManager.get_level(self._layers[layer_name].level)
+            else:
+                threshold = LogLevelManager.get_level(default_level)
 
-        self._layer_cache[layer_name] = threshold
-        return threshold
+            self._layer_cache[layer_name] = threshold
+            return threshold
+        except Exception:
+            _logger.exception(
+                "Layer threshold resolution failed for layer=%s default_level=%s",
+                layer_name,
+                default_level,
+            )
+            return LogLevelManager.get_level(default_level)
 
     def is_level_enabled(
         self, layer_name: str, level: int, default_level: str = "INFO"

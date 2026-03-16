@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from hydra_logger.config.models import LogDestination, LogLayer, LoggingConfig
+from hydra_logger.config.validation import normalize_level
 
 
 def test_logging_config_auto_creates_default_layer_when_missing() -> None:
@@ -40,3 +41,10 @@ def test_logging_config_resolve_log_path_applies_format_extension(tmp_path: Path
 def test_log_destination_requires_path_for_file_destinations() -> None:
     with pytest.raises(ValueError, match="Path is required for file destinations"):
         LogDestination(type="file")
+
+
+def test_normalize_level_logs_invalid_values(caplog) -> None:
+    with caplog.at_level("ERROR", logger="hydra_logger.config.validation"):
+        with pytest.raises(ValueError, match="Invalid level"):
+            normalize_level("not-a-level")
+    assert "Invalid log level received" in caplog.text

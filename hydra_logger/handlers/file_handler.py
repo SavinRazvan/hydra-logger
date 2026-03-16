@@ -21,6 +21,7 @@ Notes:
 
 import asyncio
 import atexit
+import logging
 import os
 import sys
 import time
@@ -31,6 +32,8 @@ from ..types.levels import LogLevel
 from ..types.records import LogRecord
 from ..utils.time_utility import TimeUtility
 from .base_handler import BaseHandler
+
+_logger = logging.getLogger(__name__)
 
 class SyncFileHandler(BaseHandler):
     """Synchronous file handler with buffered writes and periodic flushing."""
@@ -93,10 +96,7 @@ class SyncFileHandler(BaseHandler):
         try:
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         except Exception as e:
-            print(
-                f"Warning: Could not create directory for {filename}: {e}",
-                file=sys.stderr,
-            )
+            _logger.warning("Could not create directory for %s: %s", filename, e)
 
         # Register for automatic cleanup
         atexit.register(self._auto_cleanup)
@@ -106,7 +106,7 @@ class SyncFileHandler(BaseHandler):
             # Text mode - with encoding (formatter will be set later)
             self._file_handle = open(filename, mode, encoding=encoding, buffering=1)
         except Exception as e:
-            print(f"Error: Could not open file {filename}: {e}", file=sys.stderr)
+            _logger.exception("Could not open log file %s: %s", filename, e)
             self._file_handle = None
 
     def _is_binary_formatter(self) -> bool:
@@ -134,9 +134,10 @@ class SyncFileHandler(BaseHandler):
                     self._filename, self._mode + "b", buffering=0
                 )  # No buffering for binary mode
             except Exception as e:
-                print(
-                    f"Error: Could not reopen file {self._filename} in binary mode: {e}",
-                    file=sys.stderr,
+                _logger.exception(
+                    "Could not reopen %s in binary mode: %s",
+                    self._filename,
+                    e,
                 )
                 self._file_handle = None
 
@@ -149,9 +150,9 @@ class SyncFileHandler(BaseHandler):
         """
         # Check if file handle is valid
         if not self._file_handle:
-            print(
-                f"Error: Cannot emit to closed or invalid file handle: {self._filename}",
-                file=sys.stderr,
+            _logger.error(
+                "Cannot emit to closed or invalid file handle: %s",
+                self._filename,
             )
             return
 
@@ -200,7 +201,7 @@ class SyncFileHandler(BaseHandler):
                 self._flush_buffer()
 
         except Exception as e:
-            print(f"Sync file emit error: {e}", file=sys.stderr)
+            _logger.exception("Sync file emit error for %s: %s", self._filename, e)
 
     def _flush_buffer(self) -> None:
         """Flush buffered messages to file."""
@@ -233,9 +234,12 @@ class SyncFileHandler(BaseHandler):
 
         except (OSError, ValueError):
             # File is closed or invalid, silently ignore
-            pass
+            _logger.debug(
+                "File buffer flush skipped due to closed or invalid file handle: %s",
+                self._filename,
+            )
         except Exception as e:
-            print(f"File buffer flush error: {e}", file=sys.stderr)
+            _logger.exception("File buffer flush error for %s: %s", self._filename, e)
 
     def flush(self) -> None:
         """Public flush method to force immediate writing."""
@@ -882,7 +886,7 @@ class AsyncFileHandler(BaseHandler):
                         try:
                             await asyncio.gather(task, return_exceptions=True)
                         except Exception:
-                            pass
+                            _logger.exception("Async file worker cancellation gather failed")
                 except Exception:
                     # If anything fails, cancel and await all tasks
                     for task in self._worker_tasks:
@@ -891,7 +895,9 @@ class AsyncFileHandler(BaseHandler):
                             try:
                                 await asyncio.gather(task, return_exceptions=True)
                             except Exception:
-                                pass
+                                _logger.exception(
+                                    "Async file fallback worker cancellation gather failed"
+                                )
 
             # Final flush of any remaining messages
             if self._memory_buffer or self._disk_buffer:
@@ -905,7 +911,7 @@ class AsyncFileHandler(BaseHandler):
                 self._thread_pool.shutdown(wait=True)
 
         except Exception as e:
-            print(f"Error during async close: {e}", file=sys.stderr)
+            _logger.exception("Error during async file close: %s", e)
 
     def _should_flush_batch(self) -> bool:
         """Determine if current batch should be flushed."""
@@ -1185,7 +1191,7 @@ class AsyncFileHandler(BaseHandler):
                         f.write(combined_remaining)
                         f.flush()
                 except Exception as e:
-                    print(f"Final flush error: {e}")
+                    _logger.exception("Final async file flush error: %s", e)
 
             # Signal shutdown
             self._shutdown_event.set()
@@ -1208,7 +1214,9 @@ class AsyncFileHandler(BaseHandler):
                         try:
                             await asyncio.gather(task, return_exceptions=True)
                         except Exception:
-                            pass
+                            _logger.exception(
+                                "Async file aclose pending-task gather failed"
+                            )
                 except Exception:
                     # If anything fails, cancel and await all tasks
                     for task in self._worker_tasks:
@@ -1217,10 +1225,12 @@ class AsyncFileHandler(BaseHandler):
                             try:
                                 await asyncio.gather(task, return_exceptions=True)
                             except Exception:
-                                pass
+                                _logger.exception(
+                                    "Async file aclose fallback gather failed"
+                                )
 
         except Exception as e:
-            print(f"Async file close error: {e}", file=sys.stderr)
+            _logger.exception("Async file close error: %s", e)
         finally:
             # Ensure we're marked as not running
             self._running = False
@@ -1234,6 +1244,7 @@ class AsyncFileHandler(BaseHandler):
         except Exception:
             # Just mark as closed
             self._shutdown_event.set()
+            _logger.exception("Sync close fallback path triggered for async file handler")
 
     def _auto_cleanup(self):
         """Automatic cleanup called by atexit."""
@@ -1254,12 +1265,12 @@ class AsyncFileHandler(BaseHandler):
                         if not task.done():
                             task.cancel()
                     # Give the tasks a moment to cancel gracefully
-                    TimeUtility.sleep(0.05)
+                    time.sleep(0.05)
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
-                pass
+                _logger.debug("Skipping auto cleanup task cancellation due to closed loop")
         except Exception:
-            pass  # Ignore errors during cleanup
+            _logger.exception("Async file auto cleanup failed")
 
     def __del__(self):
         """Destructor - backup cleanup if atexit fails."""
@@ -1280,12 +1291,12 @@ class AsyncFileHandler(BaseHandler):
                         if not task.done():
                             task.cancel()
                     # Give the tasks a moment to cancel gracefully
-                    TimeUtility.sleep(0.05)
+                    time.sleep(0.05)
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
-                pass
+                _logger.debug("Skipping destructor task cancellation due to closed loop")
         except Exception:
-            pass  # Ignore errors during cleanup
+            _logger.exception("Async file destructor cleanup failed")
 
     def _pytest_cleanup(self):
         """Special cleanup for pytest environment."""
@@ -1300,10 +1311,10 @@ class AsyncFileHandler(BaseHandler):
                         task.cancel()
 
             # Give task a moment to cancel
-            TimeUtility.sleep(0.01)
+            time.sleep(0.01)
 
         except Exception:
-            pass  # Ignore errors during cleanup
+            _logger.exception("Async file pytest cleanup failed")
 
     def get_stats(self) -> Dict[str, Any]:
         """Get stats from the underlying handler."""

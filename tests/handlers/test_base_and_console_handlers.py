@@ -40,6 +40,19 @@ def test_base_handler_filters_by_level() -> None:
     assert handler.records[0].message == "high"
 
 
+def test_base_handler_logs_formatter_name_resolution_failure(caplog) -> None:
+    class BrokenFormatter:
+        def get_format_name(self):
+            raise RuntimeError("bad formatter")
+
+    handler = DummyHandler()
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.base_handler"):
+        handler.setFormatter(BrokenFormatter())
+
+    assert handler.get_config()["formatter"] == "unknown"
+    assert "Failed to resolve formatter name for handler=dummy" in caplog.text
+
+
 def test_sync_console_handler_flushes_buffer_to_stream() -> None:
     stream = io.StringIO()
     handler = SyncConsoleHandler(stream=stream, buffer_size=1, flush_interval=60)
@@ -56,6 +69,19 @@ def test_sync_console_handler_auto_cleanup_flushes_pending_buffer() -> None:
     handler.emit(LogRecord(level=20, level_name="INFO", message="pending"))
     handler._auto_cleanup()
     assert "pending" in stream.getvalue()
+
+
+def test_sync_console_handler_auto_cleanup_handles_closed_stream(caplog) -> None:
+    stream = io.StringIO()
+    handler = SyncConsoleHandler(stream=stream, buffer_size=100, flush_interval=60)
+    handler.emit(LogRecord(level=20, level_name="INFO", message="pending"))
+    stream.close()
+
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.console_handler"):
+        handler._auto_cleanup()
+
+    assert handler.get_stats()["buffer_size"] == 0
+    assert "Sync console auto cleanup failed" not in caplog.text
 
 
 def test_async_console_handler_emit_paths_and_factories() -> None:
@@ -89,3 +115,19 @@ def test_async_console_handler_drops_messages_on_write_error(monkeypatch) -> Non
         await handler.aclose()
 
     asyncio.run(_run())
+
+
+def test_async_console_handler_logs_stream_write_failures(caplog) -> None:
+    class BrokenStream:
+        def write(self, _message: str) -> None:
+            raise OSError("stream boom")
+
+        def flush(self) -> None:
+            return None
+
+    handler = AsyncConsoleHandler(stream=BrokenStream(), buffer_size=1, flush_interval=60)
+
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.console_handler"):
+        handler._write_to_stream("x")
+
+    assert "Console stream write failed" in caplog.text

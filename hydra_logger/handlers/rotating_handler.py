@@ -20,9 +20,9 @@ Notes:
 # pyright: reportCallIssue=false, reportArgumentType=false
 
 import gzip
+import logging
 import os
 import shutil
-import sys
 import threading
 import time
 from collections import deque
@@ -37,6 +37,9 @@ from hydra_logger.types.levels import LogLevel
 from hydra_logger.types.records import LogRecord
 from hydra_logger.utils.file_utility import FileUtility
 from hydra_logger.utils.time_utility import TimeUtility
+
+
+_logger = logging.getLogger(__name__)
 
 
 class RotationStrategy(Enum):
@@ -138,7 +141,7 @@ class RotatingFileHandler(BaseHandler):
 
             self._current_file = open(self._filename, "a", encoding="utf-8")
         except Exception as e:
-            print(f"Error: Failed to initialize log file: {e}", file=sys.stderr)
+            _logger.exception("Failed to initialize rotating log file: %s", e)
             raise
 
     def _should_rotate(self) -> bool:
@@ -182,12 +185,12 @@ class RotatingFileHandler(BaseHandler):
                 self._last_rotation = time.time()
 
             except Exception as e:
-                print(f"Error: File rotation failed: {e}", file=sys.stderr)
+                _logger.exception("Rotating file operation failed: %s", e)
                 # Try to reopen file
                 try:
                     self._initialize_file()
                 except Exception:
-                    pass
+                    _logger.exception("Rotating file recovery reopen failed")
 
     def _atomic_rotate(self, backup_path: str) -> None:
         """Perform atomic file rotation."""
@@ -233,7 +236,7 @@ class RotatingFileHandler(BaseHandler):
                 # Remove original file
                 FileUtility.delete_file(file_path)
         except Exception as e:
-            print(f"Warning: Failed to compress {file_path}: {e}", file=sys.stderr)
+            _logger.warning("Failed to compress rotated file %s: %s", file_path, e)
 
     def _cleanup_old_files(self) -> None:
         """Clean up old backup files."""
@@ -269,13 +272,10 @@ class RotatingFileHandler(BaseHandler):
                 try:
                     FileUtility.delete_file(old_file)
                 except Exception as e:
-                    print(
-                        f"Warning: Failed to delete old file {old_file}: {e}",
-                        file=sys.stderr,
-                    )
+                    _logger.warning("Failed to delete old rotated file %s: %s", old_file, e)
 
         except Exception as e:
-            print(f"Warning: Cleanup failed: {e}", file=sys.stderr)
+            _logger.warning("Rotated file cleanup failed: %s", e)
 
     def emit(self, record: LogRecord) -> None:
         """
@@ -345,9 +345,9 @@ class RotatingFileHandler(BaseHandler):
 
         except (OSError, ValueError):
             # File is closed or invalid, silently ignore
-            pass
+            _logger.debug("Rotating file flush skipped due to closed or invalid handle")
         except Exception as e:
-            print(f"Error: Rotating file buffer flush error: {e}", file=sys.stderr)
+            _logger.exception("Rotating file buffer flush error: %s", e)
 
     def force_flush(self) -> None:
         """Force flush any remaining buffered messages."""
@@ -386,7 +386,7 @@ class RotatingFileHandler(BaseHandler):
                 self._current_file.write(message)
                 self._current_file.flush()
             except Exception as e:
-                print(f"Error: Failed to write to log file: {e}", file=sys.stderr)
+                _logger.exception("Failed to write message to rotating file: %s", e)
 
     def close(self) -> None:
         """Close the handler."""
@@ -432,11 +432,10 @@ class RotatingFileHandler(BaseHandler):
         if formatter and hasattr(formatter, "validate_filename"):
             corrected_filename = formatter.validate_filename(self._filename)
             if corrected_filename != self._filename:
-                print(
-                    "Info: RotatingFileHandler: Corrected filename from "
-                    f"'{self._filename}' to '{corrected_filename}' "
-                    "to match formatter requirements",
-                    file=sys.stdout,
+                _logger.info(
+                    "Corrected rotating filename from '%s' to '%s' for formatter constraints",
+                    self._filename,
+                    corrected_filename,
                 )
                 self._filename = corrected_filename
 
@@ -596,6 +595,7 @@ class SizeRotatingFileHandler(RotatingFileHandler):
             file_info = FileUtility.get_file_info(self._filename)
             return file_info.size >= self._max_bytes
         except Exception:
+            _logger.exception("Size-based rotation check failed for %s", self._filename)
             return False
 
     def _generate_backup_name(self) -> str:
@@ -666,7 +666,7 @@ class HybridRotatingFileHandler(RotatingFileHandler):
                 if file_info.size >= self._max_bytes:
                     return True
             except Exception:
-                pass
+                _logger.exception("Hybrid rotation size check failed for %s", self._filename)
 
         # Check time-based rotation
         now = datetime.now()

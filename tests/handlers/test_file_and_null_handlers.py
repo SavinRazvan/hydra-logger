@@ -180,6 +180,15 @@ def test_sync_file_handler_emit_handles_invalid_file_handle(tmp_path: Path) -> N
     handler.close()
 
 
+def test_sync_file_handler_logs_invalid_file_handle(caplog, tmp_path: Path) -> None:
+    handler = SyncFileHandler(filename=str(tmp_path / "invalid-log2.log"), buffer_size=1)
+    handler._file_handle = None
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.file_handler"):
+        handler.emit(LogRecord(level=20, level_name="INFO", message="ignored"))
+    assert "Cannot emit to closed or invalid file handle" in caplog.text
+    handler.close()
+
+
 def test_async_file_handler_csv_header_write_failure_returns_false(tmp_path: Path) -> None:
     class BrokenCsvFormatter:
         include_headers = True

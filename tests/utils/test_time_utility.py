@@ -37,6 +37,13 @@ def test_parse_time_interval_and_invalid_input() -> None:
         TimeUtility.parse_time_interval("10fortnights")
 
 
+def test_parse_time_interval_logs_invalid_input(caplog) -> None:
+    with caplog.at_level("ERROR", logger="hydra_logger.utils.time_utility"):
+        with pytest.raises(ValueError):
+            TimeUtility.parse_time_interval("oops")
+    assert "Invalid time interval format" in caplog.text
+
+
 def test_time_range_split_intersection_and_union() -> None:
     start = datetime(2026, 1, 1, tzinfo=timezone.utc)
     end = start + timedelta(hours=3)

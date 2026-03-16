@@ -9,12 +9,15 @@ Notes:
  - Stores reusable configuration templates selected by name.
 """
 
+import logging
 from typing import Callable, Dict
 
 # from .defaults import ConfigurationTemplates as
 # DefaultConfigurationTemplates  # unused
 from ..core.exceptions import HydraLoggerError
 from .models import LoggingConfig
+
+_logger = logging.getLogger(__name__)
 
 
 class ConfigurationTemplates:
@@ -27,25 +30,29 @@ class ConfigurationTemplates:
 
     def _setup_builtin_configs(self):
         """Setup built-in configuration templates using the unified system."""
-        from .defaults import (
-            get_custom_config,
-            get_default_config,
-            get_development_config,
-            get_production_config,
-        )
+        try:
+            from .defaults import (
+                get_custom_config,
+                get_default_config,
+                get_development_config,
+                get_production_config,
+            )
 
-        self.register_template(
-            "default", "Default configuration with performance focus"
-        )(get_default_config)
-        self.register_template(
-            "development", "Development-friendly configuration with debug output"
-        )(get_development_config)
-        self.register_template(
-            "production", "Production-ready configuration with security and monitoring"
-        )(get_production_config)
-        self.register_template(
-            "custom", "Custom configuration with user-specified features"
-        )(get_custom_config)
+            self.register_template(
+                "default", "Default configuration with performance focus"
+            )(get_default_config)
+            self.register_template(
+                "development", "Development-friendly configuration with debug output"
+            )(get_development_config)
+            self.register_template(
+                "production", "Production-ready configuration with security and monitoring"
+            )(get_production_config)
+            self.register_template(
+                "custom", "Custom configuration with user-specified features"
+            )(get_custom_config)
+        except Exception as exc:
+            _logger.exception("Failed to setup built-in configuration templates: %s", exc)
+            raise
 
     def register_template(self, name: str, description: str = "") -> Callable:
         """Register a named template and return a decorator for its factory."""
@@ -78,6 +85,7 @@ class ConfigurationTemplates:
         try:
             return self._configs[name]()
         except Exception as e:
+            _logger.exception("Failed creating configuration template '%s': %s", name, e)
             raise HydraLoggerError(
                 f"Failed to create configuration template '{name}': {e}"
             )
@@ -112,6 +120,7 @@ class ConfigurationTemplates:
             config = self.get_template(name)
             return config.validate_configuration()
         except Exception as e:
+            _logger.exception("Configuration template validation failed for '%s': %s", name, e)
             raise HydraLoggerError(
                 f"Configuration template validation failed for '{name}': {e}"
             )

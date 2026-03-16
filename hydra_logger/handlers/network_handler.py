@@ -20,6 +20,7 @@ Notes:
 # pyright: reportCallIssue=false, reportArgumentType=false
 
 import asyncio
+import logging
 import socket
 import ssl
 import time
@@ -32,6 +33,8 @@ from urllib.parse import urlparse
 from ..types.levels import LogLevel
 from ..types.records import LogRecord
 from .base_handler import BaseHandler
+
+_logger = logging.getLogger(__name__)
 
 try:
     import requests
@@ -202,6 +205,12 @@ class BaseNetworkHandler(BaseHandler):
             self._establish_connection()
             return self._connected
         except Exception:
+            _logger.exception(
+                "Network connect failed for %s:%s (%s)",
+                self._config.host,
+                self._config.port,
+                self._config.protocol.value,
+            )
             self._stats["connection_errors"] += 1
             return False
 
@@ -217,7 +226,7 @@ class BaseNetworkHandler(BaseHandler):
                 self._connection = None
             self._connected = False
         except Exception:
-            pass
+            _logger.exception("Network disconnect failed")
 
     def _close_connection(self) -> None:
         """Close the connection."""
@@ -371,6 +380,7 @@ class HTTPHandler(BaseNetworkHandler):
             self._connected = True
             return True
         except Exception:
+            _logger.exception("HTTP connection establishment failed for url=%s", self._url)
             self._connected = False
             return False
 
@@ -427,6 +437,7 @@ class HTTPHandler(BaseNetworkHandler):
             self._stats["sent"] += 1
             self._stats["bytes_sent"] += len(str(data).encode("utf-8"))
         except Exception as error:
+            _logger.exception("HTTP emit failed for url=%s", self._url)
             self._handle_network_error(error)
 
     def _close_connection(self) -> None:
@@ -483,6 +494,7 @@ class WebSocketHandler(BaseNetworkHandler):
             self._connected = True
             return True
         except Exception:
+            _logger.exception("WebSocket connection establishment failed for url=%s", self._url)
             self._connected = False
             return False
 
@@ -492,6 +504,7 @@ class WebSocketHandler(BaseNetworkHandler):
             try:
                 await asyncio.sleep(1)
             except Exception:
+                _logger.exception("WebSocket background worker failed")
                 break
 
     def emit(self, record: LogRecord) -> None:
@@ -518,6 +531,7 @@ class WebSocketHandler(BaseNetworkHandler):
             # For now, we'll just simulate success
             self._stats["sent"] += 1
         except Exception as error:
+            _logger.exception("WebSocket emit failed for url=%s", self._url)
             self._handle_network_error(error)
 
     def _close_connection(self) -> None:
@@ -564,6 +578,11 @@ class SocketHandler(BaseNetworkHandler):
             self._connected = True
             return True
         except Exception:
+            _logger.exception(
+                "Socket connection establishment failed for %s:%s",
+                self._config.host,
+                self._config.port,
+            )
             self._connected = False
             return False
 
@@ -591,6 +610,9 @@ class SocketHandler(BaseNetworkHandler):
 
             self._stats["sent"] += 1
         except Exception as error:
+            _logger.exception(
+                "Socket emit failed for %s:%s", self._config.host, self._config.port
+            )
             self._handle_network_error(error)
 
     def _close_connection(self) -> None:
@@ -632,6 +654,11 @@ class DatagramHandler(BaseNetworkHandler):
             self._connected = True
             return True
         except Exception:
+            _logger.exception(
+                "Datagram connection establishment failed for %s:%s",
+                self._config.host,
+                self._config.port,
+            )
             self._connected = False
             return False
 
@@ -659,6 +686,9 @@ class DatagramHandler(BaseNetworkHandler):
             self._connection.sendto(data, (self._config.host, self._config.port))
             self._stats["sent"] += 1
         except Exception as error:
+            _logger.exception(
+                "Datagram emit failed for %s:%s", self._config.host, self._config.port
+            )
             self._handle_network_error(error)
 
     def _close_connection(self) -> None:

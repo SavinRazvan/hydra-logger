@@ -10,8 +10,11 @@ Notes:
  - Detects runtime system capabilities to tune buffer and concurrency defaults.
 """
 
+import logging
 from enum import Enum
 from typing import Any, Dict, Optional
+
+_logger = logging.getLogger(__name__)
 
 
 class SystemProfile(Enum):
@@ -77,6 +80,9 @@ class SystemDetector:
             self._available_memory_mb = 512  # Assume minimal memory
             self._cpu_count = 1
             self._safe_memory_limit_mb = 50  # Very conservative
+            _logger.warning(
+                "psutil unavailable; using conservative system detection defaults"
+            )
 
     def get_optimal_buffer_size(
         self,

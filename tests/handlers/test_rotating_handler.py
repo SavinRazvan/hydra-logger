@@ -10,6 +10,7 @@ Notes:
 
 from pathlib import Path
 
+from hydra_logger.handlers import rotating_handler as rotating_module
 from hydra_logger.handlers.rotating_handler import (
     HybridRotatingFileHandler,
     RotatingFileHandlerFactory,
@@ -87,4 +88,26 @@ def test_rotating_handler_stats_surface_strategy(tmp_path: Path) -> None:
     )
     stats = handler.get_rotation_stats()
     assert stats["config"]["strategy"] == "size_based"
+    handler.close()
+
+
+def test_size_rotating_handler_logs_size_check_failure(
+    monkeypatch, caplog, tmp_path: Path
+) -> None:
+    handler = SizeRotatingFileHandler(
+        filename=str(tmp_path / "size-check.log"),
+        max_bytes=64,
+        backup_count=1,
+    )
+    monkeypatch.setattr(
+        rotating_module.FileUtility,
+        "get_file_info",
+        lambda _path: (_ for _ in ()).throw(OSError("boom")),
+    )
+    # ensure file exists check passes so get_file_info branch is reached
+    monkeypatch.setattr(rotating_module.FileUtility, "exists", lambda _path: True)
+    # verify method tolerates errors and returns False
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.rotating_handler"):
+        assert handler._should_rotate() is False
+    assert "Size-based rotation check failed" in caplog.text
     handler.close()

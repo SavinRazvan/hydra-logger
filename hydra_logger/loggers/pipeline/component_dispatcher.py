@@ -10,7 +10,11 @@ Notes:
 """
 
 import asyncio
+import logging
 from typing import Any, Iterable
+
+
+_logger = logging.getLogger(__name__)
 
 
 class ComponentDispatcher:
@@ -25,7 +29,10 @@ class ComponentDispatcher:
                 if hasattr(component, "log"):
                     component.log(level, message, **kwargs)
             except Exception:
-                pass
+                _logger.exception(
+                    "Sync component dispatch failed for component type=%s",
+                    type(component).__name__,
+                )
 
     async def dispatch_async(
         self, components: Iterable[Any], level: Any, message: str, **kwargs
@@ -40,4 +47,7 @@ class ComponentDispatcher:
                 elif hasattr(component, "log"):
                     component.log(level, message, **kwargs)
             except Exception:
-                pass
+                _logger.exception(
+                    "Async component dispatch failed for component type=%s",
+                    type(component).__name__,
+                )

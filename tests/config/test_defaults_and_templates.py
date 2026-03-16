@@ -40,6 +40,13 @@ def test_get_named_config_rejects_unknown_name() -> None:
         get_named_config("missing-profile")
 
 
+def test_get_named_config_logs_unknown_name(caplog) -> None:
+    with caplog.at_level("ERROR", logger="hydra_logger.config.defaults"):
+        with pytest.raises(ValueError):
+            get_named_config("missing-profile")
+    assert "Unknown configuration name requested: missing-profile" in caplog.text
+
+
 def test_template_registry_supports_register_validate_and_cleanup() -> None:
     registry = ConfigurationTemplates()
 

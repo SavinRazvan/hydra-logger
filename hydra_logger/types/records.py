@@ -14,12 +14,15 @@ Notes:
  - Defines shared type contracts/constants for records.
 """
 
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 # import os  # unused
+
+_logger = logging.getLogger(__name__)
 
 
 def extract_filename(full_path: str) -> Optional[str]:
@@ -36,6 +39,7 @@ def extract_filename(full_path: str) -> Optional[str]:
             # Already just a filename
             return full_path
     except Exception:
+        _logger.exception("Filename extraction failed for path=%r", full_path)
         return None
 
 
@@ -247,15 +251,7 @@ class LogRecordFactory:
             # FIX: Log error instead of silently failing - helps debug frame inspection issues
             # Silent failure - context is optional, but we should at least know if
             # there's a problem
-            import sys
-
-            try:
-                # Only log to stderr if in debug mode - don't spam production logs
-                if hasattr(sys, "_getframe"):
-                    # Debug mode - show what went wrong
-                    pass  # Silent for now to maintain performance, but can enable for debugging
-            except BaseException:
-                pass
+            _logger.exception("Auto-context extraction failed; proceeding without caller info")
 
         return LogRecord(
             timestamp=kwargs.get("timestamp", time.time()),

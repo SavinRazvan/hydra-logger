@@ -175,3 +175,17 @@ def test_network_handler_close_delegates_to_disconnect() -> None:
     handler._disconnect = lambda: marker.__setitem__("closed", True)  # type: ignore[method-assign]
     handler.close()
     assert marker["closed"] is True
+
+
+def test_network_handler_logs_disconnect_failure(caplog) -> None:
+    handler = DummyNetworkHandler(NetworkConfig(host="localhost", port=8080))
+    handler._connection = object()
+
+    def _broken_close() -> None:
+        raise RuntimeError("disconnect boom")
+
+    handler._close_connection = _broken_close  # type: ignore[method-assign]
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.network_handler"):
+        handler._disconnect()
+
+    assert "Network disconnect failed" in caplog.text

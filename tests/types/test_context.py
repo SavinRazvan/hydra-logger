@@ -119,3 +119,14 @@ def test_context_detector_returns_error_caller_info_on_inspect_failure(monkeypat
     assert caller.filename == "<error>"
     assert caller.function_name == "<error>"
     assert caller.line_number == 0
+
+
+def test_context_detector_logs_on_inspect_failure(monkeypatch, caplog) -> None:
+    import inspect
+
+    ContextDetector.disable_cache()
+    monkeypatch.setattr(inspect, "currentframe", lambda: (_ for _ in ()).throw(Exception()))
+    with caplog.at_level("ERROR", logger="hydra_logger.types.context"):
+        ContextDetector.get_caller_info(depth=1)
+    assert "Caller info detection failed at depth=1" in caplog.text
+    ContextDetector.enable_cache()
