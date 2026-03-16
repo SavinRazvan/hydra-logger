@@ -14,7 +14,6 @@ Notes:
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
 # pyright: reportCallIssue=false, reportArgumentType=false
-# pyright: reportGeneralTypeIssues=false, reportReturnType=false
 
 import asyncio
 import sys
@@ -27,8 +26,10 @@ from ..handlers.base_handler import BaseHandler
 from ..handlers.null_handler import NullHandler
 from ..types.levels import LogLevel, LogLevelManager
 from ..types.records import LogRecord
+from ..utils import internal_diagnostics as diagnostics
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
+from .pipeline import ExtensionProcessor, HandlerDispatcher, LayerRouter, RecordBuilder
 
 class AsyncLogger(BaseLogger):
     """Asynchronous logger with layer routing and handler-based emission."""
@@ -108,6 +109,14 @@ class AsyncLogger(BaseLogger):
         # Performance optimization: Handler lookup caching
         self._handler_cache = {}
         self._layer_cache = {}
+
+        # Shared hot-path pipeline services
+        self._record_builder = RecordBuilder(self)
+        self._extension_processor = ExtensionProcessor()
+        self._layer_router = LayerRouter(
+            self._layers, self._layer_handlers, self._handler_cache, self._layer_cache
+        )
+        self._handler_dispatcher = HandlerDispatcher()
 
     def _setup_core_systems(self):
         """Setup core system integration."""
@@ -387,31 +396,15 @@ class AsyncLogger(BaseLogger):
     def _log_sync(self, level: Union[str, int], message: str, **kwargs) -> None:
         """Synchronous fallback logging method - SIMPLIFIED."""
         try:
-            # Convert level if needed
-            if isinstance(level, str):
-                level = LogLevelManager.get_level(level)
-
-            # Create log record
-            record = self.create_log_record(level, message, **kwargs)
-
-            if self._data_protection and self._data_protection.is_enabled():
-                try:
-                    # Process the message through simple security extension
-                    record.message = self._data_protection.process(record.message)
-                except Exception:
-                    # If security processing fails, continue with original record
-                    pass
+            level = self._record_builder.normalize_level(level)
+            record = self._record_builder.create(level, message, **kwargs)
+            record = self._extension_processor.apply_data_protection(
+                record, self._data_protection
+            )
 
             layer_name = getattr(record, "layer", "default")
             handlers = self._get_handlers_for_layer(layer_name)
-
-            # Emit to all handlers for this layer
-            for handler in handlers:
-                try:
-                    handler.emit(record)
-                except Exception:
-                    # Silent error handling for speed
-                    pass
+            self._handler_dispatcher.dispatch_sync(record, handlers)
 
             # Update statistics
             self._log_count += 1
@@ -423,19 +416,11 @@ class AsyncLogger(BaseLogger):
     async def _log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
         """Internal async logging method - SIMPLIFIED for reliability."""
         try:
-
-            if isinstance(level, str):
-                level = LogLevelManager.get_level(level)
-
-            record = self.create_log_record(level, message, **kwargs)
-
-            if self._data_protection and self._data_protection.is_enabled():
-                try:
-                    # Process the message through simple security extension
-                    record.message = self._data_protection.process(record.message)
-                except Exception:
-                    # If security processing fails, continue with original record
-                    pass
+            level = self._record_builder.normalize_level(level)
+            record = self._record_builder.create(level, message, **kwargs)
+            record = self._extension_processor.apply_data_protection(
+                record, self._data_protection
+            )
 
             await self._emit_to_handlers(record)
 
@@ -478,7 +463,7 @@ class AsyncLogger(BaseLogger):
                         self._overflow_queue.put_nowait(record)
                     except asyncio.QueueFull:
                         # Overflow queue full, drop message
-                        print("Warning: Overflow queue full, dropping message")
+                        diagnostics.warning("Overflow queue full, dropping message")
                         # Drop message to prevent memory leak
                 else:
                     # Semaphore available, process message
@@ -529,9 +514,10 @@ class AsyncLogger(BaseLogger):
 
             # Progress tracking (only for large batches)
             if len(messages) > 10000:
-                print(
-                    f"Processing {len(messages):,} messages in chunks of "
-                    f"{optimal_chunk_size:,}"
+                diagnostics.info(
+                    "Processing %s messages in chunks of %s",
+                    f"{len(messages):,}",
+                    f"{optimal_chunk_size:,}",
                 )
 
             for i in range(0, len(messages), optimal_chunk_size):
@@ -553,7 +539,7 @@ class AsyncLogger(BaseLogger):
                 try:
                     await self.log(level, message, **{**kwargs, **extra_kwargs})
                 except Exception as e:
-                    print(f"Message processing error: {e}")
+                    diagnostics.warning("Message processing error: %s", e)
                     continue
         else:
             # For larger chunks, use controlled concurrency with proper cleanup
@@ -562,9 +548,10 @@ class AsyncLogger(BaseLogger):
 
             # Progress tracking (only for large chunks)
             if len(chunk) > 1000:
-                print(
-                    f"     🔄 Processing {len(chunk):,} messages "
-                    f"with concurrency {concurrency}"
+                diagnostics.info(
+                    "Processing %s messages with concurrency %s",
+                    f"{len(chunk):,}",
+                    concurrency,
                 )
 
             # Process in smaller sub-chunks to avoid overwhelming the system
@@ -578,7 +565,7 @@ class AsyncLogger(BaseLogger):
                     try:
                         await self.log(level, message, **{**kwargs, **extra_kwargs})
                     except Exception as e:
-                        print(f"Message processing error: {e}")
+                        diagnostics.warning("Message processing error: %s", e)
                         continue
 
     async def log_concurrent(
@@ -611,9 +598,10 @@ class AsyncLogger(BaseLogger):
 
             # Progress tracking (only for large batches)
             if len(messages) > 10000:
-                print(
-                    f"🔄 Processing {len(messages):,} messages "
-                    f"with concurrency {concurrency}"
+                diagnostics.info(
+                    "Processing %s messages with concurrency %s",
+                    f"{len(messages):,}",
+                    concurrency,
                 )
 
             semaphore = asyncio.Semaphore(concurrency)
@@ -686,7 +674,7 @@ class AsyncLogger(BaseLogger):
             return successful_results
 
         except Exception as e:
-            print(f"Background work execution failed: {e}")
+            diagnostics.error("Background work execution failed: %s", e)
             return []
 
     async def _execute_work_with_semaphore(
@@ -719,7 +707,7 @@ class AsyncLogger(BaseLogger):
                 return record
         except Exception as e:
             # Log security processing error but don't fail the log operation
-            print(f"Security processing failed: {e}")
+            diagnostics.warning("Security processing failed: %s", e)
             return record
 
     async def _execute_pre_log_plugins(self, record: LogRecord) -> LogRecord:
@@ -737,31 +725,11 @@ class AsyncLogger(BaseLogger):
         # Get handlers for the record's layer
         layer_name = getattr(record, "layer", "default")
         handlers = self._get_handlers_for_layer(layer_name)
-
-        # Emit to all handlers for this layer
-        for handler in handlers:
-            try:
-                # Use async emit if available, otherwise fall back to sync
-                if hasattr(handler, "emit_async"):
-                    await handler.emit_async(record)
-                else:
-                    handler.emit(record)
-            except Exception:
-                # Silent error handling for speed
-                pass
+        await self._handler_dispatcher.dispatch_async(record, handlers)
 
     def _get_handlers_for_layer(self, layer_name: str) -> list:
         """Get handlers for a specific layer with caching."""
-        # Check cache first
-        if layer_name in self._handler_cache:
-            return self._handler_cache[layer_name]
-
-        # Look up handlers
-        handlers = self._layer_handlers.get(layer_name, [])
-
-        # Cache the result
-        self._handler_cache[layer_name] = handlers
-        return handlers
+        return self._layer_router.handlers_for_layer(layer_name)
 
     # Convenience methods for different log levels
     def debug(self, message: str, **kwargs):
@@ -1008,9 +976,9 @@ class AsyncLogger(BaseLogger):
         """Update security level at runtime."""
         if self._config:
             self._config.update_security_level(level)
-            print(f"Security level updated to: {level}")
+            diagnostics.info("Security level updated to: %s", level)
         else:
-            print("No configuration available for runtime updates")
+            diagnostics.warning("No configuration available for runtime updates")
 
     def update_monitoring_config(
         self,
@@ -1024,14 +992,14 @@ class AsyncLogger(BaseLogger):
 
             # Update local monitoring settings
             if detail_level:
-                print(f"Monitoring detail level updated to: {detail_level}")
+                diagnostics.info("Monitoring detail level updated to: %s", detail_level)
             if sample_rate is not None:
-                print(f"Monitoring sample rate updated to: {sample_rate}")
+                diagnostics.info("Monitoring sample rate updated to: %s", sample_rate)
             if background is not None:
                 state = "enabled" if background else "disabled"
-                print(f"Monitoring background processing: {state}")
+                diagnostics.info("Monitoring background processing: %s", state)
         else:
-            print("No configuration available for runtime updates")
+            diagnostics.warning("No configuration available for runtime updates")
 
     def toggle_feature(self, feature: str, enabled: bool) -> None:
         """Toggle a feature on/off at runtime."""
@@ -1046,9 +1014,9 @@ class AsyncLogger(BaseLogger):
             elif feature == "plugins":
                 self._enable_plugins = enabled
 
-            print(f"{feature} {'enabled' if enabled else 'disabled'}")
+            diagnostics.info("%s %s", feature, "enabled" if enabled else "disabled")
         else:
-            print("No configuration available for runtime updates")
+            diagnostics.warning("No configuration available for runtime updates")
 
     def get_configuration_summary(self) -> Dict[str, Any]:
         """Get a summary of current configuration."""

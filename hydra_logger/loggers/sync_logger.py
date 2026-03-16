@@ -13,7 +13,6 @@ Notes:
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
 # pyright: reportCallIssue=false, reportArgumentType=false
-# pyright: reportGeneralTypeIssues=false, reportReturnType=false
 
 import sys
 import threading
@@ -25,8 +24,10 @@ from ..handlers.console_handler import SyncConsoleHandler
 from ..handlers.null_handler import NullHandler
 from ..types.levels import LogLevel, LogLevelManager
 from ..types.records import LogRecord
+from ..utils import internal_diagnostics as diagnostics
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
+from .pipeline import ExtensionProcessor, HandlerDispatcher, LayerRouter, RecordBuilder
 
 class SyncLogger(BaseLogger):
     """Synchronous logger with layer-aware routing and cached handler lookup."""
@@ -119,6 +120,14 @@ class SyncLogger(BaseLogger):
         # Performance optimization: Handler lookup caching
         self._handler_cache = {}
         self._layer_cache = {}
+
+        # Shared hot-path pipeline services
+        self._record_builder = RecordBuilder(self)
+        self._extension_processor = ExtensionProcessor()
+        self._layer_router = LayerRouter(
+            self._layers, self._layer_handlers, self._handler_cache, self._layer_cache
+        )
+        self._handler_dispatcher = HandlerDispatcher()
 
     def _setup_from_config(self, config: Union[LoggingConfig, Dict[str, Any]]):
         """Setup logger from configuration."""
@@ -355,25 +364,19 @@ class SyncLogger(BaseLogger):
         try:
 
             if isinstance(level, str):
-                level = LogLevelManager.get_level(level)
+                level = self._record_builder.normalize_level(level)
 
-            record = self.create_log_record(level, message, **kwargs)
-
-            if self._data_protection and self._data_protection.is_enabled():
-                try:
-                    # Process the message through simple security extension
-                    record.message = self._data_protection.process(record.message)
-                except Exception:
-                    # If security processing fails, continue with original record
-                    pass
+            record = self._record_builder.create(level, message, **kwargs)
+            record = self._extension_processor.apply_data_protection(
+                record, self._data_protection
+            )
 
             layer_name = kwargs.get("layer", "default")
-            if not self._is_level_enabled_for_layer(layer_name, level):
+            if not self._is_level_enabled_for_layer(layer_name, int(level)):
                 return
 
             layer_handlers = self._get_handlers_for_layer(layer_name)
-            for handler in layer_handlers:
-                handler.handle(record)
+            self._handler_dispatcher.dispatch_sync(record, layer_handlers)
 
             # Record processing completed
 
@@ -399,44 +402,17 @@ class SyncLogger(BaseLogger):
 
     def _get_handlers_for_layer(self, layer_name: str) -> list:
         """Get handlers for a specific layer with caching."""
-        # Check cache first
-        if layer_name in self._handler_cache:
-            return self._handler_cache[layer_name]
-
-        # Look up handlers
-        if layer_name in self._layer_handlers:
-            handlers = self._layer_handlers[layer_name]
-        elif "default" in self._layer_handlers:
-            handlers = self._layer_handlers["default"]
-        else:
-            handlers = []
-
-        # Cache the result
-        self._handler_cache[layer_name] = handlers
-        return handlers
+        return self._layer_router.handlers_for_layer(layer_name)
 
     def _get_layer_threshold(self, layer_name: str) -> int:
         """Get minimum log level for a layer with caching."""
-        # Check cache first
-        if layer_name in self._layer_cache:
-            return self._layer_cache[layer_name]
-
-        # Look up threshold
-        if layer_name in self._layers:
-            threshold = LogLevelManager.get_level(self._layers[layer_name].level)
-        else:
-            threshold = LogLevelManager.get_level(
-                self._config.default_level if self._config else "INFO"
-            )
-
-        # Cache the result
-        self._layer_cache[layer_name] = threshold
-        return threshold
+        default_level = self._config.default_level if self._config else "INFO"
+        return self._layer_router.layer_threshold(layer_name, default_level)
 
     def _is_level_enabled_for_layer(self, layer_name: str, level: int) -> bool:
         """Check if a level is enabled for a specific layer."""
-        layer_threshold = self._get_layer_threshold(layer_name)
-        return level >= layer_threshold
+        default_level = self._config.default_level if self._config else "INFO"
+        return self._layer_router.is_level_enabled(layer_name, level, default_level)
 
     def _standard_log(self, level: str, message: str, **kwargs) -> None:
         """Standard logging path with full features."""
@@ -503,7 +479,7 @@ class SyncLogger(BaseLogger):
                 return record
         except Exception as e:
             # Log security processing error but don't fail the log operation
-            print(f"Security processing failed: {e}")
+            diagnostics.warning("Security processing failed: %s", e)
             return record
 
     def _execute_pre_log_plugins(self, record: LogRecord) -> LogRecord:
@@ -563,9 +539,9 @@ class SyncLogger(BaseLogger):
         """Update security level at runtime."""
         if self._config:
             self._config.update_security_level(level)
-            print(f"Security level updated to: {level}")
+            diagnostics.info("Security level updated to: %s", level)
         else:
-            print("No configuration available for runtime updates")
+            diagnostics.warning("No configuration available for runtime updates")
 
     def update_monitoring_config(
         self,
@@ -579,14 +555,14 @@ class SyncLogger(BaseLogger):
 
             # Update local monitoring settings
             if detail_level:
-                print(f"Monitoring detail level updated to: {detail_level}")
+                diagnostics.info("Monitoring detail level updated to: %s", detail_level)
             if sample_rate is not None:
-                print(f"Monitoring sample rate updated to: {sample_rate}")
+                diagnostics.info("Monitoring sample rate updated to: %s", sample_rate)
             if background is not None:
                 state = "enabled" if background else "disabled"
-                print(f"Monitoring background processing: {state}")
+                diagnostics.info("Monitoring background processing: %s", state)
         else:
-            print(" No configuration available for runtime updates")
+            diagnostics.warning("No configuration available for runtime updates")
 
     def toggle_feature(self, feature: str, enabled: bool) -> None:
         """Toggle a feature on/off at runtime."""
@@ -601,9 +577,9 @@ class SyncLogger(BaseLogger):
             elif feature == "plugins":
                 self._enable_plugins = enabled
 
-            print(f"{feature} {'enabled' if enabled else 'disabled'}")
+            diagnostics.info("%s %s", feature, "enabled" if enabled else "disabled")
         else:
-            print("No configuration available for runtime updates")
+            diagnostics.warning("No configuration available for runtime updates")
 
     def get_configuration_summary(self) -> Dict[str, Any]:
         """Get a summary of current configuration."""

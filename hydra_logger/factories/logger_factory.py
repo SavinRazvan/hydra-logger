@@ -16,6 +16,7 @@ from ..config.configuration_templates import configuration_templates
 from ..config.models import LoggingConfig
 from ..loggers.async_logger import AsyncLogger
 from ..loggers.composite_logger import CompositeAsyncLogger, CompositeLogger
+from ..utils import internal_diagnostics as diagnostics
 
 # Setup module removed - simplified architecture
 from ..loggers.sync_logger import SyncLogger
@@ -153,17 +154,19 @@ class LoggerFactory:
                 )
 
                 if enabled:
-                    print(f"Extension '{extension_name}' created and enabled")
+                    diagnostics.info("Extension '%s' created and enabled", extension_name)
                 else:
-                    print(f"Extension '{extension_name}' created but disabled")
+                    diagnostics.info(
+                        "Extension '%s' created but disabled", extension_name
+                    )
 
             # Store manager in config for logger access
             setattr(config, "_extension_manager", manager)
 
         except ImportError as e:
-            print(f"Extension system not available: {e}")
+            diagnostics.warning("Extension system not available: %s", e)
         except Exception as e:
-            print(f"Error setting up extensions: {e}")
+            diagnostics.error("Error setting up extensions: %s", e)
 
     def set_default_config(self, config: LoggingConfig) -> None:
         """Set the default configuration."""

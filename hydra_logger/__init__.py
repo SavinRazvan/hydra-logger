@@ -12,15 +12,11 @@ __version__ = "0.4.0"
 __author__ = "Savin Ionut Razvan"
 __license__ = "MIT"
 
-# ✅ CRITICAL: Start stderr interception to capture tracemalloc and system errors
-# This must happen early, before any logging operations
-try:
-    from .utils.stderr_interceptor import StderrInterceptor
-
-    StderrInterceptor.start_intercepting()
-except Exception:
-    # Fail silently if interception can't be set up
-    pass
+from .utils.stderr_interceptor import (
+    StderrInterceptor,
+    start_stderr_interception,
+    stop_stderr_interception,
+)
 
 # Configuration
 from .config.configuration_templates import ConfigurationTemplates
@@ -93,6 +89,10 @@ __all__ = [
     "FormatterError",
     "PluginError",
     "SecurityError",
+    # Runtime controls
+    "StderrInterceptor",
+    "start_stderr_interception",
+    "stop_stderr_interception",
     # Version
     "__version__",
     "__author__",

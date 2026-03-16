@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 from ..formatters.base import BaseFormatter
 from ..handlers.base_handler import BaseHandler
 from ..types.levels import LogLevel, LogLevelManager
+from ..utils import internal_diagnostics as diagnostics
 
 
 class LayerConfiguration:
@@ -85,8 +86,7 @@ class LayerManager:
                 try:
                     self._create_layer(layer_name, layer_config)
                 except Exception as e:
-                    # Log error and continue with other layers
-                    print(f"Layer setup failed for {layer_name}: {e}")
+                    diagnostics.warning("Layer setup failed for %s: %s", layer_name, e)
 
             self._update_multi_layer_flags()
 
@@ -175,7 +175,7 @@ class LayerManager:
                 return NullHandler()
 
         except Exception as e:
-            print(f"Handler creation failed: {e}")
+            diagnostics.warning("Handler creation failed: %s", e)
             return None
 
     def _setup_default_layer(self) -> None:
@@ -207,7 +207,7 @@ class LayerManager:
             self._layer_levels[self._default_layer_name] = LogLevel.WARNING
 
         except Exception as e:
-            print(f"Default layer setup failed: {e}")
+            diagnostics.warning("Default layer setup failed: %s", e)
 
     def _update_multi_layer_flags(self) -> None:
         """Update multi-layer optimization flags."""

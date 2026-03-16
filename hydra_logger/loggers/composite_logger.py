@@ -13,7 +13,6 @@ Notes:
 
 # pyright: reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
 # pyright: reportCallIssue=false, reportArgumentType=false
-# pyright: reportGeneralTypeIssues=false, reportReturnType=false
 
 import asyncio
 from pathlib import Path
@@ -25,6 +24,7 @@ from ..handlers.base_handler import BaseHandler
 from ..types.records import LogRecordFactory
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
+from .pipeline import ComponentDispatcher
 
 
 class CompositeLogger(BaseLogger):
@@ -51,6 +51,7 @@ class CompositeLogger(BaseLogger):
 
         self.name = name
         self.components = components or []
+        self._component_dispatcher = ComponentDispatcher()
         self._initialized = False
         self._closed = False
 
@@ -157,14 +158,9 @@ class CompositeLogger(BaseLogger):
         if self._closed:
             raise HydraLoggerError("Logger is closed")
 
-        # Log to all components
-        for component in self.components:
-            try:
-                if hasattr(component, "log"):
-                    component.log(level, message, **kwargs)
-            except Exception:
-                # Continue with other components if one fails
-                pass
+        self._component_dispatcher.dispatch_sync(
+            self.components, level, message, **kwargs
+        )
 
     def debug(self, message: str, **kwargs) -> None:
         """Log a debug message to all components."""
@@ -340,6 +336,7 @@ class CompositeAsyncLogger(BaseLogger):
 
         self.name = name
         self.components = components or []
+        self._component_dispatcher = ComponentDispatcher()
         self._initialized = False
         self._closed = False
 
@@ -605,20 +602,9 @@ class CompositeAsyncLogger(BaseLogger):
         # STANDARDIZED: Use standardized LogRecord creation
         record = self.create_log_record(level, message, **kwargs)
 
-        # Fast: Direct sequential processing for speed
-        # asyncio.gather creates too much overhead for high-frequency logging
-        for component in self.components:
-            try:
-                if hasattr(component, "emit_async"):
-                    # Direct emit with shared record (zero-copy)
-                    await component.emit_async(record)
-                elif hasattr(component, "log") and asyncio.iscoroutinefunction(
-                    component.log
-                ):
-                    await component.log(level, message, **kwargs)
-            except Exception:
-                # Silent error handling for speed
-                pass
+        await self._component_dispatcher.dispatch_async(
+            self.components, level, message, **kwargs
+        )
 
         # Update statistics
         self._log_count += 1

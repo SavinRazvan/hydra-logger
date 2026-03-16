@@ -10,9 +10,11 @@ Notes:
  - Implements extension lifecycle or integration logic for base.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
+
+from .extension_base import ExtensionBase
 
 
 @dataclass
@@ -25,7 +27,7 @@ class ExtensionConfig:
     description: str = ""
 
 
-class Extension(ABC):
+class Extension(ExtensionBase, ABC):
     """
     Abstract base class for all Hydra Logger extensions.
 
@@ -44,31 +46,39 @@ class Extension(ABC):
             config: Extension-specific configuration dictionary
         """
         self.config = config or {}
-        self._enabled = self.config.get("enabled", False)
+        self._enabled = bool(self.config.get("enabled", False))
         self._name = self.config.get("name", self.__class__.__name__)
         self._version = self.config.get("version", "0.4.0")
         self._description = self.config.get("description", "")
+        extension_config = {k: v for k, v in self.config.items() if k != "enabled"}
+        super().__init__(enabled=self._enabled, **extension_config)
 
-        # Initialize extension-specific configuration
+    def _setup(self) -> None:
+        """Compatibility hook that forwards setup to legacy initializer."""
+        self._enabled = self.enabled
         self._initialize_config()
 
     def _initialize_config(self) -> None:
         """Initialize extension-specific configuration. Override in subclasses."""
         pass
 
-    @abstractmethod
+    def process(self, data: Any) -> Any:
+        """Compatibility default processing path."""
+        return data
+
     def enable(self) -> None:
-        """Enable the extension. Override in subclasses."""
+        """Enable the extension."""
+        super().enable()
         self._enabled = True
 
-    @abstractmethod
     def disable(self) -> None:
-        """Disable the extension. Override in subclasses."""
+        """Disable the extension."""
+        super().disable()
         self._enabled = False
 
     def is_enabled(self) -> bool:
         """Check if the extension is enabled."""
-        return self._enabled
+        return self.enabled
 
     def get_name(self) -> str:
         """Get the extension name."""
@@ -98,8 +108,8 @@ class Extension(ABC):
 
     def update_config(self, new_config: Dict[str, Any]) -> None:
         """Update the extension configuration."""
-        self.config.update(new_config)
-        self._initialize_config()
+        super().update_config(**new_config)
+        self._enabled = self.enabled
 
     def __str__(self) -> str:
         """String representation of the extension."""

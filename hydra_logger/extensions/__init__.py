@@ -14,12 +14,15 @@ from .extension_base import (
     PerformanceExtension,
     SecurityExtension,
 )
+from .base import Extension, ExtensionConfig
 from .extension_manager import ExtensionManager
 
 # Exports
 __all__ = [
     # Base classes
     "ExtensionBase",
+    "Extension",
+    "ExtensionConfig",
     # Extension implementations
     "SecurityExtension",
     "FormattingExtension",

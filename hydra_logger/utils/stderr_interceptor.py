@@ -120,8 +120,11 @@ class StderrInterceptor:
         return cls._intercepting
 
 
-# Auto-start intercepting when module is imported
-try:
+def start_stderr_interception() -> None:
+    """Public helper to explicitly enable stderr interception."""
     StderrInterceptor.start_intercepting()
-except Exception:
-    pass  # Fail silently if interception fails
+
+
+def stop_stderr_interception() -> None:
+    """Public helper to explicitly disable stderr interception."""
+    StderrInterceptor.stop_intercepting()

@@ -48,24 +48,9 @@ setup(
         "pytz>=2025.0",
         "toml>=0.10.2",
         "msgpack>=1.1.1",
-        "psutil>=7.1.0",
         "requests>=2.32.0",
         "urllib3>=1.26.0,<3.0.0",
         "charset-normalizer>=3.4.0",
-        # Database handlers
-        "psycopg2-binary>=2.9.10",  # PostgreSQL
-        "pymongo>=4.10.0",  # MongoDB
-        "redis>=6.1.0",  # Redis
-        # Message queue handlers
-        "pika>=1.3.2",  # RabbitMQ
-        "kafka-python>=2.2.0",  # Kafka
-        # Cloud service handlers
-        "boto3>=1.37.0",  # AWS CloudWatch
-        "elasticsearch>=9.0.0",  # Elasticsearch
-        # Network handlers
-        "websockets>=13.0.0",  # WebSocket support
-        # System handlers (Windows only - will be skipped on other platforms)
-        "pywin32>=306; sys_platform == 'win32'",  # Windows Event Log
     ],
     extras_require={
         "dev": [
@@ -80,6 +65,10 @@ setup(
             "bandit>=1.7.10",
             "safety>=3.6.2",
             "tomli-w>=1.0.0",
+            "psutil>=7.1.0",
+        ],
+        "perf": [
+            "psutil>=7.1.0",
         ],
         "database": [
             "psycopg2-binary>=2.9.10",

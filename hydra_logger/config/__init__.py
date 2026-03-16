@@ -8,6 +8,8 @@ Notes:
  - Re-exports the hydra_logger.config public API with stable import paths.
 """
 
+from .destinations import LogDestination
+from .layers import LogLayer
 from .configuration_templates import (
     configuration_templates,
     get_configuration_template,
@@ -16,6 +18,7 @@ from .configuration_templates import (
     register_configuration_template,
     validate_configuration_template,
 )
+from .runtime import LoggingConfig
 from .defaults import (
     ConfigurationTemplates,
     get_custom_config,
@@ -30,9 +33,6 @@ from .models import (
     ConsoleHandlerConfig,
     FileHandlerConfig,
     HandlerConfig,
-    LogDestination,
-    LoggingConfig,
-    LogLayer,
     MemoryHandlerConfig,
     ModularConfig,
 )
