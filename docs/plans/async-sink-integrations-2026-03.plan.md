@@ -2,8 +2,10 @@
 
 - Date: 2026-03-15
 - Owner: @SavinRazvan
-- Status: planned
+- Status: superseded
 - Expected audit results file: `docs/audit/async-sink-integrations-2026-03-15.results.md`
+
+Superseded by: `.cursor/plans/master-architecture-no-drift_5a0a318c.plan.md`
 
 ## Outcome
 

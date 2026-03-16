@@ -2,8 +2,10 @@
 
 - Date: 2026-03-15
 - Owner: @SavinRazvan
-- Status: complete
+- Status: superseded (baseline complete)
 - Expected audit results file: `docs/audit/env-toolchain-stability-2026-03-15.results.md`
+
+Superseded by: `.cursor/plans/master-architecture-no-drift_5a0a318c.plan.md`
 
 ## Outcome
 

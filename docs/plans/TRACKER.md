@@ -1,53 +1,45 @@
-# Python Header + Comment Cleanup Tracker
+# Master Plan Tracker
 
 Last updated: 2026-03-16
-Scope: all `*.py` files in repository, excluding `.hydra_env`.
+Active plan: `.cursor/plans/master-architecture-no-drift_5a0a318c.plan.md`
 
-## Completion Criteria
+## Active Workstream Status
 
-- Headers use slim fields: `Role`, `Used By`, `Depends On`, `Notes`.
-- No header placeholders (for example `(update when known)`, `TBD`, `placeholder`).
-- `Notes` is descriptive per file (not generic boilerplate).
-- Comment/doc cleanup keeps only useful rationale (especially obsolete/unused markers).
+- governance-consolidation: complete
+- benchmark-workspace-structure: complete
+- phase1-import-side-effects: complete
+- phase2-extension-unification: complete
+- phase3-logger-pipeline: complete
+- phase4-config-split: complete
+- phase5-diagnostics: complete
+- phase6-types-deps: complete
+- enterprise-quality-gates: complete
+- evidence-and-tracking: complete
+- implementation-prep-package: complete
 
-## Evidence Snapshot
+## Safe Rollout Order
 
-- `python3 scripts/pr/check_slim_headers.py --all-python --strict` -> pass (`89/89` compliant)
-- `.hydra_env/bin/python -m pytest -q` -> pass
-- Boilerplate note scan (`aligned with current module responsibilities`, generic utility-note patterns) -> `0` matches
+1. `feature/plan-governance-consolidation`
+2. `feature/benchmark-workspace-standardization`
+3. `feature/import-side-effects-removal`
+4. `feature/extensions-contract-unification`
+5. `feature/logger-pipeline-extraction`
+6. `feature/config-models-modularization`
+7. `feature/internal-diagnostics-unification`
+8. `feature/types-and-dependency-hardening`
 
-## Completed Files
+## Mandatory Gate Evidence (per slice)
 
-### Header + Notes Completed (all Python files)
+- `python -m pytest -q`
+- `python -m pytest --cov=hydra_logger --cov-report=term-missing -q`
+- `python scripts/pr/check_slim_headers.py --all-python --strict`
+- benchmark delta evidence (where runtime path changed)
+- audit artifact update in `docs/audit/`
 
-- Status: `89/89` complete
-- Verification source: strict slim-header check + placeholder guard test
+## Baseline Completed (Historical, Not Active)
 
-### Deep Comment/Doc Cleanup Completed
+- Header metadata alignment: complete
+- Environment toolchain stability: complete
+- Module docs execution: complete
 
-- `hydra_logger/config/models.py`
-- `hydra_logger/factories/logger_factory.py`
-- `hydra_logger/formatters/base.py`
-- `hydra_logger/config/defaults.py`
-- `hydra_logger/handlers/file_handler.py`
-- `hydra_logger/loggers/async_logger.py`
-- `hydra_logger/loggers/sync_logger.py`
-- `hydra_logger/utils/error_logger.py`
-- `hydra_logger/utils/file_utility.py`
-- `hydra_logger/utils/stderr_interceptor.py`
-- `hydra_logger/utils/system_detector.py`
-- `hydra_logger/utils/text_utility.py`
-- `hydra_logger/utils/time_utility.py`
-- `hydra_logger/core/logger_management.py`
-- `hydra_logger/config/configuration_templates.py`
-- `examples/run_all_examples.py`
-
-## Uncompleted Files (Remaining Review Queue)
-
-No remaining files in the current planned queue.
-
-## Notes for Continuation
-
-- Header/placeholder work is complete across all Python files.
-- Remaining work can be tracked as future optional quality passes outside this plan.
-- Keep rationale comments only when they explain obsolete/unused paths or non-obvious invariants.
+These are baseline evidence inputs for the master plan and are not active tasks.
