@@ -39,7 +39,12 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        pytest tests/ --cov=hydra_logger --cov-report=xml --cov-report=term-missing --cov-fail-under=0
+        pytest tests/ --cov=hydra_logger --cov-report=xml --cov-report=term-missing --cov-fail-under=60
+
+    - name: Enforce benchmark package coverage
+      if: matrix.python-version == '3.12'
+      run: |
+        pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=100
     
     - name: Upload coverage to Codecov
       if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)

@@ -17,9 +17,17 @@ from collections.abc import Awaitable, Callable
 import math
 from typing import Any
 
+from benchmark.dev_logging import get_logger
+
+
+_logger = get_logger(__name__)
+
 
 def messages_per_second(total_messages: int, duration: float) -> float:
     """Safely compute throughput from message count and elapsed duration."""
+    if total_messages < 0:
+        _logger.error("Negative total_messages provided: %s", total_messages)
+        raise ValueError("total_messages must be >= 0")
     if duration <= 0:
         return 0.0
     return total_messages / duration
@@ -38,15 +46,24 @@ def measure_sync_batch_throughput(
     iterations = 0
     start_time = time.perf_counter()
 
-    while iterations < min_iterations or (time.perf_counter() - start_time < min_duration_seconds):
-        logger.log_batch(messages)
-        total_messages += len(messages)
-        iterations += 1
+    try:
+        while iterations < min_iterations or (
+            time.perf_counter() - start_time < min_duration_seconds
+        ):
+            logger.log_batch(messages)
+            total_messages += len(messages)
+            iterations += 1
 
-    flush_sync(logger)
-    end_time = time.perf_counter()
-    duration = end_time - start_time
-    return total_messages, duration, messages_per_second(total_messages, duration)
+        flush_sync(logger)
+        end_time = time.perf_counter()
+        duration = end_time - start_time
+        return total_messages, duration, messages_per_second(total_messages, duration)
+    except Exception:
+        _logger.exception(
+            "Sync batch throughput measurement failed (min_iterations=%s)",
+            min_iterations,
+        )
+        raise
 
 
 async def measure_async_batch_throughput(
@@ -62,15 +79,24 @@ async def measure_async_batch_throughput(
     iterations = 0
     start_time = time.perf_counter()
 
-    while iterations < min_iterations or (time.perf_counter() - start_time < min_duration_seconds):
-        await logger.log_batch(messages)
-        total_messages += len(messages)
-        iterations += 1
+    try:
+        while iterations < min_iterations or (
+            time.perf_counter() - start_time < min_duration_seconds
+        ):
+            await logger.log_batch(messages)
+            total_messages += len(messages)
+            iterations += 1
 
-    await flush_async(logger)
-    end_time = time.perf_counter()
-    duration = end_time - start_time
-    return total_messages, duration, messages_per_second(total_messages, duration)
+        await flush_async(logger)
+        end_time = time.perf_counter()
+        duration = end_time - start_time
+        return total_messages, duration, messages_per_second(total_messages, duration)
+    except Exception:
+        _logger.exception(
+            "Async batch throughput measurement failed (min_iterations=%s)",
+            min_iterations,
+        )
+        raise
 
 
 def _validate_rate(

@@ -15,6 +15,7 @@ Notes:
  - Supplies timestamp formatting, precision handling, and timing abstractions.
 """
 
+import logging
 import time
 from dataclasses import dataclass
 
@@ -27,6 +28,8 @@ import pytz
 
 # Import the centralized TimeUnit from types
 from hydra_logger.types.enums import TimeUnit
+
+_logger = logging.getLogger(__name__)
 
 
 class TimestampFormat(Enum):
@@ -462,6 +465,7 @@ class TimeUtility:
 
         match = re.match(r"^(\d+(?:\.\d+)?)\s*([a-z]+)$", interval_str)
         if not match:
+            _logger.error("Invalid time interval format: %s", interval_str)
             raise ValueError(f"Invalid time interval format: {interval_str}")
 
         value_str, unit_str = match.groups()
@@ -499,6 +503,7 @@ class TimeUtility:
 
         unit = unit_map.get(unit_str)
         if not unit:
+            _logger.error("Unknown time unit in interval parser: %s", unit_str)
             raise ValueError(f"Unknown time unit: {unit_str}")
 
         return int(value), unit
@@ -560,6 +565,7 @@ class TimestampFormatter:
                     tz = pytz.timezone(timezone_name)
                     dt = dt.astimezone(tz)
                 except pytz.exceptions.UnknownTimeZoneError:
+                    _logger.exception("Unknown timezone requested: %s", timezone_name)
                     raise ValueError(f"Unknown timezone: {timezone_name}")
 
         # Ensure we have timezone info
@@ -737,6 +743,12 @@ class TimestampFormatter:
         try:
             return datetime.strptime(timestamp_str, template)
         except ValueError as e:
+            _logger.exception(
+                "Timestamp parse failed for '%s' with format '%s': %s",
+                timestamp_str,
+                format_type,
+                e,
+            )
             raise ValueError(
                 f"Failed to parse timestamp '{timestamp_str}' with format '{format_type}': {e}"
             )
@@ -749,6 +761,7 @@ class TimestampFormatter:
         try:
             timestamp = float(timestamp_str)
         except ValueError:
+            _logger.exception("Invalid Unix timestamp value: %s", timestamp_str)
             raise ValueError(f"Invalid Unix timestamp: {timestamp_str}")
 
         if format_type == TimestampFormat.UNIX_SECONDS:

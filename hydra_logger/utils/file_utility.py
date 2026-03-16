@@ -16,6 +16,7 @@ Notes:
  - Centralizes file/path operations, metadata, and safe filesystem helpers.
 """
 
+import logging
 import hashlib
 import json
 import mimetypes
@@ -27,6 +28,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+_logger = logging.getLogger(__name__)
+
 # Optional dependencies - import with graceful fallback
 try:
     import yaml
@@ -35,6 +38,7 @@ try:
 except ImportError:
     YAML_AVAILABLE = False
     yaml = None
+    _logger.debug("Optional dependency 'yaml' is unavailable")
 
 try:
     import toml
@@ -43,6 +47,7 @@ try:
 except ImportError:
     TOML_AVAILABLE = False
     toml = None
+    _logger.debug("Optional dependency 'toml' is unavailable")
 
 
 class FileType(Enum):
@@ -219,7 +224,10 @@ class FileUtility:
 
             shutil.copy2(source, destination)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception(
+                "File copy failed from %s to %s: %s", source, destination, exc
+            )
             return False
 
     @staticmethod
@@ -231,7 +239,10 @@ class FileUtility:
 
             shutil.move(source, destination)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception(
+                "File move failed from %s to %s: %s", source, destination, exc
+            )
             return False
 
     @staticmethod
@@ -242,7 +253,8 @@ class FileUtility:
                 os.remove(path)
                 return True
             return False
-        except Exception:
+        except Exception as exc:
+            _logger.exception("File deletion failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -251,7 +263,8 @@ class FileUtility:
         try:
             os.makedirs(path, exist_ok=True)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Directory creation failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -260,7 +273,8 @@ class FileUtility:
         try:
             os.makedirs(path, exist_ok=True)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Ensure directory exists failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -273,7 +287,8 @@ class FileUtility:
                 # Check if parent directory is writable
                 parent_dir = os.path.dirname(path)
                 return os.access(parent_dir, os.W_OK)
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Writable check failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -284,7 +299,8 @@ class FileUtility:
                 return os.access(path, os.R_OK)
             else:
                 return False
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Readable check failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -296,7 +312,8 @@ class FileUtility:
             else:
                 os.rmdir(path)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Directory deletion failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -368,8 +385,8 @@ class FileUtility:
                 try:
                     with open(path, "r", encoding="utf-8") as f:
                         line_count = sum(1 for _ in f)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _logger.exception("Failed counting lines for %s: %s", path, exc)
 
         # Checksums
         md5_hash = None
@@ -381,8 +398,8 @@ class FileUtility:
                 md5_hash = FileUtility._calculate_hash(path, "md5")
                 sha1_hash = FileUtility._calculate_hash(path, "sha1")
                 sha256_hash = FileUtility._calculate_hash(path, "sha256")
-            except Exception:
-                pass
+            except Exception as exc:
+                _logger.exception("Failed computing file hashes for %s: %s", path, exc)
 
         return FileInfo(
             path=path,
@@ -506,8 +523,8 @@ class FileUtility:
                     return FileType.TEXT
                 except UnicodeDecodeError:
                     pass
-        except Exception:
-            pass
+        except Exception as exc:
+            _logger.exception("File type detection failed for %s: %s", path, exc)
 
         return FileType.UNKNOWN
 
@@ -709,7 +726,8 @@ class FileValidator:
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
             return validator_func(content)
-        except Exception:
+        except Exception as exc:
+            _logger.exception("File content validation failed for %s: %s", path, exc)
             return False
 
 
@@ -729,7 +747,8 @@ class FileProcessor:
             with open(path, "w", encoding=encoding) as f:
                 f.write(content)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Write text file failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -745,7 +764,8 @@ class FileProcessor:
             with open(path, "wb") as f:
                 f.write(content)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Write binary file failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -761,7 +781,8 @@ class FileProcessor:
             with open(path, "w", encoding=encoding) as f:
                 f.writelines(lines)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Write lines failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -771,7 +792,8 @@ class FileProcessor:
             with open(path, "a", encoding=encoding) as f:
                 f.write(content)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Append text failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -787,7 +809,8 @@ class FileProcessor:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=indent, ensure_ascii=False)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Write JSON file failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -811,7 +834,8 @@ class FileProcessor:
             with open(path, "w", encoding="utf-8") as f:
                 yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Write YAML file failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -835,7 +859,8 @@ class FileProcessor:
             with open(path, "w", encoding="utf-8") as f:
                 toml.dump(data, f)
             return True
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Write TOML file failed for %s: %s", path, exc)
             return False
 
     @staticmethod
@@ -959,7 +984,12 @@ class DirectoryScanner:
                         }
             except PermissionError:
                 tree["<permission_denied>"] = {"type": "error"}
-            except Exception:
+            except Exception as exc:
+                _logger.exception(
+                    "Directory tree traversal failed for %s: %s",
+                    current_path,
+                    exc,
+                )
                 tree["<error>"] = {"type": "error"}
 
             return tree
@@ -995,7 +1025,7 @@ class DirectoryScanner:
                         extensions[ext] = extensions.get(ext, 0) + 1
 
                 except Exception:
-                    pass
+                    _logger.exception("Directory stats failed for %s", file_path)
 
         return {
             "total_files": total_files,

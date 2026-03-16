@@ -15,6 +15,7 @@ Notes:
 
 import asyncio
 import atexit
+import logging
 import sys
 import time
 from typing import Optional, TextIO
@@ -22,6 +23,9 @@ from typing import Optional, TextIO
 from ..formatters.base import BaseFormatter
 from ..types.records import LogRecord
 from .base_handler import BaseHandler
+
+
+_logger = logging.getLogger(__name__)
 
 
 class SyncConsoleHandler(BaseHandler):
@@ -139,6 +143,9 @@ class SyncConsoleHandler(BaseHandler):
         """Flush buffer to stream efficiently."""
         if not self._buffer:
             return
+        if getattr(self._stream, "closed", False):
+            self._buffer.clear()
+            return
 
         # Join all messages with newlines and write in one operation
         combined_message = "\n".join(self._buffer) + "\n"
@@ -157,8 +164,16 @@ class SyncConsoleHandler(BaseHandler):
         try:
             if hasattr(self, "_buffer") and self._buffer:
                 self._flush_buffer()
+        except ValueError as exc:
+            if "closed file" in str(exc).lower():
+                self._buffer.clear()
+                _logger.debug(
+                    "Sync console auto cleanup skipped flush for closed stream"
+                )
+                return
+            _logger.exception("Sync console auto cleanup failed")
         except Exception:
-            pass
+            _logger.exception("Sync console auto cleanup failed")
 
     def get_stats(self) -> dict:
         """Get handler statistics."""
@@ -218,6 +233,9 @@ class AsyncConsoleHandler(BaseHandler):
                 buffer_size = buffer_size or optimal_config["buffer_size"]
                 flush_interval = flush_interval or optimal_config["flush_interval"]
             except Exception:
+                _logger.exception(
+                    "Async console optimal buffer detection failed; using defaults"
+                )
                 # Fallback defaults (optimized for performance)
                 buffer_size = buffer_size or 5000
                 flush_interval = flush_interval or 0.5
@@ -353,6 +371,10 @@ class AsyncConsoleHandler(BaseHandler):
         except Exception:
             # If console output fails, don't block the entire system
             self._messages_dropped += len(messages_to_flush)
+            _logger.exception(
+                "Async console buffer flush failed; dropped=%s",
+                len(messages_to_flush),
+            )
 
     def _write_to_stream(self, message: str) -> None:
         """Write to stream (called from executor to avoid blocking)."""
@@ -360,7 +382,7 @@ class AsyncConsoleHandler(BaseHandler):
             self._stream.write(message)
             self._stream.flush()
         except Exception:
-            pass
+            _logger.exception("Console stream write failed")
 
     async def _start_worker(self) -> None:
         """Start async worker task."""
@@ -371,7 +393,7 @@ class AsyncConsoleHandler(BaseHandler):
             self._running = True
             self._worker_task = asyncio.create_task(self._worker_loop())
         except Exception as e:
-            print(f"Failed to start async worker: {e}", file=sys.stderr)
+            _logger.exception("Failed to start async console worker: %s", e)
             self._running = False
 
     async def _worker_loop(self) -> None:
@@ -441,20 +463,21 @@ class AsyncConsoleHandler(BaseHandler):
                     # Clear messages on error, but continue
                     if self._shutdown_event.is_set():
                         break
+                    _logger.exception("Async console worker iteration failed; clearing batch")
                     messages.clear()
         except (RuntimeError, asyncio.CancelledError):
             # Exit immediately on cancellation or loop closure
-            pass
+            _logger.debug("Async console worker cancelled or runtime closed")
         except Exception:
             # Exit on any other error
-            pass
+            _logger.exception("Async console worker terminated due to unexpected error")
         finally:
             # Process remaining messages if any
             if messages:
                 try:
                     await self._write_messages(messages)
                 except (RuntimeError, asyncio.CancelledError, Exception):
-                    pass
+                    _logger.exception("Async console final message flush failed")
 
     async def _write_messages(self, messages: list) -> None:
         """
@@ -495,7 +518,7 @@ class AsyncConsoleHandler(BaseHandler):
                 except (asyncio.TimeoutError, RuntimeError):
                     self._worker_task.cancel()
         except Exception:
-            pass
+            _logger.exception("Async console auto cleanup failed")
 
     async def aclose(self) -> None:
         """Close async handler and cleanup resources."""
@@ -549,7 +572,7 @@ class AsyncConsoleHandler(BaseHandler):
                     pass
             except (RuntimeError, asyncio.CancelledError, Exception):
                 # If anything fails, just mark as closed
-                pass
+                _logger.exception("Async console close encountered cleanup error")
 
     def get_stats(self) -> dict:
         """Get handler statistics."""

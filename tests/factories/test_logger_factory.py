@@ -29,6 +29,14 @@ def test_logger_factory_rejects_unknown_logger_type() -> None:
         factory.create_logger(logger_type="invalid")
 
 
+def test_logger_factory_logs_unknown_template_request(caplog) -> None:
+    factory = LoggerFactory()
+    with caplog.at_level("ERROR", logger="hydra_logger.factories.logger_factory"):
+        with pytest.raises(ValueError, match="Unknown configuration template"):
+            factory.create_logger_with_template("missing-template")
+    assert "Unknown configuration template requested: missing-template" in caplog.text
+
+
 def test_logger_factory_applies_extension_config_and_attaches_manager() -> None:
     factory = LoggerFactory()
     config = {

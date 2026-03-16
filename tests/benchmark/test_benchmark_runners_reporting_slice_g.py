@@ -15,8 +15,10 @@ import asyncio
 import json
 from pathlib import Path
 
+import pytest
 import benchmark.runners as runners_mod
 from benchmark.reporting import (
+    _conditionally_write_or_clear_report,
     _flatten_metric_statuses,
     _report_section,
     build_output_payload,
@@ -81,9 +83,47 @@ def test_run_parallel_workers_suite_uses_worker_results(monkeypatch, tmp_path) -
     assert result["scaling"]["2"]["total_messages"] == 10
 
 
+def test_run_parallel_workers_suite_rejects_non_positive_worker_count(tmp_path) -> None:
+    with pytest.raises(ValueError, match="worker_count must be >= 1"):
+        run_parallel_workers_suite(
+            matrix=[0],
+            messages_per_worker=5,
+            bench_logs_dir=tmp_path,
+            messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+        )
+
+
+def test_run_async_concurrent_suite_rejects_non_positive_task_count() -> None:
+    class _FakeLogger:
+        async def log_batch(self, _messages) -> None:
+            return None
+
+    async def _run() -> dict:
+        return await run_async_concurrent_suite(
+            matrix=[0],
+            messages_per_task=3,
+            create_logger=lambda _count: _FakeLogger(),
+            flush_async=lambda _logger: asyncio.sleep(0),
+            close_async=lambda _logger: asyncio.sleep(0),
+            messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+        )
+
+    with pytest.raises(ValueError, match="task_count must be >= 1"):
+        asyncio.run(_run())
+
+
 def test_reporting_build_and_write_outputs(tmp_path) -> None:
     payload = build_output_payload(
-        results={"sync_logger": {"messages_per_second": 1.0}},
+        results={
+            "sync_logger": {"messages_per_second": 1.0},
+            "drift_policy": {"status": "disabled", "metrics": {}},
+            "reliability_guards": {
+                "status": "passed",
+                "invariant_violations": [],
+                "path_violations": [],
+                "leak_violations": [],
+            },
+        },
         profile_name="ci_smoke",
         test_config={"typical_single_messages": 10000},
         python_version="3.12.3",
@@ -103,9 +143,17 @@ def test_reporting_build_and_write_outputs(tmp_path) -> None:
     latest_payload = json.loads(latest_path.read_text(encoding="utf-8"))
     assert latest_payload["metadata"]["profile"] == "ci_smoke"
     assert (tmp_path / "benchmark_latest_summary.md").exists()
-    assert (tmp_path / "benchmark_latest_drift.md").exists()
-    assert (tmp_path / "benchmark_latest_invariants.md").exists()
-    assert (tmp_path / "benchmark_latest_leaks.md").exists()
+    assert not (tmp_path / "benchmark_latest_drift.md").exists()
+    assert not (tmp_path / "benchmark_latest_invariants.md").exists()
+    assert not (tmp_path / "benchmark_latest_leaks.md").exists()
+
+
+def test_reporting_write_results_artifacts_validates_missing_timestamp(tmp_path) -> None:
+    with pytest.raises(ValueError, match="metadata.timestamp"):
+        write_results_artifacts(
+            output_payload={"metadata": {}, "results": {}},
+            results_dir=tmp_path,
+        )
 
 
 def test_reporting_helpers_cover_metric_and_detail_formatting() -> None:
@@ -119,3 +167,49 @@ def test_reporting_helpers_cover_metric_and_detail_formatting() -> None:
     assert "- a" in with_details
     without_details = _report_section(title="Y", status="passed", items=[])
     assert "## Details" not in without_details
+
+
+def test_reporting_conditionally_clear_report_removes_stale_files(tmp_path) -> None:
+    timestamped = tmp_path / "benchmark_2026-03-16_16-00-01_drift.md"
+    latest = tmp_path / "benchmark_latest_drift.md"
+    timestamped.write_text("old", encoding="utf-8")
+    latest.write_text("old", encoding="utf-8")
+
+    _conditionally_write_or_clear_report(
+        should_write=False,
+        results_dir=tmp_path,
+        timestamp="2026-03-16_16-00-01",
+        prefix="drift",
+        body="unused",
+    )
+    assert not timestamped.exists()
+    assert not latest.exists()
+
+
+def test_reporting_conditionally_clear_report_logs_unlink_failure(
+    monkeypatch, caplog, tmp_path
+) -> None:
+    timestamped = tmp_path / "benchmark_2026-03-16_16-00-02_leaks.md"
+    latest = tmp_path / "benchmark_latest_leaks.md"
+    timestamped.write_text("old", encoding="utf-8")
+    latest.write_text("old", encoding="utf-8")
+
+    original_unlink = Path.unlink
+    call_count = {"n": 0}
+
+    def _broken_unlink(path_obj, *args, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            raise OSError("cannot unlink")
+        return original_unlink(path_obj, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", _broken_unlink)
+    with caplog.at_level("ERROR", logger="benchmark.reporting"):
+        _conditionally_write_or_clear_report(
+            should_write=False,
+            results_dir=tmp_path,
+            timestamp="2026-03-16_16-00-02",
+            prefix="leaks",
+            body="unused",
+        )
+    assert "Failed clearing suppressed benchmark report prefix=leaks" in caplog.text

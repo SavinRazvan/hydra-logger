@@ -10,10 +10,13 @@ Notes:
  - Builds default/development/production configuration profiles.
 """
 
+import logging
 from pathlib import Path
 from typing import Callable, Dict, Optional
 
 from .models import LogDestination, LoggingConfig, LogLayer
+
+_logger = logging.getLogger(__name__)
 
 class ConfigurationTemplates:
     """Predefined configuration builders for common runtime profiles."""
@@ -74,135 +77,139 @@ class ConfigurationTemplates:
         **extra_options,
     ) -> LoggingConfig:
         """Build a custom configuration with optional feature toggles and layers."""
-        # Build destinations based on user preferences
-        destinations = []
+        try:
+            # Build destinations based on user preferences
+            destinations = []
 
-        if console_enabled:
-            # Use async_console for better performance (non-blocking I/O)
-            destinations.append(
-                LogDestination(
-                    type="async_console", format="plain-text", use_colors=False
-                )
-            )
-
-        if file_enabled:
-            # Extract just the filename from the path to avoid nested directories
-            filename = Path(file_path).name if file_path else "app.log"
-            destinations.append(
-                LogDestination(
-                    type="file",
-                    path=filename,
-                    format=file_format,
-                    max_size="10MB",
-                    backup_count=5,
-                )
-            )
-
-        if not destinations:
-            # Fallback to async_console if no destinations specified (better
-            # performance)
-            destinations.append(
-                LogDestination(
-                    type="async_console", format="plain-text", use_colors=False
-                )
-            )
-
-        # Build layers
-        layers = {"default": LogLayer(level=default_level, destinations=destinations)}
-
-        # Add error layer if requested
-        if error_layer:
-            layers["error"] = LogLayer(
-                level="ERROR",
-                destinations=[
+            if console_enabled:
+                # Use async_console for better performance (non-blocking I/O)
+                destinations.append(
                     LogDestination(
-                        type="file",
-                        path="error.log",
-                        format="json-lines",
-                        max_size="5MB",
-                        backup_count=3,
+                        type="async_console", format="plain-text", use_colors=False
                     )
-                ],
-            )
+                )
 
-        # Add debug layer if requested
-        if debug_layer:
-            layers["debug"] = LogLayer(
-                level="DEBUG",
-                destinations=[
+            if file_enabled:
+                # Extract just the filename from the path to avoid nested directories
+                filename = Path(file_path).name if file_path else "app.log"
+                destinations.append(
                     LogDestination(
                         type="file",
-                        path="debug.log",
-                        format="fast-plain",
-                        max_size="5MB",
-                        backup_count=2,
-                    )
-                ],
-            )
-
-        # Add warning layer if requested
-        if warning_layer:
-            layers["warning"] = LogLayer(
-                level="WARNING",
-                destinations=[
-                    LogDestination(
-                        type="file",
-                        path="warning.log",
-                        format="json-lines",
-                        max_size="5MB",
-                        backup_count=3,
-                    )
-                ],
-            )
-
-        # Add info layer if requested
-        if info_layer:
-            layers["info"] = LogLayer(
-                level="INFO",
-                destinations=[
-                    LogDestination(
-                        type="file",
-                        path="info.log",
-                        format="json-lines",
+                        path=filename,
+                        format=file_format,
                         max_size="10MB",
                         backup_count=5,
                     )
-                ],
-            )
+                )
 
-        # Add critical layer if requested
-        if critical_layer:
-            layers["critical"] = LogLayer(
-                level="CRITICAL",
-                destinations=[
-                    LogDestination(
-                        type="file",
-                        path="critical.log",
-                        format="json-lines",
-                        max_size="2MB",
-                        backup_count=10,
-                    ),
+            if not destinations:
+                # Fallback to async_console if no destinations specified (better
+                # performance)
+                destinations.append(
                     LogDestination(
                         type="async_console", format="plain-text", use_colors=False
-                    ),
-                ],
+                    )
+                )
+
+            # Build layers
+            layers = {"default": LogLayer(level=default_level, destinations=destinations)}
+
+            # Add error layer if requested
+            if error_layer:
+                layers["error"] = LogLayer(
+                    level="ERROR",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="error.log",
+                            format="json-lines",
+                            max_size="5MB",
+                            backup_count=3,
+                        )
+                    ],
+                )
+
+            # Add debug layer if requested
+            if debug_layer:
+                layers["debug"] = LogLayer(
+                    level="DEBUG",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="debug.log",
+                            format="fast-plain",
+                            max_size="5MB",
+                            backup_count=2,
+                        )
+                    ],
+                )
+
+            # Add warning layer if requested
+            if warning_layer:
+                layers["warning"] = LogLayer(
+                    level="WARNING",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="warning.log",
+                            format="json-lines",
+                            max_size="5MB",
+                            backup_count=3,
+                        )
+                    ],
+                )
+
+            # Add info layer if requested
+            if info_layer:
+                layers["info"] = LogLayer(
+                    level="INFO",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="info.log",
+                            format="json-lines",
+                            max_size="10MB",
+                            backup_count=5,
+                        )
+                    ],
+                )
+
+            # Add critical layer if requested
+            if critical_layer:
+                layers["critical"] = LogLayer(
+                    level="CRITICAL",
+                    destinations=[
+                        LogDestination(
+                            type="file",
+                            path="critical.log",
+                            format="json-lines",
+                            max_size="2MB",
+                            backup_count=10,
+                        ),
+                        LogDestination(
+                            type="async_console", format="plain-text", use_colors=False
+                        ),
+                    ],
+                )
+
+            # Add custom layers (UNLIMITED)
+            if custom_layers:
+                layers.update(custom_layers)
+
+            return LoggingConfig(
+                default_level=default_level,
+                enable_security=enable_security,
+                enable_sanitization=enable_sanitization,
+                enable_plugins=enable_plugins,
+                enable_performance_monitoring=enable_performance_monitoring,
+                buffer_size=buffer_size,
+                flush_interval=flush_interval,
+                layers=layers,
+                **extra_options,
             )
-
-        # Add custom layers (UNLIMITED)
-        if custom_layers:
-            layers.update(custom_layers)
-
-        return LoggingConfig(
-            default_level=default_level,
-            enable_security=enable_security,
-            enable_sanitization=enable_sanitization,
-            enable_plugins=enable_plugins,
-            enable_performance_monitoring=enable_performance_monitoring,
-            buffer_size=buffer_size,
-            flush_interval=flush_interval,
-            layers=layers,
-            **extra_options,
-        )
+        except Exception as exc:
+            _logger.exception("Failed building custom logging configuration: %s", exc)
+            raise
 
     @staticmethod
     def get_development_config() -> LoggingConfig:
@@ -268,6 +275,7 @@ def get_named_config(name: str, **options) -> LoggingConfig:
     """Resolve a named configuration builder and return its result."""
     if name not in DEFAULT_CONFIGS:
         available = list(DEFAULT_CONFIGS.keys())
+        _logger.error("Unknown configuration name requested: %s", name)
         raise ValueError(f"Unknown configuration name: {name}. Available: {available}")
 
     if name == "custom":

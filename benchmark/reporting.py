@@ -15,10 +15,16 @@ from __future__ import annotations
 
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import shutil
 from typing import Any
 
+from benchmark.dev_logging import get_logger
+
+
+_logger = get_logger(__name__)
+_DETAILED_REPORT_ENV = "HYDRA_BENCHMARK_VERBOSE_REPORTS"
 
 def make_serializable(obj: Any) -> Any:
     """Recursively convert values to JSON-serializable forms."""
@@ -72,19 +78,28 @@ def write_results_artifacts(
     results_dir: Path,
 ) -> Path:
     """Write timestamped and latest benchmark result artifacts."""
-    results_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = str(output_payload["metadata"]["timestamp"])
-    output_file = results_dir / f"benchmark_{timestamp}.json"
-    output_file.write_text(json.dumps(output_payload, indent=2), encoding="utf-8")
+    try:
+        results_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = str(output_payload["metadata"]["timestamp"])
+        output_file = results_dir / f"benchmark_{timestamp}.json"
+        output_file.write_text(json.dumps(output_payload, indent=2), encoding="utf-8")
 
-    latest_file = results_dir / "benchmark_latest.json"
-    shutil.copy2(output_file, latest_file)
-    _write_auxiliary_reports(
-        output_payload=output_payload,
-        results_dir=results_dir,
-        timestamp=timestamp,
-    )
-    return output_file
+        latest_file = results_dir / "benchmark_latest.json"
+        shutil.copy2(output_file, latest_file)
+        _write_auxiliary_reports(
+            output_payload=output_payload,
+            results_dir=results_dir,
+            timestamp=timestamp,
+        )
+        return output_file
+    except KeyError as exc:
+        _logger.exception("Benchmark output payload is missing required metadata fields")
+        raise ValueError(
+            "Invalid benchmark output payload: missing metadata.timestamp"
+        ) from exc
+    except OSError as exc:
+        _logger.exception("Benchmark artifact persistence failed in %s", results_dir)
+        raise OSError(f"Failed to persist benchmark artifacts in {results_dir}") from exc
 
 
 def _write_auxiliary_reports(
@@ -125,34 +140,63 @@ def _write_auxiliary_reports(
         prefix="summary",
         body="\n".join(summary_lines) + "\n",
     )
-    _write_report_files(
+    drift_status = (
+        str(drift.get("status", "unknown")) if isinstance(drift, dict) else "unknown"
+    )
+    drift_items = _flatten_metric_statuses(
+        drift.get("metrics", {}) if isinstance(drift, dict) else {}
+    )
+    invariant_status = "failed" if invariant_violations else "passed"
+    invariant_items = [str(item) for item in invariant_violations]
+    leak_status = "failed" if leak_violations or path_violations else "passed"
+    leak_items = [str(item) for item in [*path_violations, *leak_violations]]
+
+    verbose_reports = str(os.getenv(_DETAILED_REPORT_ENV, "")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    report_plan = {
+        "drift": verbose_reports
+        or drift_status not in {"disabled", "passed"}
+        or len(drift_items) > 0,
+        "invariants": verbose_reports
+        or invariant_status != "passed"
+        or len(invariant_items) > 0,
+        "leaks": verbose_reports or leak_status != "passed" or len(leak_items) > 0,
+    }
+
+    _conditionally_write_or_clear_report(
+        should_write=report_plan["drift"],
         results_dir=results_dir,
         timestamp=timestamp,
         prefix="drift",
         body=_report_section(
             title="Drift Verdict",
-            status=str(drift.get("status", "unknown")) if isinstance(drift, dict) else "unknown",
-            items=_flatten_metric_statuses(drift.get("metrics", {}) if isinstance(drift, dict) else {}),
+            status=drift_status,
+            items=drift_items,
         ),
     )
-    _write_report_files(
+    _conditionally_write_or_clear_report(
+        should_write=report_plan["invariants"],
         results_dir=results_dir,
         timestamp=timestamp,
         prefix="invariants",
         body=_report_section(
             title="Invariant Report",
-            status="failed" if invariant_violations else "passed",
-            items=[str(item) for item in invariant_violations],
+            status=invariant_status,
+            items=invariant_items,
         ),
     )
-    _write_report_files(
+    _conditionally_write_or_clear_report(
+        should_write=report_plan["leaks"],
         results_dir=results_dir,
         timestamp=timestamp,
         prefix="leaks",
         body=_report_section(
             title="Leak Guard Report",
-            status="failed" if leak_violations or path_violations else "passed",
-            items=[str(item) for item in [*path_violations, *leak_violations]],
+            status=leak_status,
+            items=leak_items,
         ),
     )
 
@@ -189,7 +233,45 @@ def _write_report_files(
     body: str,
 ) -> None:
     """Write timestamped and latest markdown report files."""
+    try:
+        timestamped = results_dir / f"benchmark_{timestamp}_{prefix}.md"
+        latest = results_dir / f"benchmark_latest_{prefix}.md"
+        timestamped.write_text(body, encoding="utf-8")
+        shutil.copy2(timestamped, latest)
+    except OSError as exc:
+        _logger.exception(
+            "Benchmark report persistence failed for prefix=%s timestamp=%s",
+            prefix,
+            timestamp,
+        )
+        raise OSError(
+            f"Failed to persist benchmark report files for prefix '{prefix}'"
+        ) from exc
+
+
+def _conditionally_write_or_clear_report(
+    *,
+    should_write: bool,
+    results_dir: Path,
+    timestamp: str,
+    prefix: str,
+    body: str,
+) -> None:
+    """Write report only when useful; clear stale latest otherwise."""
     timestamped = results_dir / f"benchmark_{timestamp}_{prefix}.md"
     latest = results_dir / f"benchmark_latest_{prefix}.md"
-    timestamped.write_text(body, encoding="utf-8")
-    shutil.copy2(timestamped, latest)
+    if should_write:
+        _write_report_files(
+            results_dir=results_dir,
+            timestamp=timestamp,
+            prefix=prefix,
+            body=body,
+        )
+        return
+    try:
+        if timestamped.exists():
+            timestamped.unlink()
+        if latest.exists():
+            latest.unlink()
+    except OSError:
+        _logger.exception("Failed clearing suppressed benchmark report prefix=%s", prefix)

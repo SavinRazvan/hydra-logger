@@ -15,6 +15,7 @@ Notes:
  - Provides string normalization, formatting, and sanitization helpers.
 """
 
+import logging
 import hashlib
 import re
 import unicodedata
@@ -22,6 +23,8 @@ from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
+
+_logger = logging.getLogger(__name__)
 
 
 class TextCase(Enum):
@@ -288,6 +291,7 @@ class TextFormatter:
         try:
             return template.format(**kwargs)
         except KeyError as e:
+            _logger.exception("Template formatting failed due to missing key: %s", e)
             raise ValueError(f"Missing template variable: {e}")
 
     @staticmethod

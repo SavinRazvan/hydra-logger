@@ -10,7 +10,10 @@ Notes:
 """
 
 from enum import Enum
+import logging
 from typing import Any, List
+
+_logger = logging.getLogger(__name__)
 
 
 class HandlerType(Enum):
@@ -377,6 +380,7 @@ def get_enum_by_name(enum_class: type[Enum], name: str) -> Any:
     try:
         return enum_class[name]
     except KeyError:
+        _logger.debug("Enum name lookup failed for %s.%s", enum_class.__name__, name)
         return None
 
 

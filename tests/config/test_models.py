@@ -12,7 +12,17 @@ from pathlib import Path
 
 import pytest
 
-from hydra_logger.config.models import LogDestination, LogLayer, LoggingConfig
+from hydra_logger.config.models import (
+    ConsoleHandlerConfig,
+    FileHandlerConfig,
+    HandlerConfig,
+    LogDestination,
+    LogLayer,
+    LoggingConfig,
+    MemoryHandlerConfig,
+    ModularConfig,
+)
+from hydra_logger.config.validation import normalize_level
 
 
 def test_logging_config_auto_creates_default_layer_when_missing() -> None:
@@ -40,3 +50,226 @@ def test_logging_config_resolve_log_path_applies_format_extension(tmp_path: Path
 def test_log_destination_requires_path_for_file_destinations() -> None:
     with pytest.raises(ValueError, match="Path is required for file destinations"):
         LogDestination(type="file")
+
+
+def test_normalize_level_logs_invalid_values(caplog) -> None:
+    with caplog.at_level("ERROR", logger="hydra_logger.config.validation"):
+        with pytest.raises(ValueError, match="Invalid level"):
+            normalize_level("not-a-level")
+    assert "Invalid log level received" in caplog.text
+
+
+def test_log_destination_validators_and_extension_rules() -> None:
+    auto_json = LogDestination(type="file", path="events.jsonl")
+    assert auto_json.format == "json-lines"
+
+    auto_log = LogDestination(type="file", path="events.log")
+    assert auto_log.format == "plain-text"
+
+    with pytest.raises(ValueError, match="Format mismatch"):
+        LogDestination(type="file", path="events.csv", format="json-lines")
+
+    with pytest.raises(ValueError, match="Service type is required"):
+        LogDestination(type="async_cloud")
+
+    with pytest.raises(ValueError, match="Invalid log format"):
+        LogDestination(type="console", format="bad-format")
+
+    with pytest.raises(ValueError, match="Invalid log level"):
+        LogDestination(type="console", level="invalid")
+
+    assert LogDestination(type="console", level="warning").level == "WARNING"
+    assert LogDestination(type="console", level=None).level is None
+    assert LogDestination(type="console", format="").format is None
+
+
+def test_log_layer_validators_for_level_color_and_destinations() -> None:
+    layer = LogLayer(
+        level="debug",
+        color="Bright_Cyan",
+        destinations=[LogDestination(type="console")],
+    )
+    assert layer.level == "DEBUG"
+    assert layer.color == "bright_cyan"
+
+    ansi_layer = LogLayer(
+        level="INFO",
+        color="\033[31m",
+        destinations=[LogDestination(type="console")],
+    )
+    assert ansi_layer.color == "\033[31m"
+
+    with pytest.raises(ValueError, match="Invalid color"):
+        LogLayer(level="INFO", color="ultraviolet", destinations=[LogDestination(type="console")])
+
+    with pytest.raises(ValueError, match="Layer must have at least one destination"):
+        LogLayer(level="INFO", destinations=[])
+
+    with pytest.raises(ValueError, match="Invalid level"):
+        LogLayer(level="TRACE", destinations=[LogDestination(type="console")])
+
+    assert LogLayer(level="INFO", color=None, destinations=[LogDestination(type="console")]).color is None
+
+
+def test_logging_config_runtime_helpers_and_toggles(tmp_path: Path) -> None:
+    cfg = LoggingConfig(
+        default_level="INFO",
+        base_log_dir=str(tmp_path / "base"),
+        log_dir_name="app",
+        layers={
+            "api": LogLayer(
+                level="WARNING",
+                destinations=[
+                    LogDestination(type="console"),
+                    LogDestination(type="console", level="ERROR"),
+                ],
+            )
+        },
+    )
+
+    assert cfg.get_layer_threshold("missing") == 20
+    assert cfg.get_layer_threshold("api") == 30
+    assert cfg.get_destination_level("api", 1) == 40
+    assert cfg.get_destination_level("api", 99) == 30
+    assert cfg.get_destination_level("missing") == 20
+
+    cfg.update_security_level("high")
+    assert cfg.security_level == "high"
+    with pytest.raises(ValueError, match="Invalid security level"):
+        cfg.update_security_level("very_high")
+
+    cfg.update_monitoring_config(detail_level="detailed", sample_rate=55, background=False)
+    assert cfg.monitoring_detail_level == "detailed"
+    assert cfg.monitoring_sample_rate == 55
+    assert cfg.monitoring_background is False
+
+    with pytest.raises(ValueError, match="Invalid monitoring detail level"):
+        cfg.update_monitoring_config(detail_level="verbose")
+    with pytest.raises(ValueError, match="Invalid sample rate"):
+        cfg.update_monitoring_config(sample_rate=0)
+
+    cfg.toggle_feature("security", True)
+    cfg.toggle_feature("sanitization", True)
+    cfg.toggle_feature("plugins", True)
+    cfg.toggle_feature("monitoring", True)
+    with pytest.raises(ValueError, match="Unknown feature"):
+        cfg.toggle_feature("unknown", True)
+
+    summary = cfg.get_configuration_summary()
+    assert summary["security"]["enabled"] is True
+    assert summary["monitoring"]["enabled"] is True
+    assert summary["paths"]["default_log_path"]
+
+
+def test_logging_config_path_resolution_and_fallback(monkeypatch, tmp_path: Path) -> None:
+    cfg = LoggingConfig(base_log_dir=str(tmp_path / "root"), layers={})
+    cfg._verbose = True
+
+    default_path = cfg.get_default_log_path()
+    assert default_path.endswith("root")
+
+    ensured = cfg.ensure_log_directory(str(tmp_path / "custom-dir"))
+    assert Path(ensured).exists()
+
+    absolute_target = tmp_path / "absolute.log"
+    resolved_abs = cfg.resolve_log_path(str(absolute_target), format_type="csv")
+    assert resolved_abs.endswith(".csv")
+
+    resolved_prefixed = cfg.resolve_log_path("logs/prefixed.log")
+    assert str(Path.cwd() / "logs" / "prefixed.log") == resolved_prefixed
+
+    resolved_relative = cfg.resolve_log_path("events.log", format_type="binary-compact")
+    assert resolved_relative.endswith(".bin")
+
+    original_mkdir = Path.mkdir
+    calls = {"count": 0}
+
+    def flaky_mkdir(self, *args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise OSError("primary path creation failed")
+        return original_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", flaky_mkdir)
+    fallback_path = cfg.resolve_log_path("fallback.log")
+    assert "logs" in fallback_path
+
+    cfg_no_base = LoggingConfig(layers={})
+    assert "logs" in cfg_no_base.get_default_log_path()
+    ensured_default = cfg_no_base.ensure_log_directory()
+    assert Path(ensured_default).exists()
+
+    tilde_resolved = cfg.resolve_log_path("~/hydra-test.log")
+    assert "hydra-test.log" in tilde_resolved
+
+    cfg_rel_base = LoggingConfig(base_log_dir="relative-logs", layers={})
+    rel_resolved = cfg_rel_base.resolve_log_path("subdir/app.log")
+    assert "relative-logs" in rel_resolved
+
+
+def test_logging_config_validation_and_layer_management() -> None:
+    cfg = LoggingConfig(layers={})
+    layer = LogLayer(level="INFO", destinations=[LogDestination(type="console")])
+    cfg.add_layer("api", layer)
+    assert cfg.get_layer_destinations("api")
+    cfg.remove_layer("api")
+    assert cfg.get_layer_destinations("api") == []
+
+    invalid_layer = LogLayer.model_construct(level="INFO", destinations=[])
+    invalid_cfg = LoggingConfig.model_construct(
+        default_level="INFO",
+        layers={"broken": invalid_layer},
+    )
+    with pytest.raises(ValueError, match="Configuration validation failed"):
+        invalid_cfg.validate_configuration()
+
+    invalid_dest = LogDestination.model_construct(type="file", path=None, level=None)
+    bad_layer = LogLayer.model_construct(level="INFO", destinations=[invalid_dest])
+    invalid_cfg_2 = LoggingConfig.model_construct(default_level="INFO", layers={"bad": bad_layer})
+    with pytest.raises(ValueError, match="Configuration validation failed"):
+        invalid_cfg_2.validate_configuration()
+
+
+def test_logging_config_field_boundaries_and_handler_models() -> None:
+    with pytest.raises(ValueError, match="Invalid default level"):
+        LoggingConfig(default_level="TRACE")
+    with pytest.raises(ValueError, match="Buffer size cannot exceed 1MB"):
+        LoggingConfig(buffer_size=2 * 1024 * 1024)
+    with pytest.raises(ValueError, match="Flush interval cannot exceed 1 hour"):
+        LoggingConfig(flush_interval=3601)
+    with pytest.raises(ValueError, match="Monitoring sample rate cannot exceed 10,000"):
+        LoggingConfig(monitoring_sample_rate=10001)
+    assert LoggingConfig(monitoring_sample_rate=10000).monitoring_sample_rate == 10000
+
+    handler = HandlerConfig(type="base")
+    file_handler = FileHandlerConfig(file_path="a.log")
+    console_handler = ConsoleHandlerConfig(stream="stderr")
+    memory_handler = MemoryHandlerConfig(capacity=50)
+    modular = ModularConfig.from_dict({"handlers": [handler], "level": "WARNING"})
+    legacy = modular.to_legacy_format()
+
+    assert file_handler.type == "file"
+    assert console_handler.stream == "stderr"
+    assert memory_handler.capacity == 50
+    assert legacy["level"] == "WARNING"
+    assert legacy["handlers"][0]["type"] == "base"
+
+
+def test_get_destination_level_final_default_fallback_with_constructed_layer() -> None:
+    layer_without_level = LogLayer.model_construct(
+        level=None,
+        destinations=[LogDestination(type="console", level=None)],
+    )
+    cfg = LoggingConfig.model_construct(default_level="INFO", layers={"x": layer_without_level})
+    assert cfg.get_destination_level("x", 0) == 20
+
+
+def test_normalize_level_handles_non_string_conversion_failure(caplog) -> None:
+    class BadStr:
+        def __str__(self) -> str:
+            raise RuntimeError("boom")
+
+    with caplog.at_level("ERROR", logger="hydra_logger.config.validation"):
+        with pytest.raises(RuntimeError, match="boom"):
+            normalize_level(BadStr())
+    assert "Failed to normalize log level value" in caplog.text

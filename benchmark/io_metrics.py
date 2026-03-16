@@ -16,6 +16,11 @@ import os
 from pathlib import Path
 from typing import Any
 
+from benchmark.dev_logging import get_logger
+
+
+_logger = get_logger(__name__)
+
 
 def count_written_lines(file_path: str | Path) -> int:
     """Best-effort line counter for line-based output files."""
@@ -26,6 +31,7 @@ def count_written_lines(file_path: str | Path) -> int:
         with path.open("r", encoding="utf-8", errors="ignore") as handle:
             return sum(1 for _ in handle)
     except Exception:
+        _logger.exception("Failed counting lines in benchmark output file: %s", path)
         return 0
 
 
@@ -41,6 +47,10 @@ def extract_handler_bytes_written(logger: Any, layer_name: str = "default") -> i
             if "total_bytes_written" in stats:
                 max_bytes = max(max_bytes, int(stats["total_bytes_written"]))
     except Exception:
+        _logger.exception(
+            "Failed extracting handler byte counters for layer '%s'",
+            layer_name,
+        )
         return 0
     return max_bytes
 
@@ -58,15 +68,24 @@ def resolve_bytes_written(
     """
     path = Path(file_path)
     if path.exists():
-        final_size = os.path.getsize(path)
-        file_bytes = max(final_size - int(initial_size), 0)
-        bytes_written = int(handler_bytes) if int(handler_bytes) > 0 else file_bytes
-        return {
-            "file_exists": True,
-            "final_size": final_size,
-            "file_bytes": file_bytes,
-            "bytes_written": bytes_written,
-        }
+        try:
+            final_size = os.path.getsize(path)
+            file_bytes = max(final_size - int(initial_size), 0)
+            bytes_written = int(handler_bytes) if int(handler_bytes) > 0 else file_bytes
+            return {
+                "file_exists": True,
+                "final_size": final_size,
+                "file_bytes": file_bytes,
+                "bytes_written": bytes_written,
+            }
+        except Exception:
+            _logger.exception("Failed resolving byte counts for benchmark file: %s", path)
+            return {
+                "file_exists": False,
+                "final_size": 0,
+                "file_bytes": 0,
+                "bytes_written": max(int(handler_bytes), 0),
+            }
     return {
         "file_exists": False,
         "final_size": 0,

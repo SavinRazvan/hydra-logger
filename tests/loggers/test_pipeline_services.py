@@ -40,3 +40,17 @@ def test_handler_dispatcher_sync_calls_handle() -> None:
     handler = DummyHandler()
     dispatcher.dispatch_sync(record=object(), handlers=[handler])
     assert handler.calls == 1
+
+
+def test_layer_router_handles_threshold_resolution_error(caplog) -> None:
+    class BrokenLayer:
+        @property
+        def level(self):
+            raise RuntimeError("broken level")
+
+    router = LayerRouter({"x": BrokenLayer()}, {}, {}, {})
+    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.layer_router"):
+        threshold = router.layer_threshold("x", "INFO")
+
+    assert threshold >= 0
+    assert "Layer threshold resolution failed for layer=x default_level=INFO" in caplog.text

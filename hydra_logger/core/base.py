@@ -10,7 +10,10 @@ Notes:
 """
 
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, Dict
+
+_logger = logging.getLogger(__name__)
 
 
 class BaseComponent(ABC):
@@ -54,7 +57,13 @@ class BaseComponent(ABC):
 
     def update_config(self, config: Dict[str, Any]) -> None:
         """Update the component configuration."""
-        self._config.update(config)
+        try:
+            self._config.update(config)
+        except Exception:
+            _logger.exception(
+                "Component config update failed for component=%s", self.name
+            )
+            raise
 
 
 class BaseLogger(BaseComponent):

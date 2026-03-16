@@ -146,3 +146,22 @@ def test_composite_async_logger_flush_direct_io_clears_buffer_on_write_failure(
     logger._flush_direct_io()
     assert logger._direct_io_buffer == []
     logger.close()
+
+
+def test_composite_logger_level_helpers_and_context_manager_close() -> None:
+    comp = DummyComponent("level")
+    with CompositeLogger(components=[comp]) as logger:
+        logger.debug("d")
+        logger.warning("w")
+        logger.error("e")
+        logger.critical("c")
+    assert comp.closed is True
+
+
+def test_composite_logger_log_batch_noop_when_closed_or_empty() -> None:
+    comp = DummyComponent("noop")
+    logger = CompositeLogger(components=[comp])
+    logger.log_batch([])
+    logger.close()
+    logger.log_batch([("INFO", "m", {})])
+    assert comp.messages == []

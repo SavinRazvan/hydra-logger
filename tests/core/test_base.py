@@ -93,3 +93,14 @@ def test_base_formatter_plugin_monitor_helpers() -> None:
     monitor = DummyMonitor("m")
     monitor.update_metric("count", 3)
     assert monitor.get_metrics()["count"] == 3
+
+
+def test_base_component_logs_config_update_failures(caplog) -> None:
+    logger = DummyLogger("x")
+    logger._config = None  # force update failure path
+    with caplog.at_level("ERROR", logger="hydra_logger.core.base"):
+        try:
+            logger.update_config({"a": 1})
+        except Exception:
+            pass
+    assert "Component config update failed for component=x" in caplog.text

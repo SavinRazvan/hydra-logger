@@ -12,6 +12,7 @@ Notes:
  - Defines configuration models and validation rules for runtime setup.
 """
 
+import logging
 import os
 from typing import Any, Dict, List, Literal, Optional
 
@@ -23,6 +24,8 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+_logger = logging.getLogger(__name__)
 
 class LogDestination(BaseModel):
     """Destination-level handler configuration for a logging layer."""
@@ -643,16 +646,17 @@ class LoggingConfig(BaseModel):
 
             # Log directory creation for debugging (only if verbose mode enabled)
             if hasattr(self, "_verbose") and self._verbose:
-                print(f"Created log directory: {final_path.parent}")
+                _logger.info("Created log directory: %s", final_path.parent)
 
-        except Exception:
+        except Exception as exc:
+            _logger.exception("Primary log directory creation failed; using fallback: %s", exc)
             # Fallback: try to create in current directory
             fallback_path = Path.cwd() / "logs" / destination_path
             fallback_path.parent.mkdir(parents=True, exist_ok=True)
             final_path = fallback_path
 
             if hasattr(self, "_verbose") and self._verbose:
-                print(f"Warning: Fallback log path created: {fallback_path}")
+                _logger.warning("Fallback log path created: %s", fallback_path)
 
         # Override file extension based on format for proper file type identification
         if format_type:

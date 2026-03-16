@@ -39,13 +39,25 @@ Coverage is required as evidence, not vanity:
 - report residual gaps explicitly in PR notes;
 - tighten global threshold incrementally (coverage ratchet) rather than one-time jumps.
 
-Current CI runs coverage reporting with a permissive threshold. Raise the threshold in planned increments once baseline is stable.
+Current CI/prepare ratchet stage (2026-03 baseline):
+
+- `hydra_logger` fail-under: `60`
+- `benchmark` package fail-under: `100`
+
+Planned enterprise ratchet sequence for `hydra_logger`:
+
+- Stage 1: `60` (active)
+- Stage 2: `70`
+- Stage 3: `80`
+- Stage 4: `90`
+- Stage 5: `95`
 
 ## CI/CD Contract
 
 CI pipeline (`.github/workflows/ci.yml`) executes:
 
-- tests with coverage (`pytest tests/ --cov=hydra_logger ...`);
+- tests with coverage (`pytest tests/ --cov=hydra_logger --cov-fail-under=60 ...`);
+- benchmark package coverage (`pytest tests/benchmark --cov=benchmark --cov-fail-under=100`);
 - lint and static quality checks;
 - build validation and security scans.
 - benchmark automation profiles:
@@ -59,6 +71,7 @@ Nightly benchmark workflow (`.github/workflows/benchmark-nightly.yml`) executes:
 PR preparation (`scripts/pr/prepare.py`) enforces:
 
 - `python -m pytest -q`
+- `python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=60 -q`
 - `python scripts/pr/check_slim_headers.py --all-python --strict`
 
 ## PR Expectations
@@ -66,7 +79,7 @@ PR preparation (`scripts/pr/prepare.py`) enforces:
 Before merge:
 
 - changed modules have corresponding tests;
-- obsolete tests are removed or updated;
+- obsolete tests follow quarantine-first handling and are then removed or updated;
 - edge-case coverage is demonstrated;
 - remaining risks/gaps are documented.
 

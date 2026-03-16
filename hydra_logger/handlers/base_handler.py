@@ -12,11 +12,15 @@ Notes:
 """
 
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, Dict, Optional
 
 from ..formatters.base import BaseFormatter
 from ..types.records import LogRecord
 from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
+
+
+_logger = logging.getLogger(__name__)
 
 
 class BaseHandler(ABC):
@@ -96,6 +100,10 @@ class BaseHandler(ABC):
             try:
                 self._formatter_name = formatter.get_format_name()
             except Exception:
+                _logger.exception(
+                    "Failed to resolve formatter name for handler=%s",
+                    self.name,
+                )
                 self._formatter_name = "unknown"
         else:
             self._formatter_name = None

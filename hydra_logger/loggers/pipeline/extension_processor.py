@@ -9,7 +9,12 @@ Notes:
  - Keeps extension handling isolated from logger orchestration flow.
 """
 
+import logging
+
 from ...types.records import LogRecord
+
+
+_logger = logging.getLogger(__name__)
 
 
 class ExtensionProcessor:
@@ -21,5 +26,8 @@ class ExtensionProcessor:
             try:
                 record.message = data_protection.process(record.message)
             except Exception:
-                pass
+                _logger.exception(
+                    "Data protection extension failed for type=%s",
+                    type(data_protection).__name__,
+                )
         return record

@@ -16,7 +16,6 @@ Use one folder per production module when tests are added:
 ```text
 tests/
   README.md
-  test_placeholder.py
   loggers/
     test_sync_logger_*.py
     test_async_logger_*.py
@@ -54,11 +53,12 @@ For every changed module, include coverage for:
 4. Regression scenarios for previously fixed bugs.
 5. Lifecycle behavior where relevant (init/cleanup/shutdown, especially async).
 
-## Obsolete Test Policy
+## Obsolete Test Policy (Quarantine-First)
 
 When removing or changing behavior:
 
-- Remove or update matching module test files in the same PR.
+- First quarantine outdated tests with explicit tracker mapping and replacement target.
+- Then remove or update matching module test files in the same PR/slice once replacement coverage is in place.
 - Do not keep dead tests for removed features.
 - Document accepted coverage gaps in PR notes when intentionally deferred.
 

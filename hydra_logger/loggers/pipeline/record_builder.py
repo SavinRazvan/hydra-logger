@@ -10,10 +10,14 @@ Notes:
  - Wraps logger record creation to keep hot-path logic centralized.
 """
 
+import logging
 from typing import Any, Dict, Union
 
 from ...types.levels import LogLevelManager
 from ...types.records import LogRecord
+
+
+_logger = logging.getLogger(__name__)
 
 
 class RecordBuilder:
@@ -24,13 +28,21 @@ class RecordBuilder:
 
     def normalize_level(self, level: Union[str, int]) -> int:
         """Normalize level input into numeric representation."""
-        if isinstance(level, str):
-            return LogLevelManager.get_level(level)
-        return int(level)
+        try:
+            if isinstance(level, str):
+                return LogLevelManager.get_level(level)
+            return int(level)
+        except Exception:
+            _logger.exception("Record level normalization failed for level=%r", level)
+            raise
 
     def create(
         self, level: Union[str, int], message: str, **kwargs: Dict[str, Any]
     ) -> LogRecord:
         """Create a `LogRecord` using logger's standardized strategy."""
-        normalized = self.normalize_level(level)
-        return self._logger.create_log_record(normalized, message, **kwargs)
+        try:
+            normalized = self.normalize_level(level)
+            return self._logger.create_log_record(normalized, message, **kwargs)
+        except Exception:
+            _logger.exception("Record creation failed for message=%r", message)
+            raise

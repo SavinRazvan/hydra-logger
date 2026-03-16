@@ -17,7 +17,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from benchmark.dev_logging import get_logger
 from hydra_logger.config.models import LoggingConfig
+
+
+_logger = get_logger(__name__)
 
 
 def rebase_file_destinations_to_benchmark_logs(
@@ -43,7 +47,7 @@ def disable_direct_io_if_available(logger: Any) -> None:
         try:
             logger._use_direct_io = False
         except Exception:
-            pass
+            _logger.exception("Failed disabling direct I/O flag on logger")
 
 
 def ensure_composite_file_target(*, logger: Any, prefix: str, build_log_path: Any) -> None:
@@ -74,6 +78,7 @@ def validate_result_paths(
                     try:
                         resolved = Path(value).resolve()
                     except Exception:
+                        _logger.exception("Invalid benchmark path value encountered: %r", value)
                         violations.append(f"{next_trail}: invalid path value {value!r}")
                         continue
                     if not any(resolved.is_relative_to(root) for root in normalized_roots):

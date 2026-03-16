@@ -16,13 +16,27 @@ import json
 from pathlib import Path
 from typing import Any
 
+from benchmark.dev_logging import get_logger
+
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema" / "result_schema.json"
+_logger = get_logger(__name__)
 
 
 def load_result_schema() -> dict[str, Any]:
     """Load benchmark result JSON schema payload."""
-    return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    try:
+        raw_schema = SCHEMA_PATH.read_text(encoding="utf-8")
+        return json.loads(raw_schema)
+    except FileNotFoundError as exc:
+        _logger.exception("Benchmark schema file not found at %s", SCHEMA_PATH)
+        raise FileNotFoundError(f"Benchmark schema file is missing: {SCHEMA_PATH}") from exc
+    except json.JSONDecodeError as exc:
+        _logger.exception("Benchmark schema file is invalid JSON: %s", SCHEMA_PATH)
+        raise ValueError(f"Invalid benchmark schema JSON at {SCHEMA_PATH}") from exc
+    except OSError as exc:
+        _logger.exception("Benchmark schema file read failed at %s", SCHEMA_PATH)
+        raise OSError(f"Could not read benchmark schema file: {SCHEMA_PATH}") from exc
 
 
 def validate_against_schema(payload: dict[str, Any], schema: dict[str, Any]) -> list[str]:
@@ -37,6 +51,34 @@ def validate_against_schema(payload: dict[str, Any], schema: dict[str, Any]) -> 
     """
     violations: list[str] = []
     _validate_node(path="$", value=payload, schema=schema, violations=violations)
+    return violations
+
+
+def validate_legacy_compat_payload(payload: dict[str, Any]) -> list[str]:
+    """
+    Validate minimum compatibility shape for legacy benchmark artifacts.
+
+    This keeps older historical benchmark result files useful for trend/drift
+    analysis even when the strict schema adds new metadata requirements.
+    """
+    violations: list[str] = []
+    if not isinstance(payload, dict):
+        return ["$: expected object payload"]
+
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        violations.append("$.metadata: expected object")
+    else:
+        timestamp = metadata.get("timestamp")
+        if not isinstance(timestamp, str) or not timestamp:
+            violations.append("$.metadata.timestamp: expected non-empty string")
+        profile = metadata.get("profile", "legacy_default")
+        if not isinstance(profile, str) or not profile:
+            violations.append("$.metadata.profile: expected non-empty string")
+
+    results = payload.get("results")
+    if not isinstance(results, dict):
+        violations.append("$.results: expected object")
     return violations
 
 

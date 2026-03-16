@@ -16,11 +16,14 @@ Notes:
 """
 
 import contextvars
+import logging
 import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, Optional
+
+_logger = logging.getLogger(__name__)
 
 
 class ContextType(Enum):
@@ -277,6 +280,7 @@ class ContextDetector:
             )
 
         except Exception:
+            _logger.exception("Caller info detection failed at depth=%s", depth)
             return CallerInfo(
                 filename="<error>", function_name="<error>", line_number=0
             )

@@ -10,16 +10,18 @@ Notes:
  - Creates runtime components through factory APIs for logger factory.
 """
 
+import logging
 from typing import Any, Dict, Optional, cast, Union
 
 from ..config.configuration_templates import configuration_templates
 from ..config.models import LoggingConfig
 from ..loggers.async_logger import AsyncLogger
 from ..loggers.composite_logger import CompositeAsyncLogger, CompositeLogger
-from ..utils import internal_diagnostics as diagnostics
 
 # Setup module removed - simplified architecture
 from ..loggers.sync_logger import SyncLogger
+
+_logger = logging.getLogger(__name__)
 
 
 class LoggerFactory:
@@ -41,7 +43,11 @@ class LoggerFactory:
 
         # Parse configuration
         if isinstance(config, dict):
-            config = LoggingConfig(**config)
+            try:
+                config = LoggingConfig(**config)
+            except Exception as exc:
+                _logger.exception("Invalid logger configuration dict provided: %s", exc)
+                raise
         elif config is None:
             config = self._get_default_config()
 
@@ -95,6 +101,7 @@ class LoggerFactory:
     ) -> Union[SyncLogger, AsyncLogger, CompositeLogger, CompositeAsyncLogger]:
         """Create a logger from a named template configuration."""
         if not configuration_templates.has_template(template_name):
+            _logger.error("Unknown configuration template requested: %s", template_name)
             raise ValueError(f"Unknown configuration template: {template_name}")
 
         config = configuration_templates.get_template(template_name)
@@ -154,9 +161,9 @@ class LoggerFactory:
                 )
 
                 if enabled:
-                    diagnostics.info("Extension '%s' created and enabled", extension_name)
+                    _logger.info("Extension '%s' created and enabled", extension_name)
                 else:
-                    diagnostics.info(
+                    _logger.info(
                         "Extension '%s' created but disabled", extension_name
                     )
 
@@ -164,9 +171,9 @@ class LoggerFactory:
             setattr(config, "_extension_manager", manager)
 
         except ImportError as e:
-            diagnostics.warning("Extension system not available: %s", e)
+            _logger.warning("Extension system not available: %s", e)
         except Exception as e:
-            diagnostics.error("Error setting up extensions: %s", e)
+            _logger.exception("Error setting up extensions: %s", e)
 
     def set_default_config(self, config: LoggingConfig) -> None:
         """Set the default configuration."""

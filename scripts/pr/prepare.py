@@ -22,6 +22,14 @@ from pathlib import Path
 
 BASE_GATES = [
     ["-m", "pytest", "-q"],
+    [
+        "-m",
+        "pytest",
+        "--cov=hydra_logger",
+        "--cov-report=term-missing",
+        "--cov-fail-under=60",
+        "-q",
+    ],
     ["scripts/pr/check_slim_headers.py", "--all-python", "--strict"],
 ]
 

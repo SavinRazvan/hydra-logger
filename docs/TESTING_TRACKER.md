@@ -25,6 +25,24 @@ Copy this block for each discovered issue.
 
 ## Issues
 
+## Quarantine Queue
+
+Use this section to track tests marked for temporary quarantine before deletion.
+
+## QRT-001 Legacy Placeholder Smoke Test
+
+- Module: test harness
+- Production File: n/a
+- Test File: `tests/test_placeholder.py`
+- Test Case: `test_smoke_baseline_passes`
+- Failure: Not a behavior contract; always-pass placeholder offers no safety value.
+- Expected: Module-level tests provide meaningful smoke/behavior coverage.
+- Root Cause (hypothesis): Legacy bootstrap test remained after module-first suite expansion.
+- Severity: low
+- Status: fixed
+- Fix PR/Commit: pending
+- Notes: Quarantined first, then removed after adding `tests/loggers/test_base_logger_contract.py` uplift coverage slice.
+
 ## TST-001 Header Metadata Keyword Violation
 
 - Module: formatters

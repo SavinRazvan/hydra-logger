@@ -12,6 +12,7 @@ Notes:
 import asyncio
 from types import SimpleNamespace
 
+import pytest
 from hydra_logger.loggers.pipeline import (
     ComponentDispatcher,
     ExtensionProcessor,
@@ -83,6 +84,11 @@ class AsyncEmitMethodHandler:
         self.calls += 1
 
 
+class FailingAsyncEmitMethodHandler:
+    async def emit(self, _record) -> None:
+        raise RuntimeError("async emit fail")
+
+
 class DummyDataProtection:
     def __init__(self, enabled: bool = True, should_fail: bool = False) -> None:
         self._enabled = enabled
@@ -139,6 +145,17 @@ def test_record_builder_normalizes_level_and_delegates_create() -> None:
     ]
 
 
+def test_record_builder_logs_and_raises_on_invalid_level(caplog) -> None:
+    logger = DummyLogger()
+    builder = RecordBuilder(logger)
+
+    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.record_builder"):
+        with pytest.raises(Exception):
+            builder.create(object(), "hello")
+
+    assert "Record level normalization failed for level=" in caplog.text
+
+
 def test_handler_dispatcher_sync_prefers_handle_then_tolerates_failure() -> None:
     dispatcher = HandlerDispatcher()
     first = HandleAndEmitHandler()
@@ -154,6 +171,16 @@ def test_handler_dispatcher_sync_prefers_handle_then_tolerates_failure() -> None
     assert first.emitted == 0
     assert failing.calls == 1
     assert last.calls == 1
+
+
+def test_handler_dispatcher_sync_logs_failure_context(caplog) -> None:
+    dispatcher = HandlerDispatcher()
+    failing = FailingHandleHandler()
+
+    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.handler_dispatcher"):
+        dispatcher.dispatch_sync(record=object(), handlers=[failing])
+
+    assert "Sync handler dispatch failed for handler type=FailingHandleHandler" in caplog.text
 
 
 def test_handler_dispatcher_async_supports_mixed_handler_shapes() -> None:
@@ -172,6 +199,19 @@ def test_handler_dispatcher_async_supports_mixed_handler_shapes() -> None:
     assert async_emit.calls == 1
     assert sync_handle.calls == 1
     assert async_emit_method.calls == 1
+
+
+def test_handler_dispatcher_async_logs_failure_context(caplog) -> None:
+    dispatcher = HandlerDispatcher()
+    bad = FailingAsyncEmitMethodHandler()
+
+    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.handler_dispatcher"):
+        asyncio.run(dispatcher.dispatch_async(record=object(), handlers=[bad]))
+
+    assert (
+        "Async handler dispatch failed for handler type=FailingAsyncEmitMethodHandler"
+        in caplog.text
+    )
 
 
 def test_extension_processor_applies_enabled_protection_only() -> None:
@@ -199,6 +239,17 @@ def test_extension_processor_swallows_extension_failures() -> None:
     assert protection.calls == 1
 
 
+def test_extension_processor_logs_extension_failures(caplog) -> None:
+    processor = ExtensionProcessor()
+    record = SimpleNamespace(message="secret")
+    protection = DummyDataProtection(enabled=True, should_fail=True)
+
+    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.extension_processor"):
+        processor.apply_data_protection(record, protection)
+
+    assert "Data protection extension failed for type=DummyDataProtection" in caplog.text
+
+
 def test_component_dispatcher_sync_fanout_tolerates_component_failure() -> None:
     dispatcher = ComponentDispatcher()
     ok = SyncComponent()
@@ -214,6 +265,16 @@ def test_component_dispatcher_sync_fanout_tolerates_component_failure() -> None:
 
     assert ok.calls == [("INFO", "fanout", {"request_id": "r-1"})]
     assert second_ok.calls == [("INFO", "fanout", {"request_id": "r-1"})]
+
+
+def test_component_dispatcher_sync_logs_component_failure(caplog) -> None:
+    dispatcher = ComponentDispatcher()
+    bad = SyncComponent(should_fail=True)
+
+    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.component_dispatcher"):
+        dispatcher.dispatch_sync(components=[bad], level="INFO", message="fanout")
+
+    assert "Sync component dispatch failed for component type=SyncComponent" in caplog.text
 
 
 def test_component_dispatcher_async_mixed_components_and_failure() -> None:
@@ -233,3 +294,19 @@ def test_component_dispatcher_async_mixed_components_and_failure() -> None:
 
     assert async_ok.calls == [("ERROR", "fanout-async", {"request_id": "r-2"})]
     assert sync_ok.calls == [("ERROR", "fanout-async", {"request_id": "r-2"})]
+
+
+def test_component_dispatcher_async_logs_component_failure(caplog) -> None:
+    dispatcher = ComponentDispatcher()
+    bad = AsyncComponent(should_fail=True)
+
+    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.component_dispatcher"):
+        asyncio.run(
+            dispatcher.dispatch_async(
+                components=[bad],
+                level="ERROR",
+                message="fanout-async",
+            )
+        )
+
+    assert "Async component dispatch failed for component type=AsyncComponent" in caplog.text
