@@ -28,4 +28,7 @@
 
 - `baseline_median`: comparison reference from accepted benchmark history.
 - `baseline_p95`: upper-tail comparison reference from accepted history.
-- `drift_pct`: percent difference versus baseline signal.
+- `drift_vs_median_pct`: percent difference from `baseline_median`.
+- `drift_vs_p95_pct`: percent difference from `baseline_p95`.
+- `status`: one of `ok`, `violation_median`, `violation_p95`,
+  `skipped_insufficient_baseline`, `skipped_no_current_metric`.

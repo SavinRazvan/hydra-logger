@@ -1,6 +1,13 @@
 {
   "name": "nightly_truth",
   "description": "Nightly regression and truth-set benchmark profile.",
+  "drift_policy": {
+    "enabled": true,
+    "history_window": 30,
+    "min_baseline_runs": 5,
+    "max_negative_drift_pct_median": 15.0,
+    "max_negative_drift_pct_p95": 25.0
+  },
   "test_config_overrides": {
     "typical_single_messages": 1000000,
     "concurrent_workers": 8,

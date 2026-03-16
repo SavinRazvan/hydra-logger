@@ -1,6 +1,13 @@
 {
   "name": "pr_gate",
   "description": "Pull request decision benchmark profile.",
+  "drift_policy": {
+    "enabled": true,
+    "history_window": 20,
+    "min_baseline_runs": 3,
+    "max_negative_drift_pct_median": 20.0,
+    "max_negative_drift_pct_p95": 30.0
+  },
   "test_config_overrides": {
     "typical_single_messages": 100000,
     "concurrent_workers": 8,
