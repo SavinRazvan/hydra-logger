@@ -249,6 +249,10 @@ def _phase_prepare(
         cmd.extend(["--github-user", github_user])
     if args.skip_gates:
         cmd.append("--skip-gates")
+    if args.skip_benchmark_gate:
+        cmd.append("--skip-benchmark-gate")
+    if args.benchmark_profile:
+        cmd.extend(["--benchmark-profile", args.benchmark_profile])
     _run_or_fail(cmd)
 
 
@@ -447,6 +451,17 @@ def main() -> int:
     )
     parser.add_argument("--draft", action="store_true", default=False)
     parser.add_argument("--skip-gates", action="store_true", default=False)
+    parser.add_argument(
+        "--skip-benchmark-gate",
+        action="store_true",
+        default=False,
+        help="Skip benchmark profile gate during prepare phase.",
+    )
+    parser.add_argument(
+        "--benchmark-profile",
+        default="ci_smoke",
+        help="Benchmark profile name for prepare benchmark gate.",
+    )
     parser.add_argument(
         "--skip-env-check",
         action="store_true",

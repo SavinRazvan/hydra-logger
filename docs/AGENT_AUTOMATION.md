@@ -2,7 +2,9 @@
 
 Use script-first workflow commands to reduce prompt tokens and agent drift.
 
-This document does not replace `AGENTS.md`. Agent behavior and policy stay authoritative in `AGENTS.md`.
+This document is a human-facing command reference.
+Agent behavior and policy are authoritative in `AGENTS.md`.
+When instructions conflict, follow `AGENTS.md`.
 Canonical workflow skill guidance lives in `.agents/skills/PR_WORKFLOW.md`.
 
 ## Profile Defaults
@@ -29,6 +31,11 @@ Preferred one-command implementation start (clean branch + draft PR):
 
 - `python scripts/pr/start_impl.py --branch "feature/<scope>" --title "<title>" --summary "<item>"`
 
+Bootstrap note:
+
+- If GitHub rejects draft PR creation because there are no unique commits yet on the new branch, `start_impl.py` now prints an explicit defer message and exits successfully.
+- In that case, continue implementation, create the first commit via workflow, then run `python scripts/pr/workflow.py --phase create --draft ...`.
+
 Start implementation branch from synced `main`:
 
 - `python scripts/pr/workflow.py --phase start --branch "feature/<scope>"`
@@ -52,6 +59,11 @@ Review phase:
 Prepare phase (runs `pytest -q` + slim header check):
 
 - `python scripts/pr/workflow.py --phase prepare`
+
+Prepare with explicit benchmark gate options:
+
+- `python scripts/pr/workflow.py --phase prepare --benchmark-profile ci_smoke`
+- `python scripts/pr/workflow.py --phase prepare --skip-benchmark-gate` (emergency-only)
 
 Merge phase:
 
@@ -95,6 +107,26 @@ Use one command for branch/PR/artifact/check status:
 - `python scripts/pr/status.py --json`
 
 This avoids repeated manual checks (`git status`, `gh pr view`, `gh pr checks`, artifact inspection).
+
+## Agent Checkpoint Cadence
+
+Run these checkpoints at minimum:
+
+1. Before implementation starts on a slice branch:
+   - `python scripts/pr/status.py --json`
+2. After commit, before review:
+   - `python scripts/pr/status.py --json`
+3. After prepare and before merge:
+   - `python scripts/pr/status.py --json`
+4. After merge/finalize:
+   - `python scripts/pr/status.py --json`
+
+Mandatory evidence for each slice:
+
+- `.local/review.md`
+- `.local/prep.md`
+- `.local/merge.md`
+- latest benchmark artifact set in `benchmark/results/` (JSON + summary/drift/invariants/leaks)
 
 ## Notes
 

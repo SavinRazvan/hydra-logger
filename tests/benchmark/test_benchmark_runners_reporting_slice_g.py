@@ -16,7 +16,12 @@ import json
 from pathlib import Path
 
 import benchmark.runners as runners_mod
-from benchmark.reporting import build_output_payload, write_results_artifacts
+from benchmark.reporting import (
+    _flatten_metric_statuses,
+    _report_section,
+    build_output_payload,
+    write_results_artifacts,
+)
 from benchmark.runners import run_async_concurrent_suite, run_parallel_workers_suite
 
 
@@ -97,3 +102,20 @@ def test_reporting_build_and_write_outputs(tmp_path) -> None:
     assert latest_path.exists()
     latest_payload = json.loads(latest_path.read_text(encoding="utf-8"))
     assert latest_payload["metadata"]["profile"] == "ci_smoke"
+    assert (tmp_path / "benchmark_latest_summary.md").exists()
+    assert (tmp_path / "benchmark_latest_drift.md").exists()
+    assert (tmp_path / "benchmark_latest_invariants.md").exists()
+    assert (tmp_path / "benchmark_latest_leaks.md").exists()
+
+
+def test_reporting_helpers_cover_metric_and_detail_formatting() -> None:
+    assert _flatten_metric_statuses("not-a-dict") == []
+    flattened = _flatten_metric_statuses({"m1": {"status": "ok"}, "m2": "bad-node"})
+    assert "m1: ok" in flattened
+    assert "m2: unknown" in flattened
+
+    with_details = _report_section(title="X", status="passed", items=["a", "b"])
+    assert "## Details" in with_details
+    assert "- a" in with_details
+    without_details = _report_section(title="Y", status="passed", items=[])
+    assert "## Details" not in without_details

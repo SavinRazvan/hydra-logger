@@ -20,9 +20,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-GATES = [
-    ["python", "-m", "pytest", "-q"],
-    ["python", "scripts/pr/check_slim_headers.py", "--all-python", "--strict"],
+BASE_GATES = [
+    ["-m", "pytest", "-q"],
+    ["scripts/pr/check_slim_headers.py", "--all-python", "--strict"],
 ]
 
 
@@ -108,6 +108,17 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--skip-benchmark-gate",
+        action="store_true",
+        default=False,
+        help="Skip benchmark profile gate in prepare checks.",
+    )
+    parser.add_argument(
+        "--benchmark-profile",
+        default="ci_smoke",
+        help="Benchmark profile to enforce during prepare gate (default: ci_smoke).",
+    )
+    parser.add_argument(
         "--skip-env-check",
         action="store_true",
         default=False,
@@ -156,7 +167,18 @@ def main() -> int:
     if args.skip_gates:
         lines.append("- gates: externally verified by agent before this script call")
     else:
-        for gate in GATES:
+        gates = [[sys.executable, *gate] for gate in BASE_GATES]
+        if not args.skip_benchmark_gate:
+            gates.append(
+                [
+                    sys.executable,
+                    "benchmark/performance_benchmark.py",
+                    "--profile",
+                    args.benchmark_profile,
+                    "--no-save-results",
+                ]
+            )
+        for gate in gates:
             code, output = _run(gate)
             label = "PASS" if code == 0 else "FAIL"
             lines.append(f"- `{' '.join(gate)}` -> {label}")
