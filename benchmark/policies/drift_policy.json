@@ -1,0 +1,38 @@
+{
+  "defaults": {
+    "enabled": false,
+    "history_window": 20,
+    "min_baseline_runs": 5,
+    "max_negative_drift_pct_median": 15.0,
+    "max_negative_drift_pct_p95": 25.0,
+    "max_variation_cv_pct": 35.0,
+    "metrics": [
+      "sync_logger.individual_messages_per_second",
+      "async_logger.individual_messages_per_second",
+      "file_writing.messages_per_second",
+      "async_file_writing.messages_per_second",
+      "concurrent.total_messages_per_second"
+    ]
+  },
+  "profiles": {
+    "ci_smoke": {
+      "enabled": false
+    },
+    "pr_gate": {
+      "enabled": true,
+      "history_window": 20,
+      "min_baseline_runs": 3,
+      "max_negative_drift_pct_median": 20.0,
+      "max_negative_drift_pct_p95": 30.0,
+      "max_variation_cv_pct": 40.0
+    },
+    "nightly_truth": {
+      "enabled": true,
+      "history_window": 30,
+      "min_baseline_runs": 5,
+      "max_negative_drift_pct_median": 15.0,
+      "max_negative_drift_pct_p95": 25.0,
+      "max_variation_cv_pct": 30.0
+    }
+  }
+}

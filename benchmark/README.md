@@ -37,6 +37,8 @@ python3 benchmark/performance_benchmark.py --profile nightly_truth
 - `pr_gate` and `nightly_truth` profiles enable throughput drift checks.
 - Drift checks compare current run metrics with same-profile history in
   `benchmark/results/` using median and p95 references.
+- Canonical policy source: `benchmark/policies/drift_policy.json`.
+- Profile-level `drift_policy` values act as overrides on top of canonical policy.
 - When historical sample count is below policy minimum, checks are reported as
   skipped (not failed) to avoid bootstrapping false negatives.
 
