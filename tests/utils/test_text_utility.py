@@ -80,3 +80,75 @@ def test_text_analyzer_metrics_summary_and_language_detection() -> None:
     summary = analyzer.get_text_summary(text, max_words=5)
     assert len(summary.split()) <= 5
     assert analyzer.detect_language("the and in on with") == "en"
+
+
+def test_text_processor_additional_extract_and_replace_paths() -> None:
+    processor = TextProcessor()
+    assert processor.normalize_text("Cafe\u0301") == "Café"
+    assert processor.extract_sentences("One. Two!") == ["One", "Two"]
+    assert processor.extract_paragraphs("A\n\nB") == ["A", "B"]
+    assert processor.find_all_matches("a1 b2", r"\w\d") == ["a1", "b2"]
+    assert processor.replace_pattern("abc123", r"\d+", "X") == "abcX"
+    assert processor.extract_urls("go https://example.com/path?q=1") == [
+        "https://example.com/path?q=1"
+    ]
+    assert processor.extract_phones("call +1 555-123-4567 now")
+
+
+def test_text_formatter_additional_case_and_helpers() -> None:
+    assert TextFormatter.change_case("hello world", TextCase.SENTENCE) == "Hello world"
+    assert TextFormatter.change_case("hello world", TextCase.KEBAB) == "hello-world"
+    assert TextFormatter.change_case("hello world", TextCase.PASCAL) == "HelloWorld"
+    assert TextFormatter.change_case("x", "unknown") == "x"  # type: ignore[arg-type]
+    assert TextFormatter.truncate("abc", 10) == "abc"
+    assert TextFormatter.pad("x", 3, align="left") == "x  "
+    assert TextFormatter.pad("x", 3, align="center") == " x "
+    assert TextFormatter.pad("x", 3, align="other") == "x"
+    assert TextFormatter.format_number(12.3456, ".2f") == "12.35"
+
+
+def test_text_validator_negative_and_error_paths() -> None:
+    validator = TextValidator()
+    assert validator.is_url("bad url") is False
+    assert validator.is_ip_address("999.1.1.1") is False
+    assert validator.is_ip_address("not-an-ip") is False
+    assert validator.is_credit_card("1234") is False
+    assert validator.is_credit_card("4111111111111112") is False
+    assert validator.is_strong_password("Ab1!") is False
+    assert validator.is_strong_password("abcdefg1!") is False
+    assert validator.is_strong_password("ABCDEFG1!") is False
+    assert validator.is_strong_password("Abcdefgh!") is False
+    assert validator.is_strong_password("Abcdefg1") is False
+    try:
+        validator.validate("x", "missing_rule")
+    except ValueError as exc:
+        assert "Unknown validation rule" in str(exc)
+    else:
+        raise AssertionError("Expected unknown rule validation error")
+
+
+def test_text_sanitizer_remaining_strategy_branches() -> None:
+    sanitizer = TextSanitizer()
+    masked_short = sanitizer.sanitize("ip 1.1.1.1", strategy="mask")
+    assert "*" in masked_short
+    hashed_excluded = sanitizer.sanitize(
+        "email user@example.com", strategy="hash", exclude=["email"]
+    )
+    assert hashed_excluded == "email user@example.com"
+    encrypted = sanitizer.sanitize("token=abc", strategy="encrypt")
+    assert "[REDACTED]" in encrypted
+    try:
+        sanitizer.sanitize("x", strategy="other")
+    except ValueError as exc:
+        assert "Unknown sanitization strategy" in str(exc)
+    else:
+        raise AssertionError("Expected unknown sanitize strategy error")
+
+
+def test_text_analyzer_zero_and_empty_summary_branches() -> None:
+    analyzer = TextAnalyzer()
+    metrics = analyzer.analyze_text("")
+    assert analyzer._calculate_flesch_reading_ease(metrics) == 0.0
+    assert analyzer._calculate_flesch_kincaid_grade(metrics) == 0.0
+    assert analyzer._calculate_gunning_fog_index(metrics) == 0.0
+    assert analyzer.get_text_summary("", max_words=10) == ""

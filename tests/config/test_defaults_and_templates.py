@@ -68,7 +68,9 @@ def test_template_registry_supports_register_validate_and_cleanup() -> None:
 
 
 def test_defaults_named_config_custom_and_registry_listing() -> None:
-    custom = get_named_config("custom", default_level="ERROR", file_path="nested/path/app.log")
+    custom = get_named_config(
+        "custom", default_level="ERROR", file_enabled=True, file_path="nested/path/app.log"
+    )
     assert custom.default_level == "ERROR"
     assert custom.layers["default"].destinations[1].path == "app.log"
 

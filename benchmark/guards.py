@@ -120,3 +120,48 @@ def detect_new_root_log_leaks(
         if any(token in name for token in suspicious_tokens):
             violations.append(str(path.resolve()))
     return violations
+
+
+def validate_output_matrix_file_evidence(*, results: dict[str, Any]) -> list[str]:
+    """Validate file-sink output matrix entries expose concrete written evidence."""
+    violations: list[str] = []
+    output_matrix = results.get("output_matrix")
+    if not isinstance(output_matrix, dict):
+        return violations
+
+    file_cases = output_matrix.get("file")
+    if not isinstance(file_cases, dict):
+        return violations
+
+    for case_key, payload in file_cases.items():
+        if not isinstance(payload, dict):
+            violations.append(f"output_matrix.file.{case_key}: expected object payload")
+            continue
+
+        file_path = payload.get("file_path")
+        written_lines = payload.get("written_lines")
+        total_messages = payload.get("total_messages")
+
+        if not isinstance(file_path, str) or not file_path.strip():
+            violations.append(
+                f"output_matrix.file.{case_key}.file_path: missing concrete output path"
+            )
+        if not isinstance(written_lines, int):
+            violations.append(
+                f"output_matrix.file.{case_key}.written_lines: missing integer evidence"
+            )
+        elif written_lines <= 0:
+            violations.append(
+                f"output_matrix.file.{case_key}.written_lines: expected > 0, found {written_lines}"
+            )
+
+        if isinstance(total_messages, int) and total_messages > 0 and isinstance(
+            written_lines, int
+        ):
+            if written_lines < max(1, int(total_messages * 0.5)):
+                violations.append(
+                    f"output_matrix.file.{case_key}.written_lines: "
+                    f"{written_lines} too low for {total_messages} emitted messages"
+                )
+
+    return violations

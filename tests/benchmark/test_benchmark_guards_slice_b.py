@@ -15,7 +15,11 @@ import asyncio
 from pathlib import Path
 
 import benchmark.performance_benchmark as perf_mod
-from benchmark.guards import detect_new_root_log_leaks, validate_result_paths
+from benchmark.guards import (
+    detect_new_root_log_leaks,
+    validate_output_matrix_file_evidence,
+    validate_result_paths,
+)
 from benchmark.metrics import validate_result_invariants
 from benchmark.performance_benchmark import HydraLoggerBenchmark
 
@@ -168,6 +172,94 @@ def test_detect_new_root_log_leaks_finds_suspicious_files(tmp_path) -> None:
     assert "benchmark_composite_async_leak.log" in violations[0]
 
 
+def test_validate_output_matrix_file_evidence_flags_missing_payload_fields() -> None:
+    violations = validate_output_matrix_file_evidence(
+        results={
+            "output_matrix": {
+                "file": {
+                    "composite-async:plain-text:baseline:generated": {
+                        "total_messages": 100,
+                        "file_path": None,
+                        "written_lines": None,
+                    }
+                }
+            }
+        }
+    )
+    assert any("file_path: missing concrete output path" in item for item in violations)
+    assert any("written_lines: missing integer evidence" in item for item in violations)
+
+
+def test_validate_output_matrix_file_evidence_passes_for_well_formed_case() -> None:
+    violations = validate_output_matrix_file_evidence(
+        results={
+            "output_matrix": {
+                "file": {
+                    "sync:plain-text:baseline:generated": {
+                        "total_messages": 100,
+                        "file_path": "/tmp/benchmark/bench_logs/case.log",
+                        "written_lines": 100,
+                    }
+                }
+            }
+        }
+    )
+    assert violations == []
+
+
+def test_validate_output_matrix_file_evidence_handles_non_dict_sections() -> None:
+    assert validate_output_matrix_file_evidence(results={}) == []
+    assert validate_output_matrix_file_evidence(results={"output_matrix": []}) == []
+    assert validate_output_matrix_file_evidence(results={"output_matrix": {"file": []}}) == []
+
+
+def test_validate_output_matrix_file_evidence_flags_non_object_payload() -> None:
+    violations = validate_output_matrix_file_evidence(
+        results={
+            "output_matrix": {
+                "file": {
+                    "sync:plain-text:baseline:generated": "invalid",
+                }
+            }
+        }
+    )
+    assert any("expected object payload" in item for item in violations)
+
+
+def test_validate_output_matrix_file_evidence_flags_non_positive_written_lines() -> None:
+    violations = validate_output_matrix_file_evidence(
+        results={
+            "output_matrix": {
+                "file": {
+                    "sync:plain-text:baseline:generated": {
+                        "total_messages": 10,
+                        "file_path": "/tmp/benchmark/bench_logs/case.log",
+                        "written_lines": 0,
+                    }
+                }
+            }
+        }
+    )
+    assert any("expected > 0, found 0" in item for item in violations)
+
+
+def test_validate_output_matrix_file_evidence_flags_too_low_written_lines() -> None:
+    violations = validate_output_matrix_file_evidence(
+        results={
+            "output_matrix": {
+                "file": {
+                    "sync:plain-text:baseline:generated": {
+                        "total_messages": 100,
+                        "file_path": "/tmp/benchmark/bench_logs/case.log",
+                        "written_lines": 10,
+                    }
+                }
+            }
+        }
+    )
+    assert any("too low for 100 emitted messages" in item for item in violations)
+
+
 def test_run_benchmark_returns_error_when_reliability_guard_fails(
     tmp_path, monkeypatch
 ) -> None:
@@ -232,6 +324,7 @@ def test_enforce_reliability_guards_fails_on_drift_violations(tmp_path, monkeypa
         lambda **_kwargs: (["sync_logger.individual_messages_per_second drift"], {"status": "failed"}),
     )
     monkeypatch.setattr(perf_mod, "validate_result_paths", lambda **_kwargs: [])
+    monkeypatch.setattr(perf_mod, "validate_output_matrix_file_evidence", lambda **_kwargs: [])
     monkeypatch.setattr(perf_mod, "detect_new_root_log_leaks", lambda **_kwargs: [])
 
     try:
@@ -255,6 +348,7 @@ def test_enforce_reliability_guards_records_pass_report(tmp_path, monkeypatch) -
         lambda **_kwargs: ([], {"status": "passed"}),
     )
     monkeypatch.setattr(perf_mod, "validate_result_paths", lambda **_kwargs: [])
+    monkeypatch.setattr(perf_mod, "validate_output_matrix_file_evidence", lambda **_kwargs: [])
     monkeypatch.setattr(perf_mod, "detect_new_root_log_leaks", lambda **_kwargs: [])
 
     bench._enforce_reliability_guards()

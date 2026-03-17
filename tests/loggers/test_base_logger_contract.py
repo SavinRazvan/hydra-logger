@@ -11,7 +11,12 @@ Notes:
 from __future__ import annotations
 
 import asyncio
+import builtins
 
+import pytest
+
+from hydra_logger.config.models import LoggingConfig
+from hydra_logger.core.exceptions import HydraLoggerError
 from hydra_logger.loggers.base import BaseLogger
 
 
@@ -99,3 +104,126 @@ def test_base_logger_performance_profile_stats_and_context_manager() -> None:
     with logger as ctx:
         assert ctx is logger
     assert logger.is_closed is True
+
+
+def test_base_logger_coerce_config_paths() -> None:
+    logger_from_dict = DummyBaseLogger(config={"default_level": "INFO"})
+    assert isinstance(logger_from_dict.get_config(), LoggingConfig)
+
+    cfg = LoggingConfig(default_level="DEBUG")
+    logger_from_model = DummyBaseLogger(config=cfg)
+    assert logger_from_model.get_config() == cfg
+
+    logger_from_invalid = DummyBaseLogger(config="bad-type")  # type: ignore[arg-type]
+    assert logger_from_invalid.get_config() is None
+
+
+def test_base_logger_magic_config_helpers_and_custom_selector(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from hydra_logger.config.configuration_templates import configuration_templates
+
+    template = LoggingConfig(default_level="WARNING")
+    monkeypatch.setattr(configuration_templates, "has_template", lambda name: True)
+    monkeypatch.setattr(configuration_templates, "get_template", lambda name: template)
+
+    logger = DummyBaseLogger(config=None)
+    methods = [
+        logger.for_production,
+        logger.for_development,
+        logger.for_testing,
+        logger.for_microservice,
+        logger.for_web_app,
+        logger.for_api_service,
+        logger.for_background_worker,
+        logger.for_high_performance,
+        logger.for_minimal,
+        logger.for_debug,
+    ]
+    for method in methods:
+        assert method() is logger
+        assert logger.get_config() == template
+
+    assert logger.with_magic_config("custom") is logger
+    assert logger.get_config() == template
+
+    monkeypatch.setattr(configuration_templates, "has_template", lambda name: False)
+    with pytest.raises(ValueError, match="Unknown magic config"):
+        logger.with_magic_config("missing")
+
+
+def test_base_logger_initialize_from_config_wraps_setup_errors() -> None:
+    class BrokenInitLogger(DummyBaseLogger):
+        def _setup_handlers(self) -> None:
+            raise RuntimeError("boom")
+
+    logger = BrokenInitLogger(config=None)
+    with pytest.raises(HydraLoggerError, match="Failed to initialize logger"):
+        logger._initialize_from_config(LoggingConfig())
+
+
+def test_base_logger_record_fallback_and_stats_fallback() -> None:
+    logger = DummyBaseLogger(config=None, name="fallback")
+    logger._record_creation_strategy = None
+
+    rec_num = logger.create_log_record(40, "n", layer="ops")
+    assert rec_num.level_name == "ERROR"
+    rec_str = logger.create_log_record("custom", "s")
+    assert rec_str.level_name == "custom"
+
+    stats = logger.get_record_creation_stats()
+    assert stats["strategy"] == "fallback"
+
+
+def test_base_logger_setup_record_creation_strategy_import_error_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = DummyBaseLogger(config=None)
+    real_import = builtins.__import__
+
+    def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):  # type: ignore[no-untyped-def]
+        if name.endswith("types.records"):
+            raise ImportError("forced")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    logger._setup_record_creation_strategy()
+    assert logger._record_creation_strategy is None
+
+
+def test_base_logger_aexit_paths_and_initialize_no_config() -> None:
+    class AcloseLogger(DummyBaseLogger):
+        async def aclose(self) -> None:
+            self._aclose_called = True
+
+    class CloseCoroutineLogger(DummyBaseLogger):
+        async def close(self) -> None:  # type: ignore[override]
+            self._closed = True
+
+    class SyncCloseLogger(DummyBaseLogger):
+        pass
+
+    async def run() -> tuple[bool, bool, bool]:
+        aclose_logger = AcloseLogger(config=None)
+        aclose_logger.close_async = lambda: None  # type: ignore[assignment]
+        await aclose_logger.__aexit__(None, None, None)
+
+        close_coro_logger = CloseCoroutineLogger(config=None)
+        close_coro_logger.close_async = lambda: None  # type: ignore[assignment]
+        close_coro_logger.aclose = lambda: None  # type: ignore[assignment]
+        await close_coro_logger.__aexit__(None, None, None)
+
+        sync_logger = SyncCloseLogger(config=None)
+        sync_logger.close_async = lambda: None  # type: ignore[assignment]
+        sync_logger.aclose = lambda: None  # type: ignore[assignment]
+        await sync_logger.__aexit__(None, None, None)
+
+        no_cfg = DummyBaseLogger(config=None)
+        no_cfg.initialize()
+        return (
+            getattr(aclose_logger, "_aclose_called", False),
+            close_coro_logger.is_closed,
+            sync_logger.is_closed,
+        )
+
+    assert asyncio.run(run()) == (True, True, True)
