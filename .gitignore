@@ -271,6 +271,7 @@ scripts/*
 !scripts/dev/
 scripts/dev/*
 !scripts/dev/check_env_health.py
+!scripts/dev/check_logs_clean.py
 AGENTS.md
 docs/AGENT_AUTOMATION.md
 _knowledge/
