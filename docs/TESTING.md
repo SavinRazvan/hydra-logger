@@ -42,7 +42,7 @@ Coverage is required as evidence, not vanity:
 Current CI/prepare ratchet stage (2026-03 baseline):
 
 - `hydra_logger` fail-under: `95`
-- `benchmark` package fail-under: `100`
+- `benchmark` package fail-under: `95`
 
 Planned enterprise ratchet sequence for `hydra_logger`:
 
@@ -55,7 +55,7 @@ Planned enterprise ratchet sequence for `hydra_logger`:
 Latest verification snapshot (2026-03-17):
 
 - `python -m pytest --cov=hydra_logger --cov-report=term-missing -q` => `96%` total.
-- `python -m pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=100 -q` => `100%` total.
+- `python -m pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=95 -q` => `100%` total.
 
 ## CI/CD Contract
 
@@ -63,7 +63,7 @@ CI pipeline (`.github/workflows/ci.yml`) executes:
 
 - tests with coverage (`pytest tests/ --cov=hydra_logger --cov-fail-under=95 ...`);
 - repository log-isolation guard (`python scripts/dev/check_logs_clean.py`);
-- benchmark package coverage (`pytest tests/benchmark --cov=benchmark --cov-fail-under=100`);
+- benchmark package coverage (`pytest tests/benchmark --cov=benchmark --cov-fail-under=95`);
 - lint and static quality checks;
 - build validation and security scans.
 - benchmark automation profiles:

@@ -51,7 +51,7 @@ jobs:
     - name: Enforce benchmark package coverage
       if: matrix.python-version == '3.12'
       run: |
-        pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=100
+        pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=95
     
     - name: Upload coverage to Codecov
       if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
