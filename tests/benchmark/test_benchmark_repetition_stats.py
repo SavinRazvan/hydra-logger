@@ -50,3 +50,10 @@ def test_validate_sample_duration_reports_short_samples() -> None:
         min_duration_seconds=0.001,
     )
     assert no_violation is None
+
+    disabled_guard = validate_sample_duration(
+        section="sync_logger",
+        duration=0.0,
+        min_duration_seconds=0.0,
+    )
+    assert disabled_guard is None
