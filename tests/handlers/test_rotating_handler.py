@@ -12,6 +12,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 
+import pytest
+
 from hydra_logger.handlers import rotating_handler as rotating_module
 from hydra_logger.handlers.rotating_handler import (
     RotationConfig,
@@ -306,3 +308,264 @@ def test_rotating_factory_create_handler_unknown_type_raises(tmp_path: Path) -> 
         assert "Unknown handler type" in str(exc)
     else:
         raise AssertionError("Expected ValueError for unknown rotating handler type")
+
+
+def test_rotating_base_should_rotate_raises_not_implemented(tmp_path: Path) -> None:
+    handler = _TestRotatingHandler(str(tmp_path / "base-raise.log"))
+    with pytest.raises(NotImplementedError):
+        RotatingFileHandler._should_rotate(handler)
+    handler.close()
+
+
+def test_rotating_handler_init_and_initialize_error_paths(monkeypatch, tmp_path: Path) -> None:
+    seen = {"ensured": False}
+    original_exists = rotating_module.FileUtility.exists
+
+    def _exists(path: str) -> bool:
+        if str(path) == str(tmp_path / "new-dir"):
+            return False
+        return original_exists(path)
+
+    monkeypatch.setattr(rotating_module.FileUtility, "exists", _exists)
+    monkeypatch.setattr(
+        rotating_module.FileUtility,
+        "ensure_directory_exists",
+        lambda p: (Path(p).mkdir(parents=True, exist_ok=True), seen.__setitem__("ensured", True)),
+    )
+    monkeypatch.setattr(rotating_module.FileUtility, "is_writable", lambda _path: False)
+
+    with pytest.raises(PermissionError):
+        _TestRotatingHandler(str(tmp_path / "new-dir" / "bad.log"))
+    assert seen["ensured"] is True
+
+
+def test_rotating_handler_rotate_paths_and_recovery(monkeypatch, caplog, tmp_path: Path) -> None:
+    log_file = tmp_path / "rotate-main.log"
+    log_file.write_text("a", encoding="utf-8")
+    config = RotationConfig(atomic_rotation=False, compress_old=False, cleanup_old=False)
+    handler = _TestRotatingHandler(str(log_file), should_rotate=False, config=config)
+    # Early return when rotation is not needed.
+    handler._rotate_file()
+
+    moved = {"count": 0}
+    monkeypatch.setattr(
+        rotating_module.shutil,
+        "move",
+        lambda src, dst: moved.__setitem__("count", moved["count"] + 1) or Path(dst).write_text("x", encoding="utf-8"),
+    )
+    handler._rotate_flag = True
+    handler._rotate_file()
+    assert moved["count"] >= 1
+
+    # Error + recovery-reopen failure path.
+    monkeypatch.setattr(handler, "_generate_backup_name", lambda: (_ for _ in ()).throw(RuntimeError("rotate fail")))
+    monkeypatch.setattr(handler, "_initialize_file", lambda: (_ for _ in ()).throw(RuntimeError("reopen fail")))
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.rotating_handler"):
+        handler._rotate_file()
+    assert "Rotating file operation failed" in caplog.text
+    assert "Rotating file recovery reopen failed" in caplog.text
+    handler.close()
+
+
+def test_rotating_atomic_backup_name_and_backup_dir_paths(tmp_path: Path) -> None:
+    path = tmp_path / "atomic-main.log"
+    path.write_text("payload", encoding="utf-8")
+    backup_path = tmp_path / "atomic-main.1.log"
+    backup_path.write_text("old", encoding="utf-8")
+    handler = _TestRotatingHandler(str(path))
+    handler._atomic_rotate(str(backup_path))
+    assert backup_path.exists()
+
+    preserved = handler._generate_backup_name()
+    assert preserved.endswith(".log")
+
+    with_backup_dir = _TestRotatingHandler(
+        str(tmp_path / "with-dir.log"),
+        config=RotationConfig(backup_dir=str(tmp_path / "bk")),
+    )
+    backup_target = with_backup_dir._get_backup_path("x.log")
+    assert backup_target.startswith(str(tmp_path / "bk"))
+    handler.close()
+    with_backup_dir.close()
+
+
+def test_rotating_cleanup_hybrid_missing_dir_and_delete_failure(monkeypatch, caplog, tmp_path: Path) -> None:
+    missing_dir = _TestRotatingHandler(
+        str(tmp_path / "missing.log"),
+        config=RotationConfig(backup_dir=str(tmp_path / "does-not-exist"), cleanup_old=True),
+    )
+    monkeypatch.setattr(rotating_module.FileUtility, "exists", lambda _p: False)
+    missing_dir._cleanup_old_files()
+    missing_dir.close()
+
+    backup_dir = tmp_path / "hybrid-bk"
+    backup_dir.mkdir()
+    for idx in range(3):
+        (backup_dir / f"hy.log.{idx}").write_text("d", encoding="utf-8")
+    config = RotationConfig(
+        strategy=RotationStrategy.HYBRID,
+        backup_dir=str(backup_dir),
+        cleanup_old=True,
+        max_time_files=1,
+        max_size_files=2,
+    )
+    handler = _TestRotatingHandler(str(tmp_path / "hy.log"), config=config)
+    monkeypatch.setattr(rotating_module.FileUtility, "exists", lambda _p: True)
+    monkeypatch.setattr(rotating_module.FileUtility, "is_file", lambda _p: True)
+    monkeypatch.setattr(
+        rotating_module.FileUtility,
+        "get_file_info",
+        lambda p: SimpleNamespace(mtime=len(str(p))),
+    )
+    monkeypatch.setattr(
+        rotating_module.FileUtility,
+        "delete_file",
+        lambda _p: (_ for _ in ()).throw(OSError("delete fail")),
+    )
+    with caplog.at_level("WARNING", logger="hydra_logger.handlers.rotating_handler"):
+        handler._cleanup_old_files()
+    assert "Failed to delete old rotated file" in caplog.text
+    handler.close()
+
+
+def test_rotating_flush_and_write_csv_and_error_paths(monkeypatch, caplog, tmp_path: Path) -> None:
+    path = tmp_path / "flush.log"
+    handler = _TestRotatingHandler(str(path))
+    handler._buffer.append("m")
+    handler._string_buffer.append("m")
+    handler._string_buffer_size = 1
+
+    # Flush rotates when needed.
+    monkeypatch.setattr(handler, "_should_rotate", lambda: True)
+    rotated = {"count": 0}
+    monkeypatch.setattr(handler, "_rotate_file", lambda: rotated.__setitem__("count", rotated["count"] + 1))
+    handler._flush_buffer()
+    assert rotated["count"] == 1
+
+    # Closed file path.
+    class _Closed:
+        closed = True
+
+    handler._current_file = _Closed()
+    handler._buffer.append("x")
+    handler._string_buffer.append("x")
+    handler._flush_buffer()
+
+    # Generic flush failure path.
+    class _BadWriter:
+        closed = False
+
+        def write(self, _m: str) -> None:
+            raise RuntimeError("write fail")
+
+        def flush(self) -> None:
+            return None
+
+    handler._current_file = _BadWriter()
+    handler._buffer.append("x")
+    handler._string_buffer.append("x")
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.rotating_handler"):
+        handler._flush_buffer()
+    assert "Rotating file buffer flush error" in caplog.text
+
+    # CSV formatter header branch + write exception path.
+    class CsvFormatter:
+        def format_headers(self) -> str:
+            return "h1,h2"
+
+        def should_write_headers(self, _filename: str) -> bool:
+            return True
+
+        def mark_headers_written(self, _filename: str) -> None:
+            return None
+
+    class _TellWriter:
+        def tell(self) -> int:
+            return 0
+
+        def write(self, _m: str) -> None:
+            return None
+
+        def flush(self) -> None:
+            return None
+
+        def close(self) -> None:
+            return None
+
+    handler.setFormatter(CsvFormatter())
+    handler._current_file = _TellWriter()
+    handler._write_to_file("entry\n")
+
+    class _ExplodeWriter(_TellWriter):
+        def write(self, _m: str) -> None:
+            raise RuntimeError("boom")
+
+    handler._current_file = _ExplodeWriter()
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.rotating_handler"):
+        handler._write_to_file("entry\n")
+    assert "Failed to write message to rotating file" in caplog.text
+    handler.close()
+
+
+def test_timed_size_hybrid_and_factory_uncovered_branches(monkeypatch, tmp_path: Path) -> None:
+    # Timed last-rotation fallback and backup naming paths.
+    monkeypatch.setattr(rotating_module.FileUtility, "exists", lambda _p: False)
+    timed = TimedRotatingFileHandler(filename=str(tmp_path / "timed-fallback.log"), when="day", interval=1)
+    assert isinstance(timed._get_last_rotation_time(), datetime)
+    assert timed._generate_backup_name().endswith(".log")
+    timed_no_ext = TimedRotatingFileHandler(
+        filename=str(tmp_path / "timed-noext.log"),
+        when="day",
+        interval=1,
+    )
+    # Toggle extension policy to hit non-extension backup-name branch.
+    timed_no_ext._config.preserve_extension = False
+    assert not timed_no_ext._generate_backup_name().endswith(".log")
+    timed.close()
+    timed_no_ext.close()
+
+    # Size rotation "missing file" + sequence increment/no-extension branches.
+    size = SizeRotatingFileHandler(filename=str(tmp_path / "size-fallback.log"), max_bytes=1)
+    monkeypatch.setattr(rotating_module.FileUtility, "exists", lambda _p: False)
+    assert size._should_rotate() is False
+    size._config.preserve_extension = False
+    size._config.backup_dir = str(tmp_path)
+    # First candidate exists, force increment branch.
+    first_candidate = tmp_path / "size-fallback.1"
+    first_candidate.write_text("x", encoding="utf-8")
+    monkeypatch.setattr(rotating_module.FileUtility, "exists", lambda p: str(p) == str(first_candidate))
+    generated = size._generate_backup_name()
+    assert generated.endswith(".2")
+    size.close()
+
+    # Hybrid time branches and backup-name loop.
+    hybrid = HybridRotatingFileHandler(filename=str(tmp_path / "hy-branches.log"), when="hour", interval=1)
+    hybrid._last_rotation_time = datetime.now() - timedelta(hours=2)
+    assert hybrid._should_rotate() is True
+    hybrid._when = "midnight"
+    hybrid._last_rotation_time = datetime.now() - timedelta(days=1)
+    assert hybrid._should_rotate() is True
+    hybrid._when = "none"
+    assert hybrid._should_rotate() is False
+    hybrid._config.backup_dir = str(tmp_path)
+    existing = tmp_path / f"hy-branches.{datetime.now().strftime(hybrid._config.time_format)}.1.log"
+    existing.write_text("x", encoding="utf-8")
+    monkeypatch.setattr(rotating_module.FileUtility, "exists", lambda p: str(p) == str(existing))
+    assert ".2.log" in hybrid._generate_backup_name()
+    hybrid.close()
+
+    # Factory dispatch and hybrid time_unit pop path.
+    assert isinstance(
+        RotatingFileHandlerFactory.create_handler("timed", filename=str(tmp_path / "fa-t.log")),
+        TimedRotatingFileHandler,
+    )
+    assert isinstance(
+        RotatingFileHandlerFactory.create_handler("size", filename=str(tmp_path / "fa-s.log")),
+        SizeRotatingFileHandler,
+    )
+    assert isinstance(
+        RotatingFileHandlerFactory.create_handler(
+            "hybrid", filename=str(tmp_path / "fa-h.log"), time_unit=TimeUnit.DAYS
+        ),
+        HybridRotatingFileHandler,
+    )
