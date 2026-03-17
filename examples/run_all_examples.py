@@ -17,7 +17,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 class Colors:
@@ -38,7 +38,7 @@ def colorize(text: str, color: str) -> str:
     return text
 
 
-def run_example(filepath: Path) -> Tuple[bool, str, str, float, Dict[str, any]]:
+def run_example(filepath: Path) -> Tuple[bool, str, str, float, Dict[str, Any]]:
     """
     Run a single example file and return results.
 
@@ -148,7 +148,7 @@ def print_example_result(
     found_logs: List[str],
 ):
     """Print detailed result for a single example."""
-    status_icon = "" if success else ""
+    status_icon = "[OK]" if success else "[X]"
     status_text = (
         colorize("PASSED", Colors.GREEN) if success else colorize("FAILED", Colors.RED)
     )
@@ -157,9 +157,9 @@ def print_example_result(
     print(f" [{status_text}]", end=" ")
     print(f"{colorize(f'({format_duration(duration)})', Colors.GRAY)}")
 
-    if success and "" in stdout:
+    if success and stdout.strip():
         for line in stdout.split("\n"):
-            if "" in line and "completed" in line:
+            if "completed" in line.lower():
                 print(f"     {colorize('→', Colors.GRAY)} {line.strip()}")
 
     if found_logs:
@@ -167,11 +167,19 @@ def print_example_result(
     elif success:
         print(f"     {colorize('No log files detected', Colors.YELLOW)}")
 
-    if stderr.strip():
+    if stderr.strip() and not success:
         error_preview = stderr.strip().split("\n")[:2]
         for line in error_preview:
-            if line.strip() and "" not in line:
+            if line.strip():
                 print(f"     {colorize('ERROR:', Colors.RED)} {line.strip()[:100]}")
+        if "No module named 'hydra_logger'" in stderr:
+            print(
+                "     "
+                + colorize(
+                    "Hint: run with `.hydra_env/bin/python examples/run_all_examples.py`.",
+                    Colors.YELLOW,
+                )
+            )
 
 
 def print_summary(

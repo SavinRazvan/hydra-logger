@@ -54,8 +54,8 @@ Planned enterprise ratchet sequence for `hydra_logger`:
 
 Latest verification snapshot (2026-03-17):
 
-- `python -m pytest --cov=hydra_logger --cov-report=term-missing -q` => `96%` total.
-- `python -m pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=95 -q` => `100%` total.
+- `.hydra_env/bin/python -m pytest --cov=hydra_logger --cov-report=term-missing -q` => `96%` total.
+- `.hydra_env/bin/python -m pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=95 -q` => `100%` total.
 
 ## CI/CD Contract
 
@@ -76,9 +76,9 @@ Nightly benchmark workflow (`.github/workflows/benchmark-nightly.yml`) executes:
 
 PR preparation (`scripts/pr/prepare.py`) enforces:
 
-- `python -m pytest -q`
-- `python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=95 -q`
-- `python scripts/pr/check_slim_headers.py --all-python --strict`
+- `.hydra_env/bin/python -m pytest -q`
+- `.hydra_env/bin/python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=95 -q`
+- `.hydra_env/bin/python scripts/pr/check_slim_headers.py --all-python --strict`
 
 ## Logging Artifact Policy
 
@@ -90,7 +90,7 @@ Runtime logs are destination-controlled:
 
 Use this local guard before pushing when changing logger behavior:
 
-- `python scripts/dev/check_logs_clean.py`
+- `.hydra_env/bin/python scripts/dev/check_logs_clean.py`
 
 ## PR Expectations
 

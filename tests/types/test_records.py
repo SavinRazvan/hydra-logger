@@ -203,6 +203,47 @@ def test_auto_context_extracts_user_frame_details(monkeypatch) -> None:
     assert record.line_number == 321
 
 
+def test_auto_context_does_not_skip_repo_root_hyphen_path(monkeypatch) -> None:
+    import inspect
+
+    class _FakeCode:
+        def __init__(self, filename, name, varnames=()):
+            self.co_filename = filename
+            self.co_name = name
+            self.co_varnames = varnames
+
+    class _FakeFrame:
+        def __init__(self, code, lineno, back=None):
+            self.f_code = code
+            self.f_lineno = lineno
+            self.f_back = back
+            self.f_globals = {"__name__": "user_module"}
+            self.f_locals = {}
+
+    user_frame = _FakeFrame(
+        _FakeCode(
+            "/home/dev/projects/hydra-logger/examples/tutorials/t04_extensions_plugins.py",
+            "main",
+        ),
+        55,
+    )
+    internal_frame = _FakeFrame(
+        _FakeCode(
+            "/home/dev/projects/hydra-logger/hydra_logger/loggers/sync_logger.py",
+            "info",
+        ),
+        300,
+        back=user_frame,
+    )
+    top_frame = _FakeFrame(_FakeCode("/tmp/wrapper.py", "wrapper"), 1, back=internal_frame)
+    monkeypatch.setattr(inspect, "currentframe", lambda: top_frame)
+
+    record = LogRecordFactory.create_with_auto_context("INFO", "hello")
+    assert record.file_name == "t04_extensions_plugins.py"
+    assert record.function_name == "main"
+    assert record.line_number == 55
+
+
 def test_enhanced_function_name_handles_self_cls_special_and_failure_paths() -> None:
     class _Code:
         def __init__(self, name, varnames):

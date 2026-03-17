@@ -12,11 +12,12 @@ Notes:
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 
 config = LoggingConfig(
+    enable_data_protection=True,
     extensions={
         "data_protection": {
             "enabled": True,
-            "redaction_patterns": ["password", "token"],
-            "encryption_key": "your-key-here",
+            "type": "security",
+            "patterns": ["password", "token"],
         },
     },
     layers={
@@ -42,7 +43,10 @@ with create_logger(config, logger_type="sync") as logger:
 
     def test_data_protection():
         """Test data protection extension."""
-        logger.info("[13] Message with sensitive data: password=secret123", layer="app")
+        logger.info(
+            "[13] Message with sensitive data: password=secret123 token=abcd1234",
+            layer="app",
+        )
 
     # Test extension system from actual functions
     test_extension_system()

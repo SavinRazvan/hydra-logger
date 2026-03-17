@@ -78,8 +78,8 @@ from hydra_logger import create_async_logger
 
 async def main():
     async with create_async_logger("MyAsyncApp") as logger:
-        await logger.info("Async logging works")
-        await logger.warning("Async warning message")
+        logger.info("Async logging works")
+        logger.warning("Async warning message")
 
 
 asyncio.run(main())
@@ -122,8 +122,9 @@ Extension configuration:
 
 ```python
 config = LoggingConfig(
+    enable_data_protection=True,
     extensions={
-        "security": {
+        "data_protection": {
             "enabled": True,
             "type": "security",
             "patterns": ["email", "phone", "api_key"],
@@ -165,25 +166,25 @@ Quality and validation commands:
 
 ```bash
 # Environment preflight
-python scripts/dev/check_env_health.py --strict
+.hydra_env/bin/python scripts/dev/check_env_health.py --strict
 
 # Test gate
-python -m pytest -q
+.hydra_env/bin/python -m pytest -q
 
 # Run all examples
-python3 examples/run_all_examples.py
+.hydra_env/bin/python examples/run_all_examples.py
 
 # Performance benchmark
-python3 benchmark/performance_benchmark.py
+.hydra_env/bin/python benchmark/performance_benchmark.py
 ```
 
-Selected examples:
+Enterprise tutorial tracks:
 
 ```bash
-python3 examples/11_quick_start_basic.py
-python3 examples/12_quick_start_async.py
-python3 examples/06_basic_colored_logging.py
-python3 examples/16_multi_layer_web_app.py
+.hydra_env/bin/python examples/tutorials/t01_production_quick_start.py
+.hydra_env/bin/python examples/tutorials/t03_layers_customization.py
+.hydra_env/bin/python examples/tutorials/t04_extensions_plugins.py
+.hydra_env/bin/python examples/tutorials/t07_operational_playbook.py
 ```
 
 ## Documentation
@@ -196,6 +197,7 @@ python3 examples/16_multi_layer_web_app.py
 - `docs/audit/`
 - `CHANGELOG.md`
 - `examples/README.md`
+- `examples/tutorials/README.md`
 
 ## Contributing
 

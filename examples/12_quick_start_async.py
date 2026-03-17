@@ -30,11 +30,11 @@ config = LoggingConfig(
 )
 
 
-async def main():
+async def main() -> None:
     # Use async context manager for automatic cleanup
     async with create_async_logger(config, name="MyAsyncApp") as async_logger:
-        await async_logger.info("[12] Async logging works")
-        await async_logger.warning("[12] Async warning message")
+        async_logger.info("[12] Async logging works")
+        async_logger.warning("[12] Async warning message")
 
 
 if __name__ == "__main__":

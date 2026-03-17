@@ -17,6 +17,9 @@ Notes:
 
 import asyncio
 import sys
+import json
+import time
+import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..config.models import LogDestination, LoggingConfig
@@ -30,6 +33,37 @@ from ..utils import internal_diagnostics as diagnostics
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ExtensionProcessor, HandlerDispatcher, LayerRouter, RecordBuilder
+
+
+_DEBUG_LOG_PATH = "/home/razvansavin/Projects/hydra-logger/.cursor/debug-48bb46.log"
+_DEBUG_SESSION_ID = "48bb46"
+
+
+# region agent log
+def _agent_log(run_id: str, hypothesis_id: str, message: str, data: dict) -> None:
+    try:
+        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": _DEBUG_SESSION_ID,
+                        "runId": run_id,
+                        "hypothesisId": hypothesis_id,
+                        "id": f"log_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}",
+                        "location": "hydra_logger/loggers/async_logger.py",
+                        "message": message,
+                        "data": data,
+                        "timestamp": int(time.time() * 1000),
+                    },
+                    default=str,
+                )
+                + "\n"
+            )
+    except Exception:
+        pass
+
+
+# endregion
 
 class AsyncLogger(BaseLogger):
     """Asynchronous logger with layer routing and handler-based emission."""
@@ -150,6 +184,18 @@ class AsyncLogger(BaseLogger):
                 self._data_protection = SecurityExtension(
                     enabled=True, patterns=patterns
                 )
+                # region agent log
+                _agent_log(
+                    run_id="pre-fix",
+                    hypothesis_id="H1",
+                    message="Async data protection initialized",
+                    data={
+                        "patterns": patterns,
+                        "has_password_pattern": "password" in patterns,
+                        "has_token_pattern": "token" in patterns,
+                    },
+                )
+                # endregion
             except ImportError:
                 self._data_protection = None
         else:
@@ -366,9 +412,25 @@ class AsyncLogger(BaseLogger):
             try:
                 asyncio.get_running_loop()
                 # We're in an async context - return coroutine
+                # region agent log
+                _agent_log(
+                    run_id="pre-fix",
+                    hypothesis_id="H3",
+                    message="Async logger log returning coroutine",
+                    data={"level_type": type(level).__name__},
+                )
+                # endregion
                 return self._log_async(level, message, **kwargs)
             except RuntimeError:
                 # No event loop - use synchronous fallback
+                # region agent log
+                _agent_log(
+                    run_id="pre-fix",
+                    hypothesis_id="H3",
+                    message="Async logger using sync fallback",
+                    data={"level_type": type(level).__name__},
+                )
+                # endregion
                 self._log_sync(level, message, **kwargs)
 
         except Exception:
@@ -423,6 +485,14 @@ class AsyncLogger(BaseLogger):
             )
 
             await self._emit_to_handlers(record)
+            # region agent log
+            _agent_log(
+                run_id="pre-fix",
+                hypothesis_id="H5",
+                message="Async log emitted to handlers",
+                data={"layer": getattr(record, "layer", "default")},
+            )
+            # endregion
 
             # Update statistics
             self._log_count += 1

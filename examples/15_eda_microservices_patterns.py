@@ -13,6 +13,7 @@ Notes:
 
 import asyncio
 import signal
+from typing import Any, Protocol
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_async_logger
 
@@ -23,7 +24,7 @@ from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_async_l
 # This ensures proper resource cleanup even if errors occur
 
 
-async def microservice_with_auto_cleanup():
+async def microservice_with_auto_cleanup() -> None:
     """Microservice using async context manager - automatic cleanup."""
     config = LoggingConfig(
         layers={
@@ -41,14 +42,14 @@ async def microservice_with_auto_cleanup():
 
     # Auto-cleanup: Context manager automatically closes logger
     async with create_async_logger(config, name="Microservice-Auto") as logger:
-        await logger.info("[15] Service starting up", layer="service")
+        logger.info("[15] Service starting up", layer="service")
 
         # Simulate long-running service (reduced delays for faster examples)
         for i in range(3):
             await asyncio.sleep(0.01)  # Reduced from 0.1s to 0.01s
-            await logger.info(f"[15] Processing event {i}", layer="service")
+            logger.info(f"[15] Processing event {i}", layer="service")
 
-        await logger.info("[15] Service shutting down", layer="service")
+        logger.info("[15] Service shutting down", layer="service")
 
 
 # ============================================================================
@@ -60,7 +61,7 @@ async def microservice_with_auto_cleanup():
 class MicroserviceApp:
     """Example microservice with shared logger instance."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         config = LoggingConfig(
             layers={
                 "api": LogLayer(
@@ -86,9 +87,9 @@ class MicroserviceApp:
         self.logger = create_async_logger(config, name="Microservice-Shared")
         self._shutdown_event = asyncio.Event()
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the microservice."""
-        await self.logger.info("[15] Microservice starting", layer="api")
+        self.logger.info("[15] Microservice starting", layer="api")
 
         # Setup graceful shutdown
         loop = asyncio.get_event_loop()
@@ -98,7 +99,7 @@ class MicroserviceApp:
         # Run main loop
         await self.run()
 
-    async def run(self):
+    async def run(self) -> None:
         """Main service loop."""
         while not self._shutdown_event.is_set():
             # Process events
@@ -107,18 +108,18 @@ class MicroserviceApp:
             # Break after first iteration for example (avoid infinite loop)
             break
 
-    async def handle_event(self, event_data: str):
+    async def handle_event(self, event_data: str) -> None:
         """Handle an event (EDA pattern)."""
         correlation_id = f"corr-{id(event_data)}"
-        await self.logger.info(
+        self.logger.info(
             f"[15] Processing event: {event_data}",
             layer="events",
             context={"correlation_id": correlation_id},
         )
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """Graceful shutdown with proper cleanup."""
-        await self.logger.info("[15] Shutdown signal received", layer="api")
+        self.logger.info("[15] Shutdown signal received", layer="api")
         self._shutdown_event.set()
 
         # close_async() ensures all writes complete
@@ -134,7 +135,7 @@ class MicroserviceApp:
 class EventDrivenService:
     """Event-driven service with correlation tracking."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         config = LoggingConfig(
             layers={
                 "event_handler": LogLayer(
@@ -150,11 +151,11 @@ class EventDrivenService:
         )
         self.logger = create_async_logger(config, name="EDA-Service")
 
-    async def process_event(self, event_type: str, payload: dict):
+    async def process_event(self, event_type: str, payload: dict[str, Any]) -> None:
         """Process an event with full traceability."""
         correlation_id = payload.get("correlation_id", f"corr-{id(payload)}")
 
-        await self.logger.info(
+        self.logger.info(
             f"[15] Event received: {event_type}",
             layer="event_handler",
             context={"correlation_id": correlation_id, "event_type": event_type},
@@ -164,16 +165,24 @@ class EventDrivenService:
         # Process event...
         await asyncio.sleep(0.01)  # Reduced from 0.05s to 0.01s
 
-        await self.logger.info(
+        self.logger.info(
             f"[15] Event processed: {event_type}",
             layer="event_handler",
             context={"correlation_id": correlation_id},
         )
 
-    async def close(self):
+    async def close(self) -> None:
         """Cleanup resources."""
         # close_async() ensures all writes complete
         await self.logger.close_async()
+
+
+class _LoggerProtocol(Protocol):
+    """Protocol describing logger methods used by shutdown mixin."""
+
+    def info(self, message: str, **kwargs: Any) -> Any: ...
+
+    def error(self, message: str, **kwargs: Any) -> Any: ...
 
 
 # ============================================================================
@@ -184,17 +193,19 @@ class EventDrivenService:
 class GracefulShutdownMixin:
     """Mixin for graceful shutdown in microservices."""
 
-    def __init__(self):
-        self._shutdown_event = asyncio.Event()
-        self._shutdown_handlers = []
+    logger: _LoggerProtocol
 
-    def register_shutdown_handler(self, handler):
+    def __init__(self) -> None:
+        self._shutdown_event = asyncio.Event()
+        self._shutdown_handlers: list[Any] = []
+
+    def register_shutdown_handler(self, handler: Any) -> None:
         """Register a cleanup handler."""
         self._shutdown_handlers.append(handler)
 
     async def shutdown(self):
         """Execute all shutdown handlers."""
-        await self.logger.info("[15] Executing graceful shutdown")
+        self.logger.info("[15] Executing graceful shutdown")
 
         for handler in self._shutdown_handlers:
             try:
@@ -203,7 +214,7 @@ class GracefulShutdownMixin:
                 else:
                     handler()
             except Exception as e:
-                await self.logger.error(f"[15] Shutdown handler error: {e}")
+                self.logger.error(f"[15] Shutdown handler error: {e}")
 
 
 # ============================================================================
@@ -211,7 +222,7 @@ class GracefulShutdownMixin:
 # ============================================================================
 
 
-async def main():
+async def main() -> None:
     """Demonstrate all patterns."""
     print("=" * 60)
     print("EDA & Microservices Patterns Demonstration")
