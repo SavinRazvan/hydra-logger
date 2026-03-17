@@ -82,3 +82,17 @@ def test_extended_exception_types_preserve_context_fields() -> None:
     assert analytics_err.get_details()["metric_name"] == "latency"
     assert compat_err.get_details()["new_version"] == "0.2"
     assert perf_err.get_details()["threshold"] == 0.2
+
+
+def test_exception_optional_detail_fields_are_included_when_provided() -> None:
+    cfg = ConfigurationError("cfg", config_data={"k": "v"})
+    handler = HandlerError("h", handler_name="console")
+    async_err = AsyncError("a", event_loop_info={"running": True})
+    plugin = PluginError("p", plugin_path="/tmp/plugin.py")
+    factory = FactoryError("f", parameters={"retry": 3})
+
+    assert cfg.get_details()["config_data"] == {"k": "v"}
+    assert handler.get_details()["handler_name"] == "console"
+    assert async_err.get_details()["event_loop_info"]["running"] is True
+    assert plugin.get_details()["plugin_path"] == "/tmp/plugin.py"
+    assert factory.get_details()["parameters"]["retry"] == 3

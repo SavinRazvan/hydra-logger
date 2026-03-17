@@ -54,3 +54,16 @@ def test_layer_router_handles_threshold_resolution_error(caplog) -> None:
 
     assert threshold >= 0
     assert "Layer threshold resolution failed for layer=x default_level=INFO" in caplog.text
+
+
+def test_layer_router_handles_handler_resolution_error(caplog) -> None:
+    class BrokenMap(dict):
+        def __contains__(self, _key):
+            raise RuntimeError("contains fail")
+
+    router = LayerRouter({}, BrokenMap(), {}, {})
+    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.layer_router"):
+        handlers = router.handlers_for_layer("x")
+
+    assert handlers == []
+    assert "Layer handler resolution failed for layer=x" in caplog.text

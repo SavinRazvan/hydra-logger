@@ -109,3 +109,19 @@ def test_plain_text_formatter_compile_returns_none_for_unhandled_pattern() -> No
     formatter = PlainTextFormatter(format_string="{message}")
     formatter.format_string = "{timestamp}:{message}:custom"
     assert formatter._compile_fstring_format() is None
+
+
+def test_json_formatter_default_timestamp_config_uses_development_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    formatter = JsonLinesFormatter()
+    assert formatter.timestamp_config.format_type == TimestampFormat.HUMAN_READABLE
+
+
+def test_json_formatter_default_timestamp_config_uses_production_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    formatter = JsonLinesFormatter()
+    assert formatter.timestamp_config.format_type == TimestampFormat.RFC3339_MICRO

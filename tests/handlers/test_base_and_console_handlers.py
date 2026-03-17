@@ -12,6 +12,8 @@ import io
 import asyncio
 from datetime import datetime, timezone
 
+import pytest
+from hydra_logger.handlers import console_handler as console_module
 from hydra_logger.handlers.base_handler import BaseHandler
 from hydra_logger.handlers.console_handler import (
     AsyncConsoleHandler,
@@ -20,6 +22,11 @@ from hydra_logger.handlers.console_handler import (
     create_sync_console_handler,
 )
 from hydra_logger.types.records import LogRecord
+from hydra_logger.utils.time_utility import (
+    TimestampConfig,
+    TimestampFormat,
+    TimestampPrecision,
+)
 
 
 class DummyHandler(BaseHandler):
@@ -72,7 +79,9 @@ def test_base_handler_timestamp_and_lifecycle_helpers() -> None:
         timestamp=datetime.now(timezone.utc),
     )
     assert handler.format_timestamp(dt_record)
-    assert handler.format_timestamp(LogRecord(level=20, level_name="INFO", message="fallback now"))
+    fallback_record = LogRecord(level=20, level_name="INFO", message="fallback now")
+    fallback_record.timestamp = None
+    assert handler.format_timestamp(fallback_record)
 
     handler.setFormatter(None)  # type: ignore[arg-type]
     assert handler.get_config()["formatter"] is None
@@ -83,6 +92,24 @@ def test_base_handler_timestamp_and_lifecycle_helpers() -> None:
     assert handler.is_closed() is True
     metrics = handler.get_performance_metrics()
     assert metrics["performance_optimized"] is True
+
+
+def test_base_handler_utc_timestamp_and_abstract_emit_body() -> None:
+    handler = DummyHandler()
+    handler.timestamp_config = TimestampConfig(
+        format_type=TimestampFormat.RFC3339_MICRO,
+        precision=TimestampPrecision.MICROSECONDS,
+        timezone_name="UTC",
+        include_timezone=True,
+    )
+    ts_record = LogRecord(level=20, level_name="INFO", message="utc ts", timestamp=1700000000.0)
+    assert handler.format_timestamp(ts_record)
+    utc_now_record = LogRecord(level=20, level_name="INFO", message="utc now")
+    utc_now_record.timestamp = None
+    assert handler.format_timestamp(utc_now_record)
+
+    with pytest.raises(NotImplementedError, match="Subclasses must implement emit method"):
+        BaseHandler.emit(handler, ts_record)
 
 
 def test_sync_console_handler_flushes_buffer_to_stream() -> None:
@@ -422,8 +449,16 @@ def test_async_console_handler_worker_loop_additional_edge_paths(monkeypatch) ->
 
 
 def test_async_console_handler_auto_cleanup_outer_exception_and_aclose_variants(
-    monkeypatch, caplog
+    monkeypatch,
 ) -> None:
+    recorded_exceptions = []
+
+    def _quiet_exception(message, *args, **kwargs):
+        rendered = message % args if args else message
+        recorded_exceptions.append(rendered)
+
+    monkeypatch.setattr(console_module._logger, "exception", _quiet_exception)
+
     class BadTask:
         def done(self):
             raise RuntimeError("done boom")
@@ -449,9 +484,10 @@ def test_async_console_handler_auto_cleanup_outer_exception_and_aclose_variants(
 
     handler = AsyncConsoleHandler(stream=io.StringIO())
     handler._worker_task = BadTask()
-    with caplog.at_level("ERROR", logger="hydra_logger.handlers.console_handler"):
-        handler._auto_cleanup()
-    assert "Async console auto cleanup failed" in caplog.text
+    handler._auto_cleanup()
+    assert "Async console auto cleanup failed" in recorded_exceptions
+    # Avoid re-triggering the injected failure from atexit cleanup.
+    handler._worker_task = None
 
     async def _run() -> None:
         h = AsyncConsoleHandler(stream=io.StringIO())
@@ -462,9 +498,9 @@ def test_async_console_handler_auto_cleanup_outer_exception_and_aclose_variants(
             raise RuntimeError("other wait failure")
 
         monkeypatch.setattr(asyncio, "wait", _bad_wait)
-        with caplog.at_level("ERROR", logger="hydra_logger.handlers.console_handler"):
-            await h.aclose()
-        assert "Async console close encountered cleanup error" in caplog.text
+        await h.aclose()
+        assert "Async console close encountered cleanup error" in recorded_exceptions
+        h._worker_task = None
 
     asyncio.run(_run())
 
@@ -653,6 +689,75 @@ def test_async_console_worker_loop_final_flush_exception_branch(monkeypatch, cap
         with caplog.at_level("ERROR", logger="hydra_logger.handlers.console_handler"):
             await handler._worker_loop()  # hits final flush exception logger
         assert "Async console final message flush failed" in caplog.text
+
+    asyncio.run(_run())
+
+
+def test_async_console_worker_loop_runtime_break_branch(monkeypatch) -> None:
+    async def _run() -> None:
+        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=100, flush_interval=100)
+        handler._shutdown_event.set()
+        calls = {"n": 0}
+
+        async def _fake_wait_for(_coro, *args, **kwargs):
+            _coro.close()
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise RuntimeError("runtime break")
+            raise asyncio.CancelledError()
+
+        monkeypatch.setattr(asyncio, "wait_for", _fake_wait_for)
+        await handler._worker_loop()
+
+    asyncio.run(_run())
+
+
+def test_async_console_worker_loop_generic_break_when_shutdown_set(monkeypatch) -> None:
+    async def _run() -> None:
+        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=100, flush_interval=100)
+
+        class Event:
+            def __init__(self) -> None:
+                self._set = False
+
+            def is_set(self):
+                return self._set
+
+            def set(self):
+                self._set = True
+
+        ev = Event()
+        handler._shutdown_event = ev
+        calls = {"n": 0}
+
+        async def _fake_wait_for(_coro, *args, **kwargs):
+            _coro.close()
+            calls["n"] += 1
+            if calls["n"] == 1:
+                ev.set()
+                raise Exception("generic with shutdown")
+            raise asyncio.CancelledError()
+
+        monkeypatch.setattr(asyncio, "wait_for", _fake_wait_for)
+        await handler._worker_loop()
+
+    asyncio.run(_run())
+
+
+def test_async_console_worker_loop_inner_runtime_exception_break(monkeypatch) -> None:
+    async def _run() -> None:
+        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=100, flush_interval=100)
+
+        class BrokenQueue:
+            async def get(self):
+                return "m"
+
+            def empty(self):
+                raise RuntimeError("queue runtime")
+
+        handler._message_queue = BrokenQueue()
+        handler._shutdown_event.clear()
+        await handler._worker_loop()
 
     asyncio.run(_run())
 

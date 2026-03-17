@@ -9,6 +9,7 @@ Notes:
 """
 
 import builtins
+import importlib
 from pathlib import Path
 
 import pytest
@@ -499,3 +500,22 @@ def test_misc_success_branches_for_directory_and_access_helpers(tmp_path: Path) 
     assert PathUtility.ensure_extension("name.txt", ".txt") == "name.txt"
     assert PathUtility.ensure_extension("name.txt", "txt") == "name.txt"
     assert PathUtility.ensure_extension("name", ".txt") == "name.txt"
+
+
+def test_file_utility_optional_dependency_import_fallbacks(monkeypatch) -> None:
+    original_import = builtins.__import__
+
+    def _mock_import(name, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if name in {"yaml", "toml"}:
+            raise ImportError(f"missing optional dependency: {name}")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _mock_import)
+    reloaded = importlib.reload(file_utility_module)
+    assert reloaded.YAML_AVAILABLE is False
+    assert reloaded.TOML_AVAILABLE is False
+    assert reloaded.yaml is None
+    assert reloaded.toml is None
+
+    monkeypatch.setattr(builtins, "__import__", original_import)
+    importlib.reload(file_utility_module)

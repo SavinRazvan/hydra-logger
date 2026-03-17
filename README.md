@@ -1,5 +1,12 @@
 # HYDRA-LOGGER
 
+[![CI](https://github.com/SavinRazvan/hydra-logger/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SavinRazvan/hydra-logger/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://github.com/SavinRazvan/hydra-logger/blob/main/setup.py)
+[![Coverage](https://codecov.io/gh/SavinRazvan/hydra-logger/branch/main/graph/badge.svg)](https://codecov.io/gh/SavinRazvan/hydra-logger)
+[![License](https://img.shields.io/github/license/SavinRazvan/hydra-logger)](https://github.com/SavinRazvan/hydra-logger/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/hydra-logger)](https://pypi.org/project/hydra-logger/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/hydra-logger)](https://pypi.org/project/hydra-logger/)
+
 `hydra-logger` is a modular Python logging library for teams that need configurable logging without coupling application code to fixed transports or formats.
 
 ## Overview

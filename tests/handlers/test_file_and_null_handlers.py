@@ -206,6 +206,7 @@ def test_sync_file_handler_format_message_variants(tmp_path: Path) -> None:
 
 def test_sync_file_handler_emit_handles_invalid_file_handle(tmp_path: Path) -> None:
     handler = SyncFileHandler(filename=str(tmp_path / "invalid.log"), buffer_size=1)
+    handler._file_handle.close()
     handler._file_handle = None
     handler.emit(LogRecord(level=20, level_name="INFO", message="ignored"))
     assert handler.get_stats()["messages_processed"] == 0
@@ -214,6 +215,7 @@ def test_sync_file_handler_emit_handles_invalid_file_handle(tmp_path: Path) -> N
 
 def test_sync_file_handler_logs_invalid_file_handle(caplog, tmp_path: Path) -> None:
     handler = SyncFileHandler(filename=str(tmp_path / "invalid-log2.log"), buffer_size=1)
+    handler._file_handle.close()
     handler._file_handle = None
     with caplog.at_level("ERROR", logger="hydra_logger.handlers.file_handler"):
         handler.emit(LogRecord(level=20, level_name="INFO", message="ignored"))
@@ -311,6 +313,7 @@ def test_sync_file_handler_set_formatter_reopen_failure_sets_invalid_handle(
 def test_sync_file_handler_flush_closed_and_invalid_handles(tmp_path: Path) -> None:
     handler = SyncFileHandler(filename=str(tmp_path / "flush.log"))
     handler._buffer.append("abc\n")
+    handler._file_handle.close()
     closed_handle = SimpleNamespace(closed=True)
     handler._file_handle = closed_handle
     handler._flush_buffer()
@@ -638,6 +641,14 @@ def test_sync_file_handler_emit_exception_path_is_logged(
 def test_sync_file_handler_flush_generic_exception_and_cleanup_swallows(
     monkeypatch, tmp_path: Path, caplog
 ) -> None:
+    recorded_exceptions = []
+
+    def _quiet_exception(message, *args, **kwargs):
+        rendered = message % args if args else message
+        recorded_exceptions.append(rendered)
+
+    monkeypatch.setattr(file_module._logger, "exception", _quiet_exception)
+
     class BrokenRuntimeFile:
         closed = False
 
@@ -649,16 +660,20 @@ def test_sync_file_handler_flush_generic_exception_and_cleanup_swallows(
 
     handler = SyncFileHandler(filename=str(tmp_path / "flush-generic.log"))
     handler._buffer.append("x\n")
+    handler._file_handle.close()
     handler._file_handle = BrokenRuntimeFile()
     with caplog.at_level("ERROR", logger="hydra_logger.handlers.file_handler"):
         handler.flush()
-    assert "File buffer flush error" in caplog.text
+    assert any("File buffer flush error" in message for message in recorded_exceptions)
 
     monkeypatch.setattr(
         handler, "close", lambda: (_ for _ in ()).throw(RuntimeError("close fail"))
     )
     handler._auto_cleanup()
     handler.__del__()
+    # Ensure teardown/atexit paths do not replay the injected broken writer.
+    handler._buffer.clear()
+    handler._file_handle = None
 
 
 def test_async_file_handler_init_directory_warning_and_start_worker_noop(
@@ -1122,6 +1137,14 @@ def test_async_file_handler_optimize_adjust_sleep_flush_batch_and_emit_paths(
 def test_async_file_handler_cleanup_destructor_and_pytest_cleanup_branches(
     monkeypatch, tmp_path: Path
 ) -> None:
+    recorded_exceptions = []
+
+    def _quiet_exception(message, *args, **kwargs):
+        rendered = message % args if args else message
+        recorded_exceptions.append(rendered)
+
+    monkeypatch.setattr(file_module._logger, "exception", _quiet_exception)
+
     class _Task:
         def __init__(self) -> None:
             self.cancelled = False
@@ -1154,6 +1177,9 @@ def test_async_file_handler_cleanup_destructor_and_pytest_cleanup_branches(
 
     # __del__ outer exception branch
     handler.__del__()
+    # Restore a safe event for any later cleanup hooks.
+    handler._shutdown_event = asyncio.Event()
+    handler._worker_tasks = []
 
     # _pytest_cleanup cancel and exception branches
     handler2 = AsyncFileHandler(filename=str(tmp_path / "pytest-clean.log"), use_threading=False)
@@ -1163,3 +1189,204 @@ def test_async_file_handler_cleanup_destructor_and_pytest_cleanup_branches(
     assert task.cancelled is True
     handler2._shutdown_event = _BrokenEvent()
     handler2._pytest_cleanup()
+    # Restore safe state for registered cleanup hooks.
+    handler2._shutdown_event = asyncio.Event()
+    handler2._worker_tasks = []
+    assert "Async file auto cleanup failed" in recorded_exceptions
+    assert "Async file destructor cleanup failed" in recorded_exceptions
+    assert "Async file pytest cleanup failed" in recorded_exceptions
+
+
+def test_async_file_handler_remaining_worker_and_flush_branches(
+    monkeypatch, tmp_path: Path
+) -> None:
+    async def _run() -> None:
+        handler = AsyncFileHandler(filename=str(tmp_path / "remaining-worker.log"), use_threading=False)
+        handler._message_queue.put_nowait("msg\n")
+        handler._current_batch_size = 1
+
+        async def _direct(messages):
+            assert messages == ["msg\n"]
+            handler._shutdown_event.set()
+
+        async def _opt(_start, _count):
+            return None
+
+        monkeypatch.setattr(handler, "_direct_memory_to_file_write", _direct)
+        monkeypatch.setattr(handler, "_optimization", _opt)
+        await handler._message_processor("R")
+        assert handler._messages_processed >= 1
+
+        # _fast_disk_flush exception branch
+        handler._disk_buffer = ["x\n"]
+
+        async def _boom_bulk(_messages):
+            raise RuntimeError("disk flush fail")
+
+        monkeypatch.setattr(handler, "_bulk_write_to_disk_async", _boom_bulk)
+        await handler._fast_disk_flush()
+        await handler.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_file_handler_remaining_perf_sleep_headers_emit_paths(
+    monkeypatch, tmp_path: Path
+) -> None:
+    async def _run() -> None:
+        handler = AsyncFileHandler(filename=str(tmp_path / "remaining-perf.log"), use_threading=False)
+
+        # _parameter_adjustment len<5 early return
+        handler._performance_samples = [{"duration": 1.0, "messages": 1, "timestamp": 1.0}] * 4
+        await handler._parameter_adjustment()
+
+        # _optimize_performance sample-trim branch (>100)
+        handler._performance_samples = [{"duration": 0.1, "messages": 1, "timestamp": 1.0}] * 101
+        handler._last_performance_check = file_module.TimeUtility.perf_counter()
+        await handler._optimize_performance(file_module.TimeUtility.perf_counter(), 1)
+        assert len(handler._performance_samples) <= 100
+
+        # _calculate_smart_sleep high-load branch
+        handler._max_queue_size = 10
+        handler._message_queue = asyncio.Queue(maxsize=100)
+        for _ in range(9):
+            handler._message_queue.put_nowait("x")
+        assert handler._calculate_smart_sleep() == 0.001
+
+        # _should_flush_batch false branch
+        handler._flush_interval = 1000
+        handler._last_flush = file_module.TimeUtility.perf_counter()
+        handler._batch_size = 20
+        handler._message_buffer = ["x"] * 1
+        assert handler._should_flush_batch() is False
+
+        # CSV headers successful write path
+        class CsvOk:
+            include_headers = True
+
+            def format_headers(self):
+                return "h1,h2"
+
+        csv_handler = AsyncFileHandler(filename=str(tmp_path / "headers-ok.csv"), use_threading=False)
+        csv_handler.setFormatter(CsvOk())
+        assert csv_handler._check_and_write_csv_headers() is True
+
+        # emit() _start_worker branch
+        starts = {"n": 0}
+        csv_handler._running = False
+        monkeypatch.setattr(csv_handler, "_start_worker", lambda: starts.__setitem__("n", starts["n"] + 1))
+        csv_handler.emit(LogRecord(level=20, level_name="INFO", message="start-worker"))
+        assert starts["n"] == 1
+
+        # emit_async direct text-write success branch
+        direct = AsyncFileHandler(filename=str(tmp_path / "direct-text.log"), use_threading=False)
+        monkeypatch.setattr(direct, "_start_worker", lambda: None)
+        direct._running = False
+        monkeypatch.setattr(direct, "_format_message", lambda _record: "direct-text\n")
+        await direct.emit_async(LogRecord(level=20, level_name="INFO", message="x"))
+        assert direct._total_bytes_written > 0
+
+        await csv_handler.aclose()
+        await direct.aclose()
+        await handler.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_file_handler_remaining_close_and_aclose_pending_paths(
+    monkeypatch, tmp_path: Path
+) -> None:
+    class PendingTask:
+        def __init__(self) -> None:
+            self.cancelled = False
+
+        def cancel(self):
+            self.cancelled = True
+
+        def done(self):
+            return False
+
+    async def _run() -> None:
+        # close_async pending gather exception + thread pool cleanup
+        handler = AsyncFileHandler(filename=str(tmp_path / "close-remaining.log"), use_threading=False)
+        pending = PendingTask()
+        handler._worker_tasks = [pending]
+
+        class Pool:
+            def __init__(self) -> None:
+                self.shutdown_called = False
+
+            def shutdown(self, wait=True):
+                self.shutdown_called = True
+
+        pool = Pool()
+        handler._thread_pool = pool
+
+        async def _wait_with_pending(*_a, **_k):
+            return set(), [pending]
+
+        async def _gather_boom(*_a, **_k):
+            raise RuntimeError("gather fail")
+
+        monkeypatch.setattr(asyncio, "wait", _wait_with_pending)
+        monkeypatch.setattr(asyncio, "gather", _gather_boom)
+        await handler.close_async()
+        assert pending.cancelled is True
+        assert pool.shutdown_called is True
+        assert handler._running is False
+        assert handler._worker_tasks == []
+
+        # aclose pending-task gather exception branch (lines 1211+)
+        handler2 = AsyncFileHandler(filename=str(tmp_path / "aclose-remaining.log"), use_threading=False)
+        pending2 = PendingTask()
+        handler2._worker_tasks = [pending2]
+        handler2._message_queue = asyncio.Queue()
+        handler2._shutdown_event.clear()
+
+        async def _wait_pending(*_a, **_k):
+            return set(), [pending2]
+
+        monkeypatch.setattr(asyncio, "wait", _wait_pending)
+        monkeypatch.setattr(asyncio, "gather", _gather_boom)
+        await handler2.aclose()
+        assert pending2.cancelled is True
+
+    asyncio.run(_run())
+
+
+def test_async_file_handler_close_async_fallback_cancel_and_time_flush_branch(
+    monkeypatch, tmp_path: Path
+) -> None:
+    class PendingTask:
+        def __init__(self) -> None:
+            self.cancelled = False
+
+        def cancel(self):
+            self.cancelled = True
+
+        def done(self):
+            return False
+
+    async def _run() -> None:
+        handler = AsyncFileHandler(filename=str(tmp_path / "close-fallback.log"), use_threading=False)
+        task = PendingTask()
+        handler._worker_tasks = [task]
+
+        async def _wait_boom(*_a, **_k):
+            raise RuntimeError("wait fail")
+
+        async def _gather_boom(*_a, **_k):
+            raise RuntimeError("gather fail")
+
+        monkeypatch.setattr(asyncio, "wait", _wait_boom)
+        monkeypatch.setattr(asyncio, "gather", _gather_boom)
+        await handler.close_async()
+        assert task.cancelled is True
+
+        # _should_flush_batch time-based branch.
+        handler._last_flush = 0.0
+        handler._flush_interval = 0.0001
+        assert handler._should_flush_batch() is True
+        await handler.aclose()
+
+    asyncio.run(_run())

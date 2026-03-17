@@ -227,3 +227,61 @@ def test_base_logger_aexit_paths_and_initialize_no_config() -> None:
         )
 
     assert asyncio.run(run()) == (True, True, True)
+
+
+def test_base_logger_abstract_pass_bodies_and_init_alias_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    logger = DummyBaseLogger(config=None)
+
+    # Call abstract body implementations directly to cover pass statements.
+    BaseLogger.log(logger, "INFO", "x")
+    BaseLogger.debug(logger, "x")
+    BaseLogger.info(logger, "x")
+    BaseLogger.warning(logger, "x")
+    BaseLogger.error(logger, "x")
+    BaseLogger.critical(logger, "x")
+    BaseLogger.close(logger)
+    BaseLogger.get_health_status(logger)
+
+    # initialize() branch when config is present.
+    cfg = LoggingConfig()
+    logger._config = cfg
+    called = {"n": 0}
+    monkeypatch.setattr(
+        logger, "_initialize_from_config", lambda _cfg: called.__setitem__("n", called["n"] + 1)
+    )
+    logger.initialize()
+    assert called["n"] == 1
+
+    # aclose alias delegates to close_async
+    async def _run() -> None:
+        marker = {"n": 0}
+
+        async def _close_async() -> None:
+            marker["n"] += 1
+
+        logger.close_async = _close_async  # type: ignore[assignment]
+        await logger.aclose()
+        assert marker["n"] == 1
+
+    asyncio.run(_run())
+    logger._initialized = True
+    assert logger.is_initialized is True
+
+
+def test_base_logger_destructor_async_and_exception_paths() -> None:
+    class AsyncCloseLogger(DummyBaseLogger):
+        async def close(self) -> None:  # type: ignore[override]
+            return None
+
+    class BrokenCloseLogger(DummyBaseLogger):
+        def close(self):
+            raise BaseException("boom")
+
+    async_logger = AsyncCloseLogger(config=None)
+    async_logger._closed = False
+    async_logger.__del__()
+    assert async_logger.is_closed is True
+
+    broken = BrokenCloseLogger(config=None)
+    broken._closed = False
+    broken.__del__()  # swallow BaseException path

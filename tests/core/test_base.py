@@ -8,7 +8,14 @@ Notes:
  - Validates shared lifecycle/config behavior across base abstractions.
 """
 
-from hydra_logger.core.base import BaseFormatter, BaseHandler, BaseLogger, BaseMonitor, BasePlugin
+from hydra_logger.core.base import (
+    BaseComponent,
+    BaseFormatter,
+    BaseHandler,
+    BaseLogger,
+    BaseMonitor,
+    BasePlugin,
+)
 
 
 class DummyLogger(BaseLogger):
@@ -104,3 +111,27 @@ def test_base_component_logs_config_update_failures(caplog) -> None:
         except Exception:
             pass
     assert "Component config update failed for component=x" in caplog.text
+
+
+def test_base_abstract_method_bodies_and_common_accessors_are_covered() -> None:
+    logger = DummyLogger("core")
+    assert logger.is_initialized() is False
+    logger.disable()
+    assert logger.is_enabled() is False
+    logger.enable()
+    assert logger.is_enabled() is True
+
+    handler = DummyHandler("h", level="INFO")
+    handler.set_formatter("fmt")
+    assert handler.get_formatter() == "fmt"
+    handler.set_level("WARNING")
+    assert handler.get_level() == "WARNING"
+
+    # Call abstract base method bodies directly to cover pass statements.
+    BaseComponent.initialize(logger)
+    BaseComponent.shutdown(logger)
+    BaseLogger.log(logger, "INFO", "msg")
+    BaseHandler.emit(handler, "record")
+    BaseFormatter.format(DummyFormatter("f"), "record")
+    BasePlugin.process_event(DummyPlugin("p"), {"x": 1})
+    BaseMonitor.collect_metrics(DummyMonitor("m"))

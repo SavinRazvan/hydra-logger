@@ -233,3 +233,87 @@ def test_logger_fallback_paths_ignore_stderr_failures(monkeypatch, tmp_path) -> 
     monkeypatch.setattr("hydra_logger.utils.error_logger.sys.stderr", _BrokenStderr())
     SafeErrorLogger.log_error(ValueError("boom"), component="component_x")
     SafeErrorLogger.log_message("boom message", level="ERROR")
+
+
+def test_error_logger_init_lock_double_check_and_stderr_nested_failures(monkeypatch, tmp_path) -> None:
+    _reset_error_logger_state()
+    monkeypatch.chdir(tmp_path)
+    original_lock = SafeErrorLogger._lock
+
+    class _Lock:
+        def __enter__(self):
+            SafeErrorLogger._initialized = True
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    SafeErrorLogger._lock = _Lock()
+    SafeErrorLogger._initialize()
+    assert SafeErrorLogger._initialized is True
+
+    _reset_error_logger_state()
+
+    class _BrokenStderr:
+        def write(self, _payload):
+            raise RuntimeError("stderr write fail")
+
+        def flush(self):
+            raise RuntimeError("stderr flush fail")
+
+    monkeypatch.setattr(
+        builtins,
+        "open",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("denied")),
+    )
+    monkeypatch.setattr("hydra_logger.utils.error_logger.sys.stderr", _BrokenStderr())
+    # Nested stderr write/flush failures should be swallowed.
+    SafeErrorLogger._initialize()
+    SafeErrorLogger._lock = original_lock
+
+
+def test_error_logger_swallow_stderr_failures_in_generic_exception_paths(monkeypatch) -> None:
+    _reset_error_logger_state()
+
+    class _AlwaysFailWriter:
+        def write(self, _payload):
+            raise RuntimeError("writer fail")
+
+        def flush(self):
+            return None
+
+    class _BrokenStderr:
+        def write(self, _payload):
+            raise RuntimeError("stderr write fail")
+
+        def flush(self):
+            raise RuntimeError("stderr flush fail")
+
+    SafeErrorLogger._initialized = True
+    SafeErrorLogger._error_file = _AlwaysFailWriter()
+    monkeypatch.setattr("hydra_logger.utils.error_logger.sys.stderr", _BrokenStderr())
+    SafeErrorLogger.log_error(ValueError("x"))
+    SafeErrorLogger.log_message("y", level="ERROR")
+
+
+def test_error_logger_initialize_swallows_nested_stderr_write_failures(
+    monkeypatch, tmp_path
+) -> None:
+    _reset_error_logger_state()
+    monkeypatch.chdir(tmp_path)
+
+    class _BrokenStderr:
+        def write(self, _payload):
+            raise RuntimeError("write fail")
+
+        def flush(self):
+            raise RuntimeError("flush fail")
+
+    monkeypatch.setattr(
+        builtins,
+        "open",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("open denied")),
+    )
+    monkeypatch.setattr("hydra_logger.utils.error_logger.sys.stderr", _BrokenStderr())
+    SafeErrorLogger._initialized = False
+    SafeErrorLogger._initialize()

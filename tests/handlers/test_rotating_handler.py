@@ -569,3 +569,67 @@ def test_timed_size_hybrid_and_factory_uncovered_branches(monkeypatch, tmp_path:
         ),
         HybridRotatingFileHandler,
     )
+
+
+def test_rotating_handler_remaining_emit_and_cleanup_branches(
+    monkeypatch, caplog, tmp_path: Path
+) -> None:
+    handler = _TestRotatingHandler(str(tmp_path / "emit-branches.log"))
+
+    class StreamingFmt:
+        def format_for_streaming(self, _record):
+            return "stream-only"
+
+    class PlainFmt:
+        def format(self, _record):
+            return "plain"
+
+    # format_for_streaming branch (no newline append)
+    handler.setFormatter(StreamingFmt())
+    handler.emit(LogRecord(level=20, level_name="INFO", message="x"))
+    assert handler._string_buffer[-1] == "stream-only"
+
+    # format branch + newline append for non-csv formatter
+    handler.setFormatter(PlainFmt())
+    handler.emit(LogRecord(level=20, level_name="INFO", message="x"))
+    assert handler._string_buffer[-1].endswith("\n")
+
+    # OSError/ValueError debug path in flush.
+    class _OSErrorWriter:
+        closed = False
+
+        def write(self, _m: str) -> None:
+            raise OSError("closed")
+
+        def flush(self) -> None:
+            return None
+
+        def close(self) -> None:
+            return None
+
+    handler._current_file = _OSErrorWriter()
+    handler._buffer.append("x")
+    handler._string_buffer.append("x")
+    with caplog.at_level("DEBUG", logger="hydra_logger.handlers.rotating_handler"):
+        handler._flush_buffer()
+    assert "Rotating file flush skipped due to closed or invalid handle" in caplog.text
+
+    # Outer cleanup exception warning path.
+    monkeypatch.setattr(rotating_module.os, "listdir", lambda _p: (_ for _ in ()).throw(RuntimeError("list fail")))
+    with caplog.at_level("WARNING", logger="hydra_logger.handlers.rotating_handler"):
+        handler._cleanup_old_files()
+    assert "Rotated file cleanup failed" in caplog.text
+    handler.close()
+
+
+def test_timed_and_hybrid_remaining_false_and_no_ext_name_branches(tmp_path: Path) -> None:
+    timed = TimedRotatingFileHandler(filename=str(tmp_path / "timed-false.log"), when="none", interval=1)
+    assert timed._should_rotate() is False
+    timed.close()
+
+    hybrid = HybridRotatingFileHandler(filename=str(tmp_path / "hy-noext.log"), when="none", interval=1)
+    hybrid._config.preserve_extension = False
+    name = hybrid._generate_backup_name()
+    assert name.count(".") >= 2
+    assert not name.endswith(".log")
+    hybrid.close()

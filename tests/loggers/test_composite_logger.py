@@ -1037,3 +1037,22 @@ def test_composite_async_sync_close_outer_exception_and_unhealthy_health() -> No
     logger2 = CompositeAsyncLogger(components=[Unhealthy()], use_direct_io=True)  # type: ignore[list-item]
     assert logger2.get_health_status()["overall_health"] == "unhealthy"
     logger2.close()
+
+
+def test_composite_async_log_batch_init_guard_and_sync_close_executor_path() -> None:
+    class SyncClose:
+        name = "sync-close"
+
+        @staticmethod
+        def close() -> None:
+            return None
+
+    async def _run() -> None:
+        logger = CompositeAsyncLogger(components=[SyncClose()], use_direct_io=False)
+        logger._initialized = False
+        await logger.log_batch([("INFO", "x", {})])
+        logger._initialized = True
+        await logger.aclose()
+        assert logger._closed is True
+
+    asyncio.run(_run())
