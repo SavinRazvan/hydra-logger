@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -39,7 +42,7 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        pytest tests/ --cov=hydra_logger --cov-report=xml --cov-report=term-missing --cov-fail-under=60
+        pytest tests/ --cov=hydra_logger --cov-report=xml --cov-report=term-missing --cov-fail-under=95
 
     - name: Enforce repository logs isolation
       run: |

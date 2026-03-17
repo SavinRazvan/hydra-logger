@@ -27,7 +27,7 @@ BASE_GATES = [
         "pytest",
         "--cov=hydra_logger",
         "--cov-report=term-missing",
-        "--cov-fail-under=60",
+        "--cov-fail-under=95",
         "-q",
     ],
     ["scripts/pr/check_slim_headers.py", "--all-python", "--strict"],
