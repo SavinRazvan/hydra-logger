@@ -15,12 +15,48 @@ from __future__ import annotations
 import time
 from collections.abc import Awaitable, Callable
 import math
+import statistics
 from typing import Any
 
 from benchmark.dev_logging import get_logger
 
 
 _logger = get_logger(__name__)
+
+
+def summarize_samples(values: list[float]) -> dict[str, float]:
+    """Return median/p95/cv summary for numeric sample lists."""
+    cleaned = [float(value) for value in values if math.isfinite(float(value))]
+    if not cleaned:
+        return {"median": 0.0, "p95": 0.0, "cv": 0.0, "min": 0.0, "max": 0.0}
+    ordered = sorted(cleaned)
+    median = statistics.median(ordered)
+    p95_index = min(len(ordered) - 1, max(0, math.ceil(len(ordered) * 0.95) - 1))
+    p95 = ordered[p95_index]
+    mean = statistics.mean(ordered)
+    stdev = statistics.pstdev(ordered) if len(ordered) > 1 else 0.0
+    cv = (stdev / mean) * 100.0 if mean > 0 else 0.0
+    return {
+        "median": median,
+        "p95": p95,
+        "cv": cv,
+        "min": ordered[0],
+        "max": ordered[-1],
+    }
+
+
+def validate_sample_duration(
+    *, section: str, duration: float, min_duration_seconds: float
+) -> str | None:
+    """Validate duration has enough sample time for meaningful comparison."""
+    if min_duration_seconds <= 0:
+        return None
+    if duration < min_duration_seconds:
+        return (
+            f"{section}.duration: sample too short ({duration:.6f}s), "
+            f"requires >= {min_duration_seconds:.6f}s"
+        )
+    return None
 
 
 def messages_per_second(total_messages: int, duration: float) -> float:
@@ -132,6 +168,9 @@ def validate_result_invariants(results: dict[str, Any]) -> list[str]:
             violations.append(
                 f"{label_prefix}.actual_emitted: expected {int(expected)} but found {int(actual)}"
             )
+        strict_file_evidence = bool(section.get("strict_file_evidence", True))
+        if strict_file_evidence and not written_observed:
+            violations.append(f"{label_prefix}.written_lines_observed: expected True")
         if (
             written_observed
             and written is not None
@@ -220,6 +259,8 @@ def validate_result_invariants(results: dict[str, Any]) -> list[str]:
     if isinstance(configurations, dict):
         for config_name, config_result in configurations.items():
             if not isinstance(config_result, dict):
+                continue
+            if not isinstance(config_result.get("messages_per_second"), (int, float)):
                 continue
             _validate_rate(
                 numerator=float(config_result.get("total_messages", 0)),

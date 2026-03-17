@@ -1,6 +1,22 @@
 {
   "name": "nightly_truth",
   "description": "Nightly regression and truth-set benchmark profile.",
+  "write_markdown_reports": true,
+  "strict_reliability_guards": true,
+  "min_sample_duration_seconds": 0.001,
+  "repetition_sections": [
+    "sync_logger",
+    "async_logger",
+    "composite_logger",
+    "composite_async_logger",
+    "file_writing",
+    "async_file_writing",
+    "concurrent",
+    "async_concurrent",
+    "parallel_workers",
+    "advanced_concurrent",
+    "ultra_high_performance"
+  ],
   "drift_policy": {
     "enabled": true,
     "history_window": 30,
@@ -16,5 +32,17 @@
     "suite_matrix_messages_per_worker": 10000,
     "repetitions": 10,
     "soak_enabled": true
+  },
+  "output_matrix_overrides": {
+    "logger_types": ["sync", "async", "composite", "composite-async"],
+    "console_sinks": ["console", "async_console"],
+    "file_sinks": ["file", "async_file", "async_cloud_stub"],
+    "console_formats": ["plain-text", "colored", "json-lines"],
+    "file_formats": ["plain-text", "json-lines", "csv"],
+    "customizations": ["baseline", "hardened"],
+    "include_extensions": true,
+    "console_message_count": 10,
+    "file_message_count": 100,
+    "max_cases": 320
   }
 }

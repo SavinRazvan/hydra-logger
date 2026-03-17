@@ -76,6 +76,7 @@ def write_results_artifacts(
     *,
     output_payload: dict[str, Any],
     results_dir: Path,
+    write_markdown_reports: bool = True,
 ) -> Path:
     """Write timestamped and latest benchmark result artifacts."""
     try:
@@ -90,6 +91,7 @@ def write_results_artifacts(
             output_payload=output_payload,
             results_dir=results_dir,
             timestamp=timestamp,
+            write_markdown_reports=write_markdown_reports,
         )
         return output_file
     except KeyError as exc:
@@ -107,8 +109,20 @@ def _write_auxiliary_reports(
     output_payload: dict[str, Any],
     results_dir: Path,
     timestamp: str,
+    write_markdown_reports: bool,
 ) -> None:
     """Persist benchmark summary and reliability reports beside JSON artifacts."""
+    if not write_markdown_reports:
+        for prefix in ("summary", "drift", "invariants", "leaks"):
+            _conditionally_write_or_clear_report(
+                should_write=False,
+                results_dir=results_dir,
+                timestamp=timestamp,
+                prefix=prefix,
+                body="",
+            )
+        return
+
     results = output_payload.get("results", {})
     metadata = output_payload.get("metadata", {})
     reliability = results.get("reliability_guards", {}) if isinstance(results, dict) else {}
@@ -123,6 +137,7 @@ def _write_auxiliary_reports(
         f"- Python: {metadata.get('python_version', 'unknown')}",
         f"- Commit: {metadata.get('git_commit_sha', 'unknown')}",
         f"- Reliability Status: {reliability.get('status', 'unknown') if isinstance(reliability, dict) else 'unknown'}",
+        f"- Reliability Strict Mode: {reliability.get('strict_mode', False) if isinstance(reliability, dict) else False}",
         f"- Drift Status: {drift.get('status', 'unknown') if isinstance(drift, dict) else 'unknown'}",
     ]
 
@@ -133,6 +148,10 @@ def _write_auxiliary_reports(
         invariant_violations = reliability.get("invariant_violations", []) or []
         path_violations = reliability.get("path_violations", []) or []
         leak_violations = reliability.get("leak_violations", []) or []
+        file_io_violations = reliability.get("file_io_violations", []) or []
+        sample_duration_violations = reliability.get("sample_duration_violations", []) or []
+        summary_lines.append(f"- File I/O violations: {len(file_io_violations)}")
+        summary_lines.append(f"- Sample duration violations: {len(sample_duration_violations)}")
 
     _write_report_files(
         results_dir=results_dir,

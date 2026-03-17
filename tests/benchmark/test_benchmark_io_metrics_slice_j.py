@@ -18,6 +18,8 @@ from benchmark.io_metrics import (
     build_file_io_result,
     count_written_lines,
     extract_handler_bytes_written,
+    extract_handler_messages_emitted,
+    resolve_written_line_delta,
     resolve_bytes_written,
 )
 
@@ -91,6 +93,32 @@ def test_resolve_bytes_written_falls_back_to_file_or_missing_path(tmp_path) -> N
     assert missing["bytes_written"] == 7
 
 
+def test_extract_handler_messages_emitted_uses_max_and_swallows_errors() -> None:
+    class _GoodHandler:
+        def __init__(self, value: int) -> None:
+            self._value = value
+
+        def get_stats(self) -> dict[str, int]:
+            return {"messages_processed": self._value}
+
+    class _BadHandler:
+        def get_stats(self) -> dict[str, int]:
+            raise RuntimeError("bad stats")
+
+    logger = SimpleNamespace(
+        _layer_handlers={"default": [_GoodHandler(10), _BadHandler(), _GoodHandler(40)]}
+    )
+    assert extract_handler_messages_emitted(logger) == 0
+
+    safe_logger = SimpleNamespace(_layer_handlers={"default": [_GoodHandler(10), _GoodHandler(40)]})
+    assert extract_handler_messages_emitted(safe_logger) == 40
+
+
+def test_resolve_written_line_delta_clamps_negative_values() -> None:
+    assert resolve_written_line_delta(baseline_lines=1000, final_lines=1500) == 500
+    assert resolve_written_line_delta(baseline_lines=1500, final_lines=1000) == 0
+
+
 def test_build_file_io_result_builds_expected_contract() -> None:
     result = build_file_io_result(
         logger_type="File Handler Only",
@@ -101,12 +129,17 @@ def test_build_file_io_result_builds_expected_contract() -> None:
         bytes_written=1000,
         written_lines=0,
         file_path=str(Path("/tmp/file.log")),
+        actual_emitted=190,
+        actual_emitted_source="handler_counter",
+        strict_file_evidence=True,
     )
     assert result["logger_type"] == "File Handler Only"
     assert result["messages_per_second"] == 100.0
     assert result["bytes_per_second"] == 500.0
     assert result["expected_emitted"] == 200
-    assert result["actual_emitted"] == 200
+    assert result["actual_emitted"] == 190
+    assert result["actual_emitted_source"] == "handler_counter"
+    assert result["strict_file_evidence"] is True
     assert result["written_lines_observed"] is False
     assert result["status"] == "COMPLETED"
 

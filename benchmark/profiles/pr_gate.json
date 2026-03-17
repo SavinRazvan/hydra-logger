@@ -1,6 +1,10 @@
 {
   "name": "pr_gate",
   "description": "Pull request decision benchmark profile.",
+  "write_markdown_reports": false,
+  "strict_reliability_guards": false,
+  "min_sample_duration_seconds": 0.001,
+  "repetition_sections": ["sync_logger", "async_logger", "file_writing", "async_file_writing"],
   "drift_policy": {
     "enabled": true,
     "history_window": 20,
@@ -15,5 +19,14 @@
     "suite_matrix_workers_tasks": [1, 2, 4, 8, 16, 32],
     "suite_matrix_messages_per_worker": 5000,
     "repetitions": 5
+  },
+  "output_matrix_overrides": {
+    "logger_types": ["sync", "async", "composite", "composite-async"],
+    "console_sinks": ["console", "async_console"],
+    "file_sinks": ["file", "async_file", "async_cloud_stub"],
+    "include_extensions": true,
+    "max_cases": 180,
+    "console_message_count": 8,
+    "file_message_count": 80
   }
 }

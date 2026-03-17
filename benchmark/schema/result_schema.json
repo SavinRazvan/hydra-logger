@@ -74,6 +74,7 @@
         "composite_logger",
         "composite_async_logger",
         "configurations",
+        "output_matrix",
         "file_writing",
         "async_file_writing",
         "memory",
@@ -81,7 +82,9 @@
         "async_concurrent",
         "parallel_workers",
         "advanced_concurrent",
-        "ultra_high_performance"
+        "ultra_high_performance",
+        "drift_policy",
+        "reliability_guards"
       ],
       "additionalProperties": true,
       "properties": {
@@ -122,6 +125,15 @@
           "type": "object"
         },
         "ultra_high_performance": {
+          "type": "object"
+        },
+        "output_matrix": {
+          "type": "object"
+        },
+        "drift_policy": {
+          "type": "object"
+        },
+        "reliability_guards": {
           "type": "object"
         }
       }

@@ -42,6 +42,17 @@ python3 benchmark/performance_benchmark.py --profile nightly_truth
 - When historical sample count is below policy minimum, checks are reported as
   skipped (not failed) to avoid bootstrapping false negatives.
 
+## Reliability contract
+
+- File benchmarks (`file_writing`, `async_file_writing`) publish observed
+  `actual_emitted` counters from handlers and strict line-evidence fields.
+- Output-matrix file cases must expose concrete `file_path` and `written_lines`
+  evidence at emitted-message parity.
+- Repetition metadata (`repetition_runs`, `repetition_stats`) and
+  `minimum_sample_duration_*` markers are persisted per scenario payload.
+- Reliability guard failures are **hard-fail only** for `nightly_truth`
+  (`strict_reliability_guards=true`); CI/PR profiles remain advisory.
+
 ## CI and nightly automation
 
 - CI workflow (`.github/workflows/ci.yml`) runs:
