@@ -84,6 +84,14 @@ class AsyncEmitMethodHandler:
         self.calls += 1
 
 
+class SyncEmitOnlyHandler:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def emit(self, _record) -> None:
+        self.calls += 1
+
+
 class FailingAsyncEmitMethodHandler:
     async def emit(self, _record) -> None:
         raise RuntimeError("async emit fail")
@@ -199,6 +207,13 @@ def test_handler_dispatcher_async_supports_mixed_handler_shapes() -> None:
     assert async_emit.calls == 1
     assert sync_handle.calls == 1
     assert async_emit_method.calls == 1
+
+
+def test_handler_dispatcher_async_supports_sync_emit_fallback() -> None:
+    dispatcher = HandlerDispatcher()
+    sync_emit = SyncEmitOnlyHandler()
+    asyncio.run(dispatcher.dispatch_async(record=object(), handlers=[sync_emit]))
+    assert sync_emit.calls == 1
 
 
 def test_handler_dispatcher_async_logs_failure_context(caplog) -> None:

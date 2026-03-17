@@ -783,3 +783,259 @@ def test_async_logger_close_and_aclose_cleanup_branches() -> None:
         assert logger.is_closed is True
 
     asyncio.run(_run())
+
+
+def test_async_logger_setup_from_dict_and_not_initialized_early_returns() -> None:
+    logger = AsyncLogger(config={"layers": {"default": {"destinations": [{"type": "null"}]}}})
+    logger._initialized = False
+    assert logger.log("INFO", "skip") is None
+    asyncio.run(logger.log_async("INFO", "skip"))
+    logger.close()
+
+
+def test_async_logger_sync_and_async_internal_exception_swallow_paths() -> None:
+    logger = AsyncLogger()
+    logger._record_builder.normalize_level = lambda _level: (_ for _ in ()).throw(RuntimeError("norm-fail"))  # type: ignore[assignment]
+    logger._log_sync("INFO", "x")
+
+    async def _run() -> None:
+        class Fallback:
+            def handle(self, _record):  # type: ignore[no-untyped-def]
+                raise RuntimeError("fallback-fail")
+
+        logger2 = AsyncLogger()
+        logger2._fallback_handler = Fallback()
+
+        async def _fail_emit(_record):  # type: ignore[no-untyped-def]
+            raise RuntimeError("emit-fail")
+
+        logger2._emit_to_handlers = _fail_emit  # type: ignore[assignment]
+        with pytest.raises(HydraLoggerError):
+            await logger2._log_async("INFO", "x")
+        await logger2.aclose()
+
+    asyncio.run(_run())
+    logger.close()
+
+
+def test_async_logger_overflow_worker_timeout_and_exception_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._closed = False
+        logger._concurrency_semaphore = asyncio.Semaphore(1)
+        record = logger.create_log_record("INFO", "ovf-timeout")
+        await logger._overflow_queue.put(record)
+
+        state = {"calls": 0}
+        original_wait_for = asyncio.wait_for
+
+        async def fake_wait_for(awaitable, *args, **kwargs):  # type: ignore[no-untyped-def]
+            state["calls"] += 1
+            if state["calls"] == 1:
+                awaitable.close()
+                raise asyncio.TimeoutError()
+            if state["calls"] == 2:
+                return await original_wait_for(awaitable, *args, **kwargs)
+            awaitable.close()
+            raise RuntimeError("queue-broken")
+
+        async def _emit(_record):  # type: ignore[no-untyped-def]
+            logger._closed = True
+
+        monkeypatch.setattr(asyncio, "wait_for", fake_wait_for)
+        logger._emit_to_handlers = _emit  # type: ignore[assignment]
+        await original_wait_for(logger._overflow_worker(), timeout=1.0)
+
+        # Outer exception sleep branch.
+        logger._closed = False
+        logger._overflow_queue = asyncio.Queue()
+        await logger._overflow_queue.put(logger.create_log_record("INFO", "ovf-outer"))
+        logger._concurrency_semaphore = object()  # type: ignore[assignment]
+        monkeypatch.setattr(asyncio, "wait_for", original_wait_for)
+        sleeps = []
+
+        async def fake_sleep(seconds: float):  # type: ignore[no-untyped-def]
+            sleeps.append(seconds)
+            logger._closed = True
+
+        monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+        await original_wait_for(logger._overflow_worker(), timeout=1.0)
+        assert sleeps
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_large_batch_and_concurrency_dynamic_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        info_calls = []
+        monkeypatch.setattr(
+            "hydra_logger.loggers.async_logger.diagnostics.info",
+            lambda *args: info_calls.append(args),
+        )
+
+        async def ok_log(_level, _message, **_kwargs):  # type: ignore[no-untyped-def]
+            return None
+
+        logger.log = ok_log  # type: ignore[assignment]
+        messages = [("INFO", f"m{i}", {}) for i in range(10001)]
+        await logger.log_batch(messages)
+        await logger.log_concurrent(messages, max_concurrent=None)
+        assert info_calls
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_empty_collection_early_returns_and_default_concurrency() -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        await logger.log_batch([])
+        await logger.log_concurrent([])
+        results = await logger.log_background_work([lambda: "ok"], max_concurrent=None)
+        assert results == ["ok"]
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_convenience_non_coroutine_returns_and_context_manager(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = AsyncLogger()
+    logger.log = lambda *_args, **_kwargs: "done"  # type: ignore[assignment]
+    assert logger.debug("d") == "done"
+    assert logger.error("e") == "done"
+    assert logger.critical("c") == "done"
+
+    with AsyncLogger() as ctx:
+        assert ctx is not None
+    assert ctx.is_closed is True
+
+    # __exit__ path with pre-closed logger branch in close().
+    ctx.close()
+    monkeypatch.setattr(ctx, "close", lambda: None)
+    ctx.__exit__(None, None, None)
+
+
+def test_async_logger_aclose_console_close_async_and_outer_exception() -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+
+        class ConsoleCloseAsync:
+            async def close_async(self) -> None:
+                return None
+
+        logger._console_handler = ConsoleCloseAsync()
+        await logger.aclose()
+
+        # Outer exception branch in aclose.
+        logger2 = AsyncLogger()
+        logger2._closed = False
+        logger2._handlers = None  # type: ignore[assignment]
+        await logger2.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_health_and_reasoning_remaining_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = AsyncLogger()
+    logger._optimal_concurrency = 500
+    logger._concurrency_semaphore = asyncio.Semaphore(4)
+    health = logger.get_health_status()
+    assert health["concurrency_available"] == 4
+
+    fake_psutil = types.SimpleNamespace(
+        virtual_memory=lambda: types.SimpleNamespace(available=9000 * 1024 * 1024, percent=10)
+    )
+    monkeypatch.setitem(sys.modules, "psutil", fake_psutil)
+    assert "High concurrency" in logger._get_concurrency_reasoning()
+
+    fake_psutil_mid = types.SimpleNamespace(
+        virtual_memory=lambda: types.SimpleNamespace(available=3000 * 1024 * 1024, percent=30)
+    )
+    monkeypatch.setitem(sys.modules, "psutil", fake_psutil_mid)
+    assert "Low concurrency" in logger._get_concurrency_reasoning()
+
+    fake_psutil_low = types.SimpleNamespace(
+        virtual_memory=lambda: types.SimpleNamespace(available=1000 * 1024 * 1024, percent=70)
+    )
+    monkeypatch.setitem(sys.modules, "psutil", fake_psutil_low)
+    assert "Conservative concurrency" in logger._get_concurrency_reasoning()
+    logger.close()
+
+
+def test_async_logger_formatter_colored_console_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = AsyncLogger()
+    destination = LogDestination(type="console", format="plain-text")
+    calls = []
+
+    def fake_get_formatter(fmt, **kwargs):  # type: ignore[no-untyped-def]
+        calls.append((fmt, kwargs.get("use_colors")))
+        return object()
+
+    monkeypatch.setattr("hydra_logger.formatters.get_formatter", fake_get_formatter)
+    logger._create_formatter_for_destination(destination, is_console=True, use_colors=True)
+    assert calls and calls[0][0] == "colored"
+    logger.close()
+
+
+def test_async_logger_process_chunk_large_branch_item_failure_warning(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        warnings = []
+
+        async def flaky_log(_level, message, **_kwargs):  # type: ignore[no-untyped-def]
+            if message == "bad":
+                raise RuntimeError("large-item-fail")
+
+        monkeypatch.setattr(logger, "log", flaky_log)
+        monkeypatch.setattr(
+            "hydra_logger.loggers.async_logger.diagnostics.warning",
+            lambda msg, err: warnings.append((msg, str(err))),
+        )
+        big_chunk = [("INFO", "bad", {})] + [("INFO", f"ok-{i}", {}) for i in range(1001)]
+        await logger._process_chunk_optimized(big_chunk)
+        assert warnings and "large-item-fail" in warnings[0][1]
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_close_cancels_overflow_worker_task_branch() -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._overflow_worker_task = asyncio.create_task(asyncio.sleep(10))
+        logger.close()
+        assert logger.is_closed is True
+
+    asyncio.run(_run())
+
+
+def test_async_logger_overflow_worker_breaks_on_queue_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._closed = False
+
+        async def broken_wait_for(_awaitable, *args, **kwargs):  # type: ignore[no-untyped-def]
+            _awaitable.close()
+            raise RuntimeError("queue-broken")
+
+        monkeypatch.setattr(asyncio, "wait_for", broken_wait_for)
+        await logger._overflow_worker()
+        await logger.aclose()
+
+    asyncio.run(_run())

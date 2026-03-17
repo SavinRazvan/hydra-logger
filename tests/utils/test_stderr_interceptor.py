@@ -166,3 +166,40 @@ def test_stderr_interceptor_swallows_warning_write_failures(monkeypatch) -> None
         StderrInterceptor.stop_intercepting()
         SafeErrorLogger._initialized = original_initialized
         SafeErrorLogger._error_file = original_error_file
+
+
+def test_stderr_interceptor_initializes_error_logger_and_fsyncs(monkeypatch) -> None:
+    calls = {"init": 0, "fsync": 0}
+
+    class FakeErrorFile:
+        def flush(self) -> None:
+            return None
+
+        def fileno(self) -> int:
+            return 1
+
+    def _fake_initialize() -> None:
+        calls["init"] += 1
+        SafeErrorLogger._initialized = True
+        SafeErrorLogger._error_file = FakeErrorFile()
+
+    monkeypatch.setattr(SafeErrorLogger, "_initialize", _fake_initialize)
+    monkeypatch.setattr(interceptor_module, "log_error_message", lambda *_a, **_k: None)
+    monkeypatch.setattr("os.fsync", lambda _fd: calls.__setitem__("fsync", calls["fsync"] + 1))
+
+    original_initialized = SafeErrorLogger._initialized
+    original_error_file = SafeErrorLogger._error_file
+    SafeErrorLogger._initialized = False
+    SafeErrorLogger._error_file = None
+
+    StderrInterceptor.stop_intercepting()
+    StderrInterceptor.start_intercepting()
+    try:
+        sys.stderr.write("malloc failed once\n")
+    finally:
+        StderrInterceptor.stop_intercepting()
+        SafeErrorLogger._initialized = original_initialized
+        SafeErrorLogger._error_file = original_error_file
+
+    assert calls["init"] >= 1
+    assert calls["fsync"] >= 1

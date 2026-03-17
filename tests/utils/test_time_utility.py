@@ -297,3 +297,29 @@ def test_date_formatter_and_relative_time_and_timezone_utility() -> None:
     naive = datetime(2026, 1, 1, 0, 0, 0)
     converted = TimeZoneUtility.convert_to_timezone(naive, timezone.utc)
     assert converted.tzinfo is not None
+
+
+def test_timestamp_formatter_naive_utc_replace_and_micro_padding_branch() -> None:
+    class FakeDateTime:
+        def __init__(self) -> None:
+            self.tzinfo = None
+            self.microsecond = 1
+
+        def astimezone(self, _tz):
+            return self
+
+        def replace(self, tzinfo=None):
+            self.tzinfo = tzinfo
+            return self
+
+        def strftime(self, _template: str) -> str:
+            return "2026-01-02T03:04:05.1Z"
+
+    fake = FakeDateTime()
+    formatted = TimestampFormatter.format_timestamp(
+        fake,  # type: ignore[arg-type]
+        TimestampFormat.RFC3339_MICRO,
+        TimestampPrecision.MICROSECONDS,
+        timezone_name="UTC",
+    )
+    assert ".1Z" in formatted

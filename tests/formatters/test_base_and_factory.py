@@ -188,3 +188,19 @@ def test_base_formatter_validate_record_handles_missing_and_exceptional_attrs() 
 
     assert formatter.validate_record(BrokenAttrs()) is False
     assert formatter.get_config()["name"] == "dummy"
+
+
+def test_base_formatter_cached_datetime_path_and_abstract_body() -> None:
+    formatter = DummyFormatter(name="dummy")
+    formatter.timestamp_config.format_timestamp = lambda _dt: "formatted-any"  # type: ignore[method-assign]
+
+    class WeirdTimestamp:
+        def __mul__(self, other: int) -> int:
+            return other
+
+    record = LogRecord(level_name="INFO", message="x", level=20)
+    record.timestamp = WeirdTimestamp()
+    assert formatter.format_timestamp(record) == "formatted-any"
+    assert BaseFormatter._format_default(
+        formatter, LogRecord(level_name="INFO", message="x", level=20)
+    ) is None

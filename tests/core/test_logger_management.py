@@ -147,3 +147,23 @@ def test_module_level_logger_management_wrappers(monkeypatch) -> None:
     assert logger_management_module.getDefaultConfig() == "cfg"
     assert logger_management_module.getSyncLogger("sync")["type"] == "sync"
     assert logger_management_module.getAsyncLogger("async")["type"] == "async"
+
+
+def test_logger_manager_get_logger_double_checked_lock_branch() -> None:
+    manager = LoggerManager()
+
+    class InjectOnEnterLock:
+        def __init__(self, callback) -> None:
+            self._callback = callback
+
+        def __enter__(self):
+            self._callback()
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    manager._locks["race"] = InjectOnEnterLock(
+        lambda: manager._loggers.setdefault("race", "created-by-race")
+    )
+    assert manager.getLogger("race") == "created-by-race"

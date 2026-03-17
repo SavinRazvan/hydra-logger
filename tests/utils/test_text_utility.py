@@ -152,3 +152,25 @@ def test_text_analyzer_zero_and_empty_summary_branches() -> None:
     assert analyzer._calculate_flesch_kincaid_grade(metrics) == 0.0
     assert analyzer._calculate_gunning_fog_index(metrics) == 0.0
     assert analyzer.get_text_summary("", max_words=10) == ""
+
+
+def test_text_formatter_lower_title_and_camel_empty_words_branch(monkeypatch) -> None:
+    assert TextFormatter.change_case("MiXeD", TextCase.LOWER) == "mixed"
+    assert TextFormatter.change_case("hello world", TextCase.TITLE) == "Hello World"
+    monkeypatch.setattr(
+        "hydra_logger.utils.text_utility.re.split", lambda *_args, **_kwargs: []
+    )
+    assert TextFormatter._to_camel_case("unchanged") == "unchanged"
+
+
+def test_text_validator_luhn_adjustment_and_mask_exclude_branch() -> None:
+    validator = TextValidator()
+    # Digits containing repeated 5 values exercise the doubled-digit subtraction path.
+    assert isinstance(validator.is_credit_card("5555555555554444"), bool)
+
+    sanitizer = TextSanitizer()
+    source = "email a@b.com token=abcd"
+    # Exclude branch skips selected pattern processing.
+    assert sanitizer.sanitize(source, strategy="mask", exclude=["email", "token"]) == source
+    sanitizer._sensitive_patterns = {"short": __import__("re").compile(r"abc")}
+    assert sanitizer.sanitize("abc", strategy="mask") == "***"

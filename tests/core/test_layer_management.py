@@ -142,3 +142,20 @@ def test_layer_manager_add_duplicate_remove_missing_and_object_config() -> None:
     with pytest.raises(ValueError, match="already exists"):
         manager.add_layer("unique", level="INFO")
     assert manager.remove_layer("missing") is False
+
+
+def test_layer_manager_create_layer_runtime_failure_and_direct_lookup() -> None:
+    manager = LayerManager()
+
+    class BrokenCfg:
+        @property
+        def level(self):
+            raise RuntimeError("bad layer")
+
+        destinations = []
+
+    with pytest.raises(RuntimeError, match="Failed to create layer"):
+        manager._create_layer("broken", BrokenCfg())
+
+    manager._handlers["api"] = ["h-api"]  # type: ignore[assignment]
+    assert manager.get_handlers_for_layer("api") == ["h-api"]

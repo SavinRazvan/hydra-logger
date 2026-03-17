@@ -19,6 +19,8 @@ from hydra_logger.handlers.network_handler import (
 )
 from hydra_logger.handlers import network_handler as network_module
 from hydra_logger.types.records import LogRecord
+import importlib
+import sys
 
 
 class DummyNetworkHandler(BaseNetworkHandler):
@@ -454,3 +456,214 @@ def test_datagram_handler_connection_and_emit_error_paths(monkeypatch, caplog) -
     with caplog.at_level("ERROR", logger="hydra_logger.handlers.network_handler"):
         handler2.emit(LogRecord(level=20, level_name="INFO", message="boom"))
     assert handler2.get_network_stats()["stats"]["failed"] >= 1
+
+
+def test_network_module_requests_importerror_branch(monkeypatch) -> None:
+    import builtins
+
+    module_name = "hydra_logger.handlers.network_handler"
+    original_import = builtins.__import__
+    original_module = sys.modules[module_name]
+
+    def _fake_import(name, *args, **kwargs):
+        if name == "requests":
+            raise ImportError("requests unavailable")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _fake_import)
+    try:
+        reloaded = importlib.reload(network_module)
+        assert reloaded.REQUESTS_AVAILABLE is False
+    finally:
+        sys.modules[module_name] = original_module
+        importlib.reload(original_module)
+
+
+def test_base_network_uncovered_validation_and_retry_edges() -> None:
+    handler = DummyNetworkHandler(NetworkConfig(host="localhost", port=8080))
+    handler._config.max_retries = -1
+    try:
+        handler._validate_network_config()
+    except ValueError as exc:
+        assert "Max retries cannot be negative" in str(exc)
+    else:
+        raise AssertionError("Expected max retries validation error")
+
+    # Base NotImplemented paths.
+    try:
+        BaseNetworkHandler._establish_connection(handler)
+    except NotImplementedError:
+        pass
+    else:
+        raise AssertionError("Expected NotImplementedError for base establish")
+
+    try:
+        BaseNetworkHandler._close_connection(handler)
+    except NotImplementedError:
+        pass
+    else:
+        raise AssertionError("Expected NotImplementedError for base close")
+
+    handler._retry_count = 3
+    handler._config.retry_policy = RetryPolicy.NONE
+    assert handler._get_retry_delay() == handler._config.retry_delay
+    assert handler._fibonacci(1) == 1
+
+
+def test_http_websocket_socket_datagram_remaining_branches(monkeypatch, caplog) -> None:
+    class _Response:
+        def raise_for_status(self) -> None:
+            return None
+
+    class _Session:
+        def __init__(self) -> None:
+            self.auth = None
+            self.closed = False
+
+        def get(self, *_args, **_kwargs):
+            return _Response()
+
+        def request(self, **_kwargs):
+            return _Response()
+
+        def close(self) -> None:
+            self.closed = True
+
+    monkeypatch.setattr(network_module, "REQUESTS_AVAILABLE", True)
+    monkeypatch.setattr(network_module.requests, "Session", _Session)
+    http = HTTPHandler("https://example.com", auth=("u", "p"))
+    assert http._session.auth == ("u", "p")
+
+    # HTTP _establish_connection exception branch.
+    monkeypatch.setattr(
+        network_module.requests,
+        "Session",
+        lambda: (_ for _ in ()).throw(RuntimeError("session fail")),
+    )
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.network_handler"):
+        assert http._establish_connection() is False
+
+    # HTTP emit early return when connect fails.
+    http._connect = lambda: False  # type: ignore[method-assign]
+    http.emit(LogRecord(level=20, level_name="INFO", message="skip"))
+
+    # HTTP streaming formatter branch.
+    class StreamingFormatter:
+        def format_for_streaming(self, _record):
+            return "streamed"
+
+    monkeypatch.setattr(network_module.requests, "Session", _Session)
+    http2 = HTTPHandler("https://example.com")
+    http2.setFormatter(StreamingFormatter())
+    http2.emit(LogRecord(level=20, level_name="INFO", message="stream"))
+    http2._close_connection()
+    assert http2._session is None
+
+    # WebSocket establish exception branch via __setattr__ hook.
+    monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", True)
+    ws = network_module.WebSocketHandler("ws://example.com/ws")
+    original_setattr = network_module.WebSocketHandler.__setattr__
+
+    def _boom_setattr(self, name, value):
+        if name == "_connected" and value is True:
+            raise RuntimeError("setattr fail")
+        return original_setattr(self, name, value)
+
+    monkeypatch.setattr(network_module.WebSocketHandler, "__setattr__", _boom_setattr)
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.network_handler"):
+        assert ws._establish_connection() is False
+    monkeypatch.setattr(network_module.WebSocketHandler, "__setattr__", original_setattr)
+
+    # Worker exception branch.
+    async def _run_worker_error() -> None:
+        ws._connected = True
+
+        async def _bad_sleep(_seconds):
+            raise RuntimeError("worker sleep fail")
+
+        monkeypatch.setattr(network_module.asyncio, "sleep", _bad_sleep)
+        await ws._connection_worker()
+
+    import asyncio
+
+    asyncio.run(_run_worker_error())
+
+    # WebSocket emit connect-false and fallback message branches.
+    ws._connect = lambda: False  # type: ignore[method-assign]
+    ws.emit(LogRecord(level=20, level_name="INFO", message="x"))
+    ws._connect = lambda: True  # type: ignore[method-assign]
+    ws.setFormatter(None)
+    ws.emit(LogRecord(level=20, level_name="INFO", message="x"))
+
+    # Socket emit early return + formatter + exception branch.
+    class _Conn:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def send(self, _data: bytes) -> None:
+            raise RuntimeError("send boom")
+
+        def sendto(self, _data: bytes, _addr) -> None:
+            raise RuntimeError("sendto boom")
+
+        def close(self) -> None:
+            self.closed = True
+
+    socket_handler = SocketHandler("localhost", 1234, protocol="tcp")
+    socket_handler._connect = lambda: False  # type: ignore[method-assign]
+    socket_handler.emit(LogRecord(level=20, level_name="INFO", message="skip"))
+    socket_handler._connect = lambda: True  # type: ignore[method-assign]
+    socket_handler._connection = _Conn()
+
+    class Fmt:
+        def format(self, _record):
+            return "fmt"
+
+    socket_handler.setFormatter(Fmt())
+    with caplog.at_level("ERROR", logger="hydra_logger.handlers.network_handler"):
+        socket_handler.emit(LogRecord(level=20, level_name="INFO", message="boom"))
+
+    # Datagram establish exception + early return + formatter branches.
+    monkeypatch.setattr(
+        network_module.socket,
+        "socket",
+        lambda *_a, **_k: (_ for _ in ()).throw(OSError("datagram socket fail")),
+    )
+    datagram = DatagramHandler("localhost", 514)
+    assert datagram._establish_connection() is False
+    datagram._connect = lambda: False  # type: ignore[method-assign]
+    datagram.emit(LogRecord(level=20, level_name="INFO", message="skip"))
+    datagram._connect = lambda: True  # type: ignore[method-assign]
+
+    class _DatConn:
+        def sendto(self, _data: bytes, _addr) -> None:
+            return None
+
+    datagram._connection = _DatConn()
+    datagram.setFormatter(Fmt())
+    datagram.emit(LogRecord(level=20, level_name="INFO", message="fmt-path"))
+
+    # Factory create_handler branches.
+    monkeypatch.setattr(network_module.requests, "Session", _Session)
+    monkeypatch.setattr(network_module, "REQUESTS_AVAILABLE", True)
+    monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", True)
+    monkeypatch.setattr(network_module.WebSocketHandler, "_establish_connection", lambda self: True)
+    monkeypatch.setattr(SocketHandler, "_establish_connection", lambda self: True)
+    monkeypatch.setattr(DatagramHandler, "_establish_connection", lambda self: True)
+    assert isinstance(
+        NetworkHandlerFactory.create_handler("http", url="http://example.com"),
+        network_module.HTTPHandler,
+    )
+    assert isinstance(
+        NetworkHandlerFactory.create_handler("websocket", url="ws://example.com"),
+        network_module.WebSocketHandler,
+    )
+    assert isinstance(
+        NetworkHandlerFactory.create_handler("datagram", host="localhost", port=515),
+        network_module.DatagramHandler,
+    )
+
+    # HTTP formatter.format branch (non-streaming formatter).
+    http3 = HTTPHandler("https://example.com")
+    http3.setFormatter(Fmt())
+    http3.emit(LogRecord(level=20, level_name="INFO", message="fmt-http"))

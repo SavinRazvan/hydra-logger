@@ -273,3 +273,72 @@ def test_normalize_level_handles_non_string_conversion_failure(caplog) -> None:
         with pytest.raises(RuntimeError, match="boom"):
             normalize_level(BadStr())
     assert "Failed to normalize log level value" in caplog.text
+
+
+def test_models_remaining_validation_and_path_resolution_branches(
+    monkeypatch, tmp_path: Path
+) -> None:
+    class _Info:
+        def __init__(self, data):
+            self.data = data
+
+    with pytest.raises(ValueError, match="Path is required for file destinations"):
+        LogDestination.validate_file_path("   ", _Info({"type": "file"}))
+    with pytest.raises(ValueError, match="Service type is required for async cloud destinations"):
+        LogDestination.validate_async_cloud_service(" ", _Info({"type": "async_cloud"}))
+    assert (
+        LogDestination.validate_async_cloud_service(
+            "kinesis", _Info({"type": "async_cloud"})
+        )
+        == "kinesis"
+    )
+
+    # Layer exists but has no explicit level -> default fallback branch.
+    no_level_layer = LogLayer.model_construct(
+        level=None, destinations=[LogDestination(type="console", level=None)]
+    )
+    cfg_threshold = LoggingConfig.model_construct(
+        default_level="INFO", layers={"no-level": no_level_layer}
+    )
+    assert cfg_threshold.get_layer_threshold("no-level") == 20
+
+    # Destination has no level but layer does -> layer fallback branch.
+    layer_level_only = LogLayer.model_construct(
+        level="WARNING", destinations=[LogDestination(type="console", level=None)]
+    )
+    cfg_destination = LoggingConfig.model_construct(
+        default_level="INFO", layers={"layer-level": layer_level_only}
+    )
+    assert cfg_destination.get_destination_level("layer-level", 0) == 30
+
+    # Hit "~" branch where expanduser still yields a relative path.
+    cfg = LoggingConfig(base_log_dir=str(tmp_path / "base"), log_dir_name="svc", layers={})
+    monkeypatch.setattr("hydra_logger.config.models.os.path.isabs", lambda path: path.startswith("/"))
+    monkeypatch.setattr(
+        "hydra_logger.config.models.os.path.expanduser",
+        lambda _path: "relative-home/logs/event.log",
+    )
+    resolved_tilde_relative = cfg.resolve_log_path("~/event.log")
+    assert "relative-home/logs/event.log" in resolved_tilde_relative
+    assert str(tmp_path / "base" / "svc") in resolved_tilde_relative
+
+    # Hit non-tilde branch with base_log_dir + log_dir_name.
+    resolved_relative = cfg.resolve_log_path("service/activity.log")
+    assert str(tmp_path / "base" / "svc") in resolved_relative
+
+    # Hit default "logs/" branches when no base directory is configured.
+    cfg_no_base = LoggingConfig(layers={})
+    monkeypatch.setattr("pathlib.Path.cwd", classmethod(lambda cls: Path("relative-cwd")))
+    monkeypatch.setattr(
+        "hydra_logger.config.models.os.path.expanduser",
+        lambda _path: "relative-home/no-base.log",
+    )
+    tilde_no_base = cfg_no_base.resolve_log_path("~/no-base.log")
+    assert "logs" in tilde_no_base
+    non_tilde_no_base = cfg_no_base.resolve_log_path("plain-relative.log")
+    assert "logs" in non_tilde_no_base
+
+    valid_cfg = LoggingConfig(
+        layers={"default": LogLayer(level="INFO", destinations=[LogDestination(type="console")])}
+    )
+    assert valid_cfg.validate_configuration() is True
