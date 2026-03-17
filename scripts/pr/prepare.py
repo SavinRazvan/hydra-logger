@@ -30,6 +30,7 @@ BASE_GATES = [
         "--cov-fail-under=95",
         "-q",
     ],
+    ["scripts/dev/check_version_consistency.py"],
     ["scripts/pr/check_slim_headers.py", "--all-python", "--strict"],
 ]
 

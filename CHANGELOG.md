@@ -6,6 +6,17 @@ All notable changes to Hydra-Logger will be documented in this file.
 
 ## Recent Updates
 
+### Release 0.5.0 (2026-03-17) ✅ COMPLETED
+
+* ✅ **Version Rollout**
+  - Updated canonical package version to `0.5.0`.
+  - Aligned runtime/package export version references across public modules.
+  - Updated contributor issue template example to reference `0.5.0`.
+
+* ✅ **Release Governance**
+  - Added version consistency validation hook for CI/prepare enforcement.
+  - Synchronized plan and audit trackers with rollout evidence.
+
 ### Documentation System Overhaul (Modules + Mermaid) ✅ COMPLETED
 
 * ✅ **Modular Documentation Baseline**
