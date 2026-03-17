@@ -51,19 +51,19 @@ Editable package install is already defined in `environment.yml` (`-e .[dev]`).
 Run a deterministic preflight before lint/type/test/PR automation:
 
 ```bash
-python scripts/dev/check_env_health.py --strict
+.hydra_env/bin/python scripts/dev/check_env_health.py --strict
 ```
 
 Machine-readable output:
 
 ```bash
-python scripts/dev/check_env_health.py --strict --json
+.hydra_env/bin/python scripts/dev/check_env_health.py --strict --json
 ```
 
 If the check reports a degraded/broken state and you only want remediation hints:
 
 ```bash
-python scripts/dev/check_env_health.py --fix-hints-only
+.hydra_env/bin/python scripts/dev/check_env_health.py --fix-hints-only
 ```
 
 ## Conda-Lock Workflow (Recommended for Reproducibility)
@@ -101,4 +101,4 @@ Deterministic repair sequence when health checks fail:
 1. Remove the corrupted `.hydra_env`.
 2. Recreate `.hydra_env` using your chosen model (venv or Conda prefix).
 3. Reinstall project dependencies (`-e .[dev]`) and `pyright` if using venv.
-4. Re-run `python scripts/dev/check_env_health.py --strict` until healthy.
+4. Re-run `.hydra_env/bin/python scripts/dev/check_env_health.py --strict` until healthy.

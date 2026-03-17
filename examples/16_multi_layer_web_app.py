@@ -13,6 +13,7 @@ Notes:
 
 import asyncio
 import random
+from typing import Any
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_async_logger
 
@@ -80,7 +81,7 @@ config = LoggingConfig(
 class WebApplication:
     """Simulates a multi-layer web application."""
 
-    def __init__(self, logger):
+    def __init__(self, logger: Any) -> None:
         self.logger = logger
         self.request_id_counter = 0
 
@@ -89,7 +90,9 @@ class WebApplication:
         self.request_id_counter += 1
         return f"req-{self.request_id_counter:06d}"
 
-    async def handle_api_request(self, method: str, endpoint: str, user_id: str = None):
+    async def handle_api_request(
+        self, method: str, endpoint: str, user_id: str | None = None
+    ) -> str:
         """Handle API requests - logs to 'api' layer."""
         request_id = self._generate_request_id()
 
@@ -120,7 +123,9 @@ class WebApplication:
 
         return request_id
 
-    async def query_database(self, operation: str, table: str, query_id: str = None):
+    async def query_database(
+        self, operation: str, table: str, query_id: str | None = None
+    ) -> None:
         """Execute database queries - logs to 'database' layer."""
         if not query_id:
             query_id = f"query-{random.randint(1000, 9999)}"
@@ -145,7 +150,9 @@ class WebApplication:
             context={"query_id": query_id, "execution_time_ms": random.randint(5, 50)},
         )
 
-    async def handle_frontend_event(self, event_type: str, page: str, user_id: str):
+    async def handle_frontend_event(
+        self, event_type: str, page: str, user_id: str
+    ) -> None:
         """Handle frontend events - logs to 'frontend' layer."""
         await self.logger.info(
             f"[16] Frontend Event: {event_type} on {page}",
@@ -159,7 +166,7 @@ class WebApplication:
             },
         )
 
-    async def authenticate_user(self, username: str, login_method: str):
+    async def authenticate_user(self, username: str, login_method: str) -> bool:
         """Authenticate users - logs to 'auth' layer."""
         await self.logger.info(
             f"[16] Authentication Attempt: {username} via {login_method}",
@@ -195,7 +202,7 @@ class WebApplication:
 
         return success
 
-    async def process_middleware(self, middleware_type: str, request_id: str):
+    async def process_middleware(self, middleware_type: str, request_id: str) -> None:
         """Process middleware - logs to 'middleware' layer."""
         await self.logger.debug(
             f"[16] Middleware: {middleware_type} processing request {request_id}",
@@ -213,7 +220,7 @@ class WebApplication:
 # ============================================================================
 
 
-async def simulate_user_login(app: WebApplication, username: str):
+async def simulate_user_login(app: WebApplication, username: str) -> None:
     """Simulate user login flow."""
     # Auth layer
     await app.authenticate_user(username, "password")
@@ -225,7 +232,7 @@ async def simulate_user_login(app: WebApplication, username: str):
 
 async def simulate_api_endpoint(
     app: WebApplication, endpoint: str, method: str = "GET"
-):
+) -> None:
     """Simulate API endpoint requests."""
     user_id = f"user-{random.randint(1, 100)}"
 
@@ -244,7 +251,7 @@ async def simulate_api_endpoint(
         await app.query_database("UPDATE", "users", f"query-{request_id}")
 
 
-async def simulate_dashboard_load(app: WebApplication, user_id: str):
+async def simulate_dashboard_load(app: WebApplication, user_id: str) -> None:
     """Simulate dashboard page load."""
     # Frontend events
     await app.handle_frontend_event("page_load", "/dashboard", user_id)
@@ -264,7 +271,7 @@ async def simulate_dashboard_load(app: WebApplication, user_id: str):
 # ============================================================================
 
 
-async def main():
+async def main() -> None:
     """Run multi-layer web application simulation."""
     print("\n" + "=" * 80)
     print("Example 16: Multi-Layer Web Application Logging")

@@ -10,6 +10,8 @@ Notes:
  - Demonstrates 14 class based logging usage patterns for manual verification and onboarding.
 """
 
+from typing import Any
+
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 
 # Configure logger with multiple destinations to see different formats
@@ -67,13 +69,13 @@ class BaseService:
         logger.info(f"[14] Stopping {self.service_name}", layer="service")
 
     @staticmethod
-    def validate_config(config: dict) -> bool:
+    def validate_config(config: dict[str, Any]) -> bool:
         """Validate configuration (static method)."""
         logger.debug(f"[14] Validating configuration: {config}", layer="service")
         return True
 
     @classmethod
-    def create_default(cls):
+    def create_default(cls) -> "BaseService":
         """Create default instance (class method)."""
         logger.info(f"[14] Creating default {cls.__name__}", layer="service")
         return cls("default")
@@ -91,7 +93,7 @@ class UserService(BaseService):
             f"[14] User service initialized with {user_count} users", layer="service"
         )
 
-    def create_user(self, username: str, email: str):
+    def create_user(self, username: str, email: str) -> dict[str, Any]:
         """Create a new user."""
         logger.info(f"[14] Creating user: {username} ({email})", layer="service")
         # Simulate user creation
@@ -107,7 +109,7 @@ class UserService(BaseService):
             self.user_count -= 1
             logger.debug(f"[14] User count now: {self.user_count}", layer="service")
 
-    def get_stats(self):
+    def get_stats(self) -> dict[str, Any]:
         """Get service statistics."""
         logger.info(
             f"[14] Retrieving statistics for {self.service_name}", layer="service"
@@ -129,7 +131,7 @@ class UserModel:
         )
 
     @property
-    def display_name(self):
+    def display_name(self) -> str:
         """Get display name (property with logging)."""
         logger.debug(
             f"[14] Getting display name for user {self.user_id}", layer="model"
@@ -145,19 +147,19 @@ class UserModel:
         self.email = new_email
         logger.debug(f"[14] Email updated: {old_email} -> {new_email}", layer="model")
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         logger.debug(f"[14] Converting user {self.user_id} to dict", layer="model")
         return {"id": self.user_id, "username": self.username, "email": self.email}
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict[str, Any]) -> "UserModel":
         """Create instance from dictionary (class method)."""
         logger.info(f"[14] Creating {cls.__name__} from dict", layer="model")
         return cls(
-            user_id=data.get("id"),
-            username=data.get("username"),
-            email=data.get("email"),
+            user_id=int(data.get("id", 0)),
+            username=str(data.get("username", "")),
+            email=str(data.get("email", "")),
         )
 
     @staticmethod
@@ -179,7 +181,7 @@ class UserController:
         self.service = service
         logger.info("[14] UserController initialized", layer="app")
 
-    def handle_create_request(self, username: str, email: str):
+    def handle_create_request(self, username: str, email: str) -> dict[str, Any] | None:
         """Handle user creation request."""
         logger.info(f"[14] Handling create request for {username}", layer="app")
         # Validate email
@@ -197,7 +199,7 @@ class UserController:
         self.service.delete_user(user_id)
         logger.info(f"[14] User {user_id} deleted successfully", layer="app")
 
-    def handle_stats_request(self):
+    def handle_stats_request(self) -> dict[str, Any]:
         """Handle stats request."""
         logger.debug("[14] Handling stats request", layer="app")
         stats = self.service.get_stats()
@@ -206,7 +208,7 @@ class UserController:
 
 
 # Demonstration of all class-based logging patterns
-def main():
+def main() -> None:
     """Main function demonstrating class-based logging."""
     logger.info("[14] Starting class-based logging demonstration", layer="app")
 

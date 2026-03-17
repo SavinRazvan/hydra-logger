@@ -68,13 +68,13 @@ When removing or changing behavior:
 Fast local gate:
 
 ```bash
-python -m pytest -q
+.hydra_env/bin/python -m pytest -q
 ```
 
 Coverage view:
 
 ```bash
-python -m pytest --cov=hydra_logger --cov-report=term-missing -q
+.hydra_env/bin/python -m pytest --cov=hydra_logger --cov-report=term-missing -q
 ```
 
 ## CI Expectations

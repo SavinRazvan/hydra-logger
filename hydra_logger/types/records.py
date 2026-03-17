@@ -223,11 +223,12 @@ class LogRecordFactory:
                         skips += 1
                         continue
 
-                    # Simple check: if filename contains 'hydra_logger', skip it
-                    # This works for both absolute and relative paths
-                    if (
-                        "hydra_logger" in full_filename
-                        or "hydra-logger" in full_filename.lower()
+                    # Skip only internal package frames, not repository root paths.
+                    # Example user code path may include ".../hydra-logger/..." and
+                    # must NOT be filtered out.
+                    normalized = full_filename.replace("\\", "/").lower()
+                    if "/hydra_logger/" in normalized or normalized.endswith(
+                        "/hydra_logger"
                     ):
                         # Still in hydra-logger, skip this frame
                         frame = frame.f_back
