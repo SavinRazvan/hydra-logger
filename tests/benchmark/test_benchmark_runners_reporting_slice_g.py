@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 import benchmark.runners as runners_mod
 from benchmark.reporting import (
+    _conditionally_write_or_clear_report,
     _flatten_metric_statuses,
     _report_section,
     build_output_payload,
@@ -157,3 +158,44 @@ def test_reporting_helpers_cover_metric_and_detail_formatting() -> None:
     assert "- a" in with_details
     without_details = _report_section(title="Y", status="passed", items=[])
     assert "## Details" not in without_details
+
+
+def test_reporting_conditional_clear_unlinks_and_swallows_cleanup_errors(
+    monkeypatch, tmp_path
+) -> None:
+    timestamped = tmp_path / "benchmark_2026-03-16_16-00-00_invariants.md"
+    latest = tmp_path / "benchmark_latest_invariants.md"
+    timestamped.write_text("old", encoding="utf-8")
+    latest.write_text("old", encoding="utf-8")
+
+    _conditionally_write_or_clear_report(
+        should_write=False,
+        results_dir=tmp_path,
+        timestamp="2026-03-16_16-00-00",
+        prefix="invariants",
+        body="unused",
+    )
+    assert not timestamped.exists()
+    assert not latest.exists()
+
+    timestamped.write_text("old", encoding="utf-8")
+    latest.write_text("old", encoding="utf-8")
+    logged: list[str] = []
+
+    def _broken_unlink(_self: Path) -> None:
+        raise OSError("unlink failed")
+
+    monkeypatch.setattr(Path, "unlink", _broken_unlink)
+    monkeypatch.setattr(
+        "benchmark.reporting._logger.exception",
+        lambda msg, *_args, **_kwargs: logged.append(str(msg)),
+    )
+
+    _conditionally_write_or_clear_report(
+        should_write=False,
+        results_dir=tmp_path,
+        timestamp="2026-03-16_16-00-00",
+        prefix="invariants",
+        body="unused",
+    )
+    assert logged
