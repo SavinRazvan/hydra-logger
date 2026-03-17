@@ -28,6 +28,12 @@ def test_load_profile_known_profiles() -> None:
     assert ci["drift_policy"]["enabled"] is False
     assert pr["drift_policy"]["enabled"] is True
     assert nightly["drift_policy"]["enabled"] is True
+    assert ci["strict_reliability_guards"] is False
+    assert pr["strict_reliability_guards"] is False
+    assert nightly["strict_reliability_guards"] is True
+    assert ci["write_markdown_reports"] is False
+    assert pr["write_markdown_reports"] is False
+    assert nightly["write_markdown_reports"] is True
 
 
 def test_load_profile_unknown_raises() -> None:
@@ -46,3 +52,6 @@ def test_benchmark_init_applies_profile_overrides(tmp_path) -> None:
     assert bench.test_config["suite_matrix_workers_tasks"] == [1, 2, 4, 8, 16, 32]
     assert bench.test_config["suite_matrix_messages_per_worker"] == 1000
     assert bench.drift_policy.get("enabled") is False
+    assert bench.strict_reliability_guards is False
+    assert bench.write_markdown_reports is False
+    assert bench.output_matrix_overrides["include_extensions"] is False

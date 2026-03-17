@@ -223,6 +223,7 @@ def test_validate_result_invariants_reports_non_finite_and_negative_timing() -> 
             "actual_emitted": 9,
             "written_lines": 0,
             "written_lines_observed": False,
+            "strict_file_evidence": False,
             "messages_per_second": 5.0,
             "bytes_written": 100.0,
             "bytes_per_second": 50.0,

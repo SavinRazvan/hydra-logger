@@ -35,6 +35,11 @@ def count_written_lines(file_path: str | Path) -> int:
         return 0
 
 
+def resolve_written_line_delta(*, baseline_lines: int, final_lines: int) -> int:
+    """Return timed-run written lines by subtracting warm-up baseline."""
+    return max(0, int(final_lines) - int(baseline_lines))
+
+
 def extract_handler_bytes_written(logger: Any, layer_name: str = "default") -> int:
     """Extract max bytes written from handler stats if available."""
     max_bytes = 0
@@ -53,6 +58,36 @@ def extract_handler_bytes_written(logger: Any, layer_name: str = "default") -> i
         )
         return 0
     return max_bytes
+
+
+def extract_handler_messages_emitted(logger: Any, layer_name: str = "default") -> int:
+    """Extract max emitted-message counters from handlers when available."""
+    max_messages = 0
+    counter_keys = (
+        "messages_processed",
+        "total_messages_processed",
+        "messages_written",
+        "records_written",
+        "total_records_written",
+    )
+    try:
+        handlers = getattr(logger, "_layer_handlers", {}).get(layer_name, [])
+        for handler in handlers:
+            if not hasattr(handler, "get_stats"):
+                continue
+            stats = handler.get_stats()
+            if not isinstance(stats, dict):
+                continue
+            for key in counter_keys:
+                if key in stats:
+                    max_messages = max(max_messages, int(stats[key]))
+    except Exception:
+        _logger.exception(
+            "Failed extracting emitted-message counters for layer '%s'",
+            layer_name,
+        )
+        return 0
+    return max_messages
 
 
 def resolve_bytes_written(
@@ -104,8 +139,14 @@ def build_file_io_result(
     bytes_written: int,
     written_lines: int,
     file_path: str,
+    actual_emitted: int | None = None,
+    actual_emitted_source: str = "handler_counter",
+    strict_file_evidence: bool = True,
 ) -> dict[str, Any]:
     """Build normalized file I/O benchmark result payload."""
+    resolved_actual = int(actual_emitted) if actual_emitted is not None else int(total_messages)
+    if resolved_actual < 0:
+        resolved_actual = 0
     messages_rate = (total_messages / duration) if duration > 0 else 0.0
     bytes_rate = (bytes_written / duration) if duration > 0 else 0.0
     return {
@@ -119,9 +160,11 @@ def build_file_io_result(
         "flush_duration": flush_duration,
         "total_messages": total_messages,
         "expected_emitted": total_messages,
-        "actual_emitted": total_messages,
+        "actual_emitted": resolved_actual,
+        "actual_emitted_source": actual_emitted_source,
         "written_lines": written_lines,
         "written_lines_observed": written_lines > 0,
+        "strict_file_evidence": strict_file_evidence,
         "file_path": file_path,
         "status": "COMPLETED",
     }

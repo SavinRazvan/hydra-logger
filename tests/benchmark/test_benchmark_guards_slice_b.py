@@ -17,6 +17,7 @@ from pathlib import Path
 import benchmark.performance_benchmark as perf_mod
 from benchmark.guards import (
     detect_new_root_log_leaks,
+    validate_file_io_evidence,
     validate_output_matrix_file_evidence,
     validate_result_paths,
 )
@@ -251,13 +252,32 @@ def test_validate_output_matrix_file_evidence_flags_too_low_written_lines() -> N
                     "sync:plain-text:baseline:generated": {
                         "total_messages": 100,
                         "file_path": "/tmp/benchmark/bench_logs/case.log",
-                        "written_lines": 10,
+                        "written_lines": 99,
                     }
                 }
             }
         }
     )
     assert any("too low for 100 emitted messages" in item for item in violations)
+
+
+def test_validate_file_io_evidence_flags_missing_strict_fields() -> None:
+    violations = validate_file_io_evidence(
+        results={
+            "file_writing": {
+                "expected_emitted": 100,
+                "actual_emitted": 90,
+                "written_lines": 0,
+                "written_lines_observed": False,
+                "strict_file_evidence": True,
+                "file_path": "",
+            }
+        }
+    )
+    assert any("file_writing.file_path" in item for item in violations)
+    assert any("file_writing.written_lines_observed" in item for item in violations)
+    assert any("file_writing.written_lines: expected positive integer evidence" in item for item in violations)
+    assert any("file_writing.actual_emitted: expected 100 but found 90" in item for item in violations)
 
 
 def test_run_benchmark_returns_error_when_reliability_guard_fails(
@@ -315,6 +335,7 @@ def test_run_benchmark_returns_error_when_reliability_guard_fails(
 
 def test_enforce_reliability_guards_fails_on_drift_violations(tmp_path, monkeypatch) -> None:
     bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench.strict_reliability_guards = True
     bench.results = _minimal_valid_results()
 
     monkeypatch.setattr(perf_mod, "validate_result_invariants", lambda _results: [])
@@ -355,3 +376,21 @@ def test_enforce_reliability_guards_records_pass_report(tmp_path, monkeypatch) -
     guards = bench.results["reliability_guards"]
     assert guards["status"] == "passed"
     assert guards["total_violations"] == 0
+
+
+def test_enforce_reliability_guards_advisory_mode_does_not_raise(tmp_path, monkeypatch) -> None:
+    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench.strict_reliability_guards = False
+    bench.results = _minimal_valid_results()
+    monkeypatch.setattr(
+        perf_mod,
+        "validate_result_invariants",
+        lambda _results: ["sync_logger.individual_messages_per_second mismatch"],
+    )
+    monkeypatch.setattr(perf_mod, "evaluate_drift_policy", lambda **_kwargs: ([], {"status": "passed"}))
+    monkeypatch.setattr(perf_mod, "validate_result_paths", lambda **_kwargs: [])
+    monkeypatch.setattr(perf_mod, "validate_output_matrix_file_evidence", lambda **_kwargs: [])
+    monkeypatch.setattr(perf_mod, "validate_file_io_evidence", lambda **_kwargs: [])
+    monkeypatch.setattr(perf_mod, "detect_new_root_log_leaks", lambda **_kwargs: [])
+    bench._enforce_reliability_guards()
+    assert bench.results["reliability_guards"]["status"] == "failed"

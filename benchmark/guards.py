@@ -158,10 +158,44 @@ def validate_output_matrix_file_evidence(*, results: dict[str, Any]) -> list[str
         if isinstance(total_messages, int) and total_messages > 0 and isinstance(
             written_lines, int
         ):
-            if written_lines < max(1, int(total_messages * 0.5)):
+            if written_lines < total_messages:
                 violations.append(
                     f"output_matrix.file.{case_key}.written_lines: "
                     f"{written_lines} too low for {total_messages} emitted messages"
                 )
 
+    return violations
+
+
+def validate_file_io_evidence(*, results: dict[str, Any]) -> list[str]:
+    """Validate strict emitted/file evidence for file benchmark sections."""
+    violations: list[str] = []
+    for section_name in ("file_writing", "async_file_writing"):
+        section = results.get(section_name)
+        if not isinstance(section, dict):
+            continue
+        expected = section.get("expected_emitted")
+        actual = section.get("actual_emitted")
+        written_lines = section.get("written_lines")
+        written_lines_observed = bool(section.get("written_lines_observed", False))
+        file_path = section.get("file_path")
+        strict = bool(section.get("strict_file_evidence", True))
+        if not strict:
+            continue
+        if not isinstance(file_path, str) or not file_path.strip():
+            violations.append(f"{section_name}.file_path: missing concrete output path")
+        if not written_lines_observed:
+            violations.append(f"{section_name}.written_lines_observed: expected True")
+        if not isinstance(written_lines, int) or written_lines <= 0:
+            violations.append(
+                f"{section_name}.written_lines: expected positive integer evidence"
+            )
+        if isinstance(expected, int) and isinstance(actual, int) and expected != actual:
+            violations.append(
+                f"{section_name}.actual_emitted: expected {expected} but found {actual}"
+            )
+        if isinstance(written_lines, int) and isinstance(actual, int) and written_lines != actual:
+            violations.append(
+                f"{section_name}.written_lines: expected {actual} but found {written_lines}"
+            )
     return violations

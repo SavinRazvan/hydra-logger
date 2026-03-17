@@ -147,6 +147,32 @@ def test_reporting_write_results_artifacts_validates_missing_timestamp(tmp_path)
         )
 
 
+def test_reporting_write_results_artifacts_skips_markdown_when_disabled(tmp_path) -> None:
+    payload = build_output_payload(
+        results={"sync_logger": {"messages_per_second": 1.0}},
+        profile_name="ci_smoke",
+        test_config={"typical_single_messages": 10000},
+        python_version="3.12.3",
+        platform_name="linux",
+        git_commit_sha="abc1234",
+        machine="linux-x86_64",
+        cpu_count=8,
+        disk_mode="buffered",
+        payload_profile="mixed_default",
+        timestamp="2026-03-16_16-00-01",
+    )
+    write_results_artifacts(
+        output_payload=payload,
+        results_dir=tmp_path,
+        write_markdown_reports=False,
+    )
+    assert (tmp_path / "benchmark_latest.json").exists()
+    assert not (tmp_path / "benchmark_latest_summary.md").exists()
+    assert not (tmp_path / "benchmark_latest_drift.md").exists()
+    assert not (tmp_path / "benchmark_latest_invariants.md").exists()
+    assert not (tmp_path / "benchmark_latest_leaks.md").exists()
+
+
 def test_reporting_helpers_cover_metric_and_detail_formatting() -> None:
     assert _flatten_metric_statuses("not-a-dict") == []
     flattened = _flatten_metric_statuses({"m1": {"status": "ok"}, "m2": "bad-node"})

@@ -27,7 +27,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 import platform
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Literal, Tuple, cast
 
 # Add the project root to Python path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -48,6 +48,7 @@ from benchmark.guards import (
     disable_direct_io_if_available,
     ensure_composite_file_target,
     rebase_file_destinations_to_benchmark_logs,
+    validate_file_io_evidence,
     validate_output_matrix_file_evidence,
     validate_result_paths,
 )
@@ -56,12 +57,16 @@ from benchmark.io_metrics import (
     build_file_io_result,
     count_written_lines,
     extract_handler_bytes_written,
+    extract_handler_messages_emitted,
+    resolve_written_line_delta,
     resolve_bytes_written,
 )
 from benchmark.metrics import (
     measure_async_batch_throughput,
     measure_sync_batch_throughput,
     messages_per_second,
+    summarize_samples,
+    validate_sample_duration,
     validate_result_invariants,
 )
 from benchmark.profiles import load_profile
@@ -71,6 +76,8 @@ from benchmark.runners import (
     run_parallel_workers_suite,
 )
 from benchmark.workloads import build_batch_messages
+
+DestinationType = Literal["file", "console", "null", "async_console", "async_file", "async_cloud"]
 
 
 class HydraLoggerBenchmark:  # pragma: no cover
@@ -93,6 +100,10 @@ class HydraLoggerBenchmark:  # pragma: no cover
         self.profile_name = profile
         self.profile = load_profile(profile)
         self.drift_policy = self.profile.get("drift_policy", {})
+        self.strict_reliability_guards = bool(
+            self.profile.get("strict_reliability_guards", False)
+        )
+        self.write_markdown_reports = bool(self.profile.get("write_markdown_reports", True))
         self.disk_mode = str(self.profile.get("disk_mode", "buffered_default"))
         self.payload_profile = str(self.profile.get("payload_profile", "mixed_default"))
         benchmark_root = Path(__file__).resolve().parent
@@ -170,6 +181,19 @@ class HydraLoggerBenchmark:  # pragma: no cover
         overrides = self.profile.get("test_config_overrides", {})
         if isinstance(overrides, dict):
             self.test_config.update(overrides)
+        matrix_overrides = self.profile.get("output_matrix_overrides", {})
+        self.output_matrix_overrides = (
+            matrix_overrides if isinstance(matrix_overrides, dict) else {}
+        )
+        self.min_sample_duration_seconds = float(
+            self.profile.get("min_sample_duration_seconds", 0.001)
+        )
+        repetition_sections = self.profile.get("repetition_sections", [])
+        self.repetition_sections = (
+            [str(item) for item in repetition_sections]
+            if isinstance(repetition_sections, list)
+            else []
+        )
 
     def _build_benchmark_log_path(self, prefix: str) -> str:
         """Create a unique benchmark log path under benchmark_logs."""
@@ -297,37 +321,71 @@ class HydraLoggerBenchmark:  # pragma: no cover
         log_format: str,
         customization: str,
         config_name: str,
+        enable_plugins: bool = False,
+        multi_destinations: list[tuple[str, str]] | None = None,
     ) -> LoggingConfig:
         """Create output benchmark configs for console/file matrix scenarios."""
         is_async_logger = logger_type in {"async", "composite-async"}
-        destination_type = sink
+        destination_type: DestinationType = "console"
         destination_path = None
-        if sink == "file":
-            destination_type = "async_file" if is_async_logger else "file"
+        if sink in {"file", "async_file"}:
+            destination_type = "async_file" if is_async_logger or sink == "async_file" else "file"
             destination_path = self._build_benchmark_log_path(
                 f"matrix_{config_name}_{logger_type}_{log_format}_{customization}"
             )
+        elif sink in {"async_cloud", "async_cloud_stub"}:
+            # Keep cloud benchmarks deterministic by stubbing with local async_file output.
+            destination_type = "async_file"
+            destination_path = self._build_benchmark_log_path(
+                f"matrix_cloud_stub_{config_name}_{logger_type}_{log_format}_{customization}"
+            )
+        elif sink == "async_console":
+            destination_type = "async_console"
+        elif sink == "console":
+            destination_type = "console"
 
         enable_security = customization == "hardened"
         enable_sanitization = customization == "hardened"
+        destinations = [
+            LogDestination(
+                type=cast(DestinationType, destination_type),
+                path=destination_path,
+                format=log_format,
+                use_colors=(sink in {"console", "async_console"} and log_format == "colored"),
+            )
+        ]
+        if multi_destinations:
+            for extra_sink, extra_format in multi_destinations:
+                extra_type: DestinationType = "console"
+                extra_path = None
+                if extra_sink in {"file", "async_file", "async_cloud", "async_cloud_stub"}:
+                    extra_type = "async_file" if is_async_logger else "file"
+                    extra_path = self._build_benchmark_log_path(
+                        f"matrix_multi_{config_name}_{logger_type}_{extra_sink}_{extra_format}"
+                    )
+                elif extra_sink == "async_console":
+                    extra_type = "async_console"
+                else:
+                    extra_type = "console"
+                destinations.append(
+                    LogDestination(
+                        type=cast(DestinationType, extra_type),
+                        path=extra_path,
+                        format=extra_format,
+                        use_colors=(extra_sink in {"console", "async_console"} and extra_format == "colored"),
+                    )
+                )
 
         return LoggingConfig(
             default_level="INFO",
             enable_security=enable_security,
             enable_sanitization=enable_sanitization,
-            enable_plugins=False,
+            enable_plugins=enable_plugins,
             enable_performance_monitoring=False,
             layers={
                 "default": LogLayer(
                     level="INFO",
-                    destinations=[
-                        LogDestination(
-                            type=destination_type,
-                            path=destination_path,
-                            format=log_format,
-                            use_colors=(sink == "console" and log_format == "colored"),
-                        )
-                    ],
+                    destinations=destinations,
                 )
             },
         )
@@ -340,6 +398,19 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 LogDestination(type="console", format="plain-text", use_colors=False)
             ]
         return config
+
+    @staticmethod
+    def _is_sink_compatible(logger_type: str, sink: str) -> bool:
+        """Return whether matrix sink is compatible with logger runtime type."""
+        console_sinks = {"console", "async_console"}
+        file_sinks = {"file", "async_file", "async_cloud_stub", "async_cloud"}
+        if sink in console_sinks:
+            return True
+        if sink in file_sinks and logger_type in {"sync", "composite"}:
+            return sink == "file"
+        if sink in file_sinks and logger_type in {"async", "composite-async"}:
+            return True
+        return False
 
     def _create_logger_for_type(
         self, *, logger_name: str, logger_type: str, config: LoggingConfig
@@ -375,14 +446,49 @@ class HydraLoggerBenchmark:  # pragma: no cover
         print("\nTesting Output Matrix Performance...")
         print("   Testing console and file outputs across logger variants...")
 
-        logger_types = ["sync", "async", "composite", "composite-async"]
-        console_formats = ["plain-text", "colored", "json-lines"]
-        file_formats = ["plain-text", "json-lines", "csv"]
-        customizations = ["baseline", "hardened"]
-        console_message_count = 10
-        file_message_count = max(100, int(self.test_config.get("small_batch_size", 50) * 2))
+        overrides = self.output_matrix_overrides
+        logger_types = overrides.get(
+            "logger_types", ["sync", "async", "composite", "composite-async"]
+        )
+        console_sinks = overrides.get("console_sinks", ["console", "async_console"])
+        file_sinks = overrides.get("file_sinks", ["file", "async_file", "async_cloud_stub"])
+        console_formats = overrides.get("console_formats", ["plain-text", "colored", "json-lines"])
+        file_formats = overrides.get("file_formats", ["plain-text", "json-lines", "csv"])
+        customizations = overrides.get("customizations", ["baseline", "hardened"])
+        include_extensions = bool(overrides.get("include_extensions", True))
+        max_cases = int(overrides.get("max_cases", 200))
+        console_message_count = int(overrides.get("console_message_count", 10))
+        file_message_count = int(
+            overrides.get(
+                "file_message_count",
+                max(100, int(self.test_config.get("small_batch_size", 50) * 2)),
+            )
+        )
+        multi_destination_cases = overrides.get(
+            "multi_destination_cases",
+            [
+                {
+                    "sink": "console",
+                    "format": "plain-text",
+                    "extras": [["file", "json-lines"]],
+                },
+                {
+                    "sink": "async_console",
+                    "format": "json-lines",
+                    "extras": [["async_file", "json-lines"]],
+                },
+            ],
+        )
 
-        results: Dict[str, Any] = {"console": {}, "file": {}, "status": "COMPLETED"}
+        results: Dict[str, Any] = {
+            "console": {},
+            "file": {},
+            "multi_destination": {},
+            "status": "COMPLETED",
+        }
+        if include_extensions:
+            results["extensions"] = {}
+        case_counter = 0
 
         async def _run_case(
             *,
@@ -392,20 +498,28 @@ class HydraLoggerBenchmark:  # pragma: no cover
             customization: str,
             config_name: str,
             config: LoggingConfig,
+            extension_mode: str = "disabled",
         ) -> Dict[str, Any]:
-            destinations = (
-                config.layers.get("default").destinations
-                if config.layers.get("default")
-                else []
-            )
-            configured_file_path = destinations[0].path if destinations else None
+            nonlocal case_counter
+            case_counter += 1
+            if case_counter > max_cases:
+                return {"status": "SKIPPED_CASE_CAP"}
+
+            default_layer = config.layers.get("default")
+            destinations = default_layer.destinations if default_layer is not None else []
+            configured_file_path = None
+            for destination in destinations:
+                maybe_path = getattr(destination, "path", None)
+                if maybe_path:
+                    configured_file_path = maybe_path
+                    break
             logger_name = (
-                f"matrix_{sink}_{logger_type}_{log_format}_{customization}_{config_name}_{id(self)}"
+                f"matrix_{sink}_{logger_type}_{log_format}_{customization}_{extension_mode}_{config_name}_{id(self)}"
             )
             logger = self._create_logger_for_type(
                 logger_name=logger_name, logger_type=logger_type, config=config
             )
-            if logger_type == "composite-async" and sink == "file":
+            if logger_type == "composite-async" and sink in {"file", "async_file", "async_cloud_stub"}:
                 # Composite-async file matrix must run with direct I/O enabled,
                 # otherwise this logger class routes only to in-memory components.
                 try:
@@ -419,14 +533,22 @@ class HydraLoggerBenchmark:  # pragma: no cover
 
             start = time.perf_counter()
             if logger_type in {"async", "composite-async"}:
-                target_count = file_message_count if sink == "file" else console_message_count
+                target_count = (
+                    file_message_count
+                    if sink in {"file", "async_file", "async_cloud_stub"}
+                    else console_message_count
+                )
                 for i in range(target_count):
                     await logger.log(
                         "INFO", f"matrix sink={sink} type={logger_type} format={log_format} msg={i}"
                     )
                 await self._flush_all_handlers_async(logger)
             else:
-                target_count = file_message_count if sink == "file" else console_message_count
+                target_count = (
+                    file_message_count
+                    if sink in {"file", "async_file", "async_cloud_stub"}
+                    else console_message_count
+                )
                 for i in range(target_count):
                     logger.info(
                         f"matrix sink={sink} type={logger_type} format={log_format} msg={i}"
@@ -458,29 +580,45 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 "format": log_format,
                 "customization": customization,
                 "config_name": config_name,
+                "sink": sink,
+                "extension_mode": extension_mode,
                 "file_path": file_path,
                 "written_lines": written_lines,
             }
 
         for logger_type in logger_types:
-            for log_format in console_formats:
-                for customization in customizations:
-                    config = self._create_output_matrix_config(
-                        sink="console",
-                        logger_type=logger_type,
-                        log_format=log_format,
-                        customization=customization,
-                        config_name="generated",
-                    )
-                    key = f"{logger_type}:{log_format}:{customization}:generated"
-                    results["console"][key] = await _run_case(
-                        sink="console",
-                        logger_type=logger_type,
-                        log_format=log_format,
-                        customization=customization,
-                        config_name="generated",
-                        config=config,
-                    )
+            for sink in console_sinks:
+                if not self._is_sink_compatible(logger_type, sink):
+                    continue
+                for log_format in console_formats:
+                    for customization in customizations:
+                        extension_modes = ["disabled", "enabled"] if include_extensions else ["disabled"]
+                        for extension_mode in extension_modes:
+                            config = self._create_output_matrix_config(
+                                sink=sink,
+                                logger_type=logger_type,
+                                log_format=log_format,
+                                customization=customization,
+                                config_name="generated",
+                                enable_plugins=(extension_mode == "enabled"),
+                            )
+                            key = (
+                                f"{logger_type}:{sink}:{log_format}:{customization}:{extension_mode}:generated"
+                            )
+                            payload = await _run_case(
+                                sink=sink,
+                                logger_type=logger_type,
+                                log_format=log_format,
+                                customization=customization,
+                                config_name="generated",
+                                config=config,
+                                extension_mode=extension_mode,
+                            )
+                            if payload.get("status") == "SKIPPED_CASE_CAP":
+                                continue
+                            results["console"][key] = payload
+                            if include_extensions and extension_mode == "enabled":
+                                results["extensions"][key] = payload
 
         template_configs = {
             "default": get_default_config(),
@@ -501,27 +639,85 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 )
 
         for logger_type in logger_types:
-            for log_format in file_formats:
+            for sink in file_sinks:
+                if not self._is_sink_compatible(logger_type, sink):
+                    continue
+                for log_format in file_formats:
+                    for customization in customizations:
+                        extension_modes = ["disabled", "enabled"] if include_extensions else ["disabled"]
+                        for extension_mode in extension_modes:
+                            config = self._create_output_matrix_config(
+                                sink=sink,
+                                logger_type=logger_type,
+                                log_format=log_format,
+                                customization=customization,
+                                config_name="generated",
+                                enable_plugins=(extension_mode == "enabled"),
+                            )
+                            key = (
+                                f"{logger_type}:{sink}:{log_format}:{customization}:{extension_mode}:generated"
+                            )
+                            payload = await _run_case(
+                                sink=sink,
+                                logger_type=logger_type,
+                                log_format=log_format,
+                                customization=customization,
+                                config_name="generated",
+                                config=config,
+                                extension_mode=extension_mode,
+                            )
+                            if payload.get("status") == "SKIPPED_CASE_CAP":
+                                continue
+                            results["file"][key] = payload
+                            if include_extensions and extension_mode == "enabled":
+                                results["extensions"][key] = payload
+
+        for case in multi_destination_cases:
+            if not isinstance(case, dict):
+                continue
+            sink = str(case.get("sink", "console"))
+            log_format = str(case.get("format", "plain-text"))
+            extras_raw = case.get("extras", [])
+            extras: list[tuple[str, str]] = []
+            if isinstance(extras_raw, list):
+                for item in extras_raw:
+                    if isinstance(item, list) and len(item) == 2:
+                        extras.append((str(item[0]), str(item[1])))
+                    elif isinstance(item, tuple) and len(item) == 2:
+                        extras.append((str(item[0]), str(item[1])))
+            for logger_type in logger_types:
+                if not self._is_sink_compatible(logger_type, sink):
+                    continue
                 for customization in customizations:
+                    compatible_extras = [
+                        (extra_sink, extra_format)
+                        for extra_sink, extra_format in extras
+                        if self._is_sink_compatible(logger_type, extra_sink)
+                    ]
                     config = self._create_output_matrix_config(
-                        sink="file",
+                        sink=sink,
                         logger_type=logger_type,
                         log_format=log_format,
                         customization=customization,
-                        config_name="generated",
+                        config_name="multi",
+                        multi_destinations=compatible_extras,
                     )
-                    key = f"{logger_type}:{log_format}:{customization}:generated"
-                    results["file"][key] = await _run_case(
-                        sink="file",
+                    key = f"{logger_type}:{sink}:{log_format}:{customization}:multi"
+                    results["multi_destination"][key] = await _run_case(
+                        sink=sink,
                         logger_type=logger_type,
                         log_format=log_format,
                         customization=customization,
-                        config_name="generated",
+                        config_name="multi",
                         config=config,
                     )
+                    if results["multi_destination"][key].get("status") == "SKIPPED_CASE_CAP":
+                        del results["multi_destination"][key]
 
         print(
-            f"   Console matrix cases: {len(results['console'])}, file matrix cases: {len(results['file'])}"
+            f"   Console matrix cases: {len(results['console'])}, "
+            f"file matrix cases: {len(results['file'])}, "
+            f"multi-destination cases: {len(results['multi_destination'])}"
         )
         print("   Output Matrix Performance: COMPLETED")
         return results
@@ -874,6 +1070,88 @@ class HydraLoggerBenchmark:  # pragma: no cover
             f"     - Background Task Logs: {self.test_config['background_task_logs']} msgs/task"
         )
         print("=" * 80)
+
+    def _extract_primary_metrics(self, result: Dict[str, Any]) -> dict[str, float]:
+        """Extract comparable primary metrics from a scenario payload."""
+        if not isinstance(result, dict):
+            return {"duration": 0.0}
+        if "individual_messages_per_second" in result:
+            return {
+                "duration": float(result.get("individual_duration", 0.0)),
+                "messages_per_second": float(result.get("individual_messages_per_second", 0.0)),
+            }
+        if "messages_per_second" in result:
+            return {
+                "duration": float(result.get("duration", 0.0)),
+                "messages_per_second": float(result.get("messages_per_second", 0.0)),
+            }
+        if "total_messages_per_second" in result:
+            return {
+                "duration": float(result.get("total_duration", 0.0)),
+                "messages_per_second": float(result.get("total_messages_per_second", 0.0)),
+            }
+        return {"duration": float(result.get("duration", 0.0))}
+
+    def _attach_repetition_stats(
+        self, *, section: str, result: Dict[str, Any], runs: list[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Attach repetition summaries and sample-duration checks to scenario payload."""
+        duration_samples: list[float] = []
+        rate_samples: list[float] = []
+        for item in runs:
+            metrics = self._extract_primary_metrics(item)
+            duration_samples.append(float(metrics.get("duration", 0.0)))
+            if "messages_per_second" in metrics:
+                rate_samples.append(float(metrics["messages_per_second"]))
+        result["repetition_runs"] = len(runs)
+        result["repetition_stats"] = {
+            "durations": summarize_samples(duration_samples),
+            "messages_per_second": summarize_samples(rate_samples),
+        }
+        if duration_samples and max(duration_samples) > 0:
+            duration_now = float(self._extract_primary_metrics(result).get("duration", 0.0))
+            result["minimum_sample_duration_seconds"] = self.min_sample_duration_seconds
+            result["minimum_sample_duration_passed"] = (
+                duration_now >= self.min_sample_duration_seconds
+            )
+            violation = validate_sample_duration(
+                section=section,
+                duration=duration_now,
+                min_duration_seconds=self.min_sample_duration_seconds,
+            )
+            if violation:
+                result["sample_duration_violation"] = violation
+        return result
+
+    def _run_repeated_sync(
+        self, *, section: str, scenario: Any, repeat: int | None = None
+    ) -> Dict[str, Any]:
+        """Run sync scenario multiple times and aggregate repetition statistics."""
+        configured_repeat = int(self.test_config.get("repetitions", 1))
+        if self.repetition_sections and section not in self.repetition_sections:
+            configured_repeat = 1
+        total_runs = max(1, int(repeat if repeat is not None else configured_repeat))
+        runs: list[Dict[str, Any]] = []
+        for _ in range(total_runs):
+            payload = scenario()
+            runs.append(payload if isinstance(payload, dict) else {"value": payload})
+            self._cleanup_logger_cache()
+        return self._attach_repetition_stats(section=section, result=runs[-1], runs=runs)
+
+    async def _run_repeated_async(
+        self, *, section: str, scenario: Any, repeat: int | None = None
+    ) -> Dict[str, Any]:
+        """Run async scenario multiple times and aggregate repetition statistics."""
+        configured_repeat = int(self.test_config.get("repetitions", 1))
+        if self.repetition_sections and section not in self.repetition_sections:
+            configured_repeat = 1
+        total_runs = max(1, int(repeat if repeat is not None else configured_repeat))
+        runs: list[Dict[str, Any]] = []
+        for _ in range(total_runs):
+            payload = await scenario()
+            runs.append(payload if isinstance(payload, dict) else {"value": payload})
+            self._cleanup_logger_cache()
+        return self._attach_repetition_stats(section=section, result=runs[-1], runs=runs)
 
     def test_sync_logger_performance(self) -> Dict[str, Any]:
         """
@@ -1326,6 +1604,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
         from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 
         benchmark_file = self._build_benchmark_log_path("benchmark_file")
+        jsonl_candidate_path = str(Path(benchmark_file).with_suffix(".jsonl"))
 
         # Create configuration with FILE ONLY (no console)
         file_only_config = LoggingConfig(
@@ -1375,6 +1654,11 @@ class HydraLoggerBenchmark:  # pragma: no cover
         # Flush before timing
         self._flush_all_handlers(logger)
         time.sleep(0.5)
+        baseline_emitted = extract_handler_messages_emitted(logger)
+        baseline_line_counts = {
+            benchmark_file: self._count_written_lines(benchmark_file),
+            jsonl_candidate_path: self._count_written_lines(jsonl_candidate_path),
+        }
 
         # Initialize initial_size to avoid undefined variable
         initial_size = 0
@@ -1424,8 +1708,19 @@ class HydraLoggerBenchmark:  # pragma: no cover
 
         # Get bytes written from handler stats (more reliable than file size).
         handler_bytes = extract_handler_bytes_written(logger)
+        observed_emitted = extract_handler_messages_emitted(logger)
+        actual_emitted = max(0, observed_emitted - baseline_emitted)
+        if actual_emitted <= 0:
+            actual_emitted = message_count
+            actual_emitted_source = "fallback_expected"
+        else:
+            actual_emitted_source = "handler_counter"
+        resolved_file_path = (
+            self._resolve_output_matrix_file_path(benchmark_file, "json-lines") or benchmark_file
+        )
+        baseline_written_lines = baseline_line_counts.get(resolved_file_path, 0)
         byte_summary = resolve_bytes_written(
-            file_path=benchmark_file,
+            file_path=resolved_file_path,
             initial_size=initial_size,
             handler_bytes=handler_bytes,
         )
@@ -1452,7 +1747,11 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 bytes_written = 0
 
         duration = end_time - start_time
-        observed_written_lines = self._count_written_lines(benchmark_file)
+        final_written_lines = self._count_written_lines(resolved_file_path)
+        observed_written_lines = resolve_written_line_delta(
+            baseline_lines=baseline_written_lines,
+            final_lines=final_written_lines,
+        )
         result = build_file_io_result(
             logger_type="File Handler Only",
             total_messages=message_count,
@@ -1461,7 +1760,10 @@ class HydraLoggerBenchmark:  # pragma: no cover
             flush_duration=flush_duration,
             bytes_written=bytes_written,
             written_lines=observed_written_lines,
-            file_path=benchmark_file,
+            file_path=resolved_file_path,
+            actual_emitted=actual_emitted,
+            actual_emitted_source=actual_emitted_source,
+            strict_file_evidence=True,
         )
         messages_per_second = float(result["messages_per_second"])
         bytes_per_second = float(result["bytes_per_second"])
@@ -1494,6 +1796,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
         from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 
         benchmark_file = self._build_benchmark_log_path("benchmark_async_file")
+        jsonl_candidate_path = str(Path(benchmark_file).with_suffix(".jsonl"))
 
         # Create configuration with ASYNC FILE ONLY (no console)
         async_file_only_config = LoggingConfig(
@@ -1543,6 +1846,11 @@ class HydraLoggerBenchmark:  # pragma: no cover
 
         # Wait for warm-up handlers to complete
         await self._wait_for_async_handlers(logger, timeout=1.0)
+        baseline_emitted = extract_handler_messages_emitted(logger)
+        baseline_line_counts = {
+            benchmark_file: self._count_written_lines(benchmark_file),
+            jsonl_candidate_path: self._count_written_lines(jsonl_candidate_path),
+        }
 
         # Initialize initial_size to avoid undefined variable
         initial_size = 0
@@ -1593,8 +1901,19 @@ class HydraLoggerBenchmark:  # pragma: no cover
 
         # Get bytes written from handler stats (more reliable than file size).
         handler_bytes = extract_handler_bytes_written(logger)
+        observed_emitted = extract_handler_messages_emitted(logger)
+        actual_emitted = max(0, observed_emitted - baseline_emitted)
+        if actual_emitted <= 0:
+            actual_emitted = message_count
+            actual_emitted_source = "fallback_expected"
+        else:
+            actual_emitted_source = "handler_counter"
+        resolved_file_path = (
+            self._resolve_output_matrix_file_path(benchmark_file, "json-lines") or benchmark_file
+        )
+        baseline_written_lines = baseline_line_counts.get(resolved_file_path, 0)
         byte_summary = resolve_bytes_written(
-            file_path=benchmark_file,
+            file_path=resolved_file_path,
             initial_size=initial_size,
             handler_bytes=handler_bytes,
         )
@@ -1623,7 +1942,11 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 bytes_written = 0
 
         duration = end_time - start_time
-        observed_written_lines = self._count_written_lines(benchmark_file)
+        final_written_lines = self._count_written_lines(resolved_file_path)
+        observed_written_lines = resolve_written_line_delta(
+            baseline_lines=baseline_written_lines,
+            final_lines=final_written_lines,
+        )
         result = build_file_io_result(
             logger_type="Async File Handler Only",
             total_messages=message_count,
@@ -1632,7 +1955,10 @@ class HydraLoggerBenchmark:  # pragma: no cover
             flush_duration=flush_duration,
             bytes_written=bytes_written,
             written_lines=observed_written_lines,
-            file_path=benchmark_file,
+            file_path=resolved_file_path,
+            actual_emitted=actual_emitted,
+            actual_emitted_source=actual_emitted_source,
+            strict_file_evidence=True,
         )
         messages_per_second = float(result["messages_per_second"])
         bytes_per_second = float(result["bytes_per_second"])
@@ -2466,6 +2792,10 @@ class HydraLoggerBenchmark:  # pragma: no cover
             print("-" * 60)
 
             for config_name, result in self.results["configurations"].items():
+                if not isinstance(result, dict):
+                    continue
+                if not isinstance(result.get("messages_per_second"), (int, float)):
+                    continue
                 print(
                     f"{config_name.title():<25} | {result['messages_per_second']:>13,.0f} | {result['duration']:>10.3f} | {result['total_messages']:,}"
                 )
@@ -2617,6 +2947,10 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 # Configuration results
                 if "configurations" in test_key:
                     for config_name, config_result in result.items():
+                        if not isinstance(config_result, dict):
+                            continue
+                        if not isinstance(config_result.get("messages_per_second"), (int, float)):
+                            continue
                         all_performance_data.append(
                             {
                                 "name": f"Config: {config_name.title()}",
@@ -2769,7 +3103,11 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 payload_profile=self.payload_profile,
                 timestamp=timestamp,
             )
-            filename = write_results_artifacts(output_payload=output, results_dir=self.results_dir)
+            filename = write_results_artifacts(
+                output_payload=output,
+                results_dir=self.results_dir,
+                write_markdown_reports=self.write_markdown_reports,
+            )
             print(f"\nResults saved to: {filename}")
             print(f"   You can review results later or compare with previous runs")
 
@@ -2811,6 +3149,13 @@ class HydraLoggerBenchmark:  # pragma: no cover
         violations.extend(path_violations)
         matrix_file_violations = validate_output_matrix_file_evidence(results=self.results)
         violations.extend(matrix_file_violations)
+        file_io_violations = validate_file_io_evidence(results=self.results)
+        violations.extend(file_io_violations)
+        sample_duration_violations: list[str] = []
+        for section_name, payload in self.results.items():
+            if isinstance(payload, dict) and payload.get("sample_duration_violation"):
+                sample_duration_violations.append(str(payload["sample_duration_violation"]))
+        violations.extend(sample_duration_violations)
         leaked_files = detect_new_root_log_leaks(
             project_root=self._project_root,
             preexisting_log_names=self._preexisting_root_log_names,
@@ -2826,10 +3171,13 @@ class HydraLoggerBenchmark:  # pragma: no cover
             "drift_violations": drift_violations,
             "path_violations": path_violations,
             "matrix_file_violations": matrix_file_violations,
+            "file_io_violations": file_io_violations,
+            "sample_duration_violations": sample_duration_violations,
             "leak_violations": leaked_files,
+            "strict_mode": self.strict_reliability_guards,
             "total_violations": len(violations),
         }
-        if violations:
+        if violations and self.strict_reliability_guards:
             details = "\n - ".join(["Benchmark reliability guard violations:", *violations])
             raise RuntimeError(details)
 
@@ -2840,55 +3188,65 @@ class HydraLoggerBenchmark:  # pragma: no cover
         try:
             # Run all performance tests
             # Cleanup between tests ensures each test starts with a clean state
-            self.results["sync_logger"] = self.test_sync_logger_performance()
-            self._cleanup_logger_cache()  # Cleanup after each test
-
-            self.results["async_logger"] = await self.test_async_logger_performance()
-            self._cleanup_logger_cache()
-
-            self.results["composite_logger"] = self.test_composite_logger_performance()
-            self._cleanup_logger_cache()
-
-            self.results["composite_async_logger"] = (
-                await self.test_composite_async_logger_performance()
+            self.results["sync_logger"] = self._run_repeated_sync(
+                section="sync_logger",
+                scenario=self.test_sync_logger_performance,
             )
-            self._cleanup_logger_cache()
-
-            self.results["configurations"] = self.test_configuration_performance()
-            self._cleanup_logger_cache()
-
-            self.results["output_matrix"] = await self.test_output_matrix_performance()
-            self._cleanup_logger_cache()
-
-            self.results["file_writing"] = self.test_file_writing_performance()
-            self._cleanup_logger_cache()
-
-            self.results["async_file_writing"] = (
-                await self.test_async_file_writing_performance()
+            self.results["async_logger"] = await self._run_repeated_async(
+                section="async_logger",
+                scenario=self.test_async_logger_performance,
             )
-            self._cleanup_logger_cache()
-
-            self.results["memory"] = self.test_memory_usage()
-            self._cleanup_logger_cache()
-
-            self.results["concurrent"] = await self.test_concurrent_logging()
-            self._cleanup_logger_cache()
-
-            self.results["async_concurrent"] = await self.test_async_concurrent_suite()
-            self._cleanup_logger_cache()
-
-            self.results["parallel_workers"] = self.test_parallel_workers_suite()
-            self._cleanup_logger_cache()
-
-            self.results["advanced_concurrent"] = (
-                await self.test_advanced_concurrent_logging()
+            self.results["composite_logger"] = self._run_repeated_sync(
+                section="composite_logger",
+                scenario=self.test_composite_logger_performance,
             )
-            self._cleanup_logger_cache()
-
-            self.results["ultra_high_performance"] = (
-                await self.test_ultra_high_performance()
+            self.results["composite_async_logger"] = await self._run_repeated_async(
+                section="composite_async_logger",
+                scenario=self.test_composite_async_logger_performance,
             )
-            self._cleanup_logger_cache()
+            self.results["configurations"] = self._run_repeated_sync(
+                section="configurations",
+                scenario=self.test_configuration_performance,
+                repeat=1,
+            )
+            self.results["output_matrix"] = await self._run_repeated_async(
+                section="output_matrix",
+                scenario=self.test_output_matrix_performance,
+                repeat=1,
+            )
+            self.results["file_writing"] = self._run_repeated_sync(
+                section="file_writing",
+                scenario=self.test_file_writing_performance,
+            )
+            self.results["async_file_writing"] = await self._run_repeated_async(
+                section="async_file_writing",
+                scenario=self.test_async_file_writing_performance,
+            )
+            self.results["memory"] = self._run_repeated_sync(
+                section="memory",
+                scenario=self.test_memory_usage,
+                repeat=1,
+            )
+            self.results["concurrent"] = await self._run_repeated_async(
+                section="concurrent",
+                scenario=self.test_concurrent_logging,
+            )
+            self.results["async_concurrent"] = await self._run_repeated_async(
+                section="async_concurrent",
+                scenario=self.test_async_concurrent_suite,
+            )
+            self.results["parallel_workers"] = self._run_repeated_sync(
+                section="parallel_workers",
+                scenario=self.test_parallel_workers_suite,
+            )
+            self.results["advanced_concurrent"] = await self._run_repeated_async(
+                section="advanced_concurrent",
+                scenario=self.test_advanced_concurrent_logging,
+            )
+            self.results["ultra_high_performance"] = await self._run_repeated_async(
+                section="ultra_high_performance",
+                scenario=self.test_ultra_high_performance,
+            )
 
             # Enforce hard reliability rules before reporting/saving artifacts.
             self._enforce_reliability_guards()

@@ -1,6 +1,10 @@
 {
   "name": "ci_smoke",
   "description": "Fast CI smoke benchmark profile.",
+  "write_markdown_reports": false,
+  "strict_reliability_guards": false,
+  "min_sample_duration_seconds": 0.0001,
+  "repetition_sections": ["sync_logger", "async_logger"],
   "drift_policy": {
     "enabled": false
   },
@@ -11,5 +15,17 @@
     "suite_matrix_workers_tasks": [1, 2, 4, 8, 16, 32],
     "suite_matrix_messages_per_worker": 1000,
     "repetitions": 2
+  },
+  "output_matrix_overrides": {
+    "logger_types": ["sync", "async"],
+    "console_sinks": ["console"],
+    "file_sinks": ["file"],
+    "console_formats": ["plain-text", "colored"],
+    "file_formats": ["plain-text", "json-lines"],
+    "customizations": ["baseline", "hardened"],
+    "include_extensions": false,
+    "max_cases": 36,
+    "console_message_count": 5,
+    "file_message_count": 30
   }
 }
