@@ -27,7 +27,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     
     - name: Cache pip dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5.0.3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('setup.py') }}
@@ -55,7 +55,7 @@ jobs:
     
     - name: Upload coverage to Codecov
       if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v5.5.2
       with:
         token: ${{ env.CODECOV_TOKEN }}
         files: ./coverage.xml
@@ -128,7 +128,7 @@ jobs:
         twine check dist/*
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: dist
         path: dist/
@@ -164,7 +164,7 @@ jobs:
     
     - name: Upload security reports
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: security-reports
         path: |
@@ -194,7 +194,7 @@ jobs:
 
     - name: Upload ci_smoke benchmark artifacts
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: benchmark-ci-smoke-results
         path: |
@@ -226,7 +226,7 @@ jobs:
 
     - name: Upload pr_gate benchmark artifacts
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7.0.0
       with:
         name: benchmark-pr-gate-results
         path: |
