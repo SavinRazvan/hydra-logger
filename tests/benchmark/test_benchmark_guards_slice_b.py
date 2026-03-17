@@ -140,6 +140,14 @@ def test_validate_result_invariants_detects_counting_and_timing_mismatch() -> No
     assert any("file_writing.measured_duration" in v for v in violations)
 
 
+def test_validate_result_invariants_flags_missing_written_lines_observed_when_strict() -> None:
+    results = _minimal_valid_results()
+    results["file_writing"]["written_lines_observed"] = False
+    results["file_writing"]["strict_file_evidence"] = True
+    violations = validate_result_invariants(results)
+    assert any("file_writing.written_lines_observed: expected True" in v for v in violations)
+
+
 def test_validate_result_paths_detects_escape(tmp_path) -> None:
     allowed_logs = tmp_path / "benchmark" / "bench_logs"
     allowed_results = tmp_path / "benchmark" / "results"
@@ -278,6 +286,20 @@ def test_validate_file_io_evidence_flags_missing_strict_fields() -> None:
     assert any("file_writing.written_lines_observed" in item for item in violations)
     assert any("file_writing.written_lines: expected positive integer evidence" in item for item in violations)
     assert any("file_writing.actual_emitted: expected 100 but found 90" in item for item in violations)
+
+
+def test_validate_file_io_evidence_skips_non_strict_sections() -> None:
+    violations = validate_file_io_evidence(
+        results={
+            "file_writing": {
+                "strict_file_evidence": False,
+                "written_lines_observed": False,
+                "written_lines": 0,
+                "file_path": "",
+            }
+        }
+    )
+    assert violations == []
 
 
 def test_run_benchmark_returns_error_when_reliability_guard_fails(

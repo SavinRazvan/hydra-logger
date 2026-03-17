@@ -114,6 +114,26 @@ def test_extract_handler_messages_emitted_uses_max_and_swallows_errors() -> None
     assert extract_handler_messages_emitted(safe_logger) == 40
 
 
+def test_extract_handler_messages_emitted_skips_handlers_without_stats_or_non_dict() -> None:
+    class _NoStatsHandler:
+        pass
+
+    class _NonDictStatsHandler:
+        def get_stats(self):  # type: ignore[no-untyped-def]
+            return "invalid"
+
+    class _GoodHandler:
+        def get_stats(self) -> dict[str, int]:
+            return {"total_messages_processed": 55}
+
+    logger = SimpleNamespace(
+        _layer_handlers={
+            "default": [_NoStatsHandler(), _NonDictStatsHandler(), _GoodHandler()]
+        }
+    )
+    assert extract_handler_messages_emitted(logger) == 55
+
+
 def test_resolve_written_line_delta_clamps_negative_values() -> None:
     assert resolve_written_line_delta(baseline_lines=1000, final_lines=1500) == 500
     assert resolve_written_line_delta(baseline_lines=1500, final_lines=1000) == 0
@@ -158,3 +178,18 @@ def test_build_file_io_result_handles_zero_duration() -> None:
     assert result["messages_per_second"] == 0.0
     assert result["bytes_per_second"] == 0.0
     assert result["written_lines_observed"] is True
+
+
+def test_build_file_io_result_clamps_negative_actual_emitted() -> None:
+    result = build_file_io_result(
+        logger_type="Async File Handler Only",
+        total_messages=10,
+        duration=1.0,
+        warmup_duration=0.0,
+        flush_duration=0.0,
+        bytes_written=100,
+        written_lines=10,
+        file_path="/tmp/async.log",
+        actual_emitted=-3,
+    )
+    assert result["actual_emitted"] == 0
