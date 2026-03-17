@@ -1224,6 +1224,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
         time.sleep(0.5)
 
         # Cleanup
+        composite_health = logger.get_health_status()
         try:
             logger.close()
         except Exception:
@@ -1313,6 +1314,27 @@ class HydraLoggerBenchmark:  # pragma: no cover
         duration = end_time - start_time
         messages_per_second = message_count / duration
 
+        # Logger-core async path: avoids extra task scheduling in logger.log()
+        core_start_time = time.perf_counter()
+        if message_count > 10000:
+            chunk_size = 10000
+            for chunk_start in range(0, message_count, chunk_size):
+                chunk_end = min(chunk_start + chunk_size, message_count)
+                core_tasks = [
+                    logger.log_async("INFO", generate_realistic_message(i))
+                    for i in range(chunk_start, chunk_end)
+                ]
+                await asyncio.gather(*core_tasks)
+        else:
+            core_tasks = [
+                logger.log_async("INFO", generate_realistic_message(i))
+                for i in range(message_count)
+            ]
+            await asyncio.gather(*core_tasks)
+        core_end_time = time.perf_counter()
+        core_duration = core_end_time - core_start_time
+        core_messages_per_second = message_count / core_duration
+
         # Close logger after timing (cleanup doesn't affect performance measurement)
         # Standard: use aclose() first (standard async context manager protocol)
         # Fallback: use close_async() for backward compatibility
@@ -1327,12 +1349,18 @@ class HydraLoggerBenchmark:  # pragma: no cover
             "logger_type": "Async Logger",
             "individual_messages_per_second": messages_per_second,
             "individual_duration": duration,
+            "task_fanout_messages_per_second": messages_per_second,
+            "task_fanout_duration": duration,
+            "logger_core_messages_per_second": core_messages_per_second,
+            "logger_core_duration": core_duration,
             "total_messages": message_count,
             "status": "COMPLETED",
         }
 
         print(f"   Individual Messages: {messages_per_second:,.0f} msg/s")
         print(f"   Duration: {duration:.3f}s")
+        print(f"   Logger Core Async: {core_messages_per_second:,.0f} msg/s")
+        print(f"   Logger Core Duration: {core_duration:.3f}s")
         print("   Async Logger: COMPLETED")
 
         return result
@@ -1442,6 +1470,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
             batch_duration,
             batch_messages_per_second,
         ) = self._measure_sync_batch_throughput(logger, messages)
+        composite_health = logger.get_health_status()
 
         # Cleanup
         try:
@@ -1462,6 +1491,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
             "small_batch_total_messages": small_batch_total_messages,
             "batch_size": batch_size,
             "batch_total_messages": medium_batch_total_messages,
+            "batch_dispatch_errors": composite_health.get("batch_dispatch_errors", 0),
             "status": "COMPLETED",
         }
 

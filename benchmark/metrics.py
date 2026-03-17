@@ -213,6 +213,26 @@ def validate_result_invariants(results: dict[str, Any]) -> list[str]:
             label=f"{key}.individual_messages_per_second",
             violations=violations,
         )
+        # Async logger can expose split-throughput reporting:
+        # - task_fanout_* mirrors legacy individual path
+        # - logger_core_* measures direct async logger-core path
+        if key == "async_logger":
+            if "task_fanout_messages_per_second" in section:
+                _validate_rate(
+                    numerator=total,
+                    duration=float(section.get("task_fanout_duration", 0)),
+                    reported_rate=float(section.get("task_fanout_messages_per_second", 0)),
+                    label="async_logger.task_fanout_messages_per_second",
+                    violations=violations,
+                )
+            if "logger_core_messages_per_second" in section:
+                _validate_rate(
+                    numerator=total,
+                    duration=float(section.get("logger_core_duration", 0)),
+                    reported_rate=float(section.get("logger_core_messages_per_second", 0)),
+                    label="async_logger.logger_core_messages_per_second",
+                    violations=violations,
+                )
 
     composite = results.get("composite_logger", {})
     if isinstance(composite, dict):
@@ -237,6 +257,12 @@ def validate_result_invariants(results: dict[str, Any]) -> list[str]:
             label="composite_logger.batch_messages_per_second",
             violations=violations,
         )
+        dispatch_errors = int(composite.get("batch_dispatch_errors", 0))
+        if dispatch_errors > 0:
+            violations.append(
+                "composite_logger.batch_dispatch_errors: "
+                f"expected 0 but found {dispatch_errors}"
+            )
 
     composite_async = results.get("composite_async_logger", {})
     if isinstance(composite_async, dict):

@@ -16,9 +16,6 @@ Notes:
 
 import sys
 import threading
-import json
-import time
-import uuid
 from typing import Any, Dict, Optional, Union
 
 from ..config.models import LogDestination, LoggingConfig
@@ -32,36 +29,6 @@ from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ExtensionProcessor, HandlerDispatcher, LayerRouter, RecordBuilder
 
-
-_DEBUG_LOG_PATH = "/home/razvansavin/Projects/hydra-logger/.cursor/debug-48bb46.log"
-_DEBUG_SESSION_ID = "48bb46"
-
-
-# region agent log
-def _agent_log(run_id: str, hypothesis_id: str, message: str, data: dict) -> None:
-    try:
-        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "sessionId": _DEBUG_SESSION_ID,
-                        "runId": run_id,
-                        "hypothesisId": hypothesis_id,
-                        "id": f"log_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}",
-                        "location": "hydra_logger/loggers/sync_logger.py:log",
-                        "message": message,
-                        "data": data,
-                        "timestamp": int(time.time() * 1000),
-                    },
-                    default=str,
-                )
-                + "\n"
-            )
-    except Exception:
-        pass
-
-
-# endregion
 
 class SyncLogger(BaseLogger):
     """Synchronous logger with layer-aware routing and cached handler lookup."""
@@ -147,6 +114,7 @@ class SyncLogger(BaseLogger):
         # Statistics
         self._log_count = 0
         self._start_time = TimeUtility.timestamp()
+        self._swallowed_error_count = 0
 
         # Formatter cache to ensure consistent instances
         self._formatter_cache = {}
@@ -203,7 +171,16 @@ class SyncLogger(BaseLogger):
                 from ..extensions.extension_base import SecurityExtension
 
                 # Get extension config from LoggingConfig if available
-                patterns = ["email", "phone", "ssn", "credit_card", "api_key"]
+                patterns = [
+                    "email",
+                    "phone",
+                    "ssn",
+                    "credit_card",
+                    "api_key",
+                    "password",
+                    "token",
+                    "secret",
+                ]
                 if (
                     self._config
                     and hasattr(self._config, "extensions")
@@ -218,18 +195,6 @@ class SyncLogger(BaseLogger):
                 self._data_protection = SecurityExtension(
                     enabled=True, patterns=patterns
                 )
-                # region agent log
-                _agent_log(
-                    run_id="pre-fix",
-                    hypothesis_id="H1",
-                    message="Sync data protection initialized",
-                    data={
-                        "patterns": patterns,
-                        "has_password_pattern": "password" in patterns,
-                        "has_token_pattern": "token" in patterns,
-                    },
-                )
-                # endregion
             except ImportError:
                 self._data_protection = None
         else:
@@ -423,30 +388,11 @@ class SyncLogger(BaseLogger):
 
             layer_handlers = self._get_handlers_for_layer(layer_name)
             self._handler_dispatcher.dispatch_sync(record, layer_handlers)
-            # region agent log
-            _agent_log(
-                run_id="pre-fix",
-                hypothesis_id="H4",
-                message="Sync log dispatch completed",
-                data={
-                    "layer": layer_name,
-                    "handler_count": len(layer_handlers),
-                    "level": int(level),
-                },
-            )
-            # endregion
 
             # Record processing completed
 
         except Exception as e:
-            # region agent log
-            _agent_log(
-                run_id="pre-fix",
-                hypothesis_id="H4",
-                message="Sync logger swallowed exception",
-                data={"error": str(e), "level": str(level)},
-            )
-            # endregion
+            self._swallowed_error_count += 1
             # Silent error handling to avoid infinite loops
             pass
 
@@ -598,6 +544,7 @@ class SyncLogger(BaseLogger):
             health_status["security_engine"] = (
                 self._security_engine.get_security_metrics()
             )
+        health_status["swallowed_error_count"] = self._swallowed_error_count
 
         return health_status
 

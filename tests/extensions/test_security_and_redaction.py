@@ -34,3 +34,12 @@ def test_data_redaction_add_custom_pattern() -> None:
     redactor = DataRedaction(enabled=True, patterns=[])
     redactor.add_pattern(r"secret-\d+", "[HIDDEN]")
     assert redactor.redact("value secret-123") == "value [HIDDEN]"
+
+
+def test_security_extension_default_patterns_include_secret_credentials() -> None:
+    ext = SecurityExtension(enabled=True)
+    text = "password=abc token=xyz secret=mysecret"
+    result = ext.process(text)
+    assert 'password="[REDACTED]"' in result
+    assert 'token="[REDACTED]"' in result
+    assert 'secret="[REDACTED]"' in result

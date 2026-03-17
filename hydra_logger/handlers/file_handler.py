@@ -21,12 +21,10 @@ Notes:
 
 import asyncio
 import atexit
-import json
 import logging
 import os
 import sys
 import time
-import uuid
 from collections import deque
 from typing import Any, Dict
 
@@ -36,36 +34,6 @@ from ..utils.time_utility import TimeUtility
 from .base_handler import BaseHandler
 
 _logger = logging.getLogger(__name__)
-_DEBUG_LOG_PATH = "/home/razvansavin/Projects/hydra-logger/.cursor/debug-48bb46.log"
-_DEBUG_SESSION_ID = "48bb46"
-
-
-# region agent log
-def _agent_log(run_id: str, hypothesis_id: str, message: str, data: dict) -> None:
-    try:
-        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "sessionId": _DEBUG_SESSION_ID,
-                        "runId": run_id,
-                        "hypothesisId": hypothesis_id,
-                        "id": f"log_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}",
-                        "location": "hydra_logger/handlers/file_handler.py",
-                        "message": message,
-                        "data": data,
-                        "timestamp": int(time.time() * 1000),
-                    },
-                    default=str,
-                )
-                + "\n"
-            )
-    except Exception:
-        pass
-
-
-# endregion
-
 class SyncFileHandler(BaseHandler):
     """Synchronous file handler with buffered writes and periodic flushing."""
 
@@ -1126,18 +1094,13 @@ class AsyncFileHandler(BaseHandler):
             except asyncio.QueueFull:
                 # Queue is full, drop message
                 self._messages_dropped += 1
-                # region agent log
-                _agent_log(
-                    run_id="pre-fix",
-                    hypothesis_id="H2",
-                    message="Async file handler dropped message in emit",
-                    data={
-                        "queue_size": self._message_queue.qsize(),
-                        "max_queue_size": self._max_queue_size,
-                        "messages_dropped": self._messages_dropped,
-                    },
-                )
-                # endregion
+                if self._messages_dropped == 1 or self._messages_dropped % 100 == 0:
+                    _logger.warning(
+                        "Async file handler queue full; dropped=%s queue_size=%s max=%s",
+                        self._messages_dropped,
+                        self._message_queue.qsize(),
+                        self._max_queue_size,
+                    )
 
         except Exception as e:
             self._messages_dropped += 1
@@ -1195,18 +1158,13 @@ class AsyncFileHandler(BaseHandler):
             except asyncio.QueueFull:
                 # Main queue full, drop message
                 self._messages_dropped += 1
-                # region agent log
-                _agent_log(
-                    run_id="pre-fix",
-                    hypothesis_id="H2",
-                    message="Async file handler dropped message in emit_async",
-                    data={
-                        "queue_size": self._message_queue.qsize(),
-                        "max_queue_size": self._max_queue_size,
-                        "messages_dropped": self._messages_dropped,
-                    },
-                )
-                # endregion
+                if self._messages_dropped == 1 or self._messages_dropped % 100 == 0:
+                    _logger.warning(
+                        "Async file handler queue full (async); dropped=%s queue_size=%s max=%s",
+                        self._messages_dropped,
+                        self._message_queue.qsize(),
+                        self._max_queue_size,
+                    )
 
         except Exception as e:
             self._messages_dropped += 1
@@ -1247,18 +1205,6 @@ class AsyncFileHandler(BaseHandler):
                         f.flush()
                 except Exception as e:
                     _logger.exception("Final async file flush error: %s", e)
-            # region agent log
-            _agent_log(
-                run_id="pre-fix",
-                hypothesis_id="H5",
-                message="Async file handler close drained queue",
-                data={
-                    "remaining_messages": len(remaining_messages),
-                    "messages_dropped": self._messages_dropped,
-                    "messages_processed": self._messages_processed,
-                },
-            )
-            # endregion
 
             # Signal shutdown
             self._shutdown_event.set()

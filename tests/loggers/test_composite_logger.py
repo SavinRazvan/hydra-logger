@@ -825,6 +825,23 @@ def test_composite_logger_log_batch_fallback_and_exception_paths() -> None:
     logger = CompositeLogger(components=[component, BadBatch()])  # type: ignore[list-item]
     logger.log_batch([("INFO", "m", {"k": "v"})])
     assert component.calls and component.calls[0][1] == "m"
+    assert logger.get_health_status()["batch_dispatch_errors"] >= 1
+    logger.close()
+
+
+def test_composite_logger_log_batch_builds_records_for_batch_only_component() -> None:
+    class BatchOnly:
+        def __init__(self) -> None:
+            self.levels = []
+
+        def log_batch(self, records):  # type: ignore[no-untyped-def]
+            self.levels = [record.level_name for record in records]
+
+    batch_only = BatchOnly()
+    logger = CompositeLogger(components=[batch_only])  # type: ignore[list-item]
+    logger.log_batch([("INFO", "one", {}), ("ERROR", "two", {"layer": "api"})])
+    assert batch_only.levels == ["INFO", "ERROR"]
+    assert logger.get_health_status()["batch_dispatch_errors"] == 0
     logger.close()
 
 

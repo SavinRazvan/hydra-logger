@@ -485,7 +485,7 @@ def test_async_logger_process_chunk_small_path_handles_item_failures(
             if message == "bad":
                 raise RuntimeError("chunk-item-failed")
 
-        monkeypatch.setattr(logger, "log", flaky_log)
+        monkeypatch.setattr(logger, "_log_async", flaky_log)
         monkeypatch.setattr(
             "hydra_logger.loggers.async_logger.diagnostics.warning",
             lambda msg, err: warnings.append((msg, str(err))),
@@ -510,7 +510,7 @@ def test_async_logger_process_chunk_large_path_logs_progress(
         async def ok_log(_level, _message, **_kwargs):  # type: ignore[no-untyped-def]
             return None
 
-        monkeypatch.setattr(logger, "log", ok_log)
+        monkeypatch.setattr(logger, "_log_async", ok_log)
         monkeypatch.setattr(
             "hydra_logger.loggers.async_logger.diagnostics.info",
             lambda *args: infos.append(args),
@@ -725,6 +725,17 @@ def test_async_logger_log_and_log_async_swallow_internal_failures() -> None:
     logger.close()
 
 
+def test_async_logger_log_returns_scheduled_task_in_running_loop() -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        result = logger.log("INFO", "scheduled")
+        assert isinstance(result, asyncio.Task)
+        await result
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
 def test_async_logger_background_work_empty_and_failure_paths(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -882,7 +893,7 @@ def test_async_logger_large_batch_and_concurrency_dynamic_paths(
         async def ok_log(_level, _message, **_kwargs):  # type: ignore[no-untyped-def]
             return None
 
-        logger.log = ok_log  # type: ignore[assignment]
+        logger._log_async = ok_log  # type: ignore[assignment]
         messages = [("INFO", f"m{i}", {}) for i in range(10001)]
         await logger.log_batch(messages)
         await logger.log_concurrent(messages, max_concurrent=None)
@@ -1000,7 +1011,7 @@ def test_async_logger_process_chunk_large_branch_item_failure_warning(
             if message == "bad":
                 raise RuntimeError("large-item-fail")
 
-        monkeypatch.setattr(logger, "log", flaky_log)
+        monkeypatch.setattr(logger, "_log_async", flaky_log)
         monkeypatch.setattr(
             "hydra_logger.loggers.async_logger.diagnostics.warning",
             lambda msg, err: warnings.append((msg, str(err))),
@@ -1036,6 +1047,78 @@ def test_async_logger_overflow_worker_breaks_on_queue_exception(
 
         monkeypatch.setattr(asyncio, "wait_for", broken_wait_for)
         await logger._overflow_worker()
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_queue_mode_processes_messages() -> None:
+    async def _run() -> None:
+        config = LoggingConfig(
+            default_level="INFO",
+            layers={
+                "default": LogLayer(
+                    level="INFO", destinations=[LogDestination(type="null")]
+                )
+            },
+            extensions={
+                "async_runtime": {
+                    "mode": "queue",
+                    "worker_count": 2,
+                    "max_queue_size": 256,
+                }
+            },
+        )
+        logger = AsyncLogger(config=config)
+        await asyncio.gather(
+            *[logger.log_async("INFO", f"queue-msg-{i}") for i in range(100)]
+        )
+        await logger.aclose()
+        health = logger.get_health_status()
+        assert health["async_mode"] == "queue"
+        assert health["async_queue_enqueued"] >= 100
+        assert health["async_queue_dropped"] == 0
+        assert health["log_count"] >= 100
+
+    asyncio.run(_run())
+
+
+def test_async_logger_queue_mode_drop_newest_policy_counts_drops(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        config = LoggingConfig(
+            default_level="INFO",
+            layers={
+                "default": LogLayer(
+                    level="INFO", destinations=[LogDestination(type="null")]
+                )
+            },
+            extensions={
+                "async_runtime": {
+                    "mode": "queue",
+                    "worker_count": 1,
+                    "max_queue_size": 1,
+                    "overflow_policy": "drop_newest",
+                }
+            },
+        )
+        logger = AsyncLogger(config=config)
+        logger._async_record_queue = asyncio.Queue(maxsize=1)
+
+        async def _noop_workers() -> None:
+            return None
+
+        monkeypatch.setattr(logger, "_ensure_async_queue_workers", _noop_workers)
+        await logger.log_async("INFO", "first")
+        await logger.log_async("INFO", "second")
+
+        health = logger.get_health_status()
+        assert health["async_queue_dropped"] >= 1
+
+        while logger._async_record_queue is not None and not logger._async_record_queue.empty():
+            logger._async_record_queue.get_nowait()
+            logger._async_record_queue.task_done()
         await logger.aclose()
 
     asyncio.run(_run())

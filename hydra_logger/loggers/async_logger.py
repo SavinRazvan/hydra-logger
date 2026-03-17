@@ -17,9 +17,6 @@ Notes:
 
 import asyncio
 import sys
-import json
-import time
-import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..config.models import LogDestination, LoggingConfig
@@ -34,36 +31,6 @@ from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ExtensionProcessor, HandlerDispatcher, LayerRouter, RecordBuilder
 
-
-_DEBUG_LOG_PATH = "/home/razvansavin/Projects/hydra-logger/.cursor/debug-48bb46.log"
-_DEBUG_SESSION_ID = "48bb46"
-
-
-# region agent log
-def _agent_log(run_id: str, hypothesis_id: str, message: str, data: dict) -> None:
-    try:
-        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "sessionId": _DEBUG_SESSION_ID,
-                        "runId": run_id,
-                        "hypothesisId": hypothesis_id,
-                        "id": f"log_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}",
-                        "location": "hydra_logger/loggers/async_logger.py",
-                        "message": message,
-                        "data": data,
-                        "timestamp": int(time.time() * 1000),
-                    },
-                    default=str,
-                )
-                + "\n"
-            )
-    except Exception:
-        pass
-
-
-# endregion
 
 class AsyncLogger(BaseLogger):
     """Asynchronous logger with layer routing and handler-based emission."""
@@ -133,9 +100,22 @@ class AsyncLogger(BaseLogger):
         self._overflow_queue = asyncio.Queue(maxsize=100000)  # Larger overflow queue
         self._overflow_worker_task = None
 
+        # Optional queue runtime mode (opt-in via config.extensions.async_runtime)
+        self._use_async_queue = False
+        self._async_queue_max_size = 10000
+        self._async_queue_worker_count = 1
+        self._async_queue_overflow_policy = "drop_newest"
+        self._async_queue_put_timeout = 0.01
+        self._async_record_queue = None
+        self._async_worker_tasks = []
+        self._async_queue_enqueued = 0
+        self._async_queue_processed = 0
+        self._async_queue_dropped = 0
+
         # Statistics
         self._log_count = 0
         self._start_time = TimeUtility.timestamp()
+        self._swallowed_error_count = 0
 
         # Formatter cache for performance
         self._formatter_cache = {}
@@ -169,7 +149,16 @@ class AsyncLogger(BaseLogger):
                 from ..extensions.extension_base import SecurityExtension
 
                 # Get extension config from LoggingConfig if available
-                patterns = ["email", "phone", "ssn", "credit_card", "api_key"]
+                patterns = [
+                    "email",
+                    "phone",
+                    "ssn",
+                    "credit_card",
+                    "api_key",
+                    "password",
+                    "token",
+                    "secret",
+                ]
                 if (
                     self._config
                     and hasattr(self._config, "extensions")
@@ -184,18 +173,6 @@ class AsyncLogger(BaseLogger):
                 self._data_protection = SecurityExtension(
                     enabled=True, patterns=patterns
                 )
-                # region agent log
-                _agent_log(
-                    run_id="pre-fix",
-                    hypothesis_id="H1",
-                    message="Async data protection initialized",
-                    data={
-                        "patterns": patterns,
-                        "has_password_pattern": "password" in patterns,
-                        "has_token_pattern": "token" in patterns,
-                    },
-                )
-                # endregion
             except ImportError:
                 self._data_protection = None
         else:
@@ -255,8 +232,28 @@ class AsyncLogger(BaseLogger):
                 self._config, "enable_data_protection", False
             )
             self._enable_plugins = self._config.enable_plugins
+            self._load_async_runtime_config(self._config)
 
         self._setup_layers()
+
+    def _load_async_runtime_config(self, config: LoggingConfig) -> None:
+        """Load optional async runtime settings from config extensions."""
+        extensions = getattr(config, "extensions", None) or {}
+        runtime = extensions.get("async_runtime", {})
+        if not isinstance(runtime, dict):
+            return
+
+        mode = str(runtime.get("mode", "task")).lower()
+        queue_mode_enabled = bool(runtime.get("queue_mode", mode == "queue"))
+        self._use_async_queue = queue_mode_enabled
+        self._async_queue_max_size = max(100, int(runtime.get("max_queue_size", 10000)))
+        self._async_queue_worker_count = max(1, int(runtime.get("worker_count", 1)))
+        self._async_queue_overflow_policy = str(
+            runtime.get("overflow_policy", "drop_newest")
+        ).lower()
+        self._async_queue_put_timeout = max(
+            0.001, float(runtime.get("put_timeout_seconds", 0.01))
+        )
 
     def _setup_default_configuration(self):
         """Setup SIMPLIFIED configuration for performance."""
@@ -410,30 +407,19 @@ class AsyncLogger(BaseLogger):
         try:
             # Check if we're in an async context
             try:
-                asyncio.get_running_loop()
+                loop = asyncio.get_running_loop()
                 # We're in an async context - return coroutine
-                # region agent log
-                _agent_log(
-                    run_id="pre-fix",
-                    hypothesis_id="H3",
-                    message="Async logger log returning coroutine",
-                    data={"level_type": type(level).__name__},
-                )
-                # endregion
-                return self._log_async(level, message, **kwargs)
+                if self._use_async_queue:
+                    return loop.create_task(
+                        self._enqueue_for_async_workers(level, message, kwargs)
+                    )
+                return loop.create_task(self._log_async(level, message, **kwargs))
             except RuntimeError:
                 # No event loop - use synchronous fallback
-                # region agent log
-                _agent_log(
-                    run_id="pre-fix",
-                    hypothesis_id="H3",
-                    message="Async logger using sync fallback",
-                    data={"level_type": type(level).__name__},
-                )
-                # endregion
                 self._log_sync(level, message, **kwargs)
 
         except Exception:
+            self._swallowed_error_count += 1
             # Silent error handling for speed
             pass
 
@@ -450,10 +436,105 @@ class AsyncLogger(BaseLogger):
             return
 
         try:
+            if self._use_async_queue:
+                await self._enqueue_for_async_workers(level, message, kwargs)
+                return
             await self._log_async(level, message, **kwargs)
         except Exception:
+            self._swallowed_error_count += 1
             # Silent error handling for speed
             pass
+
+    async def _ensure_async_queue_workers(self) -> None:
+        """Ensure queue and async worker tasks are initialized."""
+        if self._async_record_queue is None:
+            self._async_record_queue = asyncio.Queue(maxsize=self._async_queue_max_size)
+
+        alive_tasks = [task for task in self._async_worker_tasks if not task.done()]
+        self._async_worker_tasks = alive_tasks
+
+        while len(self._async_worker_tasks) < self._async_queue_worker_count:
+            worker_idx = len(self._async_worker_tasks) + 1
+            task = asyncio.create_task(
+                self._async_queue_worker(worker_name=f"async-queue-worker-{worker_idx}")
+            )
+            self._async_worker_tasks.append(task)
+
+    async def _enqueue_for_async_workers(
+        self, level: Union[str, int], message: str, kwargs: Dict[str, Any]
+    ) -> bool:
+        """Enqueue log payload for queue-mode processing."""
+        if self._closed:
+            return False
+
+        await self._ensure_async_queue_workers()
+        if self._async_record_queue is None:
+            return False
+
+        payload = (level, message, kwargs)
+        try:
+            self._async_record_queue.put_nowait(payload)
+            self._async_queue_enqueued += 1
+            return True
+        except asyncio.QueueFull:
+            policy = self._async_queue_overflow_policy
+            if policy == "drop_oldest":
+                try:
+                    self._async_record_queue.get_nowait()
+                    self._async_record_queue.task_done()
+                    self._async_queue_dropped += 1
+                    self._async_record_queue.put_nowait(payload)
+                    self._async_queue_enqueued += 1
+                    return True
+                except asyncio.QueueEmpty:
+                    pass
+                except asyncio.QueueFull:
+                    pass
+            elif policy == "block_with_timeout":
+                try:
+                    await asyncio.wait_for(
+                        self._async_record_queue.put(payload),
+                        timeout=self._async_queue_put_timeout,
+                    )
+                    self._async_queue_enqueued += 1
+                    return True
+                except asyncio.TimeoutError:
+                    pass
+
+            self._async_queue_dropped += 1
+            if self._async_queue_dropped == 1 or self._async_queue_dropped % 100 == 0:
+                diagnostics.warning(
+                    "Async logger queue full; dropped=%s queue_size=%s max=%s policy=%s",
+                    self._async_queue_dropped,
+                    self._async_record_queue.qsize(),
+                    self._async_queue_max_size,
+                    self._async_queue_overflow_policy,
+                )
+            return False
+
+    async def _async_queue_worker(self, worker_name: str) -> None:
+        """Worker that drains queue-mode payloads and emits records."""
+        while not self._closed:
+            try:
+                if self._async_record_queue is None:
+                    return
+                payload = await asyncio.wait_for(
+                    self._async_record_queue.get(), timeout=0.1
+                )
+            except asyncio.TimeoutError:
+                continue
+            except Exception:
+                return
+
+            try:
+                level, message, payload_kwargs = payload
+                await self._log_async(level, message, **(payload_kwargs or {}))
+                self._async_queue_processed += 1
+            except Exception as e:
+                diagnostics.warning("Async queue worker processing failed: %s", e)
+            finally:
+                if self._async_record_queue is not None:
+                    self._async_record_queue.task_done()
 
     def _log_sync(self, level: Union[str, int], message: str, **kwargs) -> None:
         """Synchronous fallback logging method - SIMPLIFIED."""
@@ -485,14 +566,6 @@ class AsyncLogger(BaseLogger):
             )
 
             await self._emit_to_handlers(record)
-            # region agent log
-            _agent_log(
-                run_id="pre-fix",
-                hypothesis_id="H5",
-                message="Async log emitted to handlers",
-                data={"layer": getattr(record, "layer", "default")},
-            )
-            # endregion
 
             # Update statistics
             self._log_count += 1
@@ -607,7 +680,10 @@ class AsyncLogger(BaseLogger):
             # Sequential processing - no task management overhead
             for level, message, extra_kwargs in chunk:
                 try:
-                    await self.log(level, message, **{**kwargs, **extra_kwargs})
+                    merged_kwargs = dict(kwargs) if kwargs else {}
+                    if extra_kwargs:
+                        merged_kwargs.update(extra_kwargs)
+                    await self._log_async(level, message, **merged_kwargs)
                 except Exception as e:
                     diagnostics.warning("Message processing error: %s", e)
                     continue
@@ -633,7 +709,10 @@ class AsyncLogger(BaseLogger):
                 # Process sub-chunk sequentially (most reliable)
                 for level, message, extra_kwargs in sub_chunk:
                     try:
-                        await self.log(level, message, **{**kwargs, **extra_kwargs})
+                        merged_kwargs = dict(kwargs) if kwargs else {}
+                        if extra_kwargs:
+                            merged_kwargs.update(extra_kwargs)
+                        await self._log_async(level, message, **merged_kwargs)
                     except Exception as e:
                         diagnostics.warning("Message processing error: %s", e)
                         continue
@@ -699,7 +778,8 @@ class AsyncLogger(BaseLogger):
     ) -> None:
         """Log a single message with semaphore control for true parallelization."""
         async with semaphore:
-            await self.log(level, message, **kwargs)
+            # Avoid extra task scheduling overhead in internal async path.
+            await self._log_async(level, message, **kwargs)
 
     async def log_background_work(
         self, work_tasks: List[callable], max_concurrent: Optional[int] = None
@@ -905,6 +985,19 @@ class AsyncLogger(BaseLogger):
             # Mark as closed first to prevent new operations
             self._closed = True
 
+            # Best-effort queue-mode cleanup for sync close path.
+            for task in self._async_worker_tasks:
+                if not task.done():
+                    task.cancel()
+            self._async_worker_tasks.clear()
+            if self._async_record_queue is not None:
+                while not self._async_record_queue.empty():
+                    try:
+                        self._async_record_queue.get_nowait()
+                        self._async_record_queue.task_done()
+                    except asyncio.QueueEmpty:
+                        break
+
             # Clean up handlers
             for handler in self._handlers.values():
                 try:
@@ -949,8 +1042,26 @@ class AsyncLogger(BaseLogger):
             return
 
         try:
+            # Drain queue-mode payloads before shutdown.
+            if self._use_async_queue and self._async_record_queue is not None:
+                try:
+                    await asyncio.wait_for(self._async_record_queue.join(), timeout=2.0)
+                except asyncio.TimeoutError:
+                    diagnostics.warning(
+                        "Async logger queue drain timed out; remaining=%s",
+                        self._async_record_queue.qsize(),
+                    )
+
             # Mark as closed first
             self._closed = True
+
+            # Stop queue worker tasks.
+            for task in self._async_worker_tasks:
+                if not task.done():
+                    task.cancel()
+            if self._async_worker_tasks:
+                await asyncio.gather(*self._async_worker_tasks, return_exceptions=True)
+            self._async_worker_tasks.clear()
 
             # Clean up handlers asynchronously
             for handler in self._handlers.values():
@@ -1020,6 +1131,17 @@ class AsyncLogger(BaseLogger):
             "start_time": self._start_time,
             "handler_count": len(self._handlers),
             "layer_count": len(self._layers),
+            "swallowed_error_count": self._swallowed_error_count,
+            "async_mode": "queue" if self._use_async_queue else "task",
+            "async_queue_enqueued": self._async_queue_enqueued,
+            "async_queue_processed": self._async_queue_processed,
+            "async_queue_dropped": self._async_queue_dropped,
+            "async_queue_size": self._async_record_queue.qsize()
+            if self._async_record_queue is not None
+            else 0,
+            "async_queue_worker_count": len(
+                [task for task in self._async_worker_tasks if not task.done()]
+            ),
         }
 
         # REAL ASYNC: Add concurrency information

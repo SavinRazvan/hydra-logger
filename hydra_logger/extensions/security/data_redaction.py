@@ -51,6 +51,7 @@ class DataRedaction:
             "api_key": (r"\bsk-[A-Za-z0-9]{20,}\b", "[REDACTED_API_KEY]"),
             "password": (r'\bpassword["\s]*[:=]["\s]*[^\s]+', 'password="[REDACTED]"'),
             "token": (r'\btoken["\s]*[:=]["\s]*[^\s]+', 'token="[REDACTED]"'),
+            "secret": (r'\bsecret["\s]*[:=]["\s]*[^\s]+', 'secret="[REDACTED]"'),
         }
 
         for pattern in self.patterns:
