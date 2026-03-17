@@ -41,27 +41,27 @@ Coverage is required as evidence, not vanity:
 
 Current CI/prepare ratchet stage (2026-03 baseline):
 
-- `hydra_logger` fail-under: `60`
+- `hydra_logger` fail-under: `95`
 - `benchmark` package fail-under: `100`
 
 Planned enterprise ratchet sequence for `hydra_logger`:
 
-- Stage 1: `60` (active)
+- Stage 1: `60`
 - Stage 2: `70`
 - Stage 3: `80`
 - Stage 4: `90`
-- Stage 5: `95`
+- Stage 5: `95` (active)
 
-Latest verification snapshot (2026-03-16):
+Latest verification snapshot (2026-03-17):
 
-- `python -m pytest --cov=hydra_logger --cov-report=term-missing -q` => `92%` total.
+- `python -m pytest --cov=hydra_logger --cov-report=term-missing -q` => `96%` total.
 - `python -m pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=100 -q` => `100%` total.
 
 ## CI/CD Contract
 
 CI pipeline (`.github/workflows/ci.yml`) executes:
 
-- tests with coverage (`pytest tests/ --cov=hydra_logger --cov-fail-under=60 ...`);
+- tests with coverage (`pytest tests/ --cov=hydra_logger --cov-fail-under=95 ...`);
 - repository log-isolation guard (`python scripts/dev/check_logs_clean.py`);
 - benchmark package coverage (`pytest tests/benchmark --cov=benchmark --cov-fail-under=100`);
 - lint and static quality checks;
@@ -77,7 +77,7 @@ Nightly benchmark workflow (`.github/workflows/benchmark-nightly.yml`) executes:
 PR preparation (`scripts/pr/prepare.py`) enforces:
 
 - `python -m pytest -q`
-- `python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=60 -q`
+- `python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=95 -q`
 - `python scripts/pr/check_slim_headers.py --all-python --strict`
 
 ## Logging Artifact Policy
