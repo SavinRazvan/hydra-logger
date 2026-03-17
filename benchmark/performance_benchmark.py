@@ -48,6 +48,7 @@ from benchmark.guards import (
     disable_direct_io_if_available,
     ensure_composite_file_target,
     rebase_file_destinations_to_benchmark_logs,
+    validate_output_matrix_file_evidence,
     validate_result_paths,
 )
 from benchmark.drift import evaluate_drift_policy
@@ -175,6 +176,34 @@ class HydraLoggerBenchmark:  # pragma: no cover
         safe_prefix = str(prefix).replace(" ", "_")
         filename = f"{safe_prefix}_{id(self)}_{time.time_ns()}.log"
         return str(self._benchmark_logs_dir / filename)
+
+    def _resolve_output_matrix_file_path(
+        self, configured_path: str | None, log_format: str
+    ) -> str | None:
+        """Resolve actual file path used by handlers for output-matrix file cases."""
+        if not configured_path:
+            return None
+
+        configured = Path(configured_path)
+        if configured.exists():
+            return str(configured)
+
+        candidates = [configured]
+        if log_format == "json-lines":
+            candidates.append(configured.with_suffix(".jsonl"))
+        elif log_format == "csv":
+            candidates.append(configured.with_suffix(".csv"))
+
+        for candidate in candidates:
+            if candidate.exists():
+                return str(candidate)
+
+        # Fallback: handlers may derive filename variants from the configured stem.
+        stem = configured.with_suffix("").name
+        for candidate in sorted(configured.parent.glob(f"{stem}*")):
+            if candidate.is_file():
+                return str(candidate)
+        return None
 
     def _prune_benchmark_logs(self) -> None:
         """Delete existing benchmark-generated logs before a new run."""
@@ -320,7 +349,12 @@ class HydraLoggerBenchmark:  # pragma: no cover
             return getSyncLogger(logger_name, config=config)
         if logger_type == "async":
             return getAsyncLogger(logger_name, config=config)
-        return getLogger(logger_name, logger_type=logger_type, config=config, use_direct_io=False)
+        logger = getLogger(
+            logger_name, logger_type=logger_type, config=config, use_direct_io=False
+        )
+        if logger_type == "composite-async":
+            self._ensure_composite_file_target(logger, prefix=logger_name)
+        return logger
 
     async def _close_logger_instance(self, logger: Any) -> None:
         """Close logger while supporting sync and async variants."""
@@ -359,13 +393,27 @@ class HydraLoggerBenchmark:  # pragma: no cover
             config_name: str,
             config: LoggingConfig,
         ) -> Dict[str, Any]:
+            destinations = (
+                config.layers.get("default").destinations
+                if config.layers.get("default")
+                else []
+            )
+            configured_file_path = destinations[0].path if destinations else None
             logger_name = (
                 f"matrix_{sink}_{logger_type}_{log_format}_{customization}_{config_name}_{id(self)}"
             )
             logger = self._create_logger_for_type(
                 logger_name=logger_name, logger_type=logger_type, config=config
             )
-            self._disable_direct_io_if_available(logger)
+            if logger_type == "composite-async" and sink == "file":
+                # Composite-async file matrix must run with direct I/O enabled,
+                # otherwise this logger class routes only to in-memory components.
+                try:
+                    logger._use_direct_io = True
+                except Exception:
+                    pass
+            else:
+                self._disable_direct_io_if_available(logger)
             self._created_loggers.append(logger)
             self._logger_names.append(logger_name)
 
@@ -386,12 +434,23 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 self._flush_all_handlers(logger)
             duration = time.perf_counter() - start
 
-            file_path = None
-            destinations = config.layers.get("default").destinations if config.layers.get("default") else []
-            if destinations:
-                file_path = destinations[0].path
-            written_lines = self._count_written_lines(file_path) if file_path else None
+            component_file_path = None
+            if logger_type == "composite-async":
+                for component in getattr(logger, "components", []):
+                    maybe_path = getattr(component, "file_path", None)
+                    if maybe_path:
+                        component_file_path = maybe_path
+                        break
+
             await self._close_logger_instance(logger)
+            file_path = self._resolve_output_matrix_file_path(
+                configured_file_path, log_format
+            )
+            if not file_path and component_file_path:
+                file_path = self._resolve_output_matrix_file_path(
+                    component_file_path, log_format
+                )
+            written_lines = self._count_written_lines(file_path) if file_path else None
             return {
                 "messages_per_second": self._messages_per_second(target_count, duration),
                 "duration": duration,
@@ -1155,6 +1214,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
             use_direct_io=False,
         )
         self._disable_direct_io_if_available(logger)
+        self._ensure_composite_file_target(logger, prefix=logger_name)
         self._created_loggers.append(logger)
         self._logger_names.append(logger_name)
         message_count = self.test_config["typical_single_messages"]
@@ -1801,6 +1861,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
             use_direct_io=False,
         )
         self._disable_direct_io_if_available(shared_logger)
+        self._ensure_composite_file_target(shared_logger, prefix=logger_name)
         self._created_loggers.append(shared_logger)
         self._logger_names.append(logger_name)
 
@@ -1942,6 +2003,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 use_direct_io=False,
             )
             self._disable_direct_io_if_available(shared_logger)
+            self._ensure_composite_file_target(shared_logger, prefix=logger_name)
             self._created_loggers.append(shared_logger)
             self._logger_names.append(logger_name)
             messages_per_worker = 500
@@ -2017,6 +2079,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 use_direct_io=False,
             )
             self._disable_direct_io_if_available(async_logger)
+            self._ensure_composite_file_target(async_logger, prefix=logger_name)
             self._created_loggers.append(async_logger)
             self._logger_names.append(logger_name)
             messages_per_task = 1000
@@ -2161,6 +2224,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
                 use_direct_io=False,
             )
             self._disable_direct_io_if_available(logger)
+            self._ensure_composite_file_target(logger, prefix=logger_name)
             self._created_loggers.append(logger)
             self._logger_names.append(logger_name)
             return logger
@@ -2745,6 +2809,8 @@ class HydraLoggerBenchmark:  # pragma: no cover
             allowed_roots=[self._benchmark_logs_dir, self.results_dir],
         )
         violations.extend(path_violations)
+        matrix_file_violations = validate_output_matrix_file_evidence(results=self.results)
+        violations.extend(matrix_file_violations)
         leaked_files = detect_new_root_log_leaks(
             project_root=self._project_root,
             preexisting_log_names=self._preexisting_root_log_names,
@@ -2759,6 +2825,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
             "invariant_violations": invariant_violations,
             "drift_violations": drift_violations,
             "path_violations": path_violations,
+            "matrix_file_violations": matrix_file_violations,
             "leak_violations": leaked_files,
             "total_violations": len(violations),
         }

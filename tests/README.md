@@ -42,6 +42,7 @@ Notes:
 - Keep one responsibility per test file.
 - Prefer behavior-oriented names over implementation details.
 - Keep helper fixtures close to the module under test.
+- Logger/factory/core tests are isolated from repository runtime logs via module `conftest.py` fixtures that run each test in a per-test temporary working directory.
 
 ## Minimum Test Matrix Per Module
 
@@ -82,6 +83,7 @@ CI runs tests and coverage on pull requests and pushes to `main` via `.github/wo
 
 Current behavior:
 - coverage is collected and reported;
-- threshold is currently permissive and can be tightened over time.
+- threshold is currently permissive and can be tightened over time;
+- repository `logs/` must remain clean after tests (`python scripts/dev/check_logs_clean.py`).
 
 See `docs/TESTING.md` for policy-level guidance.

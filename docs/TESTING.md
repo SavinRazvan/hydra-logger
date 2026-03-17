@@ -52,11 +52,17 @@ Planned enterprise ratchet sequence for `hydra_logger`:
 - Stage 4: `90`
 - Stage 5: `95`
 
+Latest verification snapshot (2026-03-16):
+
+- `python -m pytest --cov=hydra_logger --cov-report=term-missing -q` => `92%` total.
+- `python -m pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=100 -q` => `100%` total.
+
 ## CI/CD Contract
 
 CI pipeline (`.github/workflows/ci.yml`) executes:
 
 - tests with coverage (`pytest tests/ --cov=hydra_logger --cov-fail-under=60 ...`);
+- repository log-isolation guard (`python scripts/dev/check_logs_clean.py`);
 - benchmark package coverage (`pytest tests/benchmark --cov=benchmark --cov-fail-under=100`);
 - lint and static quality checks;
 - build validation and security scans.
@@ -73,6 +79,18 @@ PR preparation (`scripts/pr/prepare.py`) enforces:
 - `python -m pytest -q`
 - `python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=60 -q`
 - `python scripts/pr/check_slim_headers.py --all-python --strict`
+
+## Logging Artifact Policy
+
+Runtime logs are destination-controlled:
+
+- production code writes only to explicit configured destinations;
+- logger tests run in isolated temporary working directories (`tests/loggers/conftest.py`);
+- repository `logs/` is treated as local runtime-only and must remain clean after tests.
+
+Use this local guard before pushing when changing logger behavior:
+
+- `python scripts/dev/check_logs_clean.py`
 
 ## PR Expectations
 

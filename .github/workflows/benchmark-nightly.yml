@@ -29,7 +29,7 @@ jobs:
 
     - name: Upload nightly benchmark artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: benchmark-nightly-truth-results
         path: |

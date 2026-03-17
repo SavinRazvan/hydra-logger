@@ -43,13 +43,6 @@ class ConfigurationTemplates:
                             format="plain-text",  # Faster than colored
                             use_colors=False,  # Disable colors for performance
                         ),
-                        LogDestination(
-                            type="file",
-                            path="app.log",
-                            format="json-lines",  # Fast JSON format
-                            max_size="10MB",
-                            backup_count=5,
-                        ),
                     ],
                 )
             },
@@ -63,7 +56,7 @@ class ConfigurationTemplates:
         enable_performance_monitoring: bool = False,
         default_level: str = "INFO",
         console_enabled: bool = True,
-        file_enabled: bool = True,
+        file_enabled: bool = False,
         file_path: str = "logs/app.log",
         file_format: str = "json-lines",
         buffer_size: int = 8192,

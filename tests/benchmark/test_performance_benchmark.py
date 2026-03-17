@@ -45,6 +45,25 @@ def test_build_benchmark_log_path_sanitizes_prefix(tmp_path) -> None:
     assert path.suffix == ".log"
 
 
+def test_resolve_output_matrix_file_path_supports_extension_fallbacks(tmp_path) -> None:
+    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    configured = bench._benchmark_logs_dir / "matrix_case.log"
+    actual = bench._benchmark_logs_dir / "matrix_case.jsonl"
+    actual.write_text('{"msg":"ok"}\n', encoding="utf-8")
+
+    resolved = bench._resolve_output_matrix_file_path(str(configured), "json-lines")
+    assert resolved == str(actual)
+
+
+def test_resolve_output_matrix_file_path_prefers_existing_configured_file(tmp_path) -> None:
+    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    configured = bench._benchmark_logs_dir / "matrix_case.log"
+    configured.write_text("line\n", encoding="utf-8")
+
+    resolved = bench._resolve_output_matrix_file_path(str(configured), "plain-text")
+    assert resolved == str(configured)
+
+
 def test_create_performance_config_uses_expected_destination_types(tmp_path) -> None:
     bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
 

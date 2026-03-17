@@ -15,7 +15,6 @@ Notes:
 # pyright: reportCallIssue=false, reportArgumentType=false
 
 import asyncio
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..config.models import LogDestination, LoggingConfig, LogLayer
@@ -520,7 +519,7 @@ class CompositeAsyncLogger(BaseLogger):
         if isinstance(level, str):
             self._level = level
         else:
-            self._level = self._level_name_cache.get(level, "INFO")
+            self._level = self._level_cache.get(level, "INFO")
 
     def get_level(self) -> str:
         """Get the current logger level."""
@@ -728,32 +727,40 @@ class CompositeAsyncLogger(BaseLogger):
         if not self._direct_io_buffer:
             return
 
-        # Write all buffered messages to file
+        file_path: Optional[str] = None
         try:
-            # Get the file path from the first component that has a file handler
-            file_path: Optional[str] = None
+            # Prefer an explicit file path exposed by a component.
             for component in self.components:
                 if hasattr(component, "file_path") and component.file_path:
                     file_path = component.file_path
                     break
 
-            # If no file path found, resolve a safe default under logs/
+            # Fallback to explicit file destinations from config only.
             if not file_path:
-                default_filename = f"composite_logger_{self.name.lower()}.log"
-                if self._config is not None:
-                    file_path = self._config.resolve_log_path(default_filename)
-                else:
-                    logs_dir = Path.cwd() / "logs"
-                    logs_dir.mkdir(parents=True, exist_ok=True)
-                    file_path = str(logs_dir / default_filename)
+                config = self._config
+                if config is not None and getattr(config, "layers", None):
+                    for layer in config.layers.values():
+                        for destination in layer.destinations:
+                            if (
+                                destination.type in {"file", "async_file"}
+                                and destination.path
+                            ):
+                                file_path = config.resolve_log_path(
+                                    destination.path, destination.format
+                                )
+                                break
+                        if file_path:
+                            break
 
-            # : Use massive buffering and single write operation
-            with open(
-                file_path, "a", encoding="utf-8", buffering=8388608
-            ) as f:  # 8MB buffer for throughput
-                # Join all messages at once - much faster than individual writes
-                f.write("".join(self._direct_io_buffer))
-                # Don't flush every time - let OS handle it for better performance
+            # Write only when an explicit destination exists.
+            if file_path:
+                # : Use massive buffering and single write operation
+                with open(
+                    file_path, "a", encoding="utf-8", buffering=8388608
+                ) as f:  # 8MB buffer for throughput
+                    # Join all messages at once - much faster than individual writes
+                    f.write("".join(self._direct_io_buffer))
+                    # Don't flush every time - let OS handle it for better performance
 
         except Exception as e:
             # Fallback to stdout if file writing fails
@@ -1034,4 +1041,4 @@ class CompositeAsyncLogger(BaseLogger):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        await self.close()
+        await self.aclose()
