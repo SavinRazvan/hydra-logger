@@ -11,6 +11,7 @@ Notes:
 
 from hydra_logger import LogDestination, LogLayer, create_logger
 from hydra_logger.config.defaults import get_enterprise_config
+from pathlib import Path
 
 
 def main() -> None:
@@ -36,6 +37,15 @@ def main() -> None:
 
     # Keep tutorial runnable with current absolute-path resolution behavior.
     config.allow_absolute_log_paths = True
+
+    # Keep file outputs under examples/tutorials folders instead of top-level logs files.
+    for layer_name, layer in config.layers.items():
+        for destination in layer.destinations:
+            if destination.type in {"file", "async_file"} and destination.path:
+                destination.path = str(
+                    Path("logs/examples/tutorials")
+                    / f"t11_{layer_name}_{Path(destination.path).name}"
+                )
 
     config.layers["api"] = LogLayer(
         level="INFO",

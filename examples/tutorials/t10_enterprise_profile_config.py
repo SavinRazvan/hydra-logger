@@ -11,6 +11,7 @@ Notes:
 
 from hydra_logger import LogDestination, create_logger
 from hydra_logger.config.defaults import get_enterprise_config
+from pathlib import Path
 
 
 def main() -> None:
@@ -31,6 +32,15 @@ def main() -> None:
     if not config.allow_absolute_log_paths:
         config.allow_absolute_log_paths = True
         print(" - note: set allow_absolute_log_paths=True for tutorial runtime execution")
+
+    # Keep file outputs under examples/tutorials folders instead of top-level logs files.
+    for layer_name, layer in config.layers.items():
+        for destination in layer.destinations:
+            if destination.type in {"file", "async_file"} and destination.path:
+                destination.path = str(
+                    Path("logs/examples/tutorials")
+                    / f"t10_{layer_name}_{Path(destination.path).name}"
+                )
 
     # Add a visible console destination for onboarding demos.
     if "default" in config.layers:
