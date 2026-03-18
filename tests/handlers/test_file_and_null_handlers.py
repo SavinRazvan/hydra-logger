@@ -1400,3 +1400,62 @@ def test_async_file_handler_close_async_fallback_cancel_and_time_flush_branch(
         await handler.aclose()
 
     asyncio.run(_run())
+
+
+def test_async_file_handler_payload_helpers_and_direct_sync_error_path(
+    monkeypatch, tmp_path: Path
+) -> None:
+    async def _run() -> None:
+        handler = AsyncFileHandler(filename=str(tmp_path / "payload.log"), use_threading=False)
+
+        # _combine_messages_payload empty and mixed-text/binary branches.
+        payload, is_binary = handler._combine_messages_payload([])
+        assert payload == ""
+        assert is_binary is False
+        payload, is_binary = handler._combine_messages_payload([b"a", "b"])
+        assert payload == b"ab"
+        assert is_binary is True
+
+        # _write_payload_async binary branch with aiofiles available.
+        writes = {"count": 0}
+
+        class _AioCtx:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, _et, _ev, _tb):
+                return None
+
+            async def write(self, data):
+                writes["count"] += len(data)
+
+            async def flush(self):
+                return None
+
+        class _AioFiles:
+            @staticmethod
+            def open(*_a, **_k):
+                return _AioCtx()
+
+        monkeypatch.setitem(sys.modules, "aiofiles", _AioFiles())
+        await handler._write_payload_async(b"xy", True)
+        assert writes["count"] == 2
+        monkeypatch.delitem(sys.modules, "aiofiles", raising=False)
+
+        # emit() direct sync-write error branch.
+        monkeypatch.setattr(AsyncFileHandler, "_start_worker", lambda self: None)
+        direct = AsyncFileHandler(filename=str(tmp_path / "direct-error.log"), use_threading=False)
+        monkeypatch.setattr(
+            direct,
+            "_write_payload_sync",
+            lambda *_a, **_k: (_ for _ in ()).throw(OSError("sync write failed")),
+        )
+        direct._running = False
+        direct._worker_tasks = []
+        dropped_before = direct._messages_dropped
+        direct.emit(LogRecord(level=20, level_name="INFO", message="x"))
+        assert direct._messages_dropped > dropped_before
+        await direct.aclose()
+        await handler.aclose()
+
+    asyncio.run(_run())

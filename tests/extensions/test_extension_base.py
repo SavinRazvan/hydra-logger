@@ -139,6 +139,13 @@ def test_security_extension_sanitization_and_redaction_toggles() -> None:
     assert ext._process_string("javascript:alert(1)") == "javascript:alert(1)"
 
 
+def test_security_extension_depth_guard_returns_original_value() -> None:
+    ext = SecurityExtension(enabled=True, patterns=["email"])
+    ext._max_depth = 0
+    nested = {"email": "person@example.com"}
+    assert ext._process_value(nested, depth=1) is nested
+
+
 def test_formatting_extension_string_and_dict_paths() -> None:
     disabled = FormattingExtension(enabled=False, add_timestamp=True)
     assert disabled.process("hello") == "hello"
