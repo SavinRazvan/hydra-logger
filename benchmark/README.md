@@ -85,14 +85,17 @@ Report verbosity environment variable:
 - `ci_smoke`:
   - fastest confidence signal
   - drift disabled
+  - `write_markdown_reports=false` (default JSON-only output)
   - suitable for quick local verification and CI push checks
 - `pr_gate`:
   - pull request performance signal
   - drift enabled with moderate thresholds
+  - `write_markdown_reports=false` (default JSON-only output)
   - reliability guards are advisory (reported, not hard-fail)
 - `nightly_truth`:
   - deep regression profile
   - drift enabled with stricter thresholds
+  - `write_markdown_reports=true` (JSON + markdown operator reports)
   - reliability guard violations hard-fail the run (`strict_reliability_guards=true`)
 
 ## Expected Runtime by Profile
@@ -201,6 +204,12 @@ Severity by profile:
 - `pr_gate`: advisory
 - `nightly_truth`: hard-fail on violations
 
+Merge and investigation policy:
+
+- `ci_smoke`/`pr_gate` failures should trigger investigation issues, not automatic merge blocks.
+- `nightly_truth` failures are merge/release blocking until resolved or explicitly waived.
+- Repeated advisory failures across consecutive PRs should be escalated to blocking review.
+
 ## Enterprise Operator Runbook
 
 1. Select profile by decision tier (`ci_smoke`, `pr_gate`, `nightly_truth`).
@@ -209,6 +218,9 @@ Severity by profile:
 4. Inspect metadata and guard statuses before throughput comparison.
 5. Compare only same-profile, metadata-compatible runs.
 6. Capture benchmark evidence in PR/operations notes.
+7. Apply enforcement policy:
+   - advisory profile fail => investigate and track
+   - nightly profile fail => block release decision
 
 ## CI and Nightly Automation
 
@@ -224,3 +236,4 @@ Severity by profile:
 - `docs/benchmarks/CONTRACT.md`
 - `docs/benchmarks/MIGRATION.md`
 - `docs/PERFORMANCE.md`
+- `docs/OPERATIONS.md`

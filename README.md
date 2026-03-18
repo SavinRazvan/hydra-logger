@@ -238,6 +238,8 @@ Enterprise tutorial tracks:
 - `docs/WORKFLOW_ARCHITECTURE.md`
 - `docs/modules/README.md`
 - `docs/PERFORMANCE.md`
+- `docs/OPERATIONS.md`
+- `docs/RELEASE_CHECKLIST.md`
 - `docs/plans/`
 - `docs/audit/`
 - `CHANGELOG.md`
@@ -250,6 +252,8 @@ Enterprise tutorial tracks:
 - Add or update tests in `tests/` for behavior changes
 - Update docs when behavior or public interfaces change
 - Run `pre-commit` and `python -m pytest -q` before opening a PR
+- Run release preflight before tagging/publishing: `.hydra_env/bin/python scripts/release/preflight.py`
+- Follow `docs/RELEASE_CHECKLIST.md` for release evidence and final gate order
 
 ## License
 
