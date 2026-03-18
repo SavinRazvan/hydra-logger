@@ -175,6 +175,21 @@ config = get_enterprise_config()
 # - allow_absolute_log_paths=False
 ```
 
+Log file location policy:
+
+- `hydra_logger` does not create log directories on import/install.
+- Log directories are created only when file destinations are configured and initialized.
+- Default behavior (no `base_log_dir`) writes to `<current working directory>/logs`.
+- For strict confinement to project-owned paths, set:
+
+```python
+config = LoggingConfig(
+    base_log_dir="logs",
+    enforce_log_path_confinement=True,
+    allow_absolute_log_paths=False,
+)
+```
+
 ## Architecture
 
 System flow (high-level):
@@ -238,6 +253,8 @@ Enterprise tutorial tracks:
 - `docs/WORKFLOW_ARCHITECTURE.md`
 - `docs/modules/README.md`
 - `docs/PERFORMANCE.md`
+- `docs/OPERATIONS.md`
+- `docs/RELEASE_CHECKLIST.md`
 - `docs/plans/`
 - `docs/audit/`
 - `CHANGELOG.md`
@@ -250,6 +267,8 @@ Enterprise tutorial tracks:
 - Add or update tests in `tests/` for behavior changes
 - Update docs when behavior or public interfaces change
 - Run `pre-commit` and `python -m pytest -q` before opening a PR
+- Run release preflight before tagging/publishing: `.hydra_env/bin/python scripts/release/preflight.py`
+- Follow `docs/RELEASE_CHECKLIST.md` for release evidence and final gate order
 
 ## License
 

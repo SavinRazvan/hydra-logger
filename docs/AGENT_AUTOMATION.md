@@ -100,6 +100,20 @@ Run entire flow in one command:
 - `python -m pytest -q`
 - `python scripts/pr/check_slim_headers.py --all-python --strict`
 
+## Release Preflight
+
+Use release preflight before tagging or publishing:
+
+- `.hydra_env/bin/python scripts/release/preflight.py`
+
+Fast mode (skip benchmark/build checks when doing iterative local work):
+
+- `.hydra_env/bin/python scripts/release/preflight.py --skip-benchmark --skip-build`
+
+Checklist reference:
+
+- `docs/RELEASE_CHECKLIST.md`
+
 ## Machine-Readable Status
 
 Use one command for branch/PR/artifact/check status:

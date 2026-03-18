@@ -273,6 +273,10 @@ scripts/dev/*
 !scripts/dev/check_env_health.py
 !scripts/dev/check_logs_clean.py
 !scripts/dev/check_version_consistency.py
+!scripts/release/
+scripts/release/*
+!scripts/release/preflight.py
+!scripts/release/verify_dist_contents.py
 AGENTS.md
 docs/AGENT_AUTOMATION.md
 _knowledge/

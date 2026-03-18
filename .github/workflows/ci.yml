@@ -8,6 +8,9 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  MYPY_ENFORCE: "false"
+  BANDIT_ENFORCE: "false"
+  PIP_AUDIT_ENFORCE: "false"
 
 jobs:
   test:
@@ -56,6 +59,16 @@ jobs:
       if: matrix.python-version == '3.12'
       run: |
         pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=95
+
+    - name: Enforce critical module coverage floors
+      if: matrix.python-version == '3.12'
+      run: |
+        pytest tests/handlers tests/loggers tests/extensions \
+          --cov=hydra_logger.handlers \
+          --cov=hydra_logger.loggers \
+          --cov=hydra_logger.extensions \
+          --cov-report=term-missing \
+          --cov-fail-under=95
     
     - name: Upload coverage to Codecov
       if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
@@ -103,7 +116,18 @@ jobs:
     
     - name: Run mypy
       run: |
-        mypy hydra_logger/ || true
+        mypy hydra_logger/ > mypy-report.txt 2>&1 || true
+        cat mypy-report.txt
+        if [ "${MYPY_ENFORCE}" = "true" ]; then
+          mypy hydra_logger/
+        fi
+
+    - name: Upload mypy report
+      if: always()
+      uses: actions/upload-artifact@v7.0.0
+      with:
+        name: mypy-report
+        path: mypy-report.txt
 
   build:
     runs-on: ubuntu-latest
@@ -130,6 +154,10 @@ jobs:
     - name: Check package
       run: |
         twine check dist/*
+
+    - name: Verify distribution contents
+      run: |
+        python scripts/release/verify_dist_contents.py
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v7.0.0
@@ -152,6 +180,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
+        pip install pip-audit
         pip install -e ".[database,cloud,queues,network]"
     
     - name: Run bandit security scan
@@ -160,11 +189,23 @@ jobs:
 
     - name: Enforce bandit high-severity gate
       run: |
-        bandit -r hydra_logger/ --severity-level high --confidence-level high || true
+        bandit -r hydra_logger/ --severity-level high --confidence-level high > bandit-high.txt 2>&1 || true
+        cat bandit-high.txt
+        if [ "${BANDIT_ENFORCE}" = "true" ]; then
+          bandit -r hydra_logger/ --severity-level high --confidence-level high
+        fi
     
-    - name: Run safety check
+    - name: Run safety check (legacy transition path)
       run: |
         safety check --json --output safety-report.json || true
+
+    - name: Run pip-audit
+      run: |
+        pip-audit --format json --output pip-audit-report.json > pip-audit.txt 2>&1 || true
+        cat pip-audit.txt
+        if [ "${PIP_AUDIT_ENFORCE}" = "true" ]; then
+          pip-audit
+        fi
     
     - name: Upload security reports
       if: always()
@@ -173,7 +214,10 @@ jobs:
         name: security-reports
         path: |
           bandit-report.json
+          bandit-high.txt
           safety-report.json
+          pip-audit-report.json
+          pip-audit.txt
 
   benchmark-ci-smoke:
     runs-on: ubuntu-latest

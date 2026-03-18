@@ -23,14 +23,17 @@ Primary references:
 - `ci_smoke`:
   - fast confidence signal for push/PR
   - drift disabled
+  - `write_markdown_reports=false` (JSON-only artifacts by default)
 - `pr_gate`:
   - pull request performance signal
   - drift enabled with moderate thresholds
   - reliability guards remain advisory
+  - `write_markdown_reports=false` (JSON-only artifacts by default)
 - `nightly_truth`:
   - deep regression profile
   - stricter drift thresholds
   - reliability guards are hard-fail
+  - `write_markdown_reports=true` (JSON + markdown operational reports)
 
 ---
 
@@ -90,6 +93,22 @@ and suite coverage differ by profile design.
 
 ---
 
+## Merge Blocking vs Investigation
+
+Use this decision policy for benchmark outcomes:
+
+- `ci_smoke`: non-blocking advisory signal; open investigation ticket on guard failures.
+- `pr_gate`: non-blocking advisory signal in CI; treat repeated guard failures as release risk.
+- `nightly_truth`: blocking signal for reliability guard violations and drift threshold violations.
+
+Recommended handling:
+
+1. If `nightly_truth` fails, pause release merge and inspect guard and drift sections first.
+2. If `pr_gate` fails intermittently but `nightly_truth` is stable, classify as advisory and monitor trend.
+3. Only ratchet threshold strictness after at least 5 stable compatible baseline runs.
+
+---
+
 ## Artifact and Provenance Checklist
 
 Expected persisted artifacts:
@@ -97,6 +116,11 @@ Expected persisted artifacts:
 - `benchmark_YYYY-MM-DD_HH-MM-SS.json` (timestamped historical run)
 - `benchmark_latest.json` (convenience latest copy)
 - optional report files (`summary`, `drift`, `invariants`, `leaks`)
+
+Profile output expectations:
+
+- `ci_smoke` / `pr_gate`: JSON required, markdown optional and typically disabled.
+- `nightly_truth`: JSON required, markdown reports expected for operator review.
 
 Capture provenance in performance reviews:
 
@@ -122,3 +146,4 @@ uname -srmo
 - [WORKFLOW_ARCHITECTURE.md](WORKFLOW_ARCHITECTURE.md)
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [README.md](../README.md)
+- [OPERATIONS.md](OPERATIONS.md)

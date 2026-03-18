@@ -62,6 +62,7 @@ Latest verification snapshot (2026-03-17):
 CI pipeline (`.github/workflows/ci.yml`) executes:
 
 - tests with coverage (`pytest tests/ --cov=hydra_logger --cov-fail-under=95 ...`);
+- critical module coverage floors (`handlers`, `loggers`, `extensions`) at `>=95` on Python 3.12;
 - repository log-isolation guard (`python scripts/dev/check_logs_clean.py`);
 - benchmark package coverage (`pytest tests/benchmark --cov=benchmark --cov-fail-under=95`);
 - lint and static quality checks;
@@ -79,6 +80,12 @@ PR preparation (`scripts/pr/prepare.py`) enforces:
 - `.hydra_env/bin/python -m pytest -q`
 - `.hydra_env/bin/python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=95 -q`
 - `.hydra_env/bin/python scripts/pr/check_slim_headers.py --all-python --strict`
+
+Static/security staged enforcement policy in CI:
+
+- `mypy` always produces artifacted output; blocking mode is controlled by `MYPY_ENFORCE`.
+- `bandit` high-severity gate runs in report mode by default; blocking mode uses `BANDIT_ENFORCE`.
+- dependency vulnerability scans run through `pip-audit` (with `safety` in transition); blocking mode uses `PIP_AUDIT_ENFORCE`.
 
 ## Logging Artifact Policy
 
