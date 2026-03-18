@@ -133,6 +133,25 @@ config = LoggingConfig(
 )
 ```
 
+Optional async runtime queue mode (opt-in, default behavior unchanged):
+
+```python
+config = LoggingConfig(
+    layers={
+        "default": LogLayer(destinations=[LogDestination(type="async_file", path="app.jsonl")])
+    },
+    extensions={
+        "async_runtime": {
+            "mode": "queue",              # default is task scheduling mode
+            "worker_count": 2,            # async queue workers
+            "max_queue_size": 20000,      # bounded queue for backpressure
+            "overflow_policy": "drop_newest",  # drop_newest | drop_oldest | block_with_timeout
+            "put_timeout_seconds": 0.01,  # used when overflow_policy=block_with_timeout
+        }
+    },
+)
+```
+
 ## Architecture
 
 System flow (high-level):

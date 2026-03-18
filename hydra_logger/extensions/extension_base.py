@@ -87,7 +87,16 @@ class SecurityExtension(ExtensionBase):
             patterns: List of patterns to redact
             **config: Additional configuration
         """
-        self.patterns = patterns or ["email", "phone", "ssn", "credit_card", "api_key"]
+        self.patterns = patterns or [
+            "email",
+            "phone",
+            "ssn",
+            "credit_card",
+            "api_key",
+            "password",
+            "token",
+            "secret",
+        ]
         self.redaction_enabled = config.get("redaction_enabled", True)
         self.sanitization_enabled = config.get("sanitization_enabled", True)
         super().__init__(enabled, **config)
@@ -113,6 +122,7 @@ class SecurityExtension(ExtensionBase):
             "api_key": (r"\bsk-[A-Za-z0-9]{20,}\b", "[REDACTED_API_KEY]"),
             "password": (r'\bpassword["\s]*[:=]["\s]*[^\s]+', 'password="[REDACTED]"'),
             "token": (r'\btoken["\s]*[:=]["\s]*[^\s]+', 'token="[REDACTED]"'),
+            "secret": (r'\bsecret["\s]*[:=]["\s]*[^\s]+', 'secret="[REDACTED]"'),
         }
 
         for pattern in self.patterns:

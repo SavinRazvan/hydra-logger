@@ -265,6 +265,34 @@ def test_extension_processor_logs_extension_failures(caplog) -> None:
     assert "Data protection extension failed for type=DummyDataProtection" in caplog.text
 
 
+def test_extension_processor_applies_data_protection_to_context_and_extra() -> None:
+    class MappingProtection:
+        @staticmethod
+        def is_enabled() -> bool:
+            return True
+
+        def process(self, payload):  # type: ignore[no-untyped-def]
+            if isinstance(payload, str):
+                return payload.replace("token=abc", 'token="[REDACTED]"')
+            if isinstance(payload, dict):
+                return {
+                    key: self.process(value) if isinstance(value, (dict, str)) else value
+                    for key, value in payload.items()
+                }
+            return payload
+
+    processor = ExtensionProcessor()
+    record = SimpleNamespace(
+        message="hello token=abc",
+        context={"auth": {"detail": "token=abc"}},
+        extra={"password": "token=abc"},
+    )
+    updated = processor.apply_data_protection(record, MappingProtection())
+    assert 'token="[REDACTED]"' in updated.message
+    assert updated.context["auth"]["detail"] == 'token="[REDACTED]"'
+    assert updated.extra["password"] == 'token="[REDACTED]"'
+
+
 def test_component_dispatcher_sync_fanout_tolerates_component_failure() -> None:
     dispatcher = ComponentDispatcher()
     ok = SyncComponent()

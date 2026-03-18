@@ -237,6 +237,7 @@ def test_sync_logger_log_swallows_internal_builder_failure() -> None:
         RuntimeError("builder-fail")
     )
     logger.log("INFO", "x")
+    assert logger.get_health_status()["swallowed_error_count"] >= 1
     logger.close()
 
 

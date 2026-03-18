@@ -145,6 +145,16 @@ def test_async_file_handler_drops_messages_when_queue_is_full(tmp_path: Path) ->
     handler.close()
 
 
+def test_async_file_handler_logs_warning_when_queue_is_full(caplog, tmp_path: Path) -> None:
+    handler = AsyncFileHandler(filename=str(tmp_path / "warn-queue.log"), max_queue_size=1)
+    handler._running = True
+    handler._message_queue.put_nowait("occupied")
+    with caplog.at_level("WARNING", logger="hydra_logger.handlers.file_handler"):
+        handler.emit(LogRecord(level=20, level_name="INFO", message="drop-me"))
+    assert "Async file handler queue full; dropped=1" in caplog.text
+    handler.close()
+
+
 def test_async_file_handler_direct_write_path_when_worker_start_is_noop(
     monkeypatch, tmp_path: Path
 ) -> None:

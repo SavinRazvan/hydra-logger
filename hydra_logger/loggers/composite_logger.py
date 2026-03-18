@@ -15,6 +15,7 @@ Notes:
 # pyright: reportCallIssue=false, reportArgumentType=false
 
 import asyncio
+import logging
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..config.models import LogDestination, LoggingConfig, LogLayer
@@ -24,6 +25,9 @@ from ..types.records import LogRecordFactory
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ComponentDispatcher
+
+
+_logger = logging.getLogger(__name__)
 
 
 class CompositeLogger(BaseLogger):
@@ -53,6 +57,7 @@ class CompositeLogger(BaseLogger):
         self._component_dispatcher = ComponentDispatcher()
         self._initialized = False
         self._closed = False
+        self._batch_dispatch_errors = 0
 
         # FIX: Setup configuration and handlers if config provided
         if config:
@@ -276,6 +281,7 @@ class CompositeLogger(BaseLogger):
             "component_count": len(self.components),
             "overall_health": overall_health,
             "components": component_health,
+            "batch_dispatch_errors": self._batch_dispatch_errors,
         }
 
     def __enter__(self):
@@ -289,23 +295,58 @@ class CompositeLogger(BaseLogger):
     def log_batch(
         self, messages: List[Tuple[Union[str, int], str, Dict[str, Any]]]
     ) -> None:
-        """Batch logging method - OPTIMIZED for performance."""
+        """Batch logging method with resilient dispatch semantics."""
         if not self._initialized or self._closed or not messages:
             return
 
-        # OPTIMIZATION: Use component batch methods if available (much faster!)
+        def _to_records() -> List[Any]:
+            records: List[Any] = []
+            for level, message, kwargs in messages:
+                payload = kwargs or {}
+                records.append(
+                    LogRecordFactory.create_minimal(
+                        level_name=str(level),
+                        message=message,
+                        layer=payload.get("layer", "default"),
+                        level=int(level) if isinstance(level, int) else 20,
+                        extra=payload.get("extra", {}),
+                    )
+                )
+            return records
+
+        records_cache: Optional[List[Any]] = None
         for component in self.components:
-            try:
-                # Try batch method first (fastest)
-                if hasattr(component, "log_batch"):
-                    component.log_batch(messages)
-                elif hasattr(component, "log"):
-                    # Fallback: process messages individually (slower but works)
-                    for level, message, kwargs in messages:
-                        component.log(level, message, **kwargs)
-            except Exception:
-                # Silent error handling for speed
-                pass
+            if hasattr(component, "log"):
+                for level, message, kwargs in messages:
+                    try:
+                        component.log(level, message, **(kwargs or {}))
+                    except Exception:
+                        self._batch_dispatch_errors += 1
+                        _logger.exception(
+                            "Composite batch dispatch failed in component log for type=%s",
+                            type(component).__name__,
+                        )
+                        break
+                continue
+
+            if hasattr(component, "log_batch"):
+                try:
+                    if records_cache is None:
+                        records_cache = _to_records()
+                    component.log_batch(records_cache)
+                except Exception:
+                    self._batch_dispatch_errors += 1
+                    _logger.exception(
+                        "Composite batch dispatch failed in component log_batch for type=%s",
+                        type(component).__name__,
+                    )
+                continue
+
+            self._batch_dispatch_errors += 1
+            _logger.warning(
+                "Composite batch dispatch skipped component without log methods: type=%s",
+                type(component).__name__,
+            )
 
         # Update count once for all messages (more efficient)
         self._log_count += len(messages)
