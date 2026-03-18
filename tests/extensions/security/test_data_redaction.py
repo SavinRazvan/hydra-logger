@@ -27,3 +27,17 @@ def test_data_redaction_enable_disable_and_non_string_dict_values() -> None:
 
     redaction.disable()
     assert redaction.is_enabled() is False
+
+
+def test_data_redaction_private_dict_and_depth_guard_paths() -> None:
+    redaction = DataRedaction(enabled=True, patterns=["email"])
+
+    redacted = redaction._redact_dict(  # pylint: disable=protected-access
+        {"email": "person@example.com", "count": 1}
+    )
+    assert redacted["email"] == "[REDACTED_EMAIL]"
+    assert redacted["count"] == 1
+
+    redaction._max_depth = 0  # pylint: disable=protected-access
+    original = {"email": "x@y.com"}
+    assert redaction._redact_value(original, depth=1) is original  # pylint: disable=protected-access

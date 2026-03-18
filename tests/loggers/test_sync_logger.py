@@ -405,3 +405,20 @@ def test_sync_logger_data_protection_import_error_branch(
     )
     assert logger._data_protection is None
     logger.close()
+
+
+def test_sync_logger_internal_failure_warn_policy_logs_warning(caplog) -> None:
+    logger = SyncLogger(
+        config={
+            "reliability_error_policy": "warn",
+            "layers": {
+                "default": {
+                    "destinations": [{"type": "console", "format": "plain-text"}]
+                }
+            },
+        }
+    )
+    with caplog.at_level("WARNING", logger="hydra_logger.loggers.sync_logger"):
+        logger._handle_internal_failure("unit-test", RuntimeError("boom"))
+    assert "Sync logger failure [unit-test]" in caplog.text
+    logger.close()

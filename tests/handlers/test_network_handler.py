@@ -511,6 +511,15 @@ def test_base_network_uncovered_validation_and_retry_edges() -> None:
     assert handler._fibonacci(1) == 1
 
 
+def test_base_network_safe_url_for_logs_invalid_parse(monkeypatch) -> None:
+    monkeypatch.setattr(
+        network_module,
+        "urlparse",
+        lambda _raw: (_ for _ in ()).throw(ValueError("bad-url")),
+    )
+    assert BaseNetworkHandler._safe_url_for_logs(":::::") == "[invalid-url]"
+
+
 def test_http_websocket_socket_datagram_remaining_branches(monkeypatch, caplog) -> None:
     class _Response:
         def raise_for_status(self) -> None:

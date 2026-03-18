@@ -1087,3 +1087,114 @@ def test_composite_async_log_batch_init_guard_and_sync_close_executor_path() -> 
         assert logger._closed is True
 
     asyncio.run(_run())
+
+
+def test_composite_logger_log_batch_component_log_failure_and_missing_method() -> None:
+    class FailingLog:
+        @staticmethod
+        def log(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+            raise RuntimeError("log fail")
+
+    class NoLogMethods:
+        pass
+
+    logger = CompositeLogger(components=[FailingLog(), NoLogMethods()])  # type: ignore[list-item]
+    logger.log_batch([("INFO", "x", {})])
+    assert logger.get_health_status()["batch_dispatch_errors"] >= 2
+    logger.close()
+
+
+def test_composite_async_deferred_close_tracking_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = CompositeAsyncLogger(components=[], use_direct_io=True)
+
+    class _ResultTask:
+        def result(self):
+            return Exception("done-with-error-result")
+
+    result_task = _ResultTask()
+    logger._deferred_close_tasks.add(result_task)  # type: ignore[arg-type]
+    logger._on_deferred_close_done(result_task)
+    assert logger._deferred_async_close_failures >= 1
+
+    class _ClosedLoop:
+        @staticmethod
+        def is_closed() -> bool:
+            return True
+
+    class _AsyncClose:
+        async def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(asyncio, "get_running_loop", lambda: _ClosedLoop())
+    assert logger._schedule_deferred_async_close(_AsyncClose()) is True
+
+    class _FailingAsyncClose:
+        async def close(self) -> None:
+            raise RuntimeError("close fail")
+
+    monkeypatch.setattr(
+        asyncio,
+        "get_running_loop",
+        lambda: (_ for _ in ()).throw(RuntimeError("no loop")),
+    )
+    logger._schedule_deferred_async_close(_FailingAsyncClose())
+    assert logger._deferred_async_close_failures >= 2
+    logger.close()
+
+
+def test_composite_async_aclose_accounts_deferred_task_exceptions() -> None:
+    async def _run() -> None:
+        logger = CompositeAsyncLogger(components=[], use_direct_io=False)
+
+        async def _boom() -> None:
+            raise RuntimeError("deferred-task-failure")
+
+        deferred_task = asyncio.create_task(_boom())
+        logger._deferred_close_tasks.add(deferred_task)
+        await logger.aclose()
+        assert logger._deferred_async_close_failures >= 1
+
+    asyncio.run(_run())
+
+
+def test_composite_async_schedule_deferred_generic_exception_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _AsyncClose:
+        async def close(self) -> None:
+            return None
+
+    class _BrokenLoop:
+        @staticmethod
+        def is_closed() -> bool:
+            return False
+
+        @staticmethod
+        def create_task(_coro):
+            _coro.close()
+            raise ValueError("create-task-failed")
+
+    logger = CompositeAsyncLogger(components=[], use_direct_io=True)
+    monkeypatch.setattr(asyncio, "get_running_loop", lambda: _BrokenLoop())
+    logger._schedule_deferred_async_close(_AsyncClose())
+    assert logger._deferred_async_close_failures >= 1
+    logger.close()
+
+
+def test_composite_async_aclose_component_prepare_exception_branch() -> None:
+    class _BrokenComponent:
+        name = "broken-component"
+
+        def __getattribute__(self, item):  # type: ignore[override]
+            if item in {"close", "close_async"}:
+                raise RuntimeError("attribute-access-failed")
+            return object.__getattribute__(self, item)
+
+    async def _run() -> None:
+        logger = CompositeAsyncLogger(components=[_BrokenComponent()], use_direct_io=False)  # type: ignore[list-item]
+        await logger.aclose()
+        assert logger._closed is True
+
+    asyncio.run(_run())

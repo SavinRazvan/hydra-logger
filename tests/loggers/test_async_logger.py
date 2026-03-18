@@ -1155,3 +1155,393 @@ def test_async_logger_queue_mode_drop_newest_policy_counts_drops(
         await logger.aclose()
 
     asyncio.run(_run())
+
+
+def test_async_logger_runtime_config_non_dict_and_queue_mode_task_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._load_async_runtime_config(  # type: ignore[arg-type]
+            types.SimpleNamespace(extensions={"async_runtime": "invalid"})
+        )
+        logger._use_async_queue = True
+        logger._initialized = True
+        logger._closed = False
+
+        seen = {"task": 0}
+
+        class _Loop:
+            @staticmethod
+            def create_task(_coro):
+                seen["task"] += 1
+                _coro.close()
+                return object()
+
+        monkeypatch.setattr(asyncio, "get_running_loop", lambda: _Loop())
+        logger.log("INFO", "queue-path")
+        assert seen["task"] == 1
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_enqueue_branch_paths_and_worker_failure_raise(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._use_async_queue = True
+        logger._initialized = True
+        logger._closed = True
+        assert await logger._enqueue_for_async_workers("INFO", "x", {}) is False
+
+        logger._closed = False
+        logger._async_record_queue = None
+
+        async def _noop_workers() -> None:
+            return None
+
+        monkeypatch.setattr(logger, "_ensure_async_queue_workers", _noop_workers)
+        assert await logger._enqueue_for_async_workers("INFO", "x", {}) is False
+
+        # drop_oldest QueueEmpty branch.
+        logger._async_queue_overflow_policy = "drop_oldest"
+
+        class _QueueDropOldest:
+            def put_nowait(self, _payload):
+                raise asyncio.QueueFull()
+
+            def get_nowait(self):
+                raise asyncio.QueueEmpty()
+
+            def task_done(self):
+                return None
+
+            def qsize(self):
+                return 1
+
+        logger._async_record_queue = _QueueDropOldest()  # type: ignore[assignment]
+        assert await logger._enqueue_for_async_workers("INFO", "x", {}) is False
+
+        # block_with_timeout TimeoutError branch.
+        logger._async_queue_overflow_policy = "block_with_timeout"
+
+        class _QueueTimeout:
+            def put_nowait(self, _payload):
+                raise asyncio.QueueFull()
+
+            async def put(self, _payload):
+                return None
+
+            def qsize(self):
+                return 1
+
+        logger._async_record_queue = _QueueTimeout()  # type: ignore[assignment]
+
+        async def _timeout(awaitable, *_args, **_kwargs):
+            if hasattr(awaitable, "close"):
+                awaitable.close()
+            raise asyncio.TimeoutError()
+
+        monkeypatch.setattr(asyncio, "wait_for", _timeout)
+        assert await logger._enqueue_for_async_workers("INFO", "x", {}) is False
+
+        # strict reliability worker error surface branch.
+        logger._strict_reliability_mode = True
+        logger._async_worker_last_error = RuntimeError("worker failed")
+        with pytest.raises(HydraLoggerError, match="Async queue worker failed"):
+            logger._raise_if_async_worker_failed()
+
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_convenience_create_task_and_close_queue_cleanup_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = AsyncLogger()
+
+    async def _noop():
+        return None
+
+    logger.log = lambda *_args, **_kwargs: _noop()  # type: ignore[assignment]
+    created = {"count": 0}
+
+    class _Loop:
+        @staticmethod
+        def create_task(coro):
+            created["count"] += 1
+            coro.close()
+            return object()
+
+    monkeypatch.setattr(asyncio, "get_running_loop", lambda: _Loop())
+    logger.info("i")
+    logger.warning("w")
+    logger.error("e")
+    logger.critical("c")
+    assert created["count"] == 4
+
+    # close() queue cleanup QueueEmpty branch.
+    class _Task:
+        def done(self):
+            return False
+
+        def cancel(self):
+            return None
+
+    class _Queue:
+        def empty(self):
+            return False
+
+        def get_nowait(self):
+            raise asyncio.QueueEmpty()
+
+        def task_done(self):
+            return None
+
+    logger._closed = False
+    logger._async_worker_tasks = [_Task()]
+    logger._async_record_queue = _Queue()  # type: ignore[assignment]
+    logger.close()
+    assert logger.is_closed is True
+
+
+def test_async_logger_aclose_queue_join_timeout_warning_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._use_async_queue = True
+        logger._async_record_queue = asyncio.Queue()
+        logger._closed = False
+        warnings = []
+
+        async def _timeout(awaitable, *_args, **_kwargs):
+            if hasattr(awaitable, "close"):
+                awaitable.close()
+            raise asyncio.TimeoutError()
+
+        monkeypatch.setattr(asyncio, "wait_for", _timeout)
+        monkeypatch.setattr(
+            "hydra_logger.loggers.async_logger.diagnostics.warning",
+            lambda *_args: warnings.append("warn"),
+        )
+        await logger.aclose()
+        assert warnings
+
+    asyncio.run(_run())
+
+
+def test_async_logger_enqueue_additional_overflow_policy_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._use_async_queue = True
+        logger._initialized = True
+        logger._closed = False
+
+        async def _noop_workers() -> None:
+            return None
+
+        monkeypatch.setattr(logger, "_ensure_async_queue_workers", _noop_workers)
+
+        class _DropOldestSuccess:
+            def __init__(self) -> None:
+                self._removed = False
+                self._queued = 1
+
+            def put_nowait(self, _payload):
+                if self._queued > 0:
+                    raise asyncio.QueueFull()
+                self._queued += 1
+
+            def get_nowait(self):
+                self._removed = True
+                self._queued = 0
+                return ("old", "payload")
+
+            def task_done(self):
+                return None
+
+            def qsize(self):
+                return self._queued
+
+        logger._async_queue_overflow_policy = "drop_oldest"
+        logger._async_record_queue = _DropOldestSuccess()  # type: ignore[assignment]
+        assert await logger._enqueue_for_async_workers("INFO", "x", {}) is True
+
+        class _DropOldestPutFull(_DropOldestSuccess):
+            def put_nowait(self, _payload):
+                raise asyncio.QueueFull()
+
+        logger._async_record_queue = _DropOldestPutFull()  # type: ignore[assignment]
+        assert await logger._enqueue_for_async_workers("INFO", "x", {}) is False
+
+        class _BlockWithTimeoutSuccess:
+            def put_nowait(self, _payload):
+                raise asyncio.QueueFull()
+
+            async def put(self, _payload):
+                return None
+
+            def qsize(self):
+                return 1
+
+        logger._async_queue_overflow_policy = "block_with_timeout"
+        logger._async_record_queue = _BlockWithTimeoutSuccess()  # type: ignore[assignment]
+        monkeypatch.setattr(asyncio, "wait_for", lambda awaitable, *_a, **_k: awaitable)
+        assert await logger._enqueue_for_async_workers("INFO", "x", {}) is True
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_worker_and_failure_warning_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._use_async_queue = True
+        logger._initialized = True
+        logger._closed = False
+
+        # _async_queue_worker queue None early return.
+        logger._async_record_queue = None
+        await logger._async_queue_worker("w-none")
+
+        # _async_queue_worker timeout continue branch.
+        logger._async_record_queue = asyncio.Queue()
+        timeout_calls = {"n": 0}
+
+        async def _timeout_then_stop(_awaitable, *_a, **_k):
+            timeout_calls["n"] += 1
+            logger._closed = True
+            if hasattr(_awaitable, "close"):
+                _awaitable.close()
+            raise asyncio.TimeoutError()
+
+        monkeypatch.setattr(asyncio, "wait_for", _timeout_then_stop)
+        logger._closed = False
+        await logger._async_queue_worker("w-timeout")
+        assert timeout_calls["n"] >= 1
+
+        # _async_queue_worker generic exception return branch.
+        async def _generic_error(_awaitable, *_a, **_k):
+            if hasattr(_awaitable, "close"):
+                _awaitable.close()
+            raise RuntimeError("wait fail")
+
+        monkeypatch.setattr(asyncio, "wait_for", _generic_error)
+        logger._closed = False
+        await logger._async_queue_worker("w-error")
+
+        # _async_queue_worker _log_async exception branch.
+        logger._async_record_queue = asyncio.Queue()
+        logger._closed = False
+        await logger._async_record_queue.put(("INFO", "x", {}))
+        monkeypatch.setattr(asyncio, "wait_for", lambda awaitable, *_a, **_k: awaitable)
+        monkeypatch.setattr(
+            logger,
+            "_log_async",
+            lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("log fail")),
+        )
+        monkeypatch.setattr(
+            logger,
+            "_handle_internal_failure",
+            lambda *_a, **_k: setattr(logger, "_closed", True),
+        )
+        await logger._async_queue_worker("w-log-error")
+        assert logger._async_worker_last_error is not None
+
+        # _handle_internal_failure warning branch.
+        warnings = []
+        monkeypatch.setattr(
+            "hydra_logger.loggers.async_logger.diagnostics.warning",
+            lambda *_args: warnings.append("warn"),
+        )
+        logger._reliability_error_policy = "warn"
+        logger._swallowed_error_count = 0
+        AsyncLogger._handle_internal_failure(logger, "ctx", RuntimeError("boom"))
+        assert warnings
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_process_chunk_kwargs_merge_branches_and_debug_task_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+
+        seen_kwargs = []
+
+        async def _capture(_level, _message, **kwargs):  # type: ignore[no-untyped-def]
+            seen_kwargs.append(kwargs)
+
+        monkeypatch.setattr(logger, "_log_async", _capture)
+        await logger._process_chunk_optimized([("INFO", "small", {"a": 1})], base=2)
+        large = [("INFO", f"m{i}", {"x": i}) for i in range(1001)]
+        await logger._process_chunk_optimized(large, base=3)
+        assert any("a" in kwargs for kwargs in seen_kwargs)
+        assert any("x" in kwargs for kwargs in seen_kwargs)
+
+        async def _noop():
+            return None
+
+        logger.log = lambda *_a, **_k: _noop()  # type: ignore[assignment]
+
+        class _Loop:
+            @staticmethod
+            def create_task(coro):
+                coro.close()
+                return object()
+
+        monkeypatch.setattr(asyncio, "get_running_loop", lambda: _Loop())
+        assert logger.debug("d") is not None
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_close_queue_task_done_branch() -> None:
+    logger = AsyncLogger()
+
+    class _Task:
+        def done(self):
+            return False
+
+        def cancel(self):
+            return None
+
+    class _QueueWithItem:
+        def __init__(self) -> None:
+            self._items = [1]
+            self.task_done_called = 0
+
+        def empty(self):
+            return len(self._items) == 0
+
+        def get_nowait(self):
+            return self._items.pop()
+
+        def task_done(self):
+            self.task_done_called += 1
+
+    queue = _QueueWithItem()
+    logger._closed = False
+    logger._async_worker_tasks = [_Task()]
+    logger._async_record_queue = queue  # type: ignore[assignment]
+    logger.close()
+    assert queue.task_done_called == 1
+
+
+def test_async_logger_raise_if_worker_failed_returns_when_no_error() -> None:
+    logger = AsyncLogger()
+    logger._strict_reliability_mode = True
+    logger._async_worker_last_error = None
+    logger._raise_if_async_worker_failed()
+    logger.close()
