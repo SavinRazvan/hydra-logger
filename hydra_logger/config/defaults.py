@@ -236,6 +236,52 @@ class ConfigurationTemplates:
                     dest.use_colors = False  # Disable colors in production
         return config
 
+    @staticmethod
+    def get_enterprise_config() -> LoggingConfig:
+        """Return an enterprise hardening profile with opt-in strict reliability."""
+        return ConfigurationTemplates.get_custom_config(
+            enable_security=True,
+            enable_sanitization=True,
+            enable_data_protection=True,
+            enable_performance_monitoring=True,
+            default_level="INFO",
+            file_enabled=True,
+            file_path="enterprise.log",
+            file_format="json-lines",
+            error_layer=True,
+            warning_layer=True,
+            buffer_size=32768,
+            flush_interval=1.0,
+            strict_reliability_mode=True,
+            reliability_error_policy="warn",
+            enforce_log_path_confinement=True,
+            allow_absolute_log_paths=False,
+            extensions={
+                "data_protection": {
+                    "enabled": True,
+                    "type": "security",
+                    "patterns": [
+                        "email",
+                        "phone",
+                        "ssn",
+                        "credit_card",
+                        "api_key",
+                        "password",
+                        "token",
+                        "secret",
+                    ],
+                },
+                "async_runtime": {
+                    "mode": "queue",
+                    "queue_mode": True,
+                    "worker_count": 2,
+                    "max_queue_size": 20000,
+                    "overflow_policy": "drop_newest",
+                    "put_timeout_seconds": 0.01,
+                },
+            },
+        )
+
 # Global instance for easy access
 templates = ConfigurationTemplates()
 
@@ -256,11 +302,16 @@ def get_production_config() -> LoggingConfig:
     """Get a production-ready configuration."""
     return templates.get_production_config()
 
+def get_enterprise_config() -> LoggingConfig:
+    """Get an enterprise hardening configuration profile."""
+    return templates.get_enterprise_config()
+
 # Configuration registry for backward compatibility
 DEFAULT_CONFIGS: Dict[str, Callable[..., LoggingConfig]] = {
     "default": get_default_config,
     "development": get_development_config,
     "production": get_production_config,
+    "enterprise": get_enterprise_config,
     "custom": get_custom_config,
 }
 
@@ -282,5 +333,6 @@ def list_available_configs() -> Dict[str, str]:
         "default": "Default configuration with performance focus",
         "development": "Development-friendly configuration with debug output",
         "production": "Production-ready configuration with security and monitoring",
+        "enterprise": "Enterprise hardening profile with strict reliability and path confinement",
         "custom": "Custom configuration with user-specified features",
     }

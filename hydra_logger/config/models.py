@@ -373,10 +373,26 @@ class LoggingConfig(BaseModel):
         default=None,
         description="Subdirectory name for logs within base directory (optional, defaults to no subfolder)",
     )
+    enforce_log_path_confinement: bool = Field(
+        default=False,
+        description="Strictly require resolved log paths to remain under the configured log root",
+    )
+    allow_absolute_log_paths: bool = Field(
+        default=True,
+        description="Allow absolute destination file paths outside configured log root",
+    )
 
     # Performance settings
     buffer_size: int = Field(default=8192, description="Buffer size for file handlers")
     flush_interval: float = Field(default=1.0, description="Flush interval in seconds")
+    strict_reliability_mode: bool = Field(
+        default=False,
+        description="Enable fail-fast logger behavior for internal pipeline failures",
+    )
+    reliability_error_policy: Literal["silent", "warn", "raise"] = Field(
+        default="silent",
+        description="Internal logger failure policy: silent, warn, or raise",
+    )
     _verbose: bool = PrivateAttr(default=False)
 
     @field_validator("default_level")
@@ -545,17 +561,68 @@ class LoggingConfig(BaseModel):
         """Get the default log directory path."""
         from pathlib import Path
 
+        return str(self._build_base_log_path().absolute())
+
+    def _build_base_log_path(self):
+        """Build effective base log directory path."""
+        from pathlib import Path
+
         if self.base_log_dir:
             base_path = Path(self.base_log_dir)
-            # Only add subfolder if explicitly specified
             if self.log_dir_name:
                 base_path = base_path / self.log_dir_name
         else:
-            # Simple default: just logs/ folder, no subfolder
             base_path = Path.cwd() / "logs"
-            # No subfolder by default
 
-        return str(base_path.absolute())
+        if not base_path.is_absolute():
+            base_path = Path.cwd() / base_path
+        return base_path
+
+    def _normalize_candidate_path(self, destination_path: str):
+        """Resolve destination path candidate using current compatibility rules."""
+        from pathlib import Path
+
+        if os.path.isabs(destination_path):
+            return Path(destination_path)
+
+        if destination_path.startswith("~"):
+            expanded = os.path.expanduser(destination_path)
+            if os.path.isabs(expanded):
+                return Path(expanded)
+            destination_path = expanded
+
+        if destination_path.startswith("logs/"):
+            return Path.cwd() / destination_path
+
+        return self._build_base_log_path() / destination_path
+
+    def _apply_path_confinement_policy(self, candidate_path):
+        """Apply optional confinement policy and return normalized final path."""
+        base_root = self._build_base_log_path().resolve()
+        resolved_path = candidate_path.resolve()
+        is_absolute_source = os.path.isabs(str(candidate_path))
+        in_base_root = base_root == resolved_path or base_root in resolved_path.parents
+
+        if is_absolute_source and not self.allow_absolute_log_paths:
+            raise ValueError(
+                f"Absolute log path is disabled by configuration: {resolved_path}"
+            )
+
+        if self.enforce_log_path_confinement and not in_base_root:
+            raise ValueError(
+                "Resolved log path escapes configured base directory: "
+                f"path={resolved_path} base={base_root}"
+            )
+
+        if (not self.enforce_log_path_confinement) and (not in_base_root):
+            _logger.warning(
+                "Log destination path is outside configured base directory "
+                "(compat mode allows it). path=%s base=%s",
+                resolved_path,
+                base_root,
+            )
+
+        return resolved_path
 
     def ensure_log_directory(self, directory_path: Optional[str] = None) -> str:
         """Ensure log directory exists and return the path."""
@@ -584,60 +651,8 @@ class LoggingConfig(BaseModel):
         Returns:
             Resolved absolute path with directories created
         """
-        from pathlib import Path
-
-        # If path is already absolute, use it as is
-        if os.path.isabs(destination_path):
-            final_path = Path(destination_path)
-        else:
-            # If path starts with ~, expand user home
-            if destination_path.startswith("~"):
-                destination_path = os.path.expanduser(destination_path)
-                if os.path.isabs(destination_path):
-                    final_path = Path(destination_path)
-                else:
-                    # Build path using base_log_dir and log_dir_name
-                    if self.base_log_dir:
-                        base_path = Path(self.base_log_dir)
-                        # Only add subfolder if explicitly specified
-                        if self.log_dir_name:
-                            base_path = base_path / self.log_dir_name
-                    else:
-                        # Default: create simple logs folder in current directory
-                        base_path = Path.cwd() / "logs"
-                        # No subfolder by default - just logs/
-
-                    # Ensure base path is absolute
-                    if not base_path.is_absolute():
-                        base_path = Path.cwd() / base_path
-
-                    # Combine with destination path
-                    final_path = base_path / destination_path
-            else:
-                # Check if path already starts with 'logs/' - if so, treat as relative
-                # to current directory
-                if destination_path.startswith("logs/"):
-                    # Path already includes logs/ directory, use as relative to current
-                    # directory
-                    final_path = Path.cwd() / destination_path
-                else:
-                    # Build path using base_log_dir and log_dir_name
-                    if self.base_log_dir:
-                        base_path = Path(self.base_log_dir)
-                        # Only add subfolder if explicitly specified
-                        if self.log_dir_name:
-                            base_path = base_path / self.log_dir_name
-                    else:
-                        # Default: create simple logs folder in current directory
-                        base_path = Path.cwd() / "logs"
-                        # No subfolder by default - just logs/
-
-                    # Ensure base path is absolute
-                    if not base_path.is_absolute():
-                        base_path = Path.cwd() / base_path
-
-                    # Combine with destination path
-                    final_path = base_path / destination_path
+        candidate_path = self._normalize_candidate_path(destination_path)
+        final_path = self._apply_path_confinement_policy(candidate_path)
 
         # Automatically create directories
         try:
@@ -650,8 +665,16 @@ class LoggingConfig(BaseModel):
 
         except Exception as exc:
             _logger.exception("Primary log directory creation failed; using fallback: %s", exc)
+            if self.enforce_log_path_confinement:
+                raise ValueError(
+                    "Unable to create confined log directory while strict path confinement "
+                    f"is enabled: {exc}"
+                ) from exc
             # Fallback: try to create in current directory
-            fallback_path = Path.cwd() / "logs" / destination_path
+            from pathlib import Path
+
+            fallback_name = candidate_path.name
+            fallback_path = Path.cwd() / "logs" / fallback_name
             fallback_path.parent.mkdir(parents=True, exist_ok=True)
             final_path = fallback_path
 

@@ -26,7 +26,7 @@ import os
 import sys
 import time
 from collections import deque
-from typing import Any, Dict
+from typing import Any, Dict, Tuple, Union
 
 from ..types.levels import LogLevel
 from ..types.records import LogRecord
@@ -369,6 +369,7 @@ class AsyncFileHandler(BaseHandler):
         self._message_queue = asyncio.Queue(maxsize=max_queue_size)
         self._shutdown_event = asyncio.Event()
         self._worker_tasks = []  # Multiple worker tasks
+        self._close_task = None
         self._running = False
 
         # THREADING SUPPORT: for performance
@@ -418,6 +419,73 @@ class AsyncFileHandler(BaseHandler):
 
         # Start the worker
         self._start_worker()
+
+    def _combine_messages_payload(
+        self, messages: list
+    ) -> Tuple[Union[str, bytes], bool]:
+        """Combine queued messages into a single text or binary payload."""
+        if not messages:
+            return "", False
+
+        has_binary = any(isinstance(message, bytes) for message in messages)
+        if has_binary:
+            parts = []
+            for message in messages:
+                if isinstance(message, bytes):
+                    parts.append(message)
+                else:
+                    parts.append(str(message).encode(self._encoding))
+            return b"".join(parts), True
+
+        return "".join(str(message) for message in messages), False
+
+    def _payload_byte_size(self, payload: Union[str, bytes], is_binary: bool) -> int:
+        """Compute payload size in bytes."""
+        if is_binary:
+            return len(payload)
+        return len(payload.encode(self._encoding))
+
+    def _write_payload_sync(
+        self, payload: Union[str, bytes], is_binary: bool, buffering: int = 1
+    ) -> None:
+        """Write payload synchronously using a matching file mode."""
+        if is_binary:
+            file_mode = "ab" if self._mode == "a" else "wb"
+            with open(self._filename, file_mode) as file_handle:
+                file_handle.write(payload)
+                file_handle.flush()
+            return
+
+        with open(
+            self._filename,
+            self._mode,
+            encoding=self._encoding,
+            buffering=buffering,
+        ) as file_handle:
+            file_handle.write(payload)
+            file_handle.flush()
+
+    async def _write_payload_async(
+        self, payload: Union[str, bytes], is_binary: bool
+    ) -> None:
+        """Write payload with async I/O when available."""
+        try:
+            import aiofiles
+
+            if is_binary:
+                file_mode = "ab" if self._mode == "a" else "wb"
+                async with aiofiles.open(self._filename, mode=file_mode) as file_handle:
+                    await file_handle.write(payload)
+                    await file_handle.flush()
+            else:
+                async with aiofiles.open(
+                    self._filename, mode=self._mode, encoding=self._encoding
+                ) as file_handle:
+                    await file_handle.write(payload)
+                    await file_handle.flush()
+        except ImportError:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self._write_payload_sync, payload, is_binary)
 
     def _start_worker(self):
         """Start multiple async worker tasks for high throughput performance."""
@@ -553,23 +621,14 @@ class AsyncFileHandler(BaseHandler):
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
 
-            combined_message = "".join(messages)
+            payload, is_binary = self._combine_messages_payload(messages)
 
             # Write all messages at once for performance (thread-safe)
             if self._file_lock is None:
                 raise RuntimeError("File lock unavailable for bulk disk write")
             with self._file_lock:
-                with open(
-                    self._filename,
-                    self._mode,
-                    encoding=self._encoding,
-                    buffering=16777216,
-                ) as f:  # 16MB buffer
-                    f.write(combined_message)
-                    f.flush()
-                    self._total_bytes_written += len(
-                        combined_message.encode(self._encoding)
-                    )
+                self._write_payload_sync(payload, is_binary, buffering=16777216)
+                self._total_bytes_written += self._payload_byte_size(payload, is_binary)
 
         except Exception as e:
             print(f"Bulk disk write error: {e}", file=sys.stderr)
@@ -590,39 +649,14 @@ class AsyncFileHandler(BaseHandler):
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
 
             # This is much faster than writing each message separately
-            combined_message = "".join(messages)
+            payload, is_binary = self._combine_messages_payload(messages)
 
             # can process in parallel)
             async with self._file_write_lock:
-                # Use aiofiles for true async I/O if available, otherwise use executor
-                try:
-                    import aiofiles
-
-                    async with aiofiles.open(
-                        self._filename, mode=self._mode, encoding=self._encoding
-                    ) as f:
-                        await f.write(combined_message)
-                        await f.flush()
-                except ImportError:
-                    # Fallback: use executor for non-blocking I/O
-                    loop = asyncio.get_event_loop()
-
-                    def write_sync():
-                        with open(
-                            self._filename,
-                            self._mode,
-                            encoding=self._encoding,
-                            buffering=16777216,
-                        ) as f:  # 16MB buffer
-                            f.write(combined_message)
-                            f.flush()
-
-                    await loop.run_in_executor(None, write_sync)
+                await self._write_payload_async(payload, is_binary)
 
                 # Update statistics
-                self._total_bytes_written += len(
-                    combined_message.encode(self._encoding)
-                )
+                self._total_bytes_written += self._payload_byte_size(payload, is_binary)
 
         except Exception as e:
             print(f"Async bulk disk write error: {e}", file=sys.stderr)
@@ -759,16 +793,14 @@ class AsyncFileHandler(BaseHandler):
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
 
+            payload, is_binary = self._combine_messages_payload(messages)
+
             # Thread-safe file writing
             if self._file_lock is None:
                 raise RuntimeError("File lock unavailable for threaded file write")
             with self._file_lock:
-                with open(
-                    self._filename, self._mode, encoding=self._encoding, buffering=8192
-                ) as f:
-                    for message in messages:
-                        f.write(message)
-                        self._total_bytes_written += len(message)
+                self._write_payload_sync(payload, is_binary, buffering=8192)
+                self._total_bytes_written += self._payload_byte_size(payload, is_binary)
 
         except Exception as e:
             print(f"Threaded file write error: {e}", file=sys.stderr)
@@ -780,13 +812,9 @@ class AsyncFileHandler(BaseHandler):
             # Ensure directory exists
             os.makedirs(os.path.dirname(self._filename), exist_ok=True)
 
-            # Write messages to file
-            with open(
-                self._filename, self._mode, encoding=self._encoding, buffering=8192
-            ) as f:
-                for message in messages:
-                    f.write(message)
-                    self._total_bytes_written += len(message)
+            payload, is_binary = self._combine_messages_payload(messages)
+            await self._write_payload_async(payload, is_binary)
+            self._total_bytes_written += self._payload_byte_size(payload, is_binary)
 
         except Exception as e:
             print(f"Async file write error: {e}", file=sys.stderr)
@@ -907,7 +935,8 @@ class AsyncFileHandler(BaseHandler):
 
             # Clean up thread pool
             if self._thread_pool:
-                self._thread_pool.shutdown(wait=True)
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, self._thread_pool.shutdown, True)
 
         except Exception as e:
             _logger.exception("Error during async file close: %s", e)
@@ -936,56 +965,19 @@ class AsyncFileHandler(BaseHandler):
             return
 
         try:
-
-            first_message = self._message_buffer[0]
-            is_binary = isinstance(first_message, bytes)
-
+            combined_message, is_binary = self._combine_messages_payload(
+                self._message_buffer
+            )
             if is_binary:
-                # For binary data, concatenate bytes directly
-                combined_message = b"".join(self._message_buffer)
-                file_mode = "ab" if self._mode == "a" else "wb"
-
-                # Write binary data
-                with open(self._filename, file_mode) as f:
-                    f.write(combined_message)
-                    f.flush()
-
-                # Update metrics
-                self._messages_processed += len(self._message_buffer)
-                self._total_bytes_written += len(combined_message)
+                self._write_payload_sync(combined_message, is_binary, buffering=1)
             else:
-                # For text data, join as strings
-                combined_message = "".join(self._message_buffer)
+                await self._write_payload_async(combined_message, is_binary)
 
-                try:
-                    import aiofiles
-
-                    async with aiofiles.open(
-                        self._filename, mode=self._mode, encoding=self._encoding
-                    ) as f:
-                        await f.write(combined_message)
-                        await f.flush()
-
-                except ImportError:
-
-                    with open(
-                        self._filename, self._mode, encoding=self._encoding, buffering=1
-                    ) as f:  # Line buffering for text files
-                        f.write(combined_message)
-                        f.flush()
-                except Exception:
-
-                    with open(
-                        self._filename, self._mode, encoding=self._encoding, buffering=1
-                    ) as f:  # Line buffering for text files
-                        f.write(combined_message)
-                        f.flush()
-
-                # Update metrics
-                self._messages_processed += len(self._message_buffer)
-                self._total_bytes_written += len(
-                    combined_message.encode(self._encoding)
-                )
+            # Update metrics
+            self._messages_processed += len(self._message_buffer)
+            self._total_bytes_written += self._payload_byte_size(
+                combined_message, is_binary
+            )
 
             self._batch_count += 1
 
@@ -998,7 +990,7 @@ class AsyncFileHandler(BaseHandler):
                 TimeUtility.perf_counter()
             )  # Use standardized time utility
 
-    def _format_message(self, record: LogRecord) -> str:
+    def _format_message(self, record: LogRecord) -> Union[str, bytes]:
         """
         Format message using formatter.
 
@@ -1087,6 +1079,19 @@ class AsyncFileHandler(BaseHandler):
 
             # Format message
             message = self._format_message(record)
+
+            if not self._running:
+                try:
+                    self._write_payload_sync(message, isinstance(message, bytes), buffering=1)
+                    self._messages_processed += 1
+                    self._total_bytes_written += self._payload_byte_size(
+                        message, isinstance(message, bytes)
+                    )
+                    return
+                except Exception as e:
+                    self._messages_dropped += 1
+                    print(f"Direct sync file write error: {e}", file=sys.stderr)
+                    return
 
             # Add to async queue (non-blocking)
             try:
@@ -1196,13 +1201,14 @@ class AsyncFileHandler(BaseHandler):
 
             # Write remaining messages directly
             if remaining_messages:
-                combined_remaining = "".join(remaining_messages)
+                combined_remaining, is_binary = self._combine_messages_payload(
+                    remaining_messages
+                )
                 try:
-                    with open(
-                        self._filename, self._mode, encoding=self._encoding, buffering=1
-                    ) as f:
-                        f.write(combined_remaining)
-                        f.flush()
+                    self._write_payload_sync(combined_remaining, is_binary, buffering=1)
+                    self._total_bytes_written += self._payload_byte_size(
+                        combined_remaining, is_binary
+                    )
                 except Exception as e:
                     _logger.exception("Final async file flush error: %s", e)
 
@@ -1242,6 +1248,11 @@ class AsyncFileHandler(BaseHandler):
                                     "Async file aclose fallback gather failed"
                                 )
 
+            if self._thread_pool:
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, self._thread_pool.shutdown, True)
+                self._thread_pool = None
+
         except Exception as e:
             _logger.exception("Async file close error: %s", e)
         finally:
@@ -1251,8 +1262,13 @@ class AsyncFileHandler(BaseHandler):
     def close(self):
         """Close the handler (sync fallback)."""
         try:
-            # Just signal shutdown - no async operations
-            self._shutdown_event.set()
+            try:
+                loop = asyncio.get_running_loop()
+                # If already in an event loop, schedule deterministic async close.
+                if self._close_task is None or self._close_task.done():
+                    self._close_task = loop.create_task(self.aclose())
+            except RuntimeError:
+                asyncio.run(self.aclose())
 
         except Exception:
             _logger.exception("Sync close fallback path triggered for async file handler")
@@ -1275,8 +1291,6 @@ class AsyncFileHandler(BaseHandler):
                     for task in self._worker_tasks:
                         if not task.done():
                             task.cancel()
-                    # Give the tasks a moment to cancel gracefully
-                    time.sleep(0.05)
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
                 _logger.debug("Skipping auto cleanup task cancellation due to closed loop")
@@ -1301,8 +1315,6 @@ class AsyncFileHandler(BaseHandler):
                     for task in self._worker_tasks:
                         if not task.done():
                             task.cancel()
-                    # Give the tasks a moment to cancel gracefully
-                    time.sleep(0.05)
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
                 _logger.debug("Skipping destructor task cancellation due to closed loop")
@@ -1320,9 +1332,6 @@ class AsyncFileHandler(BaseHandler):
                 for task in self._worker_tasks:
                     if not task.done():
                         task.cancel()
-
-            # Give task a moment to cancel
-            time.sleep(0.01)
 
         except Exception:
             _logger.exception("Async file pytest cleanup failed")

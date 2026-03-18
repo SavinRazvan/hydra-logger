@@ -111,11 +111,15 @@ class AsyncLogger(BaseLogger):
         self._async_queue_enqueued = 0
         self._async_queue_processed = 0
         self._async_queue_dropped = 0
+        self._async_worker_last_error = None
 
         # Statistics
         self._log_count = 0
         self._start_time = TimeUtility.timestamp()
         self._swallowed_error_count = 0
+        self._strict_reliability_mode = False
+        self._reliability_error_policy = "silent"
+        self._failure_warning_interval = 100
 
         # Formatter cache for performance
         self._formatter_cache = {}
@@ -232,9 +236,13 @@ class AsyncLogger(BaseLogger):
                 self._config, "enable_data_protection", False
             )
             self._enable_plugins = self._config.enable_plugins
+            self._strict_reliability_mode = bool(
+                getattr(self._config, "strict_reliability_mode", False)
+            )
+            self._reliability_error_policy = str(
+                getattr(self._config, "reliability_error_policy", "silent")
+            ).lower()
             self._load_async_runtime_config(self._config)
-
-        self._setup_layers()
 
     def _load_async_runtime_config(self, config: LoggingConfig) -> None:
         """Load optional async runtime settings from config extensions."""
@@ -418,10 +426,8 @@ class AsyncLogger(BaseLogger):
                 # No event loop - use synchronous fallback
                 self._log_sync(level, message, **kwargs)
 
-        except Exception:
-            self._swallowed_error_count += 1
-            # Silent error handling for speed
-            pass
+        except Exception as error:
+            self._handle_internal_failure("log", error)
 
     async def log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
         """
@@ -440,10 +446,8 @@ class AsyncLogger(BaseLogger):
                 await self._enqueue_for_async_workers(level, message, kwargs)
                 return
             await self._log_async(level, message, **kwargs)
-        except Exception:
-            self._swallowed_error_count += 1
-            # Silent error handling for speed
-            pass
+        except Exception as error:
+            self._handle_internal_failure("log_async", error)
 
     async def _ensure_async_queue_workers(self) -> None:
         """Ensure queue and async worker tasks are initialized."""
@@ -464,6 +468,7 @@ class AsyncLogger(BaseLogger):
         self, level: Union[str, int], message: str, kwargs: Dict[str, Any]
     ) -> bool:
         """Enqueue log payload for queue-mode processing."""
+        self._raise_if_async_worker_failed()
         if self._closed:
             return False
 
@@ -475,6 +480,7 @@ class AsyncLogger(BaseLogger):
         try:
             self._async_record_queue.put_nowait(payload)
             self._async_queue_enqueued += 1
+            self._raise_if_async_worker_failed()
             return True
         except asyncio.QueueFull:
             policy = self._async_queue_overflow_policy
@@ -512,6 +518,16 @@ class AsyncLogger(BaseLogger):
                 )
             return False
 
+    def _raise_if_async_worker_failed(self) -> None:
+        """Surface background worker failures when strict reliability is enabled."""
+        if not self._strict_reliability_mode:
+            return
+        if self._async_worker_last_error is None:
+            return
+        error = self._async_worker_last_error
+        self._async_worker_last_error = None
+        raise HydraLoggerError("Async queue worker failed") from error
+
     async def _async_queue_worker(self, worker_name: str) -> None:
         """Worker that drains queue-mode payloads and emits records."""
         while not self._closed:
@@ -531,7 +547,8 @@ class AsyncLogger(BaseLogger):
                 await self._log_async(level, message, **(payload_kwargs or {}))
                 self._async_queue_processed += 1
             except Exception as e:
-                diagnostics.warning("Async queue worker processing failed: %s", e)
+                self._async_worker_last_error = e
+                self._handle_internal_failure("async_queue_worker", e)
             finally:
                 if self._async_record_queue is not None:
                     self._async_record_queue.task_done()
@@ -552,9 +569,21 @@ class AsyncLogger(BaseLogger):
             # Update statistics
             self._log_count += 1
 
-        except Exception:
-            # Silent error handling for speed
-            pass
+        except Exception as error:
+            self._handle_internal_failure("_log_sync", error)
+
+    def _handle_internal_failure(self, context: str, error: Exception) -> None:
+        """Process internal failure according to configured reliability policy."""
+        self._swallowed_error_count += 1
+        if self._reliability_error_policy in {"warn", "raise"}:
+            if (
+                self._swallowed_error_count == 1
+                or self._swallowed_error_count % self._failure_warning_interval == 0
+            ):
+                diagnostics.warning("Async logger failure [%s]: %s", context, error)
+
+        if self._strict_reliability_mode or self._reliability_error_policy == "raise":
+            raise HydraLoggerError(f"Async logger internal failure [{context}]") from error
 
     async def _log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
         """Internal async logging method - SIMPLIFIED for reliability."""
@@ -1062,6 +1091,7 @@ class AsyncLogger(BaseLogger):
             if self._async_worker_tasks:
                 await asyncio.gather(*self._async_worker_tasks, return_exceptions=True)
             self._async_worker_tasks.clear()
+            self._async_worker_last_error = None
 
             # Clean up handlers asynchronously
             for handler in self._handlers.values():

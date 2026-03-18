@@ -19,6 +19,7 @@ from hydra_logger.config.defaults import (
     get_custom_config,
     get_default_config,
     get_development_config,
+    get_enterprise_config,
     get_named_config,
     get_production_config,
     list_available_configs,
@@ -29,10 +30,13 @@ from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 def test_default_and_production_configs_return_logging_config() -> None:
     default = get_default_config()
     production = get_production_config()
+    enterprise = get_enterprise_config()
     assert default.default_level == "INFO"
     assert "default" in default.layers
     assert production.enable_security is True
     assert production.enable_sanitization is True
+    assert enterprise.strict_reliability_mode is True
+    assert enterprise.enforce_log_path_confinement is True
 
 
 def test_custom_config_falls_back_to_console_when_no_destination_selected() -> None:
@@ -79,11 +83,14 @@ def test_defaults_named_config_custom_and_registry_listing() -> None:
     assert "debug" in development.layers
 
     listed = list_available_configs()
-    assert {"default", "development", "production", "custom"}.issubset(set(listed.keys()))
+    assert {"default", "development", "production", "enterprise", "custom"}.issubset(
+        set(listed.keys())
+    )
 
     assert get_named_config("default").default_level == "INFO"
     assert get_named_config("development").default_level == "DEBUG"
     assert get_named_config("production").enable_security is True
+    assert get_named_config("enterprise").strict_reliability_mode is True
 
 
 def test_defaults_custom_config_error_path_logs_and_reraises(caplog) -> None:

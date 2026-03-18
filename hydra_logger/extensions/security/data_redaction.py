@@ -30,6 +30,7 @@ class DataRedaction:
         """
         self.enabled = enabled
         self.patterns = patterns or []
+        self._max_depth = 16
         self._compiled_patterns: List[tuple] = []
 
         if self.enabled:
@@ -90,7 +91,7 @@ class DataRedaction:
         if isinstance(data, str):
             return self._redact_string(data)
         elif isinstance(data, dict):
-            return self._redact_dict(data)
+            return self._redact_value(data, depth=0)
         else:
             return data
 
@@ -105,13 +106,23 @@ class DataRedaction:
         """Redact sensitive patterns in dictionary."""
         result = {}
         for key, value in data.items():
-            if isinstance(value, str):
-                result[key] = self._redact_string(value)
-            elif isinstance(value, dict):
-                result[key] = self._redact_dict(value)
-            else:
-                result[key] = value
+            result[key] = self._redact_value(value, depth=1)
         return result
+
+    def _redact_value(self, value: Any, depth: int) -> Any:
+        """Recursively redact supported container values with depth guard."""
+        if depth > self._max_depth:
+            return value
+
+        if isinstance(value, str):
+            return self._redact_string(value)
+        if isinstance(value, dict):
+            return {key: self._redact_value(item, depth + 1) for key, item in value.items()}
+        if isinstance(value, list):
+            return [self._redact_value(item, depth + 1) for item in value]
+        if isinstance(value, tuple):
+            return tuple(self._redact_value(item, depth + 1) for item in value)
+        return value
 
     def is_enabled(self) -> bool:
         """Check if redaction is enabled."""

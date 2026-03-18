@@ -99,6 +99,7 @@ class SecurityExtension(ExtensionBase):
         ]
         self.redaction_enabled = config.get("redaction_enabled", True)
         self.sanitization_enabled = config.get("sanitization_enabled", True)
+        self._max_depth = config.get("max_depth", 16)
         super().__init__(enabled, **config)
 
     def _setup(self) -> None:
@@ -161,13 +162,23 @@ class SecurityExtension(ExtensionBase):
         """Process dictionary data."""
         result = {}
         for key, value in data.items():
-            if isinstance(value, str):
-                result[key] = self._process_string(value)
-            elif isinstance(value, dict):
-                result[key] = self._process_dict(value)
-            else:
-                result[key] = value
+            result[key] = self._process_value(value, depth=1)
         return result
+
+    def _process_value(self, value: Any, depth: int) -> Any:
+        """Recursively process supported container values with depth guard."""
+        if depth > self._max_depth:
+            return value
+
+        if isinstance(value, str):
+            return self._process_string(value)
+        if isinstance(value, dict):
+            return {key: self._process_value(item, depth + 1) for key, item in value.items()}
+        if isinstance(value, list):
+            return [self._process_value(item, depth + 1) for item in value]
+        if isinstance(value, tuple):
+            return tuple(self._process_value(item, depth + 1) for item in value)
+        return value
 
     def _sanitize_text(self, text: str) -> str:
         """Sanitize text data."""

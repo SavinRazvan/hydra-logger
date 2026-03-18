@@ -19,6 +19,7 @@ import threading
 from typing import Any, Dict, Optional, Union
 
 from ..config.models import LogDestination, LoggingConfig
+from ..core.exceptions import HydraLoggerError
 from ..handlers.base_handler import BaseHandler
 from ..handlers.console_handler import SyncConsoleHandler
 from ..handlers.null_handler import NullHandler
@@ -115,6 +116,9 @@ class SyncLogger(BaseLogger):
         self._log_count = 0
         self._start_time = TimeUtility.timestamp()
         self._swallowed_error_count = 0
+        self._strict_reliability_mode = False
+        self._reliability_error_policy = "silent"
+        self._failure_warning_interval = 100
 
         # Formatter cache to ensure consistent instances
         self._formatter_cache = {}
@@ -147,6 +151,25 @@ class SyncLogger(BaseLogger):
             self._enable_plugins = self._config.enable_plugins
             self._buffer_size = self._config.buffer_size
             self._flush_interval = self._config.flush_interval
+            self._strict_reliability_mode = bool(
+                getattr(self._config, "strict_reliability_mode", False)
+            )
+            self._reliability_error_policy = str(
+                getattr(self._config, "reliability_error_policy", "silent")
+            ).lower()
+
+    def _handle_internal_failure(self, context: str, error: Exception) -> None:
+        """Process internal failure according to configured reliability policy."""
+        self._swallowed_error_count += 1
+        if self._reliability_error_policy in {"warn", "raise"}:
+            if (
+                self._swallowed_error_count == 1
+                or self._swallowed_error_count % self._failure_warning_interval == 0
+            ):
+                diagnostics.warning("Sync logger failure [%s]: %s", context, error)
+
+        if self._strict_reliability_mode or self._reliability_error_policy == "raise":
+            raise HydraLoggerError(f"Sync logger internal failure [{context}]") from error
 
     def _setup_default_configuration(self):
         """Setup simplified configuration."""
@@ -391,10 +414,8 @@ class SyncLogger(BaseLogger):
 
             # Record processing completed
 
-        except Exception as e:
-            self._swallowed_error_count += 1
-            # Silent error handling to avoid infinite loops
-            pass
+        except Exception as error:
+            self._handle_internal_failure("log", error)
 
     def _emit_to_handlers(self, record: LogRecord):
         """Emit record to appropriate handlers."""
@@ -408,9 +429,8 @@ class SyncLogger(BaseLogger):
         for handler in handlers:
             try:
                 handler.emit(record)
-            except Exception:
-                # Silently ignore handler errors in production
-                pass
+            except Exception as error:
+                self._handle_internal_failure("emit_to_handlers", error)
 
     def _get_handlers_for_layer(self, layer_name: str) -> list:
         """Get handlers for a specific layer with caching."""

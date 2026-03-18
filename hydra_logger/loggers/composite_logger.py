@@ -448,6 +448,9 @@ class CompositeAsyncLogger(BaseLogger):
         # Pre-allocated string builder for performance
         self._string_builder = []
         self._string_builder_size = 0
+        self._deferred_async_closes = 0
+        self._deferred_async_close_failures = 0
+        self._deferred_close_tasks = set()
 
         # Add default async console handler if no components and not using direct I/O
         if not self.components and not self._use_direct_io:
@@ -473,6 +476,59 @@ class CompositeAsyncLogger(BaseLogger):
                     # Continue with other components if one fails
                     pass
 
+    def _get_async_close_callable(self, component):
+        """Resolve the best available async close callable for a component."""
+        try:
+            if hasattr(component, "aclose") and asyncio.iscoroutinefunction(
+                component.aclose
+            ):
+                return component.aclose
+            if hasattr(component, "close_async") and asyncio.iscoroutinefunction(
+                component.close_async
+            ):
+                return component.close_async
+            if hasattr(component, "close") and asyncio.iscoroutinefunction(
+                component.close
+            ):
+                return component.close
+        except Exception:
+            return None
+        return None
+
+    def _on_deferred_close_done(self, task) -> None:
+        """Track completion/errors for deferred async close tasks."""
+        self._deferred_close_tasks.discard(task)
+        try:
+            result = task.result()
+            if isinstance(result, Exception):
+                self._deferred_async_close_failures += 1
+        except Exception:
+            self._deferred_async_close_failures += 1
+
+    def _schedule_deferred_async_close(self, component) -> bool:
+        """Best-effort scheduling for async close in sync contexts."""
+        close_callable = self._get_async_close_callable(component)
+        if close_callable is None:
+            return False
+
+        self._deferred_async_closes += 1
+        try:
+            loop = asyncio.get_running_loop()
+            if loop.is_closed():
+                return True
+            task = loop.create_task(close_callable())
+            self._deferred_close_tasks.add(task)
+            task.add_done_callback(self._on_deferred_close_done)
+        except RuntimeError:
+            # No active loop: run a short-lived event loop for deterministic cleanup.
+            try:
+                asyncio.run(close_callable())
+            except Exception:
+                self._deferred_async_close_failures += 1
+        except Exception:
+            self._deferred_async_close_failures += 1
+        return True
+
     def add_component(self, component: BaseLogger) -> None:
         """Add a new component logger."""
         if component not in self.components:
@@ -489,13 +545,12 @@ class CompositeAsyncLogger(BaseLogger):
         """Remove a component logger."""
         if component in self.components:
             # Close the component
+            if self._schedule_deferred_async_close(component):
+                self.components.remove(component)
+                return
             if hasattr(component, "close") and callable(component.close):
                 try:
-                    if asyncio.iscoroutinefunction(component.close):
-                        # Can't await here, just mark for cleanup
-                        pass
-                    else:
-                        component.close()
+                    component.close()
                 except Exception:
                     pass
 
@@ -914,23 +969,15 @@ class CompositeAsyncLogger(BaseLogger):
             for component in self.components:
                 try:
                     # Try async close methods first
-                    if hasattr(component, "aclose") and asyncio.iscoroutinefunction(
-                        component.aclose
-                    ):
-                        close_tasks.append(component.aclose())
-                    elif hasattr(
-                        component, "close_async"
-                    ) and asyncio.iscoroutinefunction(component.close_async):
-                        close_tasks.append(component.close_async())
+                    close_callable = self._get_async_close_callable(component)
+                    if close_callable is not None:
+                        close_tasks.append(close_callable())
                     elif hasattr(component, "close") and callable(component.close):
-                        if asyncio.iscoroutinefunction(component.close):
-                            close_tasks.append(component.close())
-                        else:
-                            close_tasks.append(
-                                asyncio.get_event_loop().run_in_executor(
-                                    None, component.close
-                                )
+                        close_tasks.append(
+                            asyncio.get_event_loop().run_in_executor(
+                                None, component.close
                             )
+                        )
                 except Exception as e:
                     component_name = getattr(component, "name", "unknown")
                     print(
@@ -945,11 +992,23 @@ class CompositeAsyncLogger(BaseLogger):
                         1 for result in results if isinstance(result, Exception)
                     )
                     if error_count > 0:
+                        self._deferred_async_close_failures += error_count
                         print(
                             f"Warning: {error_count} component(s) failed to close properly"
                         )
                 except Exception as e:
                     print(f"Warning: Error closing components: {e}")
+
+            if self._deferred_close_tasks:
+                deferred_results = await asyncio.gather(
+                    *list(self._deferred_close_tasks), return_exceptions=True
+                )
+                deferred_errors = sum(
+                    1 for result in deferred_results if isinstance(result, Exception)
+                )
+                if deferred_errors > 0:
+                    self._deferred_async_close_failures += deferred_errors
+                self._deferred_close_tasks.clear()
 
             # Clear components
             self.components.clear()
@@ -975,12 +1034,10 @@ class CompositeAsyncLogger(BaseLogger):
             # Close all components synchronously
             for component in self.components:
                 try:
+                    if self._schedule_deferred_async_close(component):
+                        continue
                     if hasattr(component, "close") and callable(component.close):
-                        if asyncio.iscoroutinefunction(component.close):
-                            # Can't await in sync context, just mark for cleanup
-                            pass
-                        else:
-                            component.close()
+                        component.close()
                 except Exception:
                     pass
 
@@ -1003,6 +1060,9 @@ class CompositeAsyncLogger(BaseLogger):
                 "closed": self._closed,
                 "component_count": 0,
                 "overall_health": "unknown",
+                "deferred_async_closes": self._deferred_async_closes,
+                "deferred_async_close_failures": self._deferred_async_close_failures,
+                "pending_deferred_closes": len(self._deferred_close_tasks),
             }
 
         # Collect health status from all components
@@ -1043,6 +1103,9 @@ class CompositeAsyncLogger(BaseLogger):
             "overall_health": overall_health,
             "components": component_health,
             "log_count": self._log_count,
+            "deferred_async_closes": self._deferred_async_closes,
+            "deferred_async_close_failures": self._deferred_async_close_failures,
+            "pending_deferred_closes": len(self._deferred_close_tasks),
             "uptime": TimeUtility.perf_counter() - self._start_time,
         }
 

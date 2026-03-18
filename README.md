@@ -152,6 +152,19 @@ config = LoggingConfig(
 )
 ```
 
+Enterprise hardening profile (strict reliability is opt-in and does not change default template behavior):
+
+```python
+from hydra_logger.config.defaults import get_enterprise_config
+
+config = get_enterprise_config()
+# Highlights:
+# - strict_reliability_mode=True
+# - reliability_error_policy="warn"
+# - enforce_log_path_confinement=True
+# - allow_absolute_log_paths=False
+```
+
 ## Architecture
 
 System flow (high-level):
@@ -195,6 +208,9 @@ Quality and validation commands:
 
 # Performance benchmark
 .hydra_env/bin/python benchmark/performance_benchmark.py
+
+# Runtime guard (forbid blocking runtime calls in hydra_logger)
+.hydra_env/bin/python -m pytest tests/quality/test_runtime_blocking_calls.py -q
 ```
 
 Enterprise tutorial tracks:

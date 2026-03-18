@@ -43,3 +43,26 @@ def test_security_extension_default_patterns_include_secret_credentials() -> Non
     assert 'password="[REDACTED]"' in result
     assert 'token="[REDACTED]"' in result
     assert 'secret="[REDACTED]"' in result
+
+
+def test_data_redaction_redacts_nested_list_and_tuple_structures() -> None:
+    redactor = DataRedaction(enabled=True, patterns=["token"])
+    payload = {
+        "items": ["token=abc", {"inner": ("ok", "token=xyz")}],
+        "plain": "token=top",
+    }
+    redacted = redactor.redact(payload)
+    assert redacted["items"][0] == 'token="[REDACTED]"'
+    assert redacted["items"][1]["inner"][1] == 'token="[REDACTED]"'
+    assert redacted["plain"] == 'token="[REDACTED]"'
+
+
+def test_security_extension_processes_nested_container_payloads() -> None:
+    ext = SecurityExtension(enabled=True, patterns=["password"])
+    payload = {
+        "events": [{"message": "password=abc"}],
+        "tuple_data": ("keep", {"nested": "password=xyz"}),
+    }
+    result = ext.process(payload)
+    assert result["events"][0]["message"] == 'password="[REDACTED]"'
+    assert result["tuple_data"][1]["nested"] == 'password="[REDACTED]"'
