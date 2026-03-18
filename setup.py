@@ -10,18 +10,25 @@ Notes:
 """
 
 from pathlib import Path
+import re
 
 from setuptools import find_packages, setup
 
 # Read the README file
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding="utf-8")
+init_text = (this_directory / "hydra_logger" / "__init__.py").read_text(encoding="utf-8")
+version_match = re.search(r'^__version__\s*=\s*"([^"]+)"', init_text, re.MULTILINE)
+if not version_match:
+    raise RuntimeError("Could not determine package version from hydra_logger/__init__.py")
+package_version = version_match.group(1)
 
 setup(
     name="hydra-logger",
-    version="0.5.0",
+    version=package_version,
     author="Savin Ionut Razvan",
     author_email="razvan.i.savin@gmail.com",
+    license="MIT",
     description="A dynamic, multi-headed logging system for Python applications",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -30,7 +37,6 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
@@ -43,14 +49,9 @@ setup(
         "pydantic>=2.10.0",
         "pyyaml>=6.0.3",
         "aiofiles>=24.0.0",
-        "python-json-logger>=4.0.0",
-        "graypy>=2.1.0",
         "pytz>=2025.0",
         "toml>=0.10.2",
-        "msgpack>=1.1.1",
         "requests>=2.32.0",
-        "urllib3>=1.26.0,<3.0.0",
-        "charset-normalizer>=3.4.0",
     ],
     extras_require={
         "dev": [
@@ -112,13 +113,10 @@ setup(
             "pywin32>=306; sys_platform == 'win32'",
         ],
     },
-    include_package_data=True,
-    package_data={
-        "hydra_logger": ["examples/config_examples/*.yaml"],
-    },
+    include_package_data=False,
     entry_points={
         "console_scripts": [
-            "hydra-logger=hydra_logger.examples.basic_usage:main",
+            "hydra-logger=hydra_logger.cli:main",
         ],
     },
 )

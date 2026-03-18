@@ -229,6 +229,19 @@ def test_handler_dispatcher_async_logs_failure_context(caplog) -> None:
     )
 
 
+def test_handler_dispatcher_async_noop_handler_shape_and_token_fallback() -> None:
+    dispatcher = HandlerDispatcher()
+
+    class NoDispatchMethods:
+        pass
+
+    # Cover callable token fallback branch (non-None, non-bound method).
+    assert dispatcher._callable_token(lambda: None) != 0  # pylint: disable=protected-access
+
+    # Cover default async dispatch branch that returns noop coroutine.
+    asyncio.run(dispatcher.dispatch_async(record=object(), handlers=[NoDispatchMethods()]))
+
+
 def test_extension_processor_applies_enabled_protection_only() -> None:
     processor = ExtensionProcessor()
     record = SimpleNamespace(message="secret")

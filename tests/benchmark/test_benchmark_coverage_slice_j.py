@@ -258,6 +258,36 @@ def test_validate_result_invariants_covers_non_dict_sections_and_parallel_scalin
     assert violations == []
 
 
+def test_validate_result_invariants_async_split_rates_and_dispatch_errors() -> None:
+    results = {
+        "async_logger": {
+            "total_messages": 100,
+            "individual_duration": 2.0,
+            "individual_messages_per_second": 50.0,
+            "task_fanout_duration": 2.0,
+            "task_fanout_messages_per_second": 999.0,
+            "logger_core_duration": 2.0,
+            "logger_core_messages_per_second": 999.0,
+        },
+        "composite_logger": {
+            "total_messages": 100,
+            "individual_duration": 2.0,
+            "individual_messages_per_second": 50.0,
+            "small_batch_total_messages": 50,
+            "small_batch_duration": 1.0,
+            "small_batch_messages_per_second": 50.0,
+            "batch_total_messages": 50,
+            "batch_duration": 1.0,
+            "batch_messages_per_second": 50.0,
+            "batch_dispatch_errors": 1,
+        },
+    }
+    violations = metrics_mod.validate_result_invariants(results)
+    assert any("async_logger.task_fanout_messages_per_second" in item for item in violations)
+    assert any("async_logger.logger_core_messages_per_second" in item for item in violations)
+    assert any("composite_logger.batch_dispatch_errors" in item for item in violations)
+
+
 def test_drift_percentile_and_extract_metric_edge_paths() -> None:
     assert drift_mod._percentile([], 95.0) == 0.0
     assert drift_mod._percentile([5.0], 95.0) == 5.0
