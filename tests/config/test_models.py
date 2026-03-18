@@ -202,9 +202,11 @@ def test_logging_config_path_resolution_and_fallback(monkeypatch, tmp_path: Path
     tilde_resolved = cfg.resolve_log_path("~/hydra-test.log")
     assert "hydra-test.log" in tilde_resolved
 
-    cfg_rel_base = LoggingConfig(base_log_dir="relative-logs", layers={})
-    rel_resolved = cfg_rel_base.resolve_log_path("subdir/app.log")
-    assert "relative-logs" in rel_resolved
+    with monkeypatch.context() as scoped:
+        scoped.setattr(Path, "cwd", classmethod(lambda cls: tmp_path))
+        cfg_rel_base = LoggingConfig(base_log_dir="relative-logs", layers={})
+        rel_resolved = cfg_rel_base.resolve_log_path("subdir/app.log")
+        assert str(tmp_path / "relative-logs" / "subdir" / "app.log") == rel_resolved
 
 
 def test_logging_config_path_confinement_and_absolute_path_controls(tmp_path: Path) -> None:
@@ -382,7 +384,9 @@ def test_models_remaining_validation_and_path_resolution_branches(
 
     # Hit default "logs/" branches when no base directory is configured.
     cfg_no_base = LoggingConfig(layers={})
-    monkeypatch.setattr("pathlib.Path.cwd", classmethod(lambda cls: Path("relative-cwd")))
+    isolated_cwd = tmp_path / "relative-cwd"
+    isolated_cwd.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr("pathlib.Path.cwd", classmethod(lambda cls: isolated_cwd))
     monkeypatch.setattr(
         "hydra_logger.config.models.os.path.expanduser",
         lambda _path: "relative-home/no-base.log",

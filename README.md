@@ -175,6 +175,21 @@ config = get_enterprise_config()
 # - allow_absolute_log_paths=False
 ```
 
+Log file location policy:
+
+- `hydra_logger` does not create log directories on import/install.
+- Log directories are created only when file destinations are configured and initialized.
+- Default behavior (no `base_log_dir`) writes to `<current working directory>/logs`.
+- For strict confinement to project-owned paths, set:
+
+```python
+config = LoggingConfig(
+    base_log_dir="logs",
+    enforce_log_path_confinement=True,
+    allow_absolute_log_paths=False,
+)
+```
+
 ## Architecture
 
 System flow (high-level):
