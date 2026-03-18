@@ -7,6 +7,7 @@ Tracks initiative plans and their linked audit result artifacts.
 | Hydra Logger master architecture no-drift | `.cursor/plans/master-architecture-no-drift_5a0a318c.plan.md` | complete (current slice) | `docs/audit/master-architecture-no-drift-2026-03-16.results.md` | @SavinRazvan |
 | Hydra Logger version 0.5.0 rollout | `.cursor/plans/version-050-rollout_37398d6a.plan.md` | complete | `docs/audit/version-050-rollout-2026-03-17.results.md` | @SavinRazvan |
 | Enterprise coverage 95 alignment | `.cursor/plans/enterprise-coverage-95-alignment_9d43c96e.plan.md` | in_progress | `docs/audit/enterprise-coverage-baseline-2026-03-16.results.md` | @SavinRazvan |
+| Network FastAPI-style rollout | `docs/plans/network-fastapi-style-rollout-2026-03.plan.md` | planned | `docs/audit/network-fastapi-style-rollout-2026-03.results.md` | @SavinRazvan |
 | Implementation agent rollout | `docs/plans/implementation-agent-rollout-2026-03.plan.md` | in_progress | `docs/audit/implementation-agent-rollout-2026-03-16.results.md` | @SavinRazvan |
 | Header metadata alignment | `docs/archive/plans/header-metadata-alignment-2026-03.plan.md` | superseded (baseline complete) | `docs/audit/header-metadata-alignment-2026-03-15.results.md` | @SavinRazvan |
 | Environment toolchain stability | `docs/archive/plans/env-toolchain-stability-2026-03.plan.md` | superseded (baseline complete) | `docs/audit/env-toolchain-stability-2026-03-15.results.md` | @SavinRazvan |

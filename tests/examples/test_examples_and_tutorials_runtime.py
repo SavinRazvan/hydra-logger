@@ -50,6 +50,8 @@ TUTORIAL_SCRIPTS = [
     "t07_operational_playbook.py",
     "t08_console_configuration_cookbook.py",
     "t09_levels_columns_date_and_destinations.py",
+    "t10_enterprise_profile_config.py",
+    "t11_enterprise_policy_layers.py",
 ]
 
 

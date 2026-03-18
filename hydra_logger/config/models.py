@@ -15,6 +15,7 @@ Notes:
 import logging
 import os
 from typing import Any, Dict, List, Literal, Optional
+from urllib.parse import urlparse
 
 from pydantic import (
     BaseModel,
@@ -31,7 +32,17 @@ class LogDestination(BaseModel):
     """Destination-level handler configuration for a logging layer."""
 
     type: Literal[
-        "file", "console", "null", "async_console", "async_file", "async_cloud"
+        "file",
+        "console",
+        "null",
+        "async_console",
+        "async_file",
+        "async_cloud",
+        "network",
+        "network_http",
+        "network_ws",
+        "network_socket",
+        "network_datagram",
     ] = Field(default="console", description="Type of destination")
 
     level: Optional[str] = Field(
@@ -88,6 +99,18 @@ class LogDestination(BaseModel):
     )
     max_connections: Optional[int] = Field(
         default=10, description="Maximum connections for async sinks"
+    )
+    host: Optional[str] = Field(
+        default=None,
+        description="Network host for socket/datagram destinations",
+    )
+    port: Optional[int] = Field(
+        default=None,
+        description="Network port for socket/datagram destinations",
+    )
+    auth_token: Optional[str] = Field(
+        default=None,
+        description="Optional auth token for network HTTP/WS destinations",
     )
 
     # Handler-specific configuration
@@ -172,6 +195,46 @@ class LogDestination(BaseModel):
             raise ValueError(f"Invalid log format: {v}. Must be one of {valid_formats}")
         return v
 
+    @field_validator("retry_count")
+    @classmethod
+    def validate_retry_count(cls, v: Optional[int]) -> Optional[int]:
+        """Validate retry count for async/network destinations."""
+        if v is None:
+            return v
+        if v < 0 or v > 20:
+            raise ValueError("retry_count must be between 0 and 20")
+        return v
+
+    @field_validator("retry_delay")
+    @classmethod
+    def validate_retry_delay(cls, v: Optional[float]) -> Optional[float]:
+        """Validate retry delay for async/network destinations."""
+        if v is None:
+            return v
+        if v < 0 or v > 300:
+            raise ValueError("retry_delay must be between 0 and 300 seconds")
+        return v
+
+    @field_validator("timeout")
+    @classmethod
+    def validate_timeout(cls, v: Optional[float]) -> Optional[float]:
+        """Validate timeout for async/network destinations."""
+        if v is None:
+            return v
+        if v <= 0 or v > 300:
+            raise ValueError("timeout must be greater than 0 and at most 300 seconds")
+        return v
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, v: Optional[int]) -> Optional[int]:
+        """Validate network port value when provided."""
+        if v is None:
+            return v
+        if v < 1 or v > 65535:
+            raise ValueError("port must be between 1 and 65535")
+        return v
+
     @model_validator(mode="after")
     def validate_destination_configuration(self) -> "LogDestination":
         """
@@ -180,6 +243,19 @@ class LogDestination(BaseModel):
         This method provides additional validation after model initialization
         to ensure that destinations have the required configuration.
         """
+        if self.type == "network":
+            if self.url and self.url.strip():
+                _logger.warning(
+                    "Destination type 'network' is deprecated; mapping to "
+                    "'network_http'. Use 'network_http' explicitly."
+                )
+                self.type = "network_http"
+            else:
+                raise ValueError(
+                    "Legacy destination type 'network' requires 'url' and maps to "
+                    "'network_http'"
+                )
+
         if self.type == "file" and (
             not self.path or (self.path and not self.path.strip())
         ):
@@ -232,6 +308,29 @@ class LogDestination(BaseModel):
             or (self.service_type and not self.service_type.strip())
         ):
             raise ValueError("Service type is required for async cloud destinations")
+
+        elif self.type in {"network_http", "network_ws"}:
+            if not self.url or not self.url.strip():
+                raise ValueError(f"url is required for {self.type} destinations")
+
+            parsed = urlparse(self.url.strip())
+            scheme = parsed.scheme.lower()
+            allowed_schemes = {
+                "network_http": {"http", "https"},
+                "network_ws": {"ws", "wss"},
+            }
+            if scheme not in allowed_schemes[self.type]:
+                expected = ", ".join(sorted(allowed_schemes[self.type]))
+                raise ValueError(
+                    f"Invalid URL scheme for {self.type}: '{scheme}'. "
+                    f"Expected one of: {expected}"
+                )
+
+        elif self.type in {"network_socket", "network_datagram"}:
+            if not self.host or not self.host.strip():
+                raise ValueError(f"host is required for {self.type} destinations")
+            if self.port is None:
+                raise ValueError(f"port is required for {self.type} destinations")
 
         return self
 

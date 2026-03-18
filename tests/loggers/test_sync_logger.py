@@ -214,6 +214,93 @@ def test_sync_logger_create_file_handler_uses_resolved_path_and_level(
     logger.close()
 
 
+def test_sync_logger_create_network_handlers_from_typed_destinations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created = {}
+
+    class FakeNetworkHandler:
+        def __init__(self, marker: str) -> None:
+            self.marker = marker
+            self.formatter = None
+            self.level = None
+
+        def setFormatter(self, formatter) -> None:  # type: ignore[no-untyped-def]
+            self.formatter = formatter
+
+        def setLevel(self, level: int) -> None:
+            self.level = level
+
+    def _capture(name: str, marker: str):
+        def _factory(**kwargs):  # type: ignore[no-untyped-def]
+            created[name] = kwargs
+            return FakeNetworkHandler(marker)
+
+        return _factory
+
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_http_handler",
+        _capture("http", "http"),
+    )
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_websocket_handler",
+        _capture("ws", "ws"),
+    )
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_socket_handler",
+        _capture("socket", "socket"),
+    )
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_datagram_handler",
+        _capture("datagram", "datagram"),
+    )
+    monkeypatch.setattr("hydra_logger.types.levels.LogLevelManager.get_level", lambda _v: 23)
+
+    logger = SyncLogger(
+        config=LoggingConfig(
+            layers={
+                "default": LogLayer(
+                    destinations=[LogDestination(type="console", format="plain-text")]
+                )
+            }
+        )
+    )
+    http_handler = logger._create_handler_from_destination(
+        LogDestination(type="network_http", url="https://example.com", timeout=5.0)
+    )
+    ws_handler = logger._create_handler_from_destination(
+        LogDestination(type="network_ws", url="wss://example.com/ws")
+    )
+    socket_handler = logger._create_handler_from_destination(
+        LogDestination(type="network_socket", host="localhost", port=9514)
+    )
+    datagram_handler = logger._create_handler_from_destination(
+        LogDestination(type="network_datagram", host="localhost", port=9515)
+    )
+    leveled_handler = logger._create_handler_from_destination(
+        LogDestination(
+            type="network_http",
+            url="https://example.com/level",
+            timeout=2.0,
+            level="ERROR",
+        )
+    )
+
+    assert http_handler.marker == "http"
+    assert ws_handler.marker == "ws"
+    assert socket_handler.marker == "socket"
+    assert datagram_handler.marker == "datagram"
+    assert created["http"]["url"] == "https://example.com/level"
+    assert created["socket"]["protocol"] == "tcp"
+    assert created["datagram"]["port"] == 9515
+    assert leveled_handler.level == 23
+
+    invalid_destination = LogDestination.model_construct(type="console")
+    with pytest.raises(ValueError, match="Unsupported network destination type"):
+        logger._create_network_handler_from_destination(invalid_destination)
+    logger.close()
+
+
 def test_sync_logger_dict_config_and_data_protection_custom_patterns() -> None:
     logger = SyncLogger(
         config={

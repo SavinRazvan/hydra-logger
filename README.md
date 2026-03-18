@@ -128,6 +128,43 @@ config = LoggingConfig(
 )
 ```
 
+Typed network destination configuration (FastAPI-style DX):
+
+```python
+config = LoggingConfig(
+    layers={
+        "webhook": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="network_http",
+                    url="https://logs.example.com/ingest",
+                    timeout=5.0,
+                    retry_count=3,
+                    retry_delay=0.5,
+                )
+            ]
+        ),
+        "streaming": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="network_ws",
+                    url="wss://stream.example.com/events",
+                    timeout=10.0,
+                    retry_count=5,
+                    retry_delay=1.0,
+                )
+            ]
+        ),
+    }
+)
+```
+
+Network migration guidance:
+
+- Prefer explicit typed destinations: `network_http`, `network_ws`, `network_socket`, `network_datagram`.
+- Legacy `network` remains transitional and is mapped to `network_http` when `url` is provided.
+- Update legacy `network` configs incrementally to typed variants to avoid future deprecation friction.
+
 Extension configuration:
 
 ```python

@@ -1244,6 +1244,89 @@ class HydraLoggerBenchmark:  # pragma: no cover
 
         return result
 
+    def test_network_destination_performance(self) -> Dict[str, Any]:
+        """
+        Test typed network destination routing with deterministic local stubbing.
+
+        Returns:
+            Dict containing routing throughput and stub dispatch evidence.
+        """
+        print("\nTesting Network Destination Routing Performance...")
+        logger_name = f"benchmark_network_route_{id(self)}"
+        message_count = min(5000, int(self.test_config["typical_single_messages"]))
+        dispatched = {"count": 0}
+
+        class _StubNetworkHandler:
+            def __init__(self) -> None:
+                self.formatter = None
+
+            def setFormatter(self, formatter) -> None:  # type: ignore[no-untyped-def]
+                self.formatter = formatter
+
+            def emit(self, _record) -> None:  # type: ignore[no-untyped-def]
+                dispatched["count"] += 1
+
+            def close(self) -> None:
+                return None
+
+        from hydra_logger.handlers.network_handler import NetworkHandlerFactory
+
+        original_create_http = NetworkHandlerFactory.create_http_handler
+        NetworkHandlerFactory.create_http_handler = staticmethod(
+            lambda **_kwargs: _StubNetworkHandler()
+        )
+        try:
+            config = LoggingConfig(
+                default_level="INFO",
+                enable_security=False,
+                enable_sanitization=False,
+                enable_plugins=False,
+                enable_performance_monitoring=False,
+                layers={
+                    "default": LogLayer(
+                        level="INFO",
+                        destinations=[
+                            LogDestination(
+                                type="network_http",
+                                url="https://localhost/benchmark-ingest",
+                                format="plain-text",
+                            )
+                        ],
+                    )
+                },
+            )
+            logger = getSyncLogger(logger_name, config=config)
+            self._created_loggers.append(logger)
+            self._logger_names.append(logger_name)
+
+            start_time = time.perf_counter()
+            for idx in range(message_count):
+                logger.info(f"network benchmark message {idx}")
+            self._flush_all_handlers(logger)
+            end_time = time.perf_counter()
+
+            try:
+                logger.close()
+            except Exception:
+                pass
+        finally:
+            NetworkHandlerFactory.create_http_handler = original_create_http
+
+        duration = max(end_time - start_time, 1e-9)
+        throughput = message_count / duration
+        result = {
+            "logger_type": "Network Destination Routing",
+            "individual_messages_per_second": throughput,
+            "individual_duration": duration,
+            "total_messages": message_count,
+            "dispatched_messages": dispatched["count"],
+            "status": "COMPLETED",
+        }
+        print(f"   Network destination routed messages: {dispatched['count']}")
+        print(f"   Throughput: {throughput:,.0f} msg/s")
+        print("   Network Destination Routing: COMPLETED")
+        return result
+
     async def test_async_logger_performance(self) -> Dict[str, Any]:
         """
         Test asynchronous logger performance.
@@ -3221,6 +3304,11 @@ class HydraLoggerBenchmark:  # pragma: no cover
             self.results["sync_logger"] = self._run_repeated_sync(
                 section="sync_logger",
                 scenario=self.test_sync_logger_performance,
+            )
+            self.results["network_destination"] = self._run_repeated_sync(
+                section="network_destination",
+                scenario=self.test_network_destination_performance,
+                repeat=1,
             )
             self.results["async_logger"] = await self._run_repeated_async(
                 section="async_logger",

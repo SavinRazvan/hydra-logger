@@ -40,6 +40,45 @@ flowchart TD
 ## Caveats
 
 - `async_cloud` is maintained as a schema-level integration point; database/queue async sink fields are reserved for custom or future integrations and are not built-in handler families.
+- Typed network destination variants are first-class in `LogDestination`:
+  - `network_http` (`url` required, scheme `http|https`)
+  - `network_ws` (`url` required, scheme `ws|wss`)
+  - `network_socket` (`host` + `port` required)
+  - `network_datagram` (`host` + `port` required)
+- Legacy `network` remains a transitional alias that maps to `network_http` when `url` is provided and emits a deprecation warning.
+
+## Network Destination Examples
+
+```python
+from hydra_logger.config.models import LoggingConfig, LogDestination, LogLayer
+
+config = LoggingConfig(
+    layers={
+        "http": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="network_http",
+                    url="https://logs.example.com/ingest",
+                    timeout=5.0,
+                    retry_count=3,
+                    retry_delay=0.5,
+                )
+            ]
+        ),
+        "websocket": LogLayer(
+            destinations=[
+                LogDestination(
+                    type="network_ws",
+                    url="wss://stream.example.com/events",
+                    timeout=10.0,
+                    retry_count=5,
+                    retry_delay=1.0,
+                )
+            ]
+        ),
+    }
+)
+```
 
 ## Public Surface (module-level)
 

@@ -293,12 +293,56 @@ class SyncLogger(BaseLogger):
 
         elif destination.type == "null":
             handler = NullHandler()
+        elif destination.type in {
+            "network_http",
+            "network_ws",
+            "network_socket",
+            "network_datagram",
+        }:
+            handler = self._create_network_handler_from_destination(destination)
+            formatter = self._create_formatter_for_destination(
+                destination, is_console=False
+            )
+            handler.setFormatter(formatter)
+            if destination.level is not None:
+                from ..types.levels import LogLevelManager
+
+                handler.setLevel(LogLevelManager.get_level(destination.level))
 
         else:
             # For now, return null handler for unsupported types
             handler = NullHandler()
 
         return handler
+
+    def _create_network_handler_from_destination(
+        self, destination: LogDestination
+    ) -> BaseHandler:
+        """Create network handler from typed destination configuration."""
+        from ..handlers.network_handler import NetworkHandlerFactory
+
+        if destination.type == "network_http":
+            return NetworkHandlerFactory.create_http_handler(
+                url=destination.url or "",
+                timeout=destination.timeout or 30.0,
+                headers=destination.credentials or {},
+            )
+        if destination.type == "network_ws":
+            return NetworkHandlerFactory.create_websocket_handler(
+                url=destination.url or "",
+            )
+        if destination.type == "network_socket":
+            return NetworkHandlerFactory.create_socket_handler(
+                host=destination.host or "localhost",
+                port=destination.port or 514,
+                protocol="tcp",
+            )
+        if destination.type == "network_datagram":
+            return NetworkHandlerFactory.create_datagram_handler(
+                host=destination.host or "localhost",
+                port=destination.port or 514,
+            )
+        raise ValueError(f"Unsupported network destination type: {destination.type}")
 
     def _create_formatter_for_destination(
         self, destination, is_console: bool = False, use_colors: bool = True

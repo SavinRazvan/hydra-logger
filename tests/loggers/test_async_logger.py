@@ -368,6 +368,75 @@ def test_async_logger_create_handler_variants(
     logger.close()
 
 
+def test_async_logger_create_network_handlers_from_typed_destinations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created = {}
+
+    class FakeNetworkHandler:
+        def __init__(self, marker: str) -> None:
+            self.marker = marker
+            self.formatter = None
+
+        def setFormatter(self, formatter) -> None:  # type: ignore[no-untyped-def]
+            self.formatter = formatter
+
+    def _capture(name: str, marker: str):
+        def _factory(**kwargs):  # type: ignore[no-untyped-def]
+            created[name] = kwargs
+            return FakeNetworkHandler(marker)
+
+        return _factory
+
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_http_handler",
+        _capture("http", "http"),
+    )
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_websocket_handler",
+        _capture("ws", "ws"),
+    )
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_socket_handler",
+        _capture("socket", "socket"),
+    )
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_datagram_handler",
+        _capture("datagram", "datagram"),
+    )
+
+    logger = AsyncLogger(
+        config=LoggingConfig(
+            layers={"default": LogLayer(destinations=[LogDestination(type="null")])}
+        )
+    )
+    http_handler = logger._create_handler_from_destination(
+        LogDestination(type="network_http", url="https://example.com", timeout=7.0)
+    )
+    ws_handler = logger._create_handler_from_destination(
+        LogDestination(type="network_ws", url="wss://example.com/ws")
+    )
+    socket_handler = logger._create_handler_from_destination(
+        LogDestination(type="network_socket", host="localhost", port=10514)
+    )
+    datagram_handler = logger._create_handler_from_destination(
+        LogDestination(type="network_datagram", host="localhost", port=11514)
+    )
+
+    assert http_handler.marker == "http"
+    assert ws_handler.marker == "ws"
+    assert socket_handler.marker == "socket"
+    assert datagram_handler.marker == "datagram"
+    assert created["http"]["timeout"] == 7.0
+    assert created["socket"]["host"] == "localhost"
+    assert created["datagram"]["port"] == 11514
+
+    invalid_destination = LogDestination.model_construct(type="console")
+    with pytest.raises(ValueError, match="Unsupported network destination type"):
+        logger._create_network_handler_from_destination(invalid_destination)
+    logger.close()
+
+
 def test_async_logger_log_batch_wraps_chunk_processing_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

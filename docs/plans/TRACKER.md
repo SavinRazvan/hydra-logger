@@ -19,6 +19,7 @@ Active plan: `.cursor/plans/master-architecture-no-drift_5a0a318c.plan.md`
 - enterprise-coverage-95-alignment: in_progress
 - implementation-agent-rollout: complete
 - release-version-050-rollout: complete
+- network-fastapi-style-rollout: planned
 
 ## Benchmark Gap-Closure Slice Status
 
@@ -42,6 +43,7 @@ Active plan: `.cursor/plans/master-architecture-no-drift_5a0a318c.plan.md`
 6. `feature/config-models-modularization`
 7. `feature/internal-diagnostics-unification`
 8. `feature/types-and-dependency-hardening`
+9. `feature/network-fastapi-style-rollout`
 
 ## Mandatory Gate Evidence (per slice)
 
