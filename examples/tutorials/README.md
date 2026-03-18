@@ -22,6 +22,9 @@ Run tutorials with the project environment to avoid import drift:
 .hydra_env/bin/python examples/tutorials/t09_levels_columns_date_and_destinations.py
 .hydra_env/bin/python examples/tutorials/t10_enterprise_profile_config.py
 .hydra_env/bin/python examples/tutorials/t11_enterprise_policy_layers.py
+.hydra_env/bin/python examples/tutorials/t12_network_http_typed_destination.py
+.hydra_env/bin/python examples/tutorials/t13_network_ws_resilient_typed_destination.py
+.hydra_env/bin/python examples/tutorials/t14_network_local_http_simulation.py
 ```
 
 ## Track Matrix
@@ -101,6 +104,24 @@ Each track follows this recommended structure:
 - Goal: apply enterprise policy controls to multi-layer routing and destination overrides.
 - Logs: `logs/examples/tutorials/t11_*.jsonl` and `logs/examples/tutorials/t11_audit.log`.
 - Customization: layer-level policy, destination-level filtering, and context propagation.
+
+### T12 Typed Network HTTP Destination
+
+- Goal: onboard typed `network_http` destination configuration with strict validation.
+- Logs/artifacts: `logs/examples/tutorials/t12_network_http_stub_results.json`.
+- Customization: `url`, `timeout`, `retry_count`, `retry_delay`, and header credentials.
+
+### T13 Resilient Typed Network WebSocket Destination
+
+- Goal: onboard typed `network_ws` destination with resilient retry semantics.
+- Logs/artifacts: `logs/examples/tutorials/t13_network_ws_stub_results.json`.
+- Customization: `url`, retry controls, and resilient stream-layer routing policy.
+
+### T14 Local HTTP Route Simulation
+
+- Goal: validate typed `network_http` end-to-end against a local `/ingest` simulation route.
+- Logs/artifacts: `logs/examples/tutorials/t14_network_ingest_payloads.json`.
+- Customization: local route path/port, retry policy, payload assertions.
 
 ## Legacy Example Mapping
 

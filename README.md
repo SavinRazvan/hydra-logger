@@ -282,6 +282,8 @@ Enterprise tutorial tracks:
 .hydra_env/bin/python examples/tutorials/t03_layers_customization.py
 .hydra_env/bin/python examples/tutorials/t04_extensions_plugins.py
 .hydra_env/bin/python examples/tutorials/t07_operational_playbook.py
+.hydra_env/bin/python examples/tutorials/t12_network_http_typed_destination.py
+.hydra_env/bin/python examples/tutorials/t13_network_ws_resilient_typed_destination.py
 ```
 
 ## Documentation
