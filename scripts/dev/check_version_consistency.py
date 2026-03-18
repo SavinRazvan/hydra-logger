@@ -41,12 +41,33 @@ def _check_contains(path: Path, expected_snippet: str, errors: list[str]) -> Non
         )
 
 
+def _check_contains_any(
+    path: Path, expected_snippets: tuple[str, ...], errors: list[str]
+) -> None:
+    content = _read(path)
+    if any(snippet in content for snippet in expected_snippets):
+        return
+    expected_joined = " OR ".join(expected_snippets)
+    errors.append(
+        f"{path.relative_to(REPO_ROOT)} missing expected snippet(s): {expected_joined}"
+    )
+
+
 def main() -> int:
     errors: list[str] = []
     canonical_version = _extract_canonical_version(_read(CANONICAL_FILE))
 
+    setup_py = REPO_ROOT / "setup.py"
+    _check_contains_any(
+        setup_py,
+        (
+            f'version="{canonical_version}"',
+            "version=package_version",
+        ),
+        errors,
+    )
+
     governed_expectations = [
-        (REPO_ROOT / "setup.py", f'version="{canonical_version}"'),
         (
             REPO_ROOT / "hydra_logger" / "loggers" / "__init__.py",
             f'__version__ = "{canonical_version}"',

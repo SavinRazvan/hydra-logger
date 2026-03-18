@@ -1,231 +1,124 @@
 # Hydra-Logger Performance
 
-This document provides detailed performance benchmarks, optimization strategies, and performance characteristics of Hydra-Logger.
+This document describes how to evaluate and reason about `hydra-logger`
+performance using benchmark artifacts and profile-based interpretation.
 
 ---
 
-## Performance Benchmarks
+## Benchmark Source of Truth
 
-### Automation Tiers
+Performance truth comes from benchmark artifacts under `benchmark/results/`,
+not from static numbers in documentation.
 
-Benchmarking is automated with explicit tiers:
-
-- `ci_smoke`: fast signal in CI for push/PR.
-- `pr_gate`: pull request gate profile.
-- `nightly_truth`: scheduled regression profile with stricter drift policy.
-
-Reference:
+Primary references:
 
 - `benchmark/README.md`
 - `docs/benchmarks/CONTRACT.md`
 - `docs/benchmarks/MIGRATION.md`
 
-### Latest Benchmark Results
+---
 
-**Test Configuration**: 100K messages, file-only handlers (console I/O is slower)
+## Benchmark Tiers
 
-```
-- SyncLogger: 34,469+ messages/second
-- AsyncLogger: 24,875+ messages/second  
-- CompositeLogger: 32,773+ messages/second (individual), 41,096+ (batched)
-- CompositeAsyncLogger: 70,174+ messages/second (individual), 386,399+ (batched)
-- Concurrent Logging: 414,508+ messages/second (8 async workers, aggregate)
-- File Writing: 33,324+ messages/second (sync), 25,890+ messages/second (async)
-```
+- `ci_smoke`:
+  - fast confidence signal for push/PR
+  - drift disabled
+- `pr_gate`:
+  - pull request performance signal
+  - drift enabled with moderate thresholds
+  - reliability guards remain advisory
+- `nightly_truth`:
+  - deep regression profile
+  - stricter drift thresholds
+  - reliability guards are hard-fail
 
-### Benchmark Provenance (Latest Artifact)
+---
 
-- Benchmark date/time: `2026-03-15_19-56-03` (from artifact metadata)
-- Machine profile: `Linux 6.6.87.2-microsoft-standard-WSL2 x86_64 GNU/Linux`
-- Python version: `3.11.15` (from artifact metadata)
-- Benchmark commit SHA: `dafd295` (current repo HEAD; include exact run SHA per benchmark run)
-- Artifact path: `benchmark/results/benchmark_latest.json`
-
-Provenance capture requirement for future benchmark runs:
+## Run Commands
 
 ```bash
-# 1) Run benchmark
-python3 benchmark/performance_benchmark.py
+# Tiered benchmark profiles
+python3 benchmark/performance_benchmark.py --profile ci_smoke
+python3 benchmark/performance_benchmark.py --profile pr_gate
+python3 benchmark/performance_benchmark.py --profile nightly_truth
+```
 
-# 2) Capture exact run SHA and machine profile next to benchmark artifacts
+Use profile-specific artifact roots for cleaner comparison history:
+
+```bash
+python3 benchmark/performance_benchmark.py --profile ci_smoke --results-dir benchmark/results/ci_smoke
+python3 benchmark/performance_benchmark.py --profile pr_gate --results-dir benchmark/results/pr_gate
+python3 benchmark/performance_benchmark.py --profile nightly_truth --results-dir benchmark/results/nightly_truth
+```
+
+---
+
+## How to Interpret Metrics
+
+Core formulas:
+
+- `messages_per_second = total_messages / duration`
+- `bytes_per_second = bytes_written / duration`
+
+Interpretation notes:
+
+- Warm-up is excluded from measured throughput windows.
+- Console output rounds durations; calculations use full precision.
+- Async logger reports two paths:
+  - `task_fanout_*` for `logger.log(...)`
+  - `logger_core_*` for `logger.log_async(...)`
+
+Compare these async paths separately; they are not equivalent measurements.
+
+---
+
+## Safe Comparison Rules
+
+Only compare benchmark runs that are both:
+
+- same profile (`ci_smoke` vs `ci_smoke`, etc.)
+- metadata-compatible on:
+  - `python_version`
+  - `platform`
+  - `machine`
+  - `disk_mode`
+  - `payload_profile`
+  - `git_commit_sha` (for change attribution)
+
+Do not compare cross-profile throughput directly. Workload size, repetitions,
+and suite coverage differ by profile design.
+
+---
+
+## Artifact and Provenance Checklist
+
+Expected persisted artifacts:
+
+- `benchmark_YYYY-MM-DD_HH-MM-SS.json` (timestamped historical run)
+- `benchmark_latest.json` (convenience latest copy)
+- optional report files (`summary`, `drift`, `invariants`, `leaks`)
+
+Capture provenance in performance reviews:
+
+```bash
 git rev-parse --short HEAD
 python3 --version
 uname -srmo
 ```
 
-### Performance Optimizations
-
-**Key Optimizations Implemented:**
-
-- **File-only handlers**: Used for performance testing (console I/O is slower)
-- **Batch logging**: Composite logger uses component batch methods when available
-- **Fast path**: Direct queue injection bypasses LogRecord creation for simple cases
-- **Persistent file handles**: Eliminates open/close overhead per batch
-- **Batch writing**: Single I/O operation per batch (all messages joined)
-- **Dynamic buffering**: Adaptive buffer sizing based on throughput
-- **16MB file buffers**: Large buffers for high throughput
-- **Background workers**: Persistent tasks eliminate executor overhead
-- **Memory efficiency**: Minimal overhead when features disabled
-- **Async task optimization**: Single event loop instead of threads for concurrent tests
-
 ---
 
-## Buffer Configuration
+## Troubleshooting Slow or "Stuck" Runs
 
-### Default Buffer Sizes
-
-- **ConsoleHandler**: 
-  - Buffer size: 5,000 messages
-  - Flush interval: 0.5 seconds
-  
-- **FileHandler**: 
-  - Buffer size: 50,000 messages
-  - Flush interval: 5.0 seconds
-
-- **AsyncLogger**:
-  - Main queue: Unbounded
-  - Overflow queue: 100,000 messages (maxsize)
-
-### Performance Impact
-
-Larger buffers improve throughput but increase memory usage and latency. The default values are optimized for balanced performance.
-
----
-
-## Benchmark Results Storage
-
-- Results automatically saved to `benchmark/results/benchmark_YYYY-MM-DD_HH-MM-SS.json`
-- Latest results also saved to `benchmark/results/benchmark_latest.json`
-- Includes metadata: timestamp, test config, Python version, platform
-- Full performance metrics for all logger types and test scenarios
-
----
-
-## Running Benchmarks
-
-```bash
-# Run the comprehensive performance benchmark suite
-python3 benchmark/performance_benchmark.py
-
-# The benchmark tests:
-# - SyncLogger, AsyncLogger, CompositeLogger performance
-# - Individual message throughput (100K messages)
-# - Batch processing efficiency
-# - File writing performance
-# - Concurrent logging capabilities (8-50 workers)
-# - Memory usage patterns
-# - Configuration impact on performance
-```
-
----
-
-## Performance Characteristics
-
-### SyncLogger
-- **Throughput**: 34K+ messages/second
-- **Latency**: Immediate (blocking)
-- **Use Case**: Simple applications, debugging, low-volume logging
-
-### AsyncLogger
-- **Throughput**: 25K+ messages/second (individual), 414K+ (concurrent)
-- **Latency**: Non-blocking (queue-based)
-- **Use Case**: High-performance applications, high-volume logging
-
-### CompositeLogger
-- **Throughput**: 33K+ messages/second (individual), 41K+ (batched)
-- **Latency**: Depends on component loggers
-- **Use Case**: Complex scenarios requiring multiple logging strategies
-
-### CompositeAsyncLogger
-- **Throughput**: 70K+ messages/second (individual), 386K+ (batched)
-- **Latency**: Non-blocking
-- **Use Case**: High-performance composite logging
-
----
-
-## Optimization Strategies
-
-### 1. Buffer Sizing
-- Larger buffers = higher throughput, higher memory usage
-- Smaller buffers = lower latency, lower throughput
-- Default values optimized for balanced performance
-
-### 2. Batch Processing
-- Batch multiple messages together
-- Single I/O operation per batch
-- Significant throughput improvement
-
-### 3. Handler Selection
-- File handlers faster than console handlers
-- Network handlers slower (network latency)
-- Use appropriate handler for use case
-
-### 4. Extension Management
-- Disable unused extensions (zero overhead)
-- Enable only needed extensions
-- Runtime enable/disable for flexibility
-
-### 5. Performance Profiles
-- **minimal**: Fastest, no context extraction
-- **context**: Balanced, explicit context
-- **convenient**: Auto-detects context (slightly slower)
-
----
-
-## Technical Improvements
-
-### Logger Functionality Fixes
-- Fixed `CompositeLogger` missing `_setup_from_config` method
-- Fixed `AsyncLogger` coroutine return in async contexts
-- Fixed file buffering issues for all handlers
-- Fixed multiple destinations functionality
-- Fixed `RecursionError` in task cancellation
-- Fixed "Task was destroyed but it is pending!" warnings
-- Fixed `_worker_task` vs `_worker_tasks` attribute errors
-- Fixed optional imports (`yaml`, `toml`) with graceful fallbacks
-
-### Architecture Improvements
-- Applied KISS principle throughout
-- Implemented event-oriented architecture
-- Background worker architecture: Replaced per-flush executor calls with persistent worker tasks
-- Queue-based async handling: Non-blocking message queuing for concurrent logging
-- Benchmark state management: Proper logger cache cleanup between tests
-- Maintained zero overhead when features disabled
-- Consistent naming conventions
-- Clean, maintainable code structure
-
-### Examples Optimization
-- Reduced sleep times in examples for faster execution (2-3x faster)
-- All 16 examples passing and verified
-- Consistent file extension usage (`.jsonl` for json-lines format)
-- Optimized async examples for better performance
-
----
-
-## Performance Notes
-
-### Console I/O Performance
-- Console I/O is slower than file I/O
-- Performance benchmarks use file-only handlers
-- Console handlers include buffering for better performance
-- Colors add minimal overhead (ANSI codes are small)
-
-### File I/O Performance
-- File handlers use large buffers (50K messages, 5s flush)
-- Persistent file handles eliminate open/close overhead
-- Batch writing reduces I/O operations
-- 16MB file buffers for high throughput
-
-### Async Performance
-- Queue-based processing for non-blocking operations
-- Concurrency control with semaphores
-- Overflow queue for burst traffic
-- Background workers for continuous processing
+- Long `nightly_truth` runs can appear idle while still progressing.
+- Artifacts are persisted near run completion, not continuously during execution.
+- If a run exits before save, new timestamped artifacts are not created.
+- For quick validation, rerun with `ci_smoke` before deep nightly investigation.
 
 ---
 
 ## Related Documentation
 
-- **[WORKFLOW_ARCHITECTURE.md](WORKFLOW_ARCHITECTURE.md)** - Complete workflow details
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Package structure and components
-- **[README.md](../README.md)** - Quick start and overview
+- [WORKFLOW_ARCHITECTURE.md](WORKFLOW_ARCHITECTURE.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [README.md](../README.md)

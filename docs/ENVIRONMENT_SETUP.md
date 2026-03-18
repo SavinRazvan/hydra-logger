@@ -11,6 +11,23 @@ Use one environment model at a time (venv or Conda prefix) and avoid mixing layo
 
 `requirements.txt` and `requirements-dev.txt` are intentionally removed to avoid duplicate dependency definitions.
 
+## Core vs Optional Dependencies
+
+- `pip install hydra-logger` installs the core runtime dependencies only.
+- Optional integrations are enabled through extras in `setup.py`, such as:
+  - `network` (websocket/network integrations)
+  - `perf` (performance introspection)
+  - `database`, `cloud`, `queues`, `system`
+  - `full` / `all` (aggregate extras)
+
+Examples:
+
+```bash
+python -m pip install "hydra-logger[network]"
+python -m pip install "hydra-logger[perf]"
+python -m pip install "hydra-logger[database,cloud,queues]"
+```
+
 ## Standard Setup (venv)
 
 Create and activate a local venv:

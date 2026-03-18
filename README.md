@@ -29,6 +29,16 @@ Design principles:
 pip install hydra-logger
 ```
 
+Core install includes only required baseline dependencies. Optional integrations are
+installed through extras, for example:
+
+```bash
+pip install "hydra-logger[network]"
+pip install "hydra-logger[perf]"
+pip install "hydra-logger[database,cloud,queues]"
+pip install "hydra-logger[full]"
+```
+
 Development environment:
 
 ```bash

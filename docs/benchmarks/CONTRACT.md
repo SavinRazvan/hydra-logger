@@ -20,6 +20,8 @@ This document defines the canonical benchmark contract for `hydra-logger`.
   - python version
   - platform
   - benchmark configuration/profile
+- `benchmark_latest.json` is a convenience latest copy.
+- Timestamped `benchmark_*.json` artifacts are the historical comparison source.
 
 ## Metric Contract
 
@@ -42,6 +44,38 @@ This document defines the canonical benchmark contract for `hydra-logger`.
   same-profile history using median/p95 thresholds.
 - If baseline history is below the configured minimum sample count, drift checks
   are reported as `skipped_insufficient_baseline` and do not hard-fail.
+
+## Profile Severity Contract
+
+- `ci_smoke`:
+  - drift policy disabled
+  - reliability/invariant findings are advisory
+- `pr_gate`:
+  - drift policy enabled
+  - reliability/invariant/drift findings are advisory for run exit behavior
+  - findings still require review before merge decisions
+- `nightly_truth`:
+  - drift policy enabled with stricter thresholds
+  - reliability guard findings are hard-fail (`strict_reliability_guards=true`)
+
+## Command Contract
+
+Use `python3` command style consistently in benchmark documentation and runbooks:
+
+- `python3 benchmark/performance_benchmark.py --profile ci_smoke`
+- `python3 benchmark/performance_benchmark.py --profile pr_gate`
+- `python3 benchmark/performance_benchmark.py --profile nightly_truth`
+
+## Comparison Contract
+
+- Compare same-profile runs only.
+- Verify metadata compatibility before conclusions:
+  - `python_version`
+  - `platform`
+  - `machine`
+  - `disk_mode`
+  - `payload_profile`
+  - `git_commit_sha`
 - Every suspicious regression must trigger:
   - rerun
   - targeted code-path review

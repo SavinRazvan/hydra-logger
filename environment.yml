@@ -5,5 +5,6 @@ dependencies:
   - python=3.11
   - pip
   - pip:
-    # Keep dependency versions in setup.py; this env installs package + dev tools.
+    # Keep dependency versions in setup.py; this env installs core package + dev tools.
+    # Install optional feature extras separately when needed (e.g. .[network], .[perf]).
     - "-e .[dev]"
