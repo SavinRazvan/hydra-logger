@@ -241,6 +241,25 @@ def test_sync_logger_log_swallows_internal_builder_failure() -> None:
     logger.close()
 
 
+def test_sync_logger_strict_reliability_mode_raises_internal_failures() -> None:
+    logger = SyncLogger(
+        config={
+            "strict_reliability_mode": True,
+            "layers": {
+                "default": {
+                    "destinations": [{"type": "console", "format": "plain-text"}]
+                }
+            },
+        }
+    )
+    logger._record_builder.create = lambda *_a, **_k: (_ for _ in ()).throw(  # type: ignore[assignment]
+        RuntimeError("builder-fail")
+    )
+    with pytest.raises(Exception, match="internal failure"):
+        logger.log("INFO", "x")
+    logger.close()
+
+
 def test_sync_logger_emit_to_handlers_tolerates_handler_failures() -> None:
     class BadHandler:
         @staticmethod

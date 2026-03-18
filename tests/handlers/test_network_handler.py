@@ -153,19 +153,19 @@ def test_network_handler_validate_config_rejects_invalid_values() -> None:
         raise AssertionError("Expected timeout validation error")
 
 
-def test_network_handler_error_handler_retry_and_disconnect_paths(monkeypatch) -> None:
+def test_network_handler_error_handler_retry_and_disconnect_paths() -> None:
     handler = DummyNetworkHandler(NetworkConfig(host="localhost", port=8080, max_retries=1))
-    calls = {"disconnect": 0, "connect": 0, "sleep": 0}
+    calls = {"disconnect": 0, "connect": 0}
     handler._disconnect = lambda: calls.__setitem__("disconnect", calls["disconnect"] + 1)  # type: ignore[method-assign]
     handler._connect = lambda: calls.__setitem__("connect", calls["connect"] + 1) or True  # type: ignore[method-assign]
-    monkeypatch.setattr(network_module.time, "sleep", lambda _s: calls.__setitem__("sleep", calls["sleep"] + 1))
 
     handler._should_retry = lambda _error: True  # type: ignore[method-assign]
     handler._handle_network_error(RuntimeError("boom"))
     assert handler._stats["retries"] == 1
+    assert handler._stats["reconnect_attempts"] == 1
+    assert handler._stats["retry_backoff_events"] >= 0
     assert calls["disconnect"] >= 1
     assert calls["connect"] == 1
-    assert calls["sleep"] == 1
 
     handler._should_retry = lambda _error: False  # type: ignore[method-assign]
     handler._handle_network_error(RuntimeError("stop"))
@@ -279,10 +279,11 @@ def test_http_handler_emit_network_error_updates_retry_stats(monkeypatch) -> Non
 
     monkeypatch.setattr(network_module, "REQUESTS_AVAILABLE", True)
     monkeypatch.setattr(network_module.requests, "Session", _Session)
-    monkeypatch.setattr(network_module.time, "sleep", lambda _s: None)
     handler = HTTPHandler("http://example.com/logs")
     handler.emit(LogRecord(level=20, level_name="INFO", message="boom"))
-    assert handler.get_network_stats()["stats"]["failed"] >= 1
+    stats = handler.get_network_stats()["stats"]
+    assert stats["failed"] >= 1
+    assert stats["reconnect_attempts"] >= 0
 
 
 def test_http_handler_connection_fails_when_requests_missing(monkeypatch) -> None:

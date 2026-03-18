@@ -413,6 +413,20 @@ def test_composite_async_logger_remove_component_with_async_close_callable() -> 
     logger.close()
 
 
+def test_composite_async_logger_tracks_deferred_close_health_metrics() -> None:
+    class AsyncCloseComp:
+        name = "deferred-close"
+
+        async def close(self) -> None:
+            return None
+
+    logger = CompositeAsyncLogger(components=[AsyncCloseComp()], use_direct_io=True)
+    logger.close()
+    health = logger.get_health_status()
+    assert health["deferred_async_closes"] >= 1
+    assert "pending_deferred_closes" in health
+
+
 def test_composite_async_logger_component_mode_with_no_components_is_noop() -> None:
     async def _run() -> None:
         logger = CompositeAsyncLogger(components=[], use_direct_io=False)

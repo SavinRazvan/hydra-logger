@@ -207,6 +207,60 @@ def test_logging_config_path_resolution_and_fallback(monkeypatch, tmp_path: Path
     assert "relative-logs" in rel_resolved
 
 
+def test_logging_config_path_confinement_and_absolute_path_controls(tmp_path: Path) -> None:
+    base_dir = tmp_path / "base"
+    cfg_compat = LoggingConfig(
+        base_log_dir=str(base_dir),
+        layers={},
+        enforce_log_path_confinement=False,
+        allow_absolute_log_paths=True,
+    )
+    escaped = cfg_compat.resolve_log_path("../escaped.log")
+    assert escaped.endswith("escaped.log")
+
+    cfg_strict = LoggingConfig(
+        base_log_dir=str(base_dir),
+        layers={},
+        enforce_log_path_confinement=True,
+        allow_absolute_log_paths=True,
+    )
+    with pytest.raises(ValueError, match="escapes configured base directory"):
+        cfg_strict.resolve_log_path("../escaped.log")
+
+    outside_abs = tmp_path / "outside.log"
+    cfg_abs_blocked = LoggingConfig(
+        base_log_dir=str(base_dir),
+        layers={},
+        enforce_log_path_confinement=False,
+        allow_absolute_log_paths=False,
+    )
+    with pytest.raises(ValueError, match="Absolute log path is disabled"):
+        cfg_abs_blocked.resolve_log_path(str(outside_abs))
+
+    inside_abs = base_dir / "service.log"
+    cfg_abs_allowed = LoggingConfig(
+        base_log_dir=str(base_dir),
+        layers={},
+        enforce_log_path_confinement=True,
+        allow_absolute_log_paths=True,
+    )
+    resolved_inside = cfg_abs_allowed.resolve_log_path(str(inside_abs))
+    assert str(inside_abs.resolve()) == resolved_inside
+
+
+def test_logging_config_strict_confinement_does_not_use_fallback_on_mkdir_failure(
+    monkeypatch, tmp_path: Path
+) -> None:
+    cfg = LoggingConfig(
+        base_log_dir=str(tmp_path / "root"),
+        layers={},
+        enforce_log_path_confinement=True,
+    )
+    monkeypatch.setattr(Path, "mkdir", lambda *_a, **_k: (_ for _ in ()).throw(OSError("mkdir-fail")))
+    with pytest.raises(ValueError, match="strict path confinement"):
+        cfg.resolve_log_path("safe.log")
+
+
 def test_logging_config_validation_and_layer_management() -> None:
     cfg = LoggingConfig(layers={})
     layer = LogLayer(level="INFO", destinations=[LogDestination(type="console")])

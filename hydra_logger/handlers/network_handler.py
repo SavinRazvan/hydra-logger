@@ -135,6 +135,8 @@ class BaseNetworkHandler(BaseHandler):
             "sent": 0,
             "failed": 0,
             "retries": 0,
+            "reconnect_attempts": 0,
+            "retry_backoff_events": 0,
             "bytes_sent": 0,
             "connection_errors": 0,
         }
@@ -239,6 +241,18 @@ class BaseNetworkHandler(BaseHandler):
         """Close the connection."""
         raise NotImplementedError("Subclasses must implement this method")
 
+    @staticmethod
+    def _safe_url_for_logs(raw_url: str) -> str:
+        """Return sanitized URL for diagnostics without credentials/query values."""
+        try:
+            parsed = urlparse(raw_url)
+            scheme = parsed.scheme or "unknown"
+            host = parsed.hostname or "unknown-host"
+            path = parsed.path or ""
+            return f"{scheme}://{host}{path}"
+        except Exception:
+            return "[invalid-url]"
+
     def _should_retry(self, error: Exception) -> bool:
         """Check if operation should be retried."""
         if self._retry_count >= self._config.max_retries:
@@ -289,9 +303,12 @@ class BaseNetworkHandler(BaseHandler):
             self._last_retry = time.time()
             self._stats["retries"] += 1
 
-            # Try to reconnect
+            # Reconnect without blocking the caller path.
+            retry_delay = self._get_retry_delay()
+            if retry_delay > 0:
+                self._stats["retry_backoff_events"] += 1
             self._disconnect()
-            time.sleep(self._get_retry_delay())
+            self._stats["reconnect_attempts"] += 1
             self._connect()
         else:
             # Give up after max retries
@@ -387,7 +404,10 @@ class HTTPHandler(BaseNetworkHandler):
             self._connected = True
             return True
         except Exception:
-            _logger.exception("HTTP connection establishment failed for url=%s", self._url)
+            _logger.exception(
+                "HTTP connection establishment failed for url=%s",
+                self._safe_url_for_logs(self._url),
+            )
             self._connected = False
             return False
 
@@ -444,7 +464,9 @@ class HTTPHandler(BaseNetworkHandler):
             self._stats["sent"] += 1
             self._stats["bytes_sent"] += len(str(data).encode("utf-8"))
         except Exception as error:
-            _logger.exception("HTTP emit failed for url=%s", self._url)
+            _logger.exception(
+                "HTTP emit failed for url=%s", self._safe_url_for_logs(self._url)
+            )
             self._handle_network_error(error)
 
     def _close_connection(self) -> None:
@@ -501,7 +523,10 @@ class WebSocketHandler(BaseNetworkHandler):
             self._connected = True
             return True
         except Exception:
-            _logger.exception("WebSocket connection establishment failed for url=%s", self._url)
+            _logger.exception(
+                "WebSocket connection establishment failed for url=%s",
+                self._safe_url_for_logs(self._url),
+            )
             self._connected = False
             return False
 
@@ -538,7 +563,9 @@ class WebSocketHandler(BaseNetworkHandler):
             # For now, we'll just simulate success
             self._stats["sent"] += 1
         except Exception as error:
-            _logger.exception("WebSocket emit failed for url=%s", self._url)
+            _logger.exception(
+                "WebSocket emit failed for url=%s", self._safe_url_for_logs(self._url)
+            )
             self._handle_network_error(error)
 
     def _close_connection(self) -> None:

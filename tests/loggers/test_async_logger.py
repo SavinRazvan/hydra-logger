@@ -725,6 +725,39 @@ def test_async_logger_log_and_log_async_swallow_internal_failures() -> None:
     logger.close()
 
 
+def test_async_logger_strict_reliability_mode_raises_on_internal_failures() -> None:
+    logger = AsyncLogger(
+        config={
+            "strict_reliability_mode": True,
+            "layers": {
+                "default": {
+                    "destinations": [{"type": "console", "format": "plain-text"}]
+                }
+            },
+        }
+    )
+    logger._log_sync = lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("sync-boom"))  # type: ignore[assignment]
+
+    original_get_running_loop = asyncio.get_running_loop
+    asyncio.get_running_loop = lambda: (_ for _ in ()).throw(RuntimeError("no-loop"))  # type: ignore[assignment]
+    try:
+        with pytest.raises(HydraLoggerError, match="internal failure"):
+            logger.log("INFO", "x")
+    finally:
+        asyncio.get_running_loop = original_get_running_loop  # type: ignore[assignment]
+
+    async def _run() -> None:
+        async def fail_async(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+            raise RuntimeError("boom")
+
+        logger._log_async = fail_async  # type: ignore[assignment]
+        with pytest.raises(HydraLoggerError, match="internal failure"):
+            await logger.log_async("INFO", "x")
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
 def test_async_logger_log_returns_scheduled_task_in_running_loop() -> None:
     async def _run() -> None:
         logger = AsyncLogger()
