@@ -175,6 +175,11 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
     )
     monkeypatch.setattr(
         bench,
+        "test_network_destination_performance",
+        lambda: order.append("network_destination") or {"ok": True},
+    )
+    monkeypatch.setattr(
+        bench,
         "test_async_logger_performance",
         lambda: order.append("async") or asyncio.sleep(0, result={"ok": True}),
     )
@@ -241,11 +246,12 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
     exit_code = asyncio.run(bench.run_benchmark())
     assert exit_code == 0
     assert "sync_logger" in bench.results
+    assert "network_destination" in bench.results
     assert "async_concurrent" in bench.results
     assert "parallel_workers" in bench.results
     assert "ultra_high_performance" in bench.results
     assert "output_matrix" in order
-    assert order.count("cleanup") == 14
+    assert order.count("cleanup") == 15
     assert order[-1] == "final_cleanup"
 
 
@@ -280,3 +286,14 @@ def test_main_returns_run_benchmark_code(monkeypatch) -> None:
 
     monkeypatch.setattr(perf_mod, "HydraLoggerBenchmark", DummyBenchmark)
     assert asyncio.run(perf_mod.main()) == 7
+
+
+def test_network_destination_performance_uses_stubbed_http_handler(tmp_path) -> None:
+    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench.test_config["typical_single_messages"] = 5
+
+    result = bench.test_network_destination_performance()
+    assert result["status"] == "COMPLETED"
+    assert result["total_messages"] == 5
+    assert result["dispatched_messages"] == 5
+    assert result["individual_messages_per_second"] > 0

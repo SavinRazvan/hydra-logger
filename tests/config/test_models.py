@@ -83,6 +83,75 @@ def test_log_destination_validators_and_extension_rules() -> None:
     assert LogDestination(type="console", format="").format is None
 
 
+def test_log_destination_network_typed_variants_and_legacy_alias(caplog) -> None:
+    with caplog.at_level("WARNING", logger="hydra_logger.config.models"):
+        legacy = LogDestination(type="network", url="https://example.com/ingest")
+    assert legacy.type == "network_http"
+    assert "deprecated" in caplog.text
+
+    http_destination = LogDestination(type="network_http", url="http://example.com/logs")
+    ws_destination = LogDestination(type="network_ws", url="wss://example.com/ws")
+    socket_destination = LogDestination(
+        type="network_socket", host="localhost", port=9000
+    )
+    datagram_destination = LogDestination(
+        type="network_datagram", host="127.0.0.1", port=514
+    )
+
+    assert http_destination.type == "network_http"
+    assert ws_destination.type == "network_ws"
+    assert socket_destination.port == 9000
+    assert datagram_destination.host == "127.0.0.1"
+
+
+def test_log_destination_network_validation_matrix_enforced() -> None:
+    with pytest.raises(ValueError, match="url is required for network_http"):
+        LogDestination(type="network_http")
+    with pytest.raises(ValueError, match="url is required for network_ws"):
+        LogDestination(type="network_ws")
+    with pytest.raises(ValueError, match="Invalid URL scheme for network_http"):
+        LogDestination(type="network_http", url="ws://example.com/socket")
+    with pytest.raises(ValueError, match="Invalid URL scheme for network_ws"):
+        LogDestination(type="network_ws", url="https://example.com/logs")
+    with pytest.raises(ValueError, match="host is required for network_socket"):
+        LogDestination(type="network_socket", port=9001)
+    with pytest.raises(ValueError, match="port is required for network_datagram"):
+        LogDestination(type="network_datagram", host="localhost")
+    with pytest.raises(ValueError, match="Legacy destination type 'network' requires"):
+        LogDestination(type="network")
+
+
+def test_log_destination_network_timeout_retry_and_port_bounds() -> None:
+    with pytest.raises(ValueError, match="retry_count must be between 0 and 20"):
+        LogDestination(type="network_http", url="https://example.com", retry_count=21)
+    with pytest.raises(ValueError, match="retry_delay must be between 0 and 300"):
+        LogDestination(type="network_http", url="https://example.com", retry_delay=301.0)
+    with pytest.raises(ValueError, match="timeout must be greater than 0"):
+        LogDestination(type="network_http", url="https://example.com", timeout=0)
+    with pytest.raises(ValueError, match="port must be between 1 and 65535"):
+        LogDestination(type="network_socket", host="localhost", port=65536)
+
+    valid = LogDestination(
+        type="network_http",
+        url="https://example.com",
+        retry_count=2,
+        retry_delay=0.2,
+        timeout=3.0,
+    )
+    assert valid.retry_count == 2
+    assert valid.retry_delay == 0.2
+    assert valid.timeout == 3.0
+
+    assert LogDestination.validate_retry_count(None) is None
+    assert LogDestination.validate_retry_count(3) == 3
+    assert LogDestination.validate_retry_delay(None) is None
+    assert LogDestination.validate_retry_delay(1.5) == 1.5
+    assert LogDestination.validate_timeout(None) is None
+    assert LogDestination.validate_timeout(2.0) == 2.0
+    assert LogDestination.validate_port(None) is None
+    assert LogDestination.validate_port(514) == 514
+
+
 def test_log_layer_validators_for_level_color_and_destinations() -> None:
     layer = LogLayer(
         level="debug",

@@ -23,6 +23,8 @@ Run each tutorial with deterministic environment commands:
 .hydra_env/bin/python examples/tutorials/t07_operational_playbook.py
 .hydra_env/bin/python examples/tutorials/t08_console_configuration_cookbook.py
 .hydra_env/bin/python examples/tutorials/t09_levels_columns_date_and_destinations.py
+.hydra_env/bin/python examples/tutorials/t10_enterprise_profile_config.py
+.hydra_env/bin/python examples/tutorials/t11_enterprise_policy_layers.py
 ```
 
 ## Full Example Verification

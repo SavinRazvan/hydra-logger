@@ -20,6 +20,8 @@ Run tutorials with the project environment to avoid import drift:
 .hydra_env/bin/python examples/tutorials/t07_operational_playbook.py
 .hydra_env/bin/python examples/tutorials/t08_console_configuration_cookbook.py
 .hydra_env/bin/python examples/tutorials/t09_levels_columns_date_and_destinations.py
+.hydra_env/bin/python examples/tutorials/t10_enterprise_profile_config.py
+.hydra_env/bin/python examples/tutorials/t11_enterprise_policy_layers.py
 ```
 
 ## Track Matrix
@@ -87,6 +89,18 @@ Each track follows this recommended structure:
 - Goal: teach level inheritance/overrides and advanced formatter customization.
 - Logs: `logs/examples/tutorials/t09_*.jsonl` and `logs/examples/tutorials/t09_*.log`.
 - Customization: global/layer/destination levels, formatter columns, timestamp format, multi-destination routing.
+
+### T10 Enterprise Profile Configuration
+
+- Goal: validate enterprise-ready defaults from `get_enterprise_config`.
+- Logs: `enterprise.log`, `error.log`, and `warning.log` (profile defaults).
+- Customization: reliability and path-confinement controls on enterprise profile.
+
+### T11 Enterprise Policy Layers and Routing
+
+- Goal: apply enterprise policy controls to multi-layer routing and destination overrides.
+- Logs: `logs/examples/tutorials/t11_*.jsonl` and `logs/examples/tutorials/t11_audit.log`.
+- Customization: layer-level policy, destination-level filtering, and context propagation.
 
 ## Legacy Example Mapping
 

@@ -477,6 +477,38 @@ def test_composite_logger_setup_from_config_adds_components(
     logger.close()
 
 
+def test_composite_logger_network_destination_bootstraps_components(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeNetworkHandler:
+        def __init__(self) -> None:
+            self.formatter = None
+
+        def setFormatter(self, formatter) -> None:  # type: ignore[no-untyped-def]
+            self.formatter = formatter
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_http_handler",
+        lambda **_kwargs: FakeNetworkHandler(),
+    )
+
+    cfg = LoggingConfig(
+        layers={
+            "default": LogLayer(
+                destinations=[
+                    LogDestination(type="network_http", url="https://example.com/ingest")
+                ]
+            )
+        }
+    )
+    logger = CompositeLogger(config=cfg)
+    assert logger.components, "Expected network destination to create sub-loggers"
+    logger.close()
+
+
 def test_composite_async_logger_async_close_gather_exception_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
