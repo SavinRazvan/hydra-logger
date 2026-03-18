@@ -25,6 +25,9 @@ Run each tutorial with deterministic environment commands:
 .hydra_env/bin/python examples/tutorials/t09_levels_columns_date_and_destinations.py
 .hydra_env/bin/python examples/tutorials/t10_enterprise_profile_config.py
 .hydra_env/bin/python examples/tutorials/t11_enterprise_policy_layers.py
+.hydra_env/bin/python examples/tutorials/t12_network_http_typed_destination.py
+.hydra_env/bin/python examples/tutorials/t13_network_ws_resilient_typed_destination.py
+.hydra_env/bin/python examples/tutorials/t14_network_local_http_simulation.py
 ```
 
 ## Full Example Verification
@@ -57,6 +60,7 @@ Each example writes output to `logs/examples/`.
 14. `14_class_based_logging.py` - class-based integration
 15. `15_eda_microservices_patterns.py` - EDA and microservices pattern
 16. `16_multi_layer_web_app.py` - multi-layer web app simulation
+17. `17_network_typed_destinations.py` - typed HTTP/WS network destination routing
 
 ## Onboarding Guidance
 

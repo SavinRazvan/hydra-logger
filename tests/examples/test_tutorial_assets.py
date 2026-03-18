@@ -27,6 +27,9 @@ TUTORIAL_FILES = [
     "t09_levels_columns_date_and_destinations.py",
     "t10_enterprise_profile_config.py",
     "t11_enterprise_policy_layers.py",
+    "t12_network_http_typed_destination.py",
+    "t13_network_ws_resilient_typed_destination.py",
+    "t14_network_local_http_simulation.py",
 ]
 
 
