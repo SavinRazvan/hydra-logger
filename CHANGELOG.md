@@ -16,6 +16,15 @@ All notable, verified changes to Hydra-Logger are documented here.
   line length (88); `E501` and cyclomatic complexity remain intentionally deferred
   (see `docs/TESTING.md`, `.flake8`).
 
+## [0.5.2] - 2026-03-19
+
+### Changed
+
+- PyPI **Development Status** classifier updated to **Beta** (signals hardened CI
+  and governance maturity; no intentional public API changes in this release).
+- Documented how PyPI classifiers relate to semver and how runtime defaults differ
+  from enterprise presets (`docs/RELEASE_POLICY.md`).
+
 ## [0.5.1] - 2026-03-18
 
 ### Changed

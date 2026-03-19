@@ -389,6 +389,7 @@ Enterprise tutorial tracks:
 
 ### Maintainers and Release
 
+- [Release policy (semver, classifiers, defaults)](docs/RELEASE_POLICY.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
 - [Agent automation workflow](docs/AGENT_AUTOMATION.md)
 - [Changelog](CHANGELOG.md)

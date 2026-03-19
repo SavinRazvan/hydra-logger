@@ -35,7 +35,7 @@ setup(
     url="https://github.com/SavinRazvan/hydra-logger",
     packages=find_packages(),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3.11",
