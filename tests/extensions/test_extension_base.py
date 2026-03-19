@@ -52,7 +52,7 @@ class SuperProcessExtension(ExtensionBase):
 def test_extension_config_defaults() -> None:
     cfg = ExtensionConfig()
     assert cfg.enabled is False
-    assert cfg.version == "0.5.0"
+    assert cfg.version == "0.5.1"
 
 
 def test_extension_lifecycle_str_repr_and_update_config() -> None:
