@@ -9,6 +9,11 @@
 
 `hydra-logger` is a modular Python logging library for teams that need configurable logging without coupling application code to fixed transports or formats.
 
+Best fit:
+- teams that need structured logging with strict reliability controls
+- services that route logs by layer, destination, and policy
+- organizations migrating from ad-hoc logging to consistent standards
+
 ## Overview
 
 Core capabilities:
@@ -23,14 +28,59 @@ Design principles:
 - Favor configuration over hardcoded behavior
 - Keep module boundaries explicit and extensible
 
+Quick links:
+- [Environment setup](docs/ENVIRONMENT_SETUP.md)
+- [Enterprise tutorials](examples/tutorials/README.md)
+- [Configuration reference](docs/modules/config.md)
+- [Operations diagnostics](docs/OPERATIONS.md)
+- [Testing and quality gates](docs/TESTING.md)
+- [Performance and benchmarks](docs/PERFORMANCE.md)
+
+## Why Teams Choose Hydra-Logger
+
+Hydra-Logger gives teams production-ready logging with clear defaults, strong
+reliability controls, and high throughput.
+
+- Built for real systems: sync, async, and composite logger runtimes
+- Policy-driven routing: layers, per-destination levels, and typed network destinations
+- Safety-first: strict reliability guards, path controls, and extension-based data protection
+- Proven performance: benchmarked profiles with drift and reliability checks (`nightly_truth`)
+
+Latest nightly snapshot (`benchmark/results/benchmark_latest.json`):
+- Reliability status: `passed` (strict mode enabled)
+- Drift status: `passed`
+- Sync throughput: ~`53.7k msg/s`
+- Async throughput: ~`44.5k msg/s`
+- Concurrent throughput: ~`283.4k msg/s`
+
+Benchmark details:
+- [`benchmark/README.md`](benchmark/README.md)
+- [`benchmark/results/benchmark_latest_summary.md`](benchmark/results/benchmark_latest_summary.md)
+
+Start quickly:
+
+```bash
+pip install hydra-logger
+.hydra_env/bin/python examples/tutorials/t01_production_quick_start.py
+```
+
+Examples and tutorials:
+
+- Tutorial tracks: [`examples/tutorials/README.md`](examples/tutorials/README.md)
+- Full examples catalog: [`examples/README.md`](examples/README.md)
+- Run examples individually with `.hydra_env/bin/python <script_path>`.
+- Most tutorials write to `logs/examples/...`; network simulation tutorials may also
+  emit local result artifacts.
+
 ## Install
 
 ```bash
 pip install hydra-logger
 ```
 
-Core install includes only required baseline dependencies. Optional integrations are
-installed through extras, for example:
+Core install includes only required baseline dependencies. Optional extras install
+dependency bundles for specific integration scenarios (including custom handlers and
+application-side adapters), for example:
 
 ```bash
 pip install "hydra-logger[network]"
@@ -38,6 +88,10 @@ pip install "hydra-logger[perf]"
 pip install "hydra-logger[database,cloud,queues]"
 pip install "hydra-logger[full]"
 ```
+
+Notes about extras:
+- `network` supports built-in typed network destinations (`network_http`, `network_ws`, `network_socket`, `network_datagram`).
+- `database`, `cloud`, `queues`, and `system` provide optional dependency bundles for advanced/custom integrations.
 
 Development environment:
 
@@ -88,8 +142,8 @@ from hydra_logger import create_async_logger
 
 async def main():
     async with create_async_logger("MyAsyncApp") as logger:
-        logger.info("Async logging works")
-        logger.warning("Async warning message")
+        await logger.info("Async logging works")
+        await logger.warning("Async warning message")
 
 
 asyncio.run(main())
@@ -250,9 +304,9 @@ flowchart TD
 ```
 
 Detailed architecture and workflow documentation:
-- `docs/ARCHITECTURE.md`
-- `docs/WORKFLOW_ARCHITECTURE.md`
-- `docs/modules/README.md`
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- [`docs/WORKFLOW_ARCHITECTURE.md`](docs/WORKFLOW_ARCHITECTURE.md)
+- [`docs/modules/README.md`](docs/modules/README.md)
 
 ## Operations
 
@@ -282,30 +336,57 @@ Enterprise tutorial tracks:
 .hydra_env/bin/python examples/tutorials/t03_layers_customization.py
 .hydra_env/bin/python examples/tutorials/t04_extensions_plugins.py
 .hydra_env/bin/python examples/tutorials/t07_operational_playbook.py
+.hydra_env/bin/python examples/tutorials/t10_enterprise_profile_config.py
+.hydra_env/bin/python examples/tutorials/t11_enterprise_policy_layers.py
 .hydra_env/bin/python examples/tutorials/t12_network_http_typed_destination.py
 .hydra_env/bin/python examples/tutorials/t13_network_ws_resilient_typed_destination.py
+.hydra_env/bin/python examples/tutorials/t14_network_local_http_simulation.py
 ```
 
 ## Documentation
 
-- `docs/ARCHITECTURE.md`
-- `docs/WORKFLOW_ARCHITECTURE.md`
-- `docs/modules/README.md`
-- `docs/PERFORMANCE.md`
-- `docs/OPERATIONS.md`
-- `docs/RELEASE_CHECKLIST.md`
-- `docs/plans/`
-- `docs/audit/`
-- `CHANGELOG.md`
-- `examples/README.md`
-- `examples/tutorials/README.md`
+### Start Here (Users)
+
+- [Environment setup and troubleshooting](docs/ENVIRONMENT_SETUP.md)
+- [Enterprise tutorials index](examples/tutorials/README.md)
+- [Examples catalog](examples/README.md)
+- [Configuration reference](docs/modules/config.md)
+
+### Design and Runtime
+
+- [Architecture overview](docs/ARCHITECTURE.md)
+- [Runtime workflow architecture](docs/WORKFLOW_ARCHITECTURE.md)
+- [Module map and ownership](docs/modules/README.md)
+
+### Operate and Validate
+
+- [Operations diagnostics](docs/OPERATIONS.md)
+- [Testing strategy and quality gates](docs/TESTING.md)
+- [Performance guidance](docs/PERFORMANCE.md)
+- [Benchmark usage guide](benchmark/README.md)
+
+### Troubleshooting
+
+- [Environment health checks](docs/ENVIRONMENT_SETUP.md)
+- [Runtime diagnostics and triage](docs/OPERATIONS.md)
+- [Performance regression troubleshooting](docs/PERFORMANCE.md)
+
+### Maintainers and Release
+
+- [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Agent automation workflow](docs/AGENT_AUTOMATION.md)
+- [Changelog](CHANGELOG.md)
+
+Internal planning and audit trackers are maintained under `docs/plans/`,
+`docs/audit/`, and `docs/archive/` for repository governance and historical
+traceability.
 
 ## Contributing
 
 - Keep changes focused and maintain backward compatibility for public APIs
 - Add or update tests in `tests/` for behavior changes
 - Update docs when behavior or public interfaces change
-- Run `pre-commit` and `python -m pytest -q` before opening a PR
+- Run `pre-commit` and `.hydra_env/bin/python -m pytest -q` before opening a PR
 - Run release preflight before tagging/publishing: `.hydra_env/bin/python scripts/release/preflight.py`
 - Follow `docs/RELEASE_CHECKLIST.md` for release evidence and final gate order
 

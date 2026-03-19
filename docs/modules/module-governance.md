@@ -9,7 +9,7 @@ Treat a module docs change as complete only when all are true:
 - Every affected package under `hydra_logger/` has a matching page in `docs/modules/`.
 - Each page includes scope, key files, behavior/API, flow diagram, caveats, and maintenance notes.
 - Cross-doc references (`README.md`, `docs/ARCHITECTURE.md`, `docs/modules/README.md`) remain valid.
-- `docs/MODULE_DOCS_AUDIT.md` reflects current module coverage and open gaps.
+- `docs/modules/MODULE_COVERAGE_MATRIX.md` reflects current module coverage and open gaps.
 
 ## Update Triggers
 
@@ -39,7 +39,7 @@ flowchart LR
 - [ ] Corresponding file in `docs/modules/` updated.
 - [ ] `docs/modules/README.md` index updated when module boundaries changed.
 - [ ] Mermaid diagrams adjusted when workflow changed.
-- [ ] `docs/MODULE_DOCS_AUDIT.md` findings reviewed and refreshed when needed.
+- [ ] `docs/modules/MODULE_COVERAGE_MATRIX.md` findings reviewed and refreshed when needed.
 
 ## Structure Standards
 

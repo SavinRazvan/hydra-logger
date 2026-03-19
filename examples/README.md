@@ -2,7 +2,7 @@
 
 This directory now has two onboarding layers:
 
-- **Legacy numbered examples (`01`-`16`)** for feature-by-feature exploration.
+- **Legacy numbered examples (`01`-`17`)** for feature-by-feature exploration.
 - **Enterprise tutorial tracks (`tutorials/`)** for production onboarding.
 
 ## Enterprise Onboarding First
@@ -42,7 +42,7 @@ This executes all numbered examples, verifies generated logs, and reports pass/f
 
 ## Legacy Example Catalog
 
-Each example writes output to `logs/examples/`.
+Most examples write output to `logs/examples/`; network-focused examples can produce JSON artifacts instead.
 
 1. `01_format_control.py` - format control
 2. `02_destination_control.py` - destination control

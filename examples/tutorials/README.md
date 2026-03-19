@@ -96,8 +96,9 @@ Each track follows this recommended structure:
 ### T10 Enterprise Profile Configuration
 
 - Goal: validate enterprise-ready defaults from `get_enterprise_config`.
-- Logs: `enterprise.log`, `error.log`, and `warning.log` (profile defaults).
+- Logs: `logs/examples/tutorials/t10_*.log` and `logs/examples/tutorials/t10_*.jsonl` (tutorial-normalized outputs).
 - Customization: reliability and path-confinement controls on enterprise profile.
+- Runtime note: tutorial applies compatibility shims (`async_runtime` removal and temporary absolute-path allowance) so execution remains deterministic with current runtime constraints.
 
 ### T11 Enterprise Policy Layers and Routing
 
@@ -135,6 +136,6 @@ Each track follows this recommended structure:
 ## Validation Checklist
 
 - Tutorial script exits `0`.
-- Expected log file(s) exist in `logs/examples/tutorials/`.
+- Expected tutorial artifact(s) exist (`logs/examples/tutorials/` logs and network result JSON where applicable).
 - Output includes a completion marker for each track.
 - Track shows at least one customization knob change from default behavior.

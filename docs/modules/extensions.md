@@ -31,6 +31,8 @@ flowchart TD
 ## Public Surface (module-level)
 
 - `ExtensionBase`
+- `Extension`
+- `ExtensionConfig`
 - `SecurityExtension`
 - `FormattingExtension`
 - `PerformanceExtension`

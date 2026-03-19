@@ -9,18 +9,20 @@ Detailed package behavior, exports, and maintenance guidance now live in `docs/m
 - Module index: [`modules/README.md`](modules/README.md)
 - Workflow details: [`WORKFLOW_ARCHITECTURE.md`](WORKFLOW_ARCHITECTURE.md)
 - Performance context: [`PERFORMANCE.md`](PERFORMANCE.md)
-- Module audit and coverage: [`MODULE_DOCS_AUDIT.md`](MODULE_DOCS_AUDIT.md)
+- Module audit and coverage: [`modules/MODULE_COVERAGE_MATRIX.md`](modules/MODULE_COVERAGE_MATRIX.md)
 
 ## Architecture Summary
 
 Hydra-Logger is organized as a modular package with distinct runtime layers:
 
 - Logger runtimes (`loggers`) receive calls and create records.
+- Logger pipeline components (`loggers/pipeline`) perform record building, routing, extension processing, and handler dispatch.
 - Configuration models (`config`) describe layers and destinations.
 - Handlers (`handlers`) deliver payloads to output targets.
 - Formatters (`formatters`) serialize records into destination-specific formats.
 - Core utilities and contracts (`core`, `types`, `utils`, `extensions`) support runtime behavior.
 - Factories (`factories`) provide stable constructor APIs.
+- CLI entrypoint (`cli.py`) exposes command-line orchestration.
 
 ## Package Topology
 
@@ -35,6 +37,8 @@ graph TD
   rootPkg --> corePkg[core]
   rootPkg --> extensionsPkg[extensions]
   rootPkg --> utilsPkg[utils]
+  rootPkg --> cliMod[cli.py]
+  loggersPkg --> pipelinePkg[loggers/pipeline]
 ```
 
 ## Runtime Data Path
@@ -44,9 +48,11 @@ flowchart LR
   appCode[ApplicationCall] --> loggerRuntime[LoggerRuntime]
   loggerRuntime --> recordCreate[RecordCreation]
   recordCreate --> layerRoute[LayerRouting]
-  layerRoute --> handlerDispatch[HandlerDispatch]
+  layerRoute --> emitPath{EmitPath}
+  emitPath -->|Handler pipeline| handlerDispatch[HandlerDispatch]
   handlerDispatch --> formatterApply[FormatterApply]
   formatterApply --> destinationWrite[DestinationWrite]
+  emitPath -->|Composite async direct I/O| destinationWrite
 ```
 
 ## Module Documentation Map
@@ -70,4 +76,4 @@ When architecture details change in code:
 
 1. Update the relevant `docs/modules/*.md` page first.
 2. Update this document only when high-level topology or data path changes.
-3. Refresh `docs/MODULE_DOCS_AUDIT.md` to capture drift and coverage status.
+3. Refresh `docs/modules/MODULE_COVERAGE_MATRIX.md` to capture drift and coverage status.

@@ -23,7 +23,7 @@ class ExtensionConfig:
 
     enabled: bool = False
     name: str = ""
-    version: str = "0.5.0"
+    version: str = "0.5.1"
     description: str = ""
 
 
@@ -48,7 +48,7 @@ class Extension(ExtensionBase, ABC):
         self.config = config or {}
         self._enabled = bool(self.config.get("enabled", False))
         self._name = self.config.get("name", self.__class__.__name__)
-        self._version = self.config.get("version", "0.5.0")
+        self._version = self.config.get("version", "0.5.1")
         self._description = self.config.get("description", "")
         extension_config = {k: v for k, v in self.config.items() if k != "enabled"}
         super().__init__(enabled=self._enabled, **extension_config)

@@ -30,7 +30,7 @@ flowchart LR
 
 ## Public Surface (module-level)
 
-- Constants: `Colors`, `QueuePolicy`, `ShutdownPhase`
+- Constants: `Colors`, `LogLevel`, `QueuePolicy`, `ShutdownPhase`
 - Layer management: `LayerManager`, `LayerConfiguration`
 - Exceptions: `HydraLoggerError` family
 

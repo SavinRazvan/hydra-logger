@@ -15,9 +15,9 @@ Use one environment model at a time (venv or Conda prefix) and avoid mixing layo
 
 - `pip install hydra-logger` installs the core runtime dependencies only.
 - Optional integrations are enabled through extras in `setup.py`, such as:
-  - `network` (websocket/network integrations)
+  - `network` (built-in typed network destinations)
   - `perf` (performance introspection)
-  - `database`, `cloud`, `queues`, `system`
+  - `database`, `cloud`, `queues`, `system` (dependency bundles for advanced/custom integrations)
   - `full` / `all` (aggregate extras)
 
 Examples:

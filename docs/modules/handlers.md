@@ -49,7 +49,9 @@ sequenceDiagram
 - Base: `BaseHandler`
 - Console: `SyncConsoleHandler`, `AsyncConsoleHandler`
 - File/rotation: `FileHandler`, `RotatingFileHandler`, `TimedRotatingFileHandler`, `SizeRotatingFileHandler`, `HybridRotatingFileHandler`
-- Network: `BaseNetworkHandler`, `HTTPHandler`, `WebSocketHandler`, `SocketHandler`, `DatagramHandler`
+- Network: `BaseNetworkHandler`, `HTTPHandler`, `WebSocketHandler`, `SocketHandler`, `DatagramHandler`, `NetworkHandlerFactory`
+- Network configs/policies: `NetworkConfig`, `NetworkProtocol`, `RetryPolicy`
+- Rotation/time configs: `RotationConfig`, `RotationStrategy`, `TimeUnit`
 - Utility: `NullHandler`
 
 ## Caveats And Known Gaps
