@@ -9,7 +9,7 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   MYPY_ENFORCE: "false"
-  BANDIT_ENFORCE: "false"
+  BANDIT_ENFORCE: "true"
   PIP_AUDIT_ENFORCE: "false"
 
 jobs:
