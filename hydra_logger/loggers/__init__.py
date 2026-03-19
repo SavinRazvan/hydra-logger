@@ -60,5 +60,5 @@ __all__ = [
 ]
 
 # Version info
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 __author__ = "Savin Ionut Razvan"

@@ -8,7 +8,7 @@ Notes:
  - Re-exports the hydra_logger public API with stable import paths.
 """
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 __author__ = "Savin Ionut Razvan"
 __license__ = "MIT"
 

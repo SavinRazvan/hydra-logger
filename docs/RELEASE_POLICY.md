@@ -12,6 +12,28 @@ consumer expectations.
 - **PATCH**: bug fixes, diagnostics, and internal refactors without API surface
   changes.
 
+## PyPI classifiers
+
+- **Development Status** is maintainer signaling on PyPI (maturity and review
+  expectations). It is **not** a substitute for semver: treat runtime behavior
+  and documented APIs as governed by the rules above.
+- Moving toward **Production/Stable** requires explicit maintainer sign-off and
+  normally ships with a **minor** or **major** release, updated consumer docs,
+  and `CHANGELOG.md` notes.
+
+## Runtime defaults vs enterprise presets
+
+- Library **defaults** prioritize backward compatibility and gradual adoption
+  (for example permissive reliability defaults and performance profiles called
+  out in module docs).
+- Stricter operational posture belongs in **documented presets** such as
+  `get_enterprise_config()` and enterprise tutorials—not silent changes to
+  implicit defaults.
+- Changing **default** reliability, record profiling, or silent-drop behavior is
+  normally a **MAJOR** bump with migration notes. If a team intentionally ships
+  a default change on a **MINOR** line, it must be explicitly documented as safe
+  with an opt-in migration path (prefer avoiding this pattern).
+
 ## Public API
 
 Stable imports are those documented in `README.md`, `docs/modules/`, and
