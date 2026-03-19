@@ -18,7 +18,7 @@ import atexit
 import logging
 import sys
 import time
-from typing import Any, List, Optional, TextIO
+from typing import List, Optional, TextIO
 
 from ..formatters.base import BaseFormatter
 from ..types.records import LogRecord

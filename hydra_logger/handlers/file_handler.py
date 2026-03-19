@@ -28,7 +28,7 @@ import threading
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Deque, Dict, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, Deque, Dict, Literal, Optional, Tuple, Union, cast
 
 from ..types.levels import LogLevel
 from ..types.records import LogRecord
