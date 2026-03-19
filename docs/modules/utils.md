@@ -15,7 +15,7 @@ Utility layer for text, time, file, stderr interception, system detection, and e
 - `text_utility.py` - text processing/validation helpers.
 - `time_utility.py` - timestamps and time formatting helpers.
 - `file_utility.py` - file/path utility helpers.
-- `stderr_interceptor.py` - import-time stderr interception support.
+- `stderr_interceptor.py` - explicit stderr interception controls and interception runtime.
 - `system_detector.py` - runtime environment/system detection.
 - `error_logger.py` - internal error logging helpers.
 - `__init__.py` - utility exports.

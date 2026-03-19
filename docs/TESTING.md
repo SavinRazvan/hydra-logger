@@ -52,7 +52,7 @@ Planned enterprise ratchet sequence for `hydra_logger`:
 - Stage 4: `90`
 - Stage 5: `95` (active)
 
-Latest verification snapshot (2026-03-17):
+Historical verification snapshot (2026-03-17, informational only):
 
 - `.hydra_env/bin/python -m pytest --cov=hydra_logger --cov-report=term-missing -q` => `96%` total.
 - `.hydra_env/bin/python -m pytest tests/benchmark --cov=benchmark --cov-report=term-missing --cov-fail-under=95 -q` => `100%` total.
@@ -79,7 +79,9 @@ PR preparation (`scripts/pr/prepare.py`) enforces:
 
 - `.hydra_env/bin/python -m pytest -q`
 - `.hydra_env/bin/python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=95 -q`
+- `.hydra_env/bin/python scripts/dev/check_version_consistency.py`
 - `.hydra_env/bin/python scripts/pr/check_slim_headers.py --all-python --strict`
+- `.hydra_env/bin/python benchmark/performance_benchmark.py --profile ci_smoke --no-save-results` (unless explicitly skipped)
 
 Static/security staged enforcement policy in CI:
 

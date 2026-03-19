@@ -41,17 +41,17 @@ Primary references:
 
 ```bash
 # Tiered benchmark profiles
-python3 benchmark/performance_benchmark.py --profile ci_smoke
-python3 benchmark/performance_benchmark.py --profile pr_gate
-python3 benchmark/performance_benchmark.py --profile nightly_truth
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile ci_smoke
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile nightly_truth
 ```
 
 Use profile-specific artifact roots for cleaner comparison history:
 
 ```bash
-python3 benchmark/performance_benchmark.py --profile ci_smoke --results-dir benchmark/results/ci_smoke
-python3 benchmark/performance_benchmark.py --profile pr_gate --results-dir benchmark/results/pr_gate
-python3 benchmark/performance_benchmark.py --profile nightly_truth --results-dir benchmark/results/nightly_truth
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile ci_smoke --results-dir benchmark/results/ci_smoke
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate --results-dir benchmark/results/pr_gate
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile nightly_truth --results-dir benchmark/results/nightly_truth
 ```
 
 ---
@@ -126,7 +126,7 @@ Capture provenance in performance reviews:
 
 ```bash
 git rev-parse --short HEAD
-python3 --version
+.hydra_env/bin/python --version
 uname -srmo
 ```
 

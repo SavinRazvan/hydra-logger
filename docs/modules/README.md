@@ -26,6 +26,7 @@ Each module page in this folder should include:
 ## Module Index
 
 - [`root-package.md`](root-package.md) - top-level API exports in `hydra_logger/__init__.py`.
+- [`cli.md`](cli.md) - command-line entrypoint behavior in `hydra_logger/cli.py`.
 - [`loggers.md`](loggers.md) - logger implementations and lifecycle behavior.
 - [`handlers.md`](handlers.md) - destination handlers and delivery semantics.
 - [`formatters.md`](formatters.md) - formatting pipelines and output formats.
@@ -35,6 +36,8 @@ Each module page in this folder should include:
 - [`types.md`](types.md) - record, level, context, and enum type system.
 - [`extensions.md`](extensions.md) - extension interfaces and security extension surface.
 - [`utils.md`](utils.md) - utility helpers used across modules.
+- `hydra_logger/loggers/pipeline/` - runtime pipeline components (`RecordBuilder`, `LayerRouter`, `HandlerDispatcher`, `ExtensionProcessor`, `ComponentDispatcher`).
+- [`MODULE_COVERAGE_MATRIX.md`](MODULE_COVERAGE_MATRIX.md) - module-to-doc coverage status and review priorities.
 - [`module-governance.md`](module-governance.md) - docs maintenance workflow and quality gates.
 
 ## Package Dependency View
@@ -78,7 +81,9 @@ graph TD
 | Module | Page | Status |
 |---|---|---|
 | root package | `root-package.md` | maintained |
+| CLI entrypoint | `cli.md` | maintained |
 | loggers | `loggers.md` | maintained |
+| logger pipeline | `loggers.md` (runtime internals) | maintained |
 | handlers | `handlers.md` | maintained |
 | formatters | `formatters.md` | maintained |
 | config | `config.md` | maintained |
@@ -87,3 +92,4 @@ graph TD
 | types | `types.md` | maintained |
 | extensions | `extensions.md` | maintained |
 | utils | `utils.md` | maintained |
+| module coverage matrix | `MODULE_COVERAGE_MATRIX.md` | maintained |

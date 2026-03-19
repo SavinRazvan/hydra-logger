@@ -26,6 +26,12 @@ Optional fast mode (skip heavy benchmark/build checks):
 .hydra_env/bin/python scripts/release/preflight.py --skip-benchmark --skip-build
 ```
 
+If you need persisted benchmark evidence for release notes, run a saved benchmark explicitly:
+
+```bash
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate
+```
+
 ## Gate Details
 
 - **Version consistency**: `scripts/dev/check_version_consistency.py` must pass.
@@ -42,5 +48,5 @@ Capture at minimum:
 - commit SHA and tag candidate
 - full preflight output
 - CI run URL for green release candidate build
-- benchmark JSON artifact used for release decision
+- benchmark JSON artifact used for release decision (from an explicit saved benchmark run)
 - any accepted residual risks with owner + follow-up date

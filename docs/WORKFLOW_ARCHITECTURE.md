@@ -11,6 +11,7 @@ For module-level ownership and symbol detail, use `docs/modules/README.md`.
 - Formatter selection behavior
 - Extension processing points
 - Factory-to-runtime instantiation path
+- Pipeline components in `hydra_logger/loggers/pipeline`
 
 ## End-To-End Logging Pipeline
 
@@ -22,12 +23,16 @@ flowchart TD
   extensionStep -->|No| routeLayer[ResolveLayer]
   extensionStep -->|Yes| extensionProcess[ProcessThroughExtensions]
   extensionProcess --> routeLayer
-  routeLayer --> levelCheck[LevelThresholdCheck]
+  routeLayer --> variantPath{LoggerVariant}
+  variantPath -->|SyncLogger| levelCheck[LevelThresholdCheck]
   levelCheck -->|BelowThreshold| stopDrop[DropMessage]
   levelCheck -->|Pass| resolveHandlers[ResolveHandlersForLayer]
+  variantPath -->|AsyncLogger| resolveHandlers
+  variantPath -->|CompositeAsync direct I/O| directIoPath[Direct I/O emit path]
   resolveHandlers --> formatterSelect[SelectFormatter]
   formatterSelect --> handlerEmit[EmitToDestination]
   handlerEmit --> doneNode[Done]
+  directIoPath --> doneNode
 ```
 
 ## Logger Variant Workflows
@@ -91,9 +96,7 @@ flowchart TD
   layerExists -->|Yes| useRequested[UseRequestedLayerHandlers]
   layerExists -->|No| hasDefault{DefaultLayerExists}
   hasDefault -->|Yes| useDefault[UseDefaultLayerHandlers]
-  hasDefault -->|No| anyLayer{AnyLayerAvailable}
-  anyLayer -->|Yes| useAny[UseAnyAvailableLayer]
-  anyLayer -->|No| noHandlers[NoHandlersResolved]
+  hasDefault -->|No| noHandlers[NoHandlersResolved]
 ```
 
 ## Formatter Selection Workflow
@@ -134,6 +137,10 @@ graph TD
   factoriesPkg --> configPkg
   handlersPkg --> formattersPkg
   handlersPkg --> typesPkg
+  loggersPkg --> pipelinePkg[loggers/pipeline]
+  pipelinePkg --> handlersPkg
+  pipelinePkg --> formattersPkg
+  pipelinePkg --> extensionsPkg
 ```
 
 ## Maintenance Rules

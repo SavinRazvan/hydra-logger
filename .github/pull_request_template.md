@@ -35,7 +35,7 @@ Closes #[issue_number]
 
 - [ ] Affected module pages in `docs/modules/` reviewed and updated
 - [ ] `docs/modules/README.md` index updated if module boundaries changed
-- [ ] `docs/MODULE_DOCS_AUDIT.md` findings and coverage matrix refreshed
+- [ ] `docs/modules/MODULE_COVERAGE_MATRIX.md` findings and coverage matrix refreshed
 - [ ] Mermaid workflow diagrams updated for changed runtime flows
 - [ ] Links from `README.md` and `docs/ARCHITECTURE.md` validated
 

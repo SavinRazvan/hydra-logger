@@ -17,6 +17,11 @@ Implements logger runtimes: synchronous, asynchronous, and composite forms.
 - `sync_logger.py` - sync logging path, layer routing, and handler dispatch.
 - `async_logger.py` - async logging path and async/sync fallback behavior.
 - `composite_logger.py` - fan-out logger patterns for multiple components.
+- `pipeline/record_builder.py` - hot-path record construction service.
+- `pipeline/layer_router.py` - layer resolution and routing service.
+- `pipeline/handler_dispatcher.py` - destination dispatch orchestration.
+- `pipeline/extension_processor.py` - extension execution in logging flow.
+- `pipeline/component_dispatcher.py` - composite component fan-out dispatch.
 - `__init__.py` - module export surface and convenience `getLogger()`.
 
 ## Runtime Flow
@@ -38,8 +43,8 @@ flowchart TD
 
 - `BaseLogger` centralizes performance profile selection for record creation.
 - `SyncLogger` applies per-layer threshold checks before dispatching handlers.
-- `AsyncLogger` supports async contexts and sync fallback behavior.
-- Composite loggers coordinate multiple logger instances and aggregate health.
+- `AsyncLogger` supports async contexts, queue-runtime mode, and sync fallback behavior.
+- Composite loggers coordinate multiple logger instances and aggregate health; composite async defaults to a direct-I/O path unless configured otherwise.
 
 ## Public Surface (module-level)
 

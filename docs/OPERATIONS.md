@@ -47,7 +47,7 @@ Monitor and alert on these classes of signals:
 
 Before merge for runtime-sensitive changes:
 
-- run `scripts/release/preflight.py` for integrated release gates
+- run `.hydra_env/bin/python scripts/release/preflight.py` for integrated release gates
 - run targeted module tests for changed logger/handler paths
 - attach benchmark JSON evidence for the selected profile tier
 - document residual risk and rollback strategy when any advisory signal remains

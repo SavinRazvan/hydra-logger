@@ -56,7 +56,7 @@ Review phase:
 
 - `python scripts/pr/workflow.py --phase review`
 
-Prepare phase (runs `pytest -q` + slim header check):
+Prepare phase (runs full default gates):
 
 - `python scripts/pr/workflow.py --phase prepare`
 
@@ -98,7 +98,10 @@ Run entire flow in one command:
 ## Required Gates (enforced by `prepare`)
 
 - `python -m pytest -q`
+- `python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=95 -q`
+- `python scripts/dev/check_version_consistency.py`
 - `python scripts/pr/check_slim_headers.py --all-python --strict`
+- `python benchmark/performance_benchmark.py --profile ci_smoke --no-save-results` (unless `--skip-benchmark-gate`)
 
 ## Release Preflight
 
@@ -140,7 +143,7 @@ Mandatory evidence for each slice:
 - `.local/review.md`
 - `.local/prep.md`
 - `.local/merge.md`
-- latest benchmark artifact set in `benchmark/results/` (JSON + summary/drift/invariants/leaks)
+- latest benchmark artifact set in `benchmark/results/` (JSON + summary/drift/invariants/leaks) when benchmark execution is configured to save artifacts
 
 ## Notes
 

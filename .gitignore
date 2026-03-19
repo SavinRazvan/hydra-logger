@@ -279,7 +279,7 @@ scripts/release/*
 !scripts/release/verify_dist_contents.py
 AGENTS.md
 docs/AGENT_AUTOMATION.md
-_knowledge/
+docs/private/
 
 # Temporary Tools
 .tmp_tools
