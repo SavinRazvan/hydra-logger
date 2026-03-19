@@ -8,13 +8,13 @@ Notes:
  - Re-exports the hydra_logger.extensions public API with stable import paths.
 """
 
+from .base import Extension, ExtensionConfig
 from .extension_base import (
     ExtensionBase,
     FormattingExtension,
     PerformanceExtension,
     SecurityExtension,
 )
-from .base import Extension, ExtensionConfig
 from .extension_manager import ExtensionManager
 
 # Exports

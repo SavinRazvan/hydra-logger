@@ -34,7 +34,10 @@ def test_check_pip_health_warns_on_dependency_mismatches(monkeypatch) -> None:
     responses = iter(
         [
             (0, "pip 26.0.1 from /tmp/site-packages/pip"),
-            (1, "sample-package 1.0 requires other-package>=2.0, which is not installed."),
+            (
+                1,
+                "sample-package 1.0 requires other-package>=2.0, which is not installed.",
+            ),
         ]
     )
     monkeypatch.setattr(module, "_run", lambda cmd, env=None: next(responses))

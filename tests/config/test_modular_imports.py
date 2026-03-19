@@ -10,11 +10,9 @@ Notes:
 
 from hydra_logger.config.destinations import LogDestination
 from hydra_logger.config.layers import LogLayer
-from hydra_logger.config.models import (
-    LogDestination as LegacyLogDestination,
-    LogLayer as LegacyLogLayer,
-    LoggingConfig as LegacyLoggingConfig,
-)
+from hydra_logger.config.models import LogDestination as LegacyLogDestination
+from hydra_logger.config.models import LoggingConfig as LegacyLoggingConfig
+from hydra_logger.config.models import LogLayer as LegacyLogLayer
 from hydra_logger.config.runtime import LoggingConfig
 from hydra_logger.config.validation import normalize_level
 

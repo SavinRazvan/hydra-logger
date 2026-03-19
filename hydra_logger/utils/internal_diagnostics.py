@@ -11,7 +11,6 @@ Notes:
 import logging
 from typing import Any
 
-
 _logger = logging.getLogger("hydra_logger.internal")
 _logger.addHandler(logging.NullHandler())
 

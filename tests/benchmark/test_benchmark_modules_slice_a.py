@@ -16,6 +16,7 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
+
 from benchmark.guards import (
     disable_direct_io_if_available,
     ensure_composite_file_target,
@@ -120,9 +121,10 @@ def test_rebase_file_destinations_to_benchmark_logs_rewrites_paths() -> None:
 
     assert rebased is not config
     assert rebased.layers["default"].destinations[0].path is not None
-    assert "/tmp/bench/config_default_default_0.log" in rebased.layers["default"].destinations[
-        0
-    ].path
+    assert (
+        "/tmp/bench/config_default_default_0.log"
+        in rebased.layers["default"].destinations[0].path
+    )
     assert rebased.layers["default"].destinations[1].type == "console"
 
 

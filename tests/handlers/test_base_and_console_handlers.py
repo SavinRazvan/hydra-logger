@@ -8,11 +8,12 @@ Notes:
  - Validates level filtering and buffered console flush lifecycle.
 """
 
-import io
 import asyncio
+import io
 from datetime import datetime, timezone
 
 import pytest
+
 from hydra_logger.handlers import console_handler as console_module
 from hydra_logger.handlers.base_handler import BaseHandler
 from hydra_logger.handlers.console_handler import (
@@ -102,13 +103,17 @@ def test_base_handler_utc_timestamp_and_abstract_emit_body() -> None:
         timezone_name="UTC",
         include_timezone=True,
     )
-    ts_record = LogRecord(level=20, level_name="INFO", message="utc ts", timestamp=1700000000.0)
+    ts_record = LogRecord(
+        level=20, level_name="INFO", message="utc ts", timestamp=1700000000.0
+    )
     assert handler.format_timestamp(ts_record)
     utc_now_record = LogRecord(level=20, level_name="INFO", message="utc now")
     utc_now_record.timestamp = None
     assert handler.format_timestamp(utc_now_record)
 
-    with pytest.raises(NotImplementedError, match="Subclasses must implement emit method"):
+    with pytest.raises(
+        NotImplementedError, match="Subclasses must implement emit method"
+    ):
         BaseHandler.emit(handler, ts_record)
 
 
@@ -158,7 +163,9 @@ def test_async_console_handler_emit_paths_and_factories() -> None:
         assert handler.get_stats()["messages_processed"] >= 2
 
     asyncio.run(_run())
-    assert isinstance(create_sync_console_handler(stream=io.StringIO()), SyncConsoleHandler)
+    assert isinstance(
+        create_sync_console_handler(stream=io.StringIO()), SyncConsoleHandler
+    )
     assert isinstance(
         create_async_console_handler(stream=io.StringIO()), AsyncConsoleHandler
     )
@@ -168,7 +175,11 @@ def test_async_console_handler_drops_messages_on_write_error(monkeypatch) -> Non
     async def _run() -> None:
         stream = io.StringIO()
         handler = AsyncConsoleHandler(stream=stream, buffer_size=1, flush_interval=60)
-        monkeypatch.setattr(handler, "_write_to_stream", lambda _msg: (_ for _ in ()).throw(OSError("boom")))
+        monkeypatch.setattr(
+            handler,
+            "_write_to_stream",
+            lambda _msg: (_ for _ in ()).throw(OSError("boom")),
+        )
         await handler.emit_async(LogRecord(level=20, level_name="INFO", message="x"))
         assert handler.get_stats()["messages_dropped"] >= 1
         await handler.aclose()
@@ -184,7 +195,9 @@ def test_async_console_handler_logs_stream_write_failures(caplog) -> None:
         def flush(self) -> None:
             return None
 
-    handler = AsyncConsoleHandler(stream=BrokenStream(), buffer_size=1, flush_interval=60)
+    handler = AsyncConsoleHandler(
+        stream=BrokenStream(), buffer_size=1, flush_interval=60
+    )
 
     with caplog.at_level("ERROR", logger="hydra_logger.handlers.console_handler"):
         handler._write_to_stream("x")
@@ -263,9 +276,13 @@ def test_async_console_handler_start_worker_exception_logs(caplog, monkeypatch) 
     asyncio.run(_run())
 
 
-def test_async_console_handler_worker_loop_timeout_and_cancel_paths(monkeypatch) -> None:
+def test_async_console_handler_worker_loop_timeout_and_cancel_paths(
+    monkeypatch,
+) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=10, flush_interval=0.01)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=10, flush_interval=0.01
+        )
         handler._running = True
         timeout_seen = {"count": 0}
 
@@ -286,7 +303,9 @@ def test_async_console_handler_worker_loop_timeout_and_cancel_paths(monkeypatch)
 
 def test_async_console_handler_write_messages_error_drops_count(monkeypatch) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=1, flush_interval=1)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=1, flush_interval=1
+        )
 
         async def _boom(*_args, **_kwargs):
             raise RuntimeError("executor fail")
@@ -361,7 +380,9 @@ def test_sync_console_handler_flush_empty_and_auto_cleanup_exception_paths(
 
     # ValueError closed-file branch
     monkeypatch.setattr(
-        handler, "_flush_buffer", lambda: (_ for _ in ()).throw(ValueError("closed file"))
+        handler,
+        "_flush_buffer",
+        lambda: (_ for _ in ()).throw(ValueError("closed file")),
     )
     handler._buffer = ["x"]
     handler._auto_cleanup()
@@ -407,7 +428,9 @@ def test_async_console_handler_flush_async_buffer_and_write_messages_paths(
     monkeypatch,
 ) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=10, flush_interval=1)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=10, flush_interval=1
+        )
         await handler._flush_async_buffer()  # empty branch
 
         class _Loop:
@@ -424,7 +447,9 @@ def test_async_console_handler_flush_async_buffer_and_write_messages_paths(
 
 def test_async_console_handler_worker_loop_additional_edge_paths(monkeypatch) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=10, flush_interval=1)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=10, flush_interval=1
+        )
 
         # cover _start_worker running guard
         handler._running = True
@@ -505,7 +530,9 @@ def test_async_console_handler_auto_cleanup_outer_exception_and_aclose_variants(
     asyncio.run(_run())
 
 
-def test_sync_console_auto_cleanup_valueerror_non_closed_logs(caplog, monkeypatch) -> None:
+def test_sync_console_auto_cleanup_valueerror_non_closed_logs(
+    caplog, monkeypatch
+) -> None:
     handler = SyncConsoleHandler(stream=io.StringIO())
     handler._buffer = ["x"]
     monkeypatch.setattr(
@@ -550,7 +577,11 @@ def test_async_console_aclose_runtime_and_cancelled_paths(monkeypatch) -> None:
     async def _run_runtime_pass_path() -> None:
         handler = AsyncConsoleHandler(stream=io.StringIO())
         handler._worker_task = Task()
-        monkeypatch.setattr(asyncio, "get_running_loop", lambda: (_ for _ in ()).throw(RuntimeError("none")))
+        monkeypatch.setattr(
+            asyncio,
+            "get_running_loop",
+            lambda: (_ for _ in ()).throw(RuntimeError("none")),
+        )
         await handler.aclose()  # hits RuntimeError/AttributeError pass block
 
     asyncio.run(_run_runtime_pass_path())
@@ -582,7 +613,9 @@ def test_async_console_aclose_runtime_and_cancelled_paths(monkeypatch) -> None:
 
 def test_async_console_worker_loop_shutdown_and_outer_generic_paths(caplog) -> None:
     async def _run_shutdown_break() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=10, flush_interval=10)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=10, flush_interval=10
+        )
 
         class ToggleEvent:
             def __init__(self) -> None:
@@ -615,9 +648,13 @@ def test_async_console_worker_loop_shutdown_and_outer_generic_paths(caplog) -> N
     asyncio.run(_run_outer_generic_exception())
 
 
-def test_async_console_worker_loop_queue_and_flush_runtime_branches(monkeypatch) -> None:
+def test_async_console_worker_loop_queue_and_flush_runtime_branches(
+    monkeypatch,
+) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=1, flush_interval=10)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=1, flush_interval=10
+        )
 
         class EventFalse:
             def is_set(self):
@@ -656,9 +693,13 @@ def test_async_console_worker_loop_queue_and_flush_runtime_branches(monkeypatch)
     asyncio.run(_run())
 
 
-def test_async_console_worker_loop_final_flush_exception_branch(monkeypatch, caplog) -> None:
+def test_async_console_worker_loop_final_flush_exception_branch(
+    monkeypatch, caplog
+) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=100, flush_interval=100)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=100, flush_interval=100
+        )
         state = {"calls": 0}
 
         class EventWithSet:
@@ -695,7 +736,9 @@ def test_async_console_worker_loop_final_flush_exception_branch(monkeypatch, cap
 
 def test_async_console_worker_loop_runtime_break_branch(monkeypatch) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=100, flush_interval=100)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=100, flush_interval=100
+        )
         handler._shutdown_event.set()
         calls = {"n": 0}
 
@@ -714,7 +757,9 @@ def test_async_console_worker_loop_runtime_break_branch(monkeypatch) -> None:
 
 def test_async_console_worker_loop_generic_break_when_shutdown_set(monkeypatch) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=100, flush_interval=100)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=100, flush_interval=100
+        )
 
         class Event:
             def __init__(self) -> None:
@@ -746,7 +791,9 @@ def test_async_console_worker_loop_generic_break_when_shutdown_set(monkeypatch) 
 
 def test_async_console_worker_loop_inner_runtime_exception_break(monkeypatch) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=100, flush_interval=100)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=100, flush_interval=100
+        )
 
         class BrokenQueue:
             async def get(self):
@@ -762,9 +809,13 @@ def test_async_console_worker_loop_inner_runtime_exception_break(monkeypatch) ->
     asyncio.run(_run())
 
 
-def test_async_console_worker_loop_get_nowait_append_and_queueempty_break(monkeypatch) -> None:
+def test_async_console_worker_loop_get_nowait_append_and_queueempty_break(
+    monkeypatch,
+) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=999, flush_interval=999)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=999, flush_interval=999
+        )
 
         class ControlledEvent:
             def __init__(self) -> None:
@@ -817,7 +868,9 @@ def test_async_console_worker_loop_get_nowait_append_and_queueempty_break(monkey
 
 def test_async_console_worker_loop_flush_success_updates_state(monkeypatch) -> None:
     async def _run() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=1, flush_interval=999)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=1, flush_interval=999
+        )
         before_flush = handler._last_async_flush
 
         class ToggleEvent:
@@ -851,7 +904,9 @@ def test_async_console_worker_loop_inner_exception_and_outer_runtime_debug(
     monkeypatch, caplog
 ) -> None:
     async def _run_inner_exception_then_outer_runtime() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=1, flush_interval=1)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=1, flush_interval=1
+        )
 
         class EventSequenced:
             def __init__(self) -> None:
@@ -895,10 +950,14 @@ def test_async_console_worker_loop_inner_exception_and_outer_runtime_debug(
     asyncio.run(_run_inner_exception_then_outer_runtime())
 
     async def _run_inner_runtime_break() -> None:
-        handler = AsyncConsoleHandler(stream=io.StringIO(), buffer_size=1, flush_interval=1)
+        handler = AsyncConsoleHandler(
+            stream=io.StringIO(), buffer_size=1, flush_interval=1
+        )
+
         async def _runtime_wait_for(_coro, *args, **kwargs):
             _coro.close()
             raise RuntimeError("inner-break")
+
         monkeypatch.setattr(asyncio, "wait_for", _runtime_wait_for)
         await handler._worker_loop()  # hits inner RuntimeError/CancelledError break
 

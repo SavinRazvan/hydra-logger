@@ -252,7 +252,9 @@ class LogRecordFactory:
             # FIX: Log error instead of silently failing - helps debug frame inspection issues
             # Silent failure - context is optional, but we should at least know if
             # there's a problem
-            _logger.exception("Auto-context extraction failed; proceeding without caller info")
+            _logger.exception(
+                "Auto-context extraction failed; proceeding without caller info"
+            )
 
         return LogRecord(
             timestamp=kwargs.get("timestamp", time.time()),

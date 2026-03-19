@@ -15,12 +15,12 @@ Notes:
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
+import io
 import sys
 import tarfile
-from tarfile import TarInfo
 import zipfile
-import io
+from pathlib import Path
+from tarfile import TarInfo
 
 
 def _load_verify_module():
@@ -35,12 +35,16 @@ def _load_verify_module():
     return module
 
 
-def _write_fake_wheel(path: Path, *, include_forbidden: bool = False, include_cli: bool = True) -> None:
+def _write_fake_wheel(
+    path: Path, *, include_forbidden: bool = False, include_cli: bool = True
+) -> None:
     with zipfile.ZipFile(path, mode="w") as archive:
         archive.writestr("hydra_logger/__init__.py", "__version__='0.0.0'")
         if include_cli:
             archive.writestr("hydra_logger/cli.py", "def main():\n    return 0\n")
-        archive.writestr("hydra_logger-0.0.0.dist-info/METADATA", "Metadata-Version: 2.1")
+        archive.writestr(
+            "hydra_logger-0.0.0.dist-info/METADATA", "Metadata-Version: 2.1"
+        )
         if include_forbidden:
             archive.writestr("benchmark/results/benchmark_latest.json", "{}")
 

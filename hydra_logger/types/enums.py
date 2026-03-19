@@ -9,8 +9,8 @@ Notes:
  - Defines shared type contracts/constants for enums.
 """
 
-from enum import Enum
 import logging
+from enum import Enum
 from typing import Any, List
 
 _logger = logging.getLogger(__name__)

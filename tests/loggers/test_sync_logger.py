@@ -8,10 +8,11 @@ Notes:
  - Validates level filtering, lifecycle, and close semantics.
 """
 
-import pytest
 import builtins
 
-from hydra_logger.config.models import LogDestination, LogLayer, LoggingConfig
+import pytest
+
+from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.loggers.sync_logger import SyncLogger
 
 
@@ -19,7 +20,8 @@ def test_sync_logger_filters_by_layer_level() -> None:
     config = LoggingConfig(
         layers={
             "default": LogLayer(
-                level="ERROR", destinations=[LogDestination(type="console", format="plain-text")]
+                level="ERROR",
+                destinations=[LogDestination(type="console", format="plain-text")],
             )
         }
     )
@@ -153,7 +155,9 @@ def test_sync_logger_create_console_handler_applies_level(
         "hydra_logger.handlers.console_handler.SyncConsoleHandler",
         FakeConsoleHandler,
     )
-    monkeypatch.setattr("hydra_logger.types.levels.LogLevelManager.get_level", lambda _v: 77)
+    monkeypatch.setattr(
+        "hydra_logger.types.levels.LogLevelManager.get_level", lambda _v: 77
+    )
 
     logger = SyncLogger(
         config=LoggingConfig(
@@ -190,8 +194,12 @@ def test_sync_logger_create_file_handler_uses_resolved_path_and_level(
         def close(self) -> None:
             pass
 
-    monkeypatch.setattr("hydra_logger.handlers.file_handler.SyncFileHandler", FakeFileHandler)
-    monkeypatch.setattr("hydra_logger.types.levels.LogLevelManager.get_level", lambda _v: 13)
+    monkeypatch.setattr(
+        "hydra_logger.handlers.file_handler.SyncFileHandler", FakeFileHandler
+    )
+    monkeypatch.setattr(
+        "hydra_logger.types.levels.LogLevelManager.get_level", lambda _v: 13
+    )
     monkeypatch.setattr(
         LoggingConfig, "resolve_log_path", lambda self, path, fmt=None: f"/tmp/{path}"
     )
@@ -200,7 +208,9 @@ def test_sync_logger_create_file_handler_uses_resolved_path_and_level(
         config=LoggingConfig(
             layers={
                 "default": LogLayer(
-                    destinations=[LogDestination(type="file", path="raw.log", level="DEBUG")]
+                    destinations=[
+                        LogDestination(type="file", path="raw.log", level="DEBUG")
+                    ]
                 )
             }
         )
@@ -254,7 +264,9 @@ def test_sync_logger_create_network_handlers_from_typed_destinations(
         "hydra_logger.handlers.network_handler.NetworkHandlerFactory.create_datagram_handler",
         _capture("datagram", "datagram"),
     )
-    monkeypatch.setattr("hydra_logger.types.levels.LogLevelManager.get_level", lambda _v: 23)
+    monkeypatch.setattr(
+        "hydra_logger.types.levels.LogLevelManager.get_level", lambda _v: 23
+    )
 
     logger = SyncLogger(
         config=LoggingConfig(
@@ -359,7 +371,9 @@ def test_sync_logger_emit_to_handlers_tolerates_handler_failures() -> None:
     logger.close()
 
 
-def test_sync_logger_convenience_methods_fallback_to_log_when_precompute_missing() -> None:
+def test_sync_logger_convenience_methods_fallback_to_log_when_precompute_missing() -> (
+    None
+):
     logger = SyncLogger()
     logger._log_methods = {}
     seen = []

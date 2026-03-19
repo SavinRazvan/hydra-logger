@@ -49,7 +49,9 @@ def test_evaluate_drift_policy_returns_disabled_when_not_enabled(tmp_path) -> No
     assert report["status"] == "disabled"
 
 
-def test_evaluate_drift_policy_skips_when_baseline_history_is_too_small(tmp_path) -> None:
+def test_evaluate_drift_policy_skips_when_baseline_history_is_too_small(
+    tmp_path,
+) -> None:
     _write_result(
         results_dir=tmp_path,
         filename="benchmark_2026-03-16_00-00-00.json",
@@ -113,7 +115,9 @@ def test_evaluate_drift_policy_detects_median_and_p95_regression(tmp_path) -> No
     assert "p95 drift" in violations[0] or "p95 drift" in violations[1]
 
 
-def test_evaluate_drift_policy_passes_when_current_matches_baseline_band(tmp_path) -> None:
+def test_evaluate_drift_policy_passes_when_current_matches_baseline_band(
+    tmp_path,
+) -> None:
     _write_result(
         results_dir=tmp_path,
         filename="benchmark_2026-03-16_00-00-10.json",
@@ -149,7 +153,8 @@ def test_evaluate_drift_policy_passes_when_current_matches_baseline_band(tmp_pat
     assert violations == []
     assert report["status"] == "passed"
     assert (
-        report["metrics"]["sync_logger.individual_messages_per_second"]["status"] == "ok"
+        report["metrics"]["sync_logger.individual_messages_per_second"]["status"]
+        == "ok"
     )
 
 

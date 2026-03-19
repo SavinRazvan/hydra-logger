@@ -52,8 +52,39 @@ Before merge for runtime-sensitive changes:
 - attach benchmark JSON evidence for the selected profile tier
 - document residual risk and rollback strategy when any advisory signal remains
 
+## Ownership and review gates
+
+Critical paths (require maintainer review for functional changes):
+
+| Area | Modules / workflows |
+| --- | --- |
+| Handlers / transports | `hydra_logger/handlers/` |
+| Logger runtimes | `hydra_logger/loggers/` |
+| Configuration | `hydra_logger/config/` |
+| Release & CI | `.github/workflows/`, `scripts/release/` |
+
+## Rollout and rollback
+
+Staged delivery for behavior-affecting changes:
+
+1. **dev** → **staging** → **canary** → **prod**
+2. **Rollout gates**: no sustained increase in dropped-log rate vs baseline; async
+   flush latency within agreed p95/p99 budget; no new critical security findings.
+3. **Rollback triggers**: sustained handler error rate or queue saturation over
+   agreed windows; failed benchmark guard tiers; user-visible data loss.
+
+## SLIs / SLOs (library hooks)
+
+Process-local counters and latency samples live in `hydra_logger.utils.slo_metrics`
+(`record_dropped_log`, `record_handler_error`, `record_queue_saturation`,
+`record_flush_latency`, `snapshot()`, `flush_latency_percentiles()`). Applications
+should export these to their metrics stack; initial **SLO targets** are owned by
+the deploying team (suggested starting points: dropped logs ≈ 0 in steady state;
+flush p99 within service budget; handler errors not trending up release-over-release).
+
 ## References
 
 - `docs/TESTING.md`
 - `docs/PERFORMANCE.md`
+- `docs/RELEASE_POLICY.md`
 - `benchmark/README.md`

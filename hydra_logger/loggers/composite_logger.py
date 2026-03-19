@@ -22,10 +22,10 @@ from ..config.models import LogDestination, LoggingConfig, LogLayer
 from ..core.exceptions import HydraLoggerError
 from ..handlers.base_handler import BaseHandler
 from ..types.records import LogRecordFactory
+from ..utils import internal_diagnostics, slo_metrics
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ComponentDispatcher
-
 
 _logger = logging.getLogger(__name__)
 
@@ -677,10 +677,12 @@ class CompositeAsyncLogger(BaseLogger):
                     formatted_message = message
 
                 # Emit with pre-formatted message
-                self._direct_io_emit(level_str, formatted_message, pre_formatted=True)
+                await self._direct_io_emit(
+                    level_str, formatted_message, pre_formatted=True
+                )
             else:
                 # Direct string formatting
-                self._direct_string_format(level_str, message, layer_str, kwargs)
+                await self._direct_string_format(level_str, message, layer_str, kwargs)
 
             self._log_count += 1
             return
@@ -730,7 +732,7 @@ class CompositeAsyncLogger(BaseLogger):
                 layer_str = self._common_strings.get(layer, layer)
 
                 # Use direct string formatting for speed
-                self._direct_string_format(level_str, message, layer_str, kwargs)
+                await self._direct_string_format(level_str, message, layer_str, kwargs)
                 self._log_count += 1
             return
 
@@ -757,10 +759,85 @@ class CompositeAsyncLogger(BaseLogger):
                 layer_str = self._common_strings.get(layer, layer)
 
                 # Use direct string formatting for speed
-                self._direct_string_format(level_str, message, layer_str, kwargs)
+                await self._direct_string_format(level_str, message, layer_str, kwargs)
                 self._log_count += 1
 
-    def _direct_string_format(
+    def _resolve_direct_io_file_path(self) -> Optional[str]:
+        """Resolve file path for direct I/O from components or config."""
+        for component in self.components:
+            if hasattr(component, "file_path") and component.file_path:
+                return str(component.file_path)
+        config = self._config
+        if config is not None and getattr(config, "layers", None):
+            for layer in config.layers.values():
+                for destination in layer.destinations:
+                    if destination.type in {"file", "async_file"} and destination.path:
+                        return str(
+                            config.resolve_log_path(
+                                destination.path, destination.format
+                            )
+                        )
+        return None
+
+    def _write_direct_io_payload(self, file_path: Optional[str], payload: str) -> None:
+        """Blocking write of buffered direct I/O payload."""
+        if not payload:
+            return
+        if not file_path:
+            return
+        try:
+            with open(
+                file_path,
+                "a",
+                encoding="utf-8",
+                buffering=8388608,
+            ) as handle:
+                handle.write(payload)
+        except Exception as exc:
+            internal_diagnostics.warning(
+                "CompositeAsyncLogger direct I/O write failed (data dropped): %s",
+                exc,
+            )
+            slo_metrics.record_handler_error("CompositeAsyncLogger.direct_io")
+
+    def _flush_direct_io_sync(self) -> None:
+        """Flush direct I/O buffer on the current thread (sync close path)."""
+        if not self._direct_io_buffer:
+            return
+        payload = "".join(self._direct_io_buffer)
+        self._direct_io_buffer.clear()
+        self._last_flush = TimeUtility.perf_counter()
+        file_path = self._resolve_direct_io_file_path()
+        self._write_direct_io_payload(file_path, payload)
+
+    def _flush_direct_io(self) -> None:
+        """Synchronous flush alias (tests, legacy call sites)."""
+        self._flush_direct_io_sync()
+
+    async def _flush_direct_io_async(self) -> None:
+        """Flush direct I/O without blocking the event loop when possible."""
+        if not self._direct_io_buffer:
+            return
+        payload = "".join(self._direct_io_buffer)
+        self._direct_io_buffer.clear()
+        self._last_flush = TimeUtility.perf_counter()
+        file_path = self._resolve_direct_io_file_path()
+
+        def _run() -> None:
+            self._write_direct_io_payload(file_path, payload)
+
+        started = TimeUtility.perf_counter()
+        try:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, _run)
+        except RuntimeError:
+            _run()
+        slo_metrics.record_flush_latency(
+            "composite_direct_io",
+            TimeUtility.perf_counter() - started,
+        )
+
+    async def _direct_string_format(
         self, level: str, message: str, layer: str, kwargs: dict
     ) -> None:
         """Direct string formatting."""
@@ -783,14 +860,14 @@ class CompositeAsyncLogger(BaseLogger):
 
         # Check if we should flush - optimize the condition check
         if len(self._direct_io_buffer) >= self._buffer_size:
-            self._flush_direct_io()
+            await self._flush_direct_io_async()
         else:
             # Only check time if buffer is not full
             current_time = TimeUtility.perf_counter()
             if (current_time - self._last_flush) >= self._flush_interval:
-                self._flush_direct_io()
+                await self._flush_direct_io_async()
 
-    def _direct_io_emit(
+    async def _direct_io_emit(
         self, level: str, message: str, layer: str = None, pre_formatted: bool = False
     ) -> None:
         """Direct I/O emit method."""
@@ -811,61 +888,12 @@ class CompositeAsyncLogger(BaseLogger):
 
         # Check if we should flush - optimize the condition check
         if len(self._direct_io_buffer) >= self._buffer_size:
-            self._flush_direct_io()
+            await self._flush_direct_io_async()
         else:
             # Only check time if buffer is not full
             current_time = TimeUtility.perf_counter()
             if (current_time - self._last_flush) >= self._flush_interval:
-                self._flush_direct_io()
-
-    def _flush_direct_io(self) -> None:
-        """Direct I/O flush."""
-        if not self._direct_io_buffer:
-            return
-
-        file_path: Optional[str] = None
-        try:
-            # Prefer an explicit file path exposed by a component.
-            for component in self.components:
-                if hasattr(component, "file_path") and component.file_path:
-                    file_path = component.file_path
-                    break
-
-            # Fallback to explicit file destinations from config only.
-            if not file_path:
-                config = self._config
-                if config is not None and getattr(config, "layers", None):
-                    for layer in config.layers.values():
-                        for destination in layer.destinations:
-                            if (
-                                destination.type in {"file", "async_file"}
-                                and destination.path
-                            ):
-                                file_path = config.resolve_log_path(
-                                    destination.path, destination.format
-                                )
-                                break
-                        if file_path:
-                            break
-
-            # Write only when an explicit destination exists.
-            if file_path:
-                # : Use massive buffering and single write operation
-                with open(
-                    file_path, "a", encoding="utf-8", buffering=8388608
-                ) as f:  # 8MB buffer for throughput
-                    # Join all messages at once - much faster than individual writes
-                    f.write("".join(self._direct_io_buffer))
-                    # Don't flush every time - let OS handle it for better performance
-
-        except Exception as e:
-            # Fallback to stdout if file writing fails
-            print(f"Warning: Failed to write to file, using stdout: {e}")
-            print("".join(self._direct_io_buffer), end="", flush=True)
-
-        # Clear buffer and update timestamp
-        self._direct_io_buffer.clear()
-        self._last_flush = TimeUtility.perf_counter()
+                await self._flush_direct_io_async()
 
     async def log_bulk(
         self, level: Union[str, int], messages: List[str], **kwargs
@@ -881,7 +909,7 @@ class CompositeAsyncLogger(BaseLogger):
                 if message is not None:
                     if not isinstance(message, str):
                         message = str(message)
-                    self._direct_io_emit(level_str, message)
+                    await self._direct_io_emit(level_str, message)
             self._log_count += len(messages)
             return
 
@@ -962,7 +990,7 @@ class CompositeAsyncLogger(BaseLogger):
 
             # Flush any remaining direct I/O
             if self._use_direct_io:
-                self._flush_direct_io()
+                await self._flush_direct_io_async()
 
             # Close all components in parallel
             close_tasks = []
@@ -980,9 +1008,10 @@ class CompositeAsyncLogger(BaseLogger):
                         )
                 except Exception as e:
                     component_name = getattr(component, "name", "unknown")
-                    print(
-                        f"Warning: Error preparing to close component "
-                        f"{component_name}: {e}"
+                    internal_diagnostics.warning(
+                        "Error preparing to close component %s: %s",
+                        component_name,
+                        e,
                     )
 
             if close_tasks:
@@ -993,11 +1022,12 @@ class CompositeAsyncLogger(BaseLogger):
                     )
                     if error_count > 0:
                         self._deferred_async_close_failures += error_count
-                        print(
-                            f"Warning: {error_count} component(s) failed to close properly"
+                        internal_diagnostics.warning(
+                            "%s component(s) failed to close properly",
+                            error_count,
                         )
                 except Exception as e:
-                    print(f"Warning: Error closing components: {e}")
+                    internal_diagnostics.warning("Error closing components: %s", e)
 
             if self._deferred_close_tasks:
                 deferred_results = await asyncio.gather(
@@ -1014,7 +1044,7 @@ class CompositeAsyncLogger(BaseLogger):
             self.components.clear()
 
         except Exception as e:
-            print(f"Error: Unexpected error during close: {e}")
+            internal_diagnostics.error("Unexpected error during async close: %s", e)
             # Still mark as closed even if there were errors
             self._closed = True
 
@@ -1029,7 +1059,7 @@ class CompositeAsyncLogger(BaseLogger):
 
             # Flush any remaining direct I/O
             if self._use_direct_io:
-                self._flush_direct_io()
+                self._flush_direct_io_sync()
 
             # Close all components synchronously
             for component in self.components:

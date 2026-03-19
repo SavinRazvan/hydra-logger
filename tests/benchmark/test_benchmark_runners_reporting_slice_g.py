@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 import benchmark.runners as runners_mod
 from benchmark.reporting import (
     _conditionally_write_or_clear_report,
@@ -39,7 +40,9 @@ def test_run_async_concurrent_suite_returns_expected_shape() -> None:
             create_logger=lambda _count: _FakeLogger(),
             flush_async=lambda _logger: asyncio.sleep(0),
             close_async=lambda _logger: asyncio.sleep(0),
-            messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+            messages_per_second=lambda total, duration: (
+                total / duration if duration > 0 else 0.0
+            ),
         )
 
     result = asyncio.run(_run())
@@ -75,7 +78,9 @@ def test_run_parallel_workers_suite_uses_worker_results(monkeypatch, tmp_path) -
         matrix=[1, 2],
         messages_per_worker=5,
         bench_logs_dir=tmp_path,
-        messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+        messages_per_second=lambda total, duration: (
+            total / duration if duration > 0 else 0.0
+        ),
     )
 
     assert result["suite"] == "parallel_workers"
@@ -89,7 +94,9 @@ def test_run_parallel_workers_suite_rejects_non_positive_worker_count(tmp_path) 
             matrix=[0],
             messages_per_worker=5,
             bench_logs_dir=tmp_path,
-            messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+            messages_per_second=lambda total, duration: (
+                total / duration if duration > 0 else 0.0
+            ),
         )
 
 
@@ -105,7 +112,9 @@ def test_run_async_concurrent_suite_rejects_non_positive_task_count() -> None:
             create_logger=lambda _count: _FakeLogger(),
             flush_async=lambda _logger: asyncio.sleep(0),
             close_async=lambda _logger: asyncio.sleep(0),
-            messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+            messages_per_second=lambda total, duration: (
+                total / duration if duration > 0 else 0.0
+            ),
         )
 
     with pytest.raises(ValueError, match="task_count must be >= 1"):
@@ -139,7 +148,9 @@ def test_reporting_build_and_write_outputs(tmp_path) -> None:
     assert not (tmp_path / "benchmark_latest_leaks.md").exists()
 
 
-def test_reporting_write_results_artifacts_validates_missing_timestamp(tmp_path) -> None:
+def test_reporting_write_results_artifacts_validates_missing_timestamp(
+    tmp_path,
+) -> None:
     with pytest.raises(ValueError, match="metadata.timestamp"):
         write_results_artifacts(
             output_payload={"metadata": {}, "results": {}},
@@ -147,7 +158,9 @@ def test_reporting_write_results_artifacts_validates_missing_timestamp(tmp_path)
         )
 
 
-def test_reporting_write_results_artifacts_skips_markdown_when_disabled(tmp_path) -> None:
+def test_reporting_write_results_artifacts_skips_markdown_when_disabled(
+    tmp_path,
+) -> None:
     payload = build_output_payload(
         results={"sync_logger": {"messages_per_second": 1.0}},
         profile_name="ci_smoke",

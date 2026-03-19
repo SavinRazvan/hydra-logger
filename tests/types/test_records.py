@@ -117,11 +117,15 @@ def test_log_record_batch_lifecycle() -> None:
 def test_auto_context_creation_logs_when_inspection_fails(monkeypatch, caplog) -> None:
     import inspect
 
-    monkeypatch.setattr(inspect, "currentframe", lambda: (_ for _ in ()).throw(Exception()))
+    monkeypatch.setattr(
+        inspect, "currentframe", lambda: (_ for _ in ()).throw(Exception())
+    )
     with caplog.at_level("ERROR", logger="hydra_logger.types.records"):
         record = LogRecordFactory.create_with_auto_context("INFO", "hello")
     assert record.message == "hello"
-    assert "Auto-context extraction failed; proceeding without caller info" in caplog.text
+    assert (
+        "Auto-context extraction failed; proceeding without caller info" in caplog.text
+    )
 
 
 def test_auto_context_creation_handles_missing_frame(monkeypatch) -> None:
@@ -235,7 +239,9 @@ def test_auto_context_does_not_skip_repo_root_hyphen_path(monkeypatch) -> None:
         300,
         back=user_frame,
     )
-    top_frame = _FakeFrame(_FakeCode("/tmp/wrapper.py", "wrapper"), 1, back=internal_frame)
+    top_frame = _FakeFrame(
+        _FakeCode("/tmp/wrapper.py", "wrapper"), 1, back=internal_frame
+    )
     monkeypatch.setattr(inspect, "currentframe", lambda: top_frame)
 
     record = LogRecordFactory.create_with_auto_context("INFO", "hello")
@@ -265,7 +271,9 @@ def test_enhanced_function_name_handles_self_cls_special_and_failure_paths() -> 
         pass
 
     frame_cls = _Frame("build", {"cls": _ServiceClass}, ("cls",))
-    assert LogRecordFactory._get_enhanced_function_name(frame_cls) == "_ServiceClass.build"
+    assert (
+        LogRecordFactory._get_enhanced_function_name(frame_cls) == "_ServiceClass.build"
+    )
 
     frame_lambda = _Frame("<lambda>", {}, ())
     assert LogRecordFactory._get_enhanced_function_name(frame_lambda) == "<lambda>"
@@ -350,4 +358,7 @@ def test_enhanced_function_name_covers_co_varnames_self_and_cls_paths() -> None:
         _ClsProbeLocals(_Builder),
         ("cls",),
     )
-    assert LogRecordFactory._get_enhanced_function_name(frame_cls_varnames) == "_Builder.create"
+    assert (
+        LogRecordFactory._get_enhanced_function_name(frame_cls_varnames)
+        == "_Builder.create"
+    )

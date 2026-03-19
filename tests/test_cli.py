@@ -12,6 +12,7 @@ Notes:
 import runpy
 
 import pytest
+
 from hydra_logger import __version__
 from hydra_logger.cli import main
 

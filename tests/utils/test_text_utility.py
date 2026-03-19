@@ -22,7 +22,11 @@ def test_text_processor_normalization_extraction_and_pattern_helpers() -> None:
     processor = TextProcessor()
     assert processor.remove_accents("cafe deja vu") == "cafe deja vu"
     assert processor.clean_whitespace(" a\t b \r\n\r\n c ") == "a b \n\n c"
-    assert processor.extract_words("One two three", min_length=3) == ["one", "two", "three"]
+    assert processor.extract_words("One two three", min_length=3) == [
+        "one",
+        "two",
+        "three",
+    ]
     assert processor.count_occurrences("aaa", "a") == 3
     assert processor.extract_emails("user@example.com") == ["user@example.com"]
     assert processor.extract_ips("host 127.0.0.1") == ["127.0.0.1"]
@@ -171,6 +175,9 @@ def test_text_validator_luhn_adjustment_and_mask_exclude_branch() -> None:
     sanitizer = TextSanitizer()
     source = "email a@b.com token=abcd"
     # Exclude branch skips selected pattern processing.
-    assert sanitizer.sanitize(source, strategy="mask", exclude=["email", "token"]) == source
+    assert (
+        sanitizer.sanitize(source, strategy="mask", exclude=["email", "token"])
+        == source
+    )
     sanitizer._sensitive_patterns = {"short": __import__("re").compile(r"abc")}
     assert sanitizer.sanitize("abc", strategy="mask") == "***"

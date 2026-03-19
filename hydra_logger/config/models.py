@@ -28,6 +28,7 @@ from pydantic import (
 
 _logger = logging.getLogger(__name__)
 
+
 class LogDestination(BaseModel):
     """Destination-level handler configuration for a logging layer."""
 
@@ -111,6 +112,20 @@ class LogDestination(BaseModel):
     auth_token: Optional[str] = Field(
         default=None,
         description="Optional auth token for network HTTP/WS destinations",
+    )
+    connection_probe: bool = Field(
+        default=True,
+        description=(
+            "For network_http: run a lightweight HTTP probe before marking the handler "
+            "connected (see probe_method)"
+        ),
+    )
+    probe_method: Literal["GET", "HEAD", "OPTIONS", "none"] = Field(
+        default="GET",
+        description=(
+            "For network_http: HTTP verb for the connectivity probe (separate from emit "
+            "method). Use HEAD or none to avoid ingest side effects from GET."
+        ),
     )
 
     # Handler-specific configuration
@@ -334,6 +349,7 @@ class LogDestination(BaseModel):
 
         return self
 
+
 class LogLayer(BaseModel):
     """Layer-level logger configuration with destinations and level settings."""
 
@@ -402,6 +418,7 @@ class LogLayer(BaseModel):
         if not self.destinations:
             raise ValueError("Layer must have at least one destination")
         return self
+
 
 class LoggingConfig(BaseModel):
     """Root logging configuration model used by logger factories and runtimes."""
@@ -763,7 +780,9 @@ class LoggingConfig(BaseModel):
                 _logger.info("Created log directory: %s", final_path.parent)
 
         except Exception as exc:
-            _logger.exception("Primary log directory creation failed; using fallback: %s", exc)
+            _logger.exception(
+                "Primary log directory creation failed; using fallback: %s", exc
+            )
             if self.enforce_log_path_confinement:
                 raise ValueError(
                     "Unable to create confined log directory while strict path confinement "
@@ -858,6 +877,7 @@ class LoggingConfig(BaseModel):
 
         return self
 
+
 class HandlerConfig(BaseModel):
     """Base configuration for handlers."""
 
@@ -872,6 +892,7 @@ class HandlerConfig(BaseModel):
         default=None, description="File path for file handlers"
     )
 
+
 class FileHandlerConfig(HandlerConfig):
     """Configuration for file handlers."""
 
@@ -881,6 +902,7 @@ class FileHandlerConfig(HandlerConfig):
     max_size: str = Field(default="5MB", description="Maximum file size")
     backup_count: int = Field(default=3, description="Number of backup files")
 
+
 class ConsoleHandlerConfig(HandlerConfig):
     """Configuration for console handlers."""
 
@@ -889,11 +911,13 @@ class ConsoleHandlerConfig(HandlerConfig):
         default="stdout", description="Output stream"
     )
 
+
 class MemoryHandlerConfig(HandlerConfig):
     """Configuration for memory handlers."""
 
     type: Literal["memory"] = "memory"
     capacity: int = Field(default=1000, description="Memory capacity")
+
 
 class ModularConfig(BaseModel):
     """Modular configuration format for backward compatibility."""

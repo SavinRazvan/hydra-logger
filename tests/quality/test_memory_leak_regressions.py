@@ -19,7 +19,7 @@ import os
 import resource
 from typing import Any
 
-from hydra_logger.config.models import LogDestination, LogLayer, LoggingConfig
+from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.loggers.async_logger import AsyncLogger
 from hydra_logger.loggers.composite_logger import CompositeAsyncLogger, CompositeLogger
 from hydra_logger.loggers.sync_logger import SyncLogger
@@ -92,7 +92,9 @@ def _extract_queue_sizes(logger: Any) -> dict[str, int]:
         if "async_queue_size" in health:
             sizes["health.async_queue_size"] = int(health["async_queue_size"])
         if "pending_deferred_closes" in health:
-            sizes["health.pending_deferred_closes"] = int(health["pending_deferred_closes"])
+            sizes["health.pending_deferred_closes"] = int(
+                health["pending_deferred_closes"]
+            )
 
     for attr in ("_async_record_queue", "_overflow_queue", "_message_queue"):
         queue_obj = getattr(logger, attr, None)

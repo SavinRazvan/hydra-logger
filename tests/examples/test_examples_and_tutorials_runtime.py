@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_DIR = ROOT / "examples"
 TUTORIALS_DIR = EXAMPLES_DIR / "tutorials"
@@ -66,6 +65,8 @@ def test_examples_execute_without_runtime_errors(script_name: str, monkeypatch) 
 
 
 @pytest.mark.parametrize("script_name", TUTORIAL_SCRIPTS)
-def test_tutorials_execute_without_runtime_errors(script_name: str, monkeypatch) -> None:
+def test_tutorials_execute_without_runtime_errors(
+    script_name: str, monkeypatch
+) -> None:
     monkeypatch.chdir(ROOT)
     runpy.run_path(str(TUTORIALS_DIR / script_name), run_name="__main__")

@@ -34,7 +34,9 @@ def _record() -> LogRecord:
 
 
 def test_plain_text_formatter_replaces_placeholders() -> None:
-    formatter = PlainTextFormatter(format_string="{level_name}|{layer}|{message}|{file_name}")
+    formatter = PlainTextFormatter(
+        format_string="{level_name}|{layer}|{message}|{file_name}"
+    )
     rendered = formatter.format(_record())
     assert "WARNING|storage|disk nearly full|service.py" in rendered
 
@@ -53,7 +55,10 @@ def test_json_lines_formatter_serializes_structured_fields() -> None:
     "pattern, expected",
     [
         ("| {timestamp} | {level_name} | {layer} | {message}", "| "),
-        ("{timestamp} {level_name} {layer} {message}", "WARNING storage disk nearly full"),
+        (
+            "{timestamp} {level_name} {layer} {message}",
+            "WARNING storage disk nearly full",
+        ),
         ("{level_name} {layer} {message}", "WARNING storage disk nearly full"),
         ("{timestamp} {level_name} {message}", "WARNING disk nearly full"),
         ("{level_name} {message}", "WARNING disk nearly full"),
@@ -88,7 +93,9 @@ def test_plain_text_formatter_default_fallback_values() -> None:
         function_name=None,
         line_number=None,
     )
-    formatter = PlainTextFormatter(format_string="{file_name}|{function_name}|{line_number}")
+    formatter = PlainTextFormatter(
+        format_string="{file_name}|{function_name}|{line_number}"
+    )
     rendered = formatter.format(record)
     assert rendered == "unknown|unknown|0"
 

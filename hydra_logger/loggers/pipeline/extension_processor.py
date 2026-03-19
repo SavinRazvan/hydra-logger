@@ -13,8 +13,8 @@ import logging
 
 from ...types.records import LogRecord
 
-
 _logger = logging.getLogger(__name__)
+
 
 class ExtensionProcessor:
     """Apply enabled extension processors to log records."""

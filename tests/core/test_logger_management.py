@@ -115,7 +115,12 @@ def test_module_level_logger_management_wrappers(monkeypatch) -> None:
             self.default = "default"
 
         def getLogger(self, name=None, config=None, logger_type="sync", **kwargs):
-            return {"name": name, "type": logger_type, "config": config, "kwargs": kwargs}
+            return {
+                "name": name,
+                "type": logger_type,
+                "config": config,
+                "kwargs": kwargs,
+            }
 
         def hasLogger(self, name):
             return name == "exists"

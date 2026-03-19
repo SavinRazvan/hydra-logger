@@ -14,8 +14,8 @@ from hydra_logger.core.exceptions import (
     CompatibilityError,
     ConfigurationError,
     DataProtectionError,
-    FormatterError,
     FactoryError,
+    FormatterError,
     HandlerError,
     HydraLoggerError,
     LifecycleError,
@@ -54,7 +54,9 @@ def test_extended_exception_types_preserve_context_fields() -> None:
     formatter_err = FormatterError("fmt", formatter_type="json", format_string="{m}")
     async_err = AsyncError("async", operation="flush", coroutine_name="flush_worker")
     plugin_err = PluginError("plugin", plugin_name="redact", plugin_type="security")
-    security_err = SecurityError("sec", threat_type="xss", severity="high", source="req")
+    security_err = SecurityError(
+        "sec", threat_type="xss", severity="high", source="req"
+    )
     registry_err = RegistryError(
         "registry", component_type="handler", component_name="console", operation="add"
     )

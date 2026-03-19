@@ -11,7 +11,7 @@ Notes:
 """
 
 import logging
-from typing import Any, Dict, Optional, cast, Union
+from typing import Any, Dict, Optional, Union, cast
 
 from ..config.configuration_templates import configuration_templates
 from ..config.models import LoggingConfig
@@ -70,13 +70,18 @@ class LoggerFactory:
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
     ) -> SyncLogger:
         """Create a synchronous logger."""
-        return cast(SyncLogger, self.create_logger(config=config, logger_type="sync", **kwargs))
+        return cast(
+            SyncLogger, self.create_logger(config=config, logger_type="sync", **kwargs)
+        )
 
     def create_async_logger(
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
     ) -> AsyncLogger:
         """Create an asynchronous logger."""
-        return cast(AsyncLogger, self.create_logger(config=config, logger_type="async", **kwargs))
+        return cast(
+            AsyncLogger,
+            self.create_logger(config=config, logger_type="async", **kwargs),
+        )
 
     def create_composite_logger(
         self, config: Optional[Union[LoggingConfig, Dict[str, Any]]] = None, **kwargs
@@ -163,9 +168,7 @@ class LoggerFactory:
                 if enabled:
                     _logger.info("Extension '%s' created and enabled", extension_name)
                 else:
-                    _logger.info(
-                        "Extension '%s' created but disabled", extension_name
-                    )
+                    _logger.info("Extension '%s' created but disabled", extension_name)
 
             # Store manager in config for logger access
             setattr(config, "_extension_manager", manager)

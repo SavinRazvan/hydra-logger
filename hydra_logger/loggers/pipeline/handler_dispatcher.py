@@ -17,7 +17,6 @@ from typing import Any, Awaitable, Callable, Iterable
 
 from ...types.records import LogRecord
 
-
 _logger = logging.getLogger(__name__)
 
 
@@ -27,7 +26,9 @@ class HandlerDispatcher:
     def __init__(self) -> None:
         # Cache dispatch strategy per handler instance to avoid repeated
         # capability inspection on every emitted record.
-        self._sync_dispatch_cache: dict[int, tuple[tuple[bool, bool], Callable[[LogRecord], None] | None]] = {}
+        self._sync_dispatch_cache: dict[
+            int, tuple[tuple[bool, bool], Callable[[LogRecord], None] | None]
+        ] = {}
         self._async_dispatch_cache: dict[
             int,
             tuple[
@@ -47,7 +48,9 @@ class HandlerDispatcher:
             return hash((id(owner), id(func)))
         return id(value)
 
-    def _resolve_sync_dispatch(self, handler: Any) -> Callable[[LogRecord], None] | None:
+    def _resolve_sync_dispatch(
+        self, handler: Any
+    ) -> Callable[[LogRecord], None] | None:
         handler_id = id(handler)
         signature = (hasattr(handler, "handle"), hasattr(handler, "emit"))
         cached = self._sync_dispatch_cache.get(handler_id)

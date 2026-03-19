@@ -11,14 +11,13 @@ Notes:
  - Implements log destination handling and I/O flow for base handler.
 """
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from ..formatters.base import BaseFormatter
 from ..types.records import LogRecord
 from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrecision
-
 
 _logger = logging.getLogger(__name__)
 

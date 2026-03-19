@@ -12,6 +12,8 @@ import pytest
 
 from hydra_logger.config.configuration_templates import (
     ConfigurationTemplates as RegistryTemplates,
+)
+from hydra_logger.config.configuration_templates import (
     HydraLoggerError,
 )
 from hydra_logger.config.defaults import (
@@ -73,7 +75,10 @@ def test_template_registry_supports_register_validate_and_cleanup() -> None:
 
 def test_defaults_named_config_custom_and_registry_listing() -> None:
     custom = get_named_config(
-        "custom", default_level="ERROR", file_enabled=True, file_path="nested/path/app.log"
+        "custom",
+        default_level="ERROR",
+        file_enabled=True,
+        file_path="nested/path/app.log",
     )
     assert custom.default_level == "ERROR"
     assert custom.layers["default"].destinations[1].path == "app.log"
@@ -126,7 +131,9 @@ def test_custom_config_optional_layers_and_custom_layer_merge() -> None:
     custom_layers = {
         "custom_audit": LogLayer(
             level="INFO",
-            destinations=[LogDestination(type="file", path="audit.log", format="plain-text")],
+            destinations=[
+                LogDestination(type="file", path="audit.log", format="plain-text")
+            ],
         )
     }
     cfg = get_custom_config(
@@ -158,7 +165,9 @@ def test_configuration_templates_registry_error_paths() -> None:
     def _broken_builder():
         raise RuntimeError("builder failed")
 
-    with pytest.raises(HydraLoggerError, match="Failed to create configuration template"):
+    with pytest.raises(
+        HydraLoggerError, match="Failed to create configuration template"
+    ):
         registry.get_template("broken_builder")
 
     with pytest.raises(HydraLoggerError, match="validation failed"):
@@ -180,7 +189,9 @@ def test_configuration_templates_builtin_setup_failure(monkeypatch) -> None:
 def test_configuration_templates_convenience_wrappers() -> None:
     import importlib
 
-    template_module = importlib.import_module("hydra_logger.config.configuration_templates")
+    template_module = importlib.import_module(
+        "hydra_logger.config.configuration_templates"
+    )
 
     @template_module.register_configuration_template(
         "wrapper_unit_profile", "wrapper profile"
@@ -193,5 +204,7 @@ def test_configuration_templates_convenience_wrappers() -> None:
     assert config.default_level == "INFO"
     names = template_module.list_configuration_templates()
     assert "wrapper_unit_profile" in names
-    assert template_module.validate_configuration_template("wrapper_unit_profile") is True
+    assert (
+        template_module.validate_configuration_template("wrapper_unit_profile") is True
+    )
     template_module.configuration_templates.remove_template("wrapper_unit_profile")

@@ -12,8 +12,8 @@ Notes:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import types
+from pathlib import Path
 
 import benchmark.drift as drift_mod
 import benchmark.guards as guards_mod
@@ -118,8 +118,13 @@ def test_schema_validation_reports_multiple_error_kinds() -> None:
     violations = schema_mod.validate_against_schema(payload, schema)
 
     assert any("missing required key 'missing'" in item for item in violations)
-    assert any("$.metadata.timestamp: string length 0 < minLength 1" in item for item in violations)
-    assert any("$.metadata.cpu_count: value -1 < minimum 0" in item for item in violations)
+    assert any(
+        "$.metadata.timestamp: string length 0 < minLength 1" in item
+        for item in violations
+    )
+    assert any(
+        "$.metadata.cpu_count: value -1 < minimum 0" in item for item in violations
+    )
     assert any("$.results: expected type 'object'" in item for item in violations)
 
 
@@ -147,7 +152,9 @@ def test_schema_is_type_handles_union_and_unknown() -> None:
 def test_disable_direct_io_if_available_swallows_setter_errors() -> None:
     class _BrokenSetter:
         @property
-        def _use_direct_io(self) -> bool:  # pragma: no cover - getter value not relevant
+        def _use_direct_io(
+            self,
+        ) -> bool:  # pragma: no cover - getter value not relevant
             return True
 
         @_use_direct_io.setter
@@ -190,11 +197,16 @@ def test_validate_result_paths_invalid_path_and_nested_list(tmp_path) -> None:
     assert any("invalid path value" in item for item in violations)
 
 
-def test_detect_new_root_log_leaks_handles_missing_logs_dir_and_subdirs(tmp_path) -> None:
-    assert guards_mod.detect_new_root_log_leaks(
-        project_root=tmp_path,
-        preexisting_log_names=set(),
-    ) == []
+def test_detect_new_root_log_leaks_handles_missing_logs_dir_and_subdirs(
+    tmp_path,
+) -> None:
+    assert (
+        guards_mod.detect_new_root_log_leaks(
+            project_root=tmp_path,
+            preexisting_log_names=set(),
+        )
+        == []
+    )
 
     logs_dir = tmp_path / "logs"
     logs_dir.mkdir()
@@ -240,7 +252,9 @@ def test_validate_result_invariants_reports_non_finite_and_negative_timing() -> 
     assert not any("written_lines" in item for item in violations)
 
 
-def test_validate_result_invariants_covers_non_dict_sections_and_parallel_scaling() -> None:
+def test_validate_result_invariants_covers_non_dict_sections_and_parallel_scaling() -> (
+    None
+):
     results = {
         "sync_logger": "skip-non-dict",
         "file_writing": "skip-non-dict",
@@ -283,8 +297,12 @@ def test_validate_result_invariants_async_split_rates_and_dispatch_errors() -> N
         },
     }
     violations = metrics_mod.validate_result_invariants(results)
-    assert any("async_logger.task_fanout_messages_per_second" in item for item in violations)
-    assert any("async_logger.logger_core_messages_per_second" in item for item in violations)
+    assert any(
+        "async_logger.task_fanout_messages_per_second" in item for item in violations
+    )
+    assert any(
+        "async_logger.logger_core_messages_per_second" in item for item in violations
+    )
     assert any("composite_logger.batch_dispatch_errors" in item for item in violations)
 
 
@@ -305,7 +323,9 @@ def test_merge_policy_applies_overrides() -> None:
     assert "metrics" in policy
 
 
-def test_load_policy_for_profile_handles_invalid_policy_json(monkeypatch, tmp_path) -> None:
+def test_load_policy_for_profile_handles_invalid_policy_json(
+    monkeypatch, tmp_path
+) -> None:
     invalid_policy = tmp_path / "drift_policy_bad.json"
     invalid_policy.write_text("{not-json", encoding="utf-8")
     monkeypatch.setattr(drift_mod, "POLICY_FILE", invalid_policy)
@@ -318,7 +338,9 @@ def test_load_policy_for_profile_handles_invalid_policy_json(monkeypatch, tmp_pa
 
 def test_load_history_payloads_filters_bad_artifacts(tmp_path) -> None:
     (tmp_path / "benchmark_latest.json").write_text("{}", encoding="utf-8")
-    (tmp_path / "benchmark_2026-01-01_00-00-00.json").write_text("{bad", encoding="utf-8")
+    (tmp_path / "benchmark_2026-01-01_00-00-00.json").write_text(
+        "{bad", encoding="utf-8"
+    )
     (tmp_path / "benchmark_2026-01-01_00-00-01.json").write_text(
         json.dumps({"metadata": "bad", "results": {}}), encoding="utf-8"
     )
@@ -326,7 +348,8 @@ def test_load_history_payloads_filters_bad_artifacts(tmp_path) -> None:
         json.dumps({"metadata": {"profile": "other"}, "results": {}}), encoding="utf-8"
     )
     (tmp_path / "benchmark_2026-01-01_00-00-03.json").write_text(
-        json.dumps({"metadata": {"profile": "ci_smoke"}, "results": {}}), encoding="utf-8"
+        json.dumps({"metadata": {"profile": "ci_smoke"}, "results": {}}),
+        encoding="utf-8",
     )
 
     history = drift_mod._load_history_payloads(
@@ -350,7 +373,9 @@ def test_load_history_payloads_stops_on_zero_history_window(tmp_path) -> None:
     assert history == [{"metadata": {"profile": "ci_smoke"}, "results": {}}]
 
 
-def test_evaluate_drift_policy_handles_non_list_metrics_and_missing_current(tmp_path) -> None:
+def test_evaluate_drift_policy_handles_non_list_metrics_and_missing_current(
+    tmp_path,
+) -> None:
     (tmp_path / "benchmark_2026-01-01_00-00-00.json").write_text(
         json.dumps(
             {
@@ -375,7 +400,9 @@ def test_evaluate_drift_policy_handles_non_list_metrics_and_missing_current(tmp_
     assert report["status"] == "passed"
 
 
-def test_evaluate_drift_policy_skips_non_string_metric_and_non_dict_history(tmp_path) -> None:
+def test_evaluate_drift_policy_skips_non_string_metric_and_non_dict_history(
+    tmp_path,
+) -> None:
     (tmp_path / "benchmark_2026-01-01_00-00-00.json").write_text(
         json.dumps(
             {

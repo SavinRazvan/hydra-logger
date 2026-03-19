@@ -11,8 +11,8 @@ Notes:
 import pytest
 
 from hydra_logger.formatters import (
-    CsvFormatter,
     ColoredFormatter,
+    CsvFormatter,
     GelfFormatter,
     JsonLinesFormatter,
     LogstashFormatter,
@@ -86,6 +86,7 @@ def test_base_formatter_timestamp_branches_and_defaults(
 
     record_dt = LogRecord(message="dt", level_name="INFO", level=20)
     from datetime import datetime
+
     from hydra_logger.utils.time_utility import (
         TimestampConfig,
         TimestampFormat,
@@ -175,7 +176,9 @@ def test_base_formatter_validate_record_handles_missing_and_exceptional_attrs() 
     formatter = DummyFormatter(name="dummy")
     assert formatter.validate_record(None) is False
     assert formatter.validate_record(object()) is False
-    assert formatter.validate_record(LogRecord(level_name="INFO", message="ok", level=20))
+    assert formatter.validate_record(
+        LogRecord(level_name="INFO", message="ok", level=20)
+    )
 
     class BrokenAttrs:
         level = 20
@@ -201,6 +204,9 @@ def test_base_formatter_cached_datetime_path_and_abstract_body() -> None:
     record = LogRecord(level_name="INFO", message="x", level=20)
     record.timestamp = WeirdTimestamp()
     assert formatter.format_timestamp(record) == "formatted-any"
-    assert BaseFormatter._format_default(
-        formatter, LogRecord(level_name="INFO", message="x", level=20)
-    ) is None
+    assert (
+        BaseFormatter._format_default(
+            formatter, LogRecord(level_name="INFO", message="x", level=20)
+        )
+        is None
+    )

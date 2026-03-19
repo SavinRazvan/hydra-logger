@@ -229,7 +229,9 @@ def test_base_logger_aexit_paths_and_initialize_no_config() -> None:
     assert asyncio.run(run()) == (True, True, True)
 
 
-def test_base_logger_abstract_pass_bodies_and_init_alias_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_base_logger_abstract_pass_bodies_and_init_alias_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     logger = DummyBaseLogger(config=None)
 
     # Call abstract body implementations directly to cover pass statements.
@@ -247,7 +249,9 @@ def test_base_logger_abstract_pass_bodies_and_init_alias_paths(monkeypatch: pyte
     logger._config = cfg
     called = {"n": 0}
     monkeypatch.setattr(
-        logger, "_initialize_from_config", lambda _cfg: called.__setitem__("n", called["n"] + 1)
+        logger,
+        "_initialize_from_config",
+        lambda _cfg: called.__setitem__("n", called["n"] + 1),
     )
     logger.initialize()
     assert called["n"] == 1

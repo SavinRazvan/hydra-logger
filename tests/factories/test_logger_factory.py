@@ -10,7 +10,7 @@ Notes:
 
 import pytest
 
-from hydra_logger.config.models import LogDestination, LogLayer, LoggingConfig
+from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.factories.logger_factory import (
     LoggerFactory,
     create_async_logger,
@@ -126,11 +126,15 @@ def test_factory_cache_and_default_config_setters() -> None:
     assert factory.get_cached_logger("cache-key") is None
 
 
-def test_setup_extensions_handles_import_error(caplog, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_setup_extensions_handles_import_error(
+    caplog, monkeypatch: pytest.MonkeyPatch
+) -> None:
     import hydra_logger.extensions as extensions_mod
 
     factory = LoggerFactory()
-    cfg = LoggingConfig(extensions={"security_ext": {"type": "security", "enabled": True}})
+    cfg = LoggingConfig(
+        extensions={"security_ext": {"type": "security", "enabled": True}}
+    )
 
     monkeypatch.delattr(extensions_mod, "ExtensionManager", raising=False)
     with caplog.at_level("WARNING", logger="hydra_logger.factories.logger_factory"):
@@ -138,7 +142,9 @@ def test_setup_extensions_handles_import_error(caplog, monkeypatch: pytest.Monke
     assert "Extension system not available" in caplog.text
 
 
-def test_setup_extensions_handles_runtime_error(caplog, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_setup_extensions_handles_runtime_error(
+    caplog, monkeypatch: pytest.MonkeyPatch
+) -> None:
     import hydra_logger.extensions as extensions_mod
 
     class _BrokenManager:
@@ -186,7 +192,9 @@ def test_composite_async_requires_explicit_file_destination_for_file_output(
     assert isinstance(logger, CompositeAsyncLogger)
     asyncio.run(logger.log("INFO", "no-file-destination"))
     asyncio.run(logger.aclose())
-    assert not (tmp_path / "logs" / "composite_logger_compositeasynclogger.log").exists()
+    assert not (
+        tmp_path / "logs" / "composite_logger_compositeasynclogger.log"
+    ).exists()
 
 
 def test_composite_async_writes_when_explicit_file_destination_is_configured(
@@ -199,7 +207,9 @@ def test_composite_async_writes_when_explicit_file_destination_is_configured(
         layers={
             "default": LogLayer(
                 destinations=[
-                    LogDestination(type="file", path="explicit-composite.log", format="plain-text")
+                    LogDestination(
+                        type="file", path="explicit-composite.log", format="plain-text"
+                    )
                 ]
             )
         }
@@ -227,7 +237,9 @@ def test_default_config_does_not_create_files_across_logger_modes(
     asyncio.run(async_logger.log_async("INFO", "async-default"))
     asyncio.run(async_logger.aclose())
 
-    composite_logger = create_logger("default-composite-safety", logger_type="composite")
+    composite_logger = create_logger(
+        "default-composite-safety", logger_type="composite"
+    )
     composite_logger.log("INFO", "composite-default")
     composite_logger.close()
 
@@ -247,7 +259,9 @@ def test_network_destination_does_not_create_local_log_files(
     cfg = LoggingConfig(
         layers={
             "default": LogLayer(
-                destinations=[LogDestination(type="async_cloud", service_type="websocket")]
+                destinations=[
+                    LogDestination(type="async_cloud", service_type="websocket")
+                ]
             )
         }
     )

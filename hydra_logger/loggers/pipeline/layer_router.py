@@ -15,7 +15,6 @@ from typing import Any, Dict, List
 
 from ...types.levels import LogLevelManager
 
-
 _logger = logging.getLogger(__name__)
 
 
@@ -50,7 +49,9 @@ class LayerRouter:
             self._handler_cache[layer_name] = handlers
             return handlers
         except Exception:
-            _logger.exception("Layer handler resolution failed for layer=%s", layer_name)
+            _logger.exception(
+                "Layer handler resolution failed for layer=%s", layer_name
+            )
             return []
 
     def layer_threshold(self, layer_name: str, default_level: str) -> int:

@@ -16,7 +16,6 @@ from typing import Any, Dict, Union
 from ...types.levels import LogLevelManager
 from ...types.records import LogRecord
 
-
 _logger = logging.getLogger(__name__)
 
 

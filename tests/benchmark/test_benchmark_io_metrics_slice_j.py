@@ -19,8 +19,8 @@ from benchmark.io_metrics import (
     count_written_lines,
     extract_handler_bytes_written,
     extract_handler_messages_emitted,
-    resolve_written_line_delta,
     resolve_bytes_written,
+    resolve_written_line_delta,
 )
 
 
@@ -56,7 +56,9 @@ def test_extract_handler_bytes_written_uses_max_and_swallows_errors() -> None:
     )
     assert extract_handler_bytes_written(logger) == 0
 
-    safe_logger = SimpleNamespace(_layer_handlers={"default": [_GoodHandler(10), _GoodHandler(40)]})
+    safe_logger = SimpleNamespace(
+        _layer_handlers={"default": [_GoodHandler(10), _GoodHandler(40)]}
+    )
     assert extract_handler_bytes_written(safe_logger) == 40
 
 
@@ -110,11 +112,15 @@ def test_extract_handler_messages_emitted_uses_max_and_swallows_errors() -> None
     )
     assert extract_handler_messages_emitted(logger) == 0
 
-    safe_logger = SimpleNamespace(_layer_handlers={"default": [_GoodHandler(10), _GoodHandler(40)]})
+    safe_logger = SimpleNamespace(
+        _layer_handlers={"default": [_GoodHandler(10), _GoodHandler(40)]}
+    )
     assert extract_handler_messages_emitted(safe_logger) == 40
 
 
-def test_extract_handler_messages_emitted_skips_handlers_without_stats_or_non_dict() -> None:
+def test_extract_handler_messages_emitted_skips_handlers_without_stats_or_non_dict() -> (
+    None
+):
     class _NoStatsHandler:
         pass
 

@@ -10,7 +10,6 @@ Notes:
 
 import logging
 
-
 _logger = logging.getLogger(__name__)
 
 
@@ -26,5 +25,7 @@ def normalize_level(level: str) -> str:
         raise
     if normalized not in VALID_LOG_LEVELS:
         _logger.error("Invalid log level received: %r", level)
-        raise ValueError(f"Invalid level: {level}. Must be one of {list(VALID_LOG_LEVELS)}")
+        raise ValueError(
+            f"Invalid level: {level}. Must be one of {list(VALID_LOG_LEVELS)}"
+        )
     return normalized

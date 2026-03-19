@@ -158,6 +158,19 @@ class SyncLogger(BaseLogger):
                 getattr(self._config, "reliability_error_policy", "silent")
             ).lower()
 
+    def _report_unsupported_destination(self, destination: LogDestination) -> None:
+        """Surface unsupported destination types that resolve to a null sink."""
+        msg = (
+            f"No handler implementation for destination type {destination.type!r}; "
+            "using NullHandler (records are dropped)."
+        )
+        if self._strict_reliability_mode or self._reliability_error_policy == "raise":
+            raise HydraLoggerError(msg)
+        if self._reliability_error_policy == "warn":
+            diagnostics.warning("%s", msg)
+        else:
+            diagnostics.debug("%s", msg)
+
     def _handle_internal_failure(self, context: str, error: Exception) -> None:
         """Process internal failure according to configured reliability policy."""
         self._swallowed_error_count += 1
@@ -169,7 +182,9 @@ class SyncLogger(BaseLogger):
                 diagnostics.warning("Sync logger failure [%s]: %s", context, error)
 
         if self._strict_reliability_mode or self._reliability_error_policy == "raise":
-            raise HydraLoggerError(f"Sync logger internal failure [{context}]") from error
+            raise HydraLoggerError(
+                f"Sync logger internal failure [{context}]"
+            ) from error
 
     def _setup_default_configuration(self):
         """Setup simplified configuration."""
@@ -243,7 +258,7 @@ class SyncLogger(BaseLogger):
         self, destination: LogDestination
     ) -> BaseHandler:
         """Create handler from destination configuration."""
-        if destination.type in ["console", "sync_console"]:
+        if destination.type in ["console", "sync_console", "async_console"]:
             # Use dedicated sync console handler for better performance
             from ..handlers.console_handler import SyncConsoleHandler
 
@@ -312,6 +327,7 @@ class SyncLogger(BaseLogger):
         else:
             # For now, return null handler for unsupported types
             handler = NullHandler()
+            self._report_unsupported_destination(destination)
 
         return handler
 
@@ -326,6 +342,8 @@ class SyncLogger(BaseLogger):
                 url=destination.url or "",
                 timeout=destination.timeout or 30.0,
                 headers=destination.credentials or {},
+                connection_probe=destination.connection_probe,
+                probe_method=destination.probe_method,
             )
         if destination.type == "network_ws":
             return NetworkHandlerFactory.create_websocket_handler(

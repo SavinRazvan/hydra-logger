@@ -26,7 +26,9 @@ def test_layer_manager_setup_default_when_empty_config() -> None:
 
 def test_layer_manager_add_remove_and_stats() -> None:
     manager = LayerManager()
-    manager.setup_layers({"default": {"level": "INFO", "destinations": [{"type": "null"}]}})
+    manager.setup_layers(
+        {"default": {"level": "INFO", "destinations": [{"type": "null"}]}}
+    )
     manager.add_layer("api", level="ERROR")
     assert manager.has_layer("api") is True
     assert manager.get_layer_threshold("api") == LogLevel.ERROR
@@ -37,7 +39,9 @@ def test_layer_manager_add_remove_and_stats() -> None:
 
 def test_layer_manager_cannot_remove_default_layer() -> None:
     manager = LayerManager()
-    manager.setup_layers({"default": {"level": "INFO", "destinations": [{"type": "null"}]}})
+    manager.setup_layers(
+        {"default": {"level": "INFO", "destinations": [{"type": "null"}]}}
+    )
     with pytest.raises(ValueError, match="Cannot remove default layer"):
         manager.remove_layer("default")
 
@@ -72,7 +76,12 @@ def test_layer_manager_setup_and_fallback_paths(monkeypatch) -> None:
 def test_layer_manager_create_handler_from_all_destination_types(tmp_path) -> None:
     manager = LayerManager()
     console = manager._create_handler_from_config(
-        {"type": "console", "format": "plain-text", "use_colors": False, "stream": "stdout"}
+        {
+            "type": "console",
+            "format": "plain-text",
+            "use_colors": False,
+            "stream": "stdout",
+        }
     )
     assert console is not None
 
@@ -95,7 +104,9 @@ def test_layer_manager_create_handler_from_all_destination_types(tmp_path) -> No
     assert manager._create_handler_from_config(ObjDest()) is not None
 
 
-def test_layer_manager_handler_creation_failure_and_default_setup_failure(monkeypatch) -> None:
+def test_layer_manager_handler_creation_failure_and_default_setup_failure(
+    monkeypatch,
+) -> None:
     manager = LayerManager()
     from hydra_logger.formatters import get_formatter as real_get_formatter
     from hydra_logger.handlers import console_handler as console_handler_module
@@ -120,7 +131,9 @@ def test_layer_manager_handler_creation_failure_and_default_setup_failure(monkey
         def __init__(self, *args, **kwargs):
             raise RuntimeError("console init failed")
 
-    monkeypatch.setattr(console_handler_module, "SyncConsoleHandler", BrokenConsoleHandler)
+    monkeypatch.setattr(
+        console_handler_module, "SyncConsoleHandler", BrokenConsoleHandler
+    )
     monkeypatch.setattr(
         layer_management_module,
         "stdout",

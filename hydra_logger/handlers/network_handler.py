@@ -24,6 +24,7 @@ import logging
 import socket
 import ssl
 import time
+import warnings
 from dataclasses import dataclass, field
 from enum import Enum
 from importlib.util import find_spec
@@ -32,6 +33,7 @@ from urllib.parse import urlparse
 
 from ..types.levels import LogLevel
 from ..types.records import LogRecord
+from ..utils import slo_metrics
 from .base_handler import BaseHandler
 
 _logger = logging.getLogger(__name__)
@@ -108,6 +110,10 @@ class NetworkConfig:
     # Batch settings
     batch_size: int = 100
     batch_timeout: float = 5.0
+
+    # HTTP connectivity probe (separate from emit `method`, which defaults to POST)
+    connection_probe: bool = True
+    probe_method: str = "GET"
 
     # Security
     use_ssl: bool = False
@@ -297,6 +303,7 @@ class BaseNetworkHandler(BaseHandler):
     def _handle_network_error(self, error: Exception) -> None:
         """Handle network errors with retry logic."""
         self._stats["failed"] += 1
+        slo_metrics.record_handler_error(self.__class__.__name__)
 
         if self._should_retry(error):
             self._retry_count += 1
@@ -352,6 +359,8 @@ class HTTPHandler(BaseNetworkHandler):
         auth: Optional[tuple] = None,
         timeout: float = 30.0,
         verify_ssl: bool = True,
+        connection_probe: bool = True,
+        probe_method: str = "GET",
         **kwargs,
     ):
         """
@@ -364,6 +373,8 @@ class HTTPHandler(BaseNetworkHandler):
             auth: Authentication tuple
             timeout: Request timeout
             verify_ssl: Whether to verify SSL
+            connection_probe: When True, verify connectivity with `probe_method` before use
+            probe_method: Probe verb: GET, HEAD, OPTIONS, or none (skip probe)
             **kwargs: Additional arguments
         """
         parsed_url = urlparse(url)
@@ -379,6 +390,8 @@ class HTTPHandler(BaseNetworkHandler):
             method=method,
             headers=headers or {},
             verify_ssl=verify_ssl,
+            connection_probe=connection_probe,
+            probe_method=probe_method,
         )
 
         self._url = url
@@ -396,10 +409,30 @@ class HTTPHandler(BaseNetworkHandler):
             if self._auth:
                 self._session.auth = self._auth
 
-            # Test connection
-            response = self._session.get(
-                self._url, timeout=self._config.timeout, verify=self._config.verify_ssl
-            )
+            if not self._config.connection_probe:
+                self._connected = True
+                return True
+
+            probe = (self._config.probe_method or "GET").upper()
+            if probe == "NONE":
+                self._connected = True
+                return True
+
+            probe_kwargs: Dict[str, Any] = {
+                "timeout": self._config.timeout,
+                "verify": self._config.verify_ssl,
+            }
+            if probe == "GET":
+                response = self._session.get(self._url, **probe_kwargs)
+            elif probe == "HEAD":
+                response = self._session.head(self._url, **probe_kwargs)
+            elif probe == "OPTIONS":
+                response = self._session.options(self._url, **probe_kwargs)
+            else:
+                raise ValueError(
+                    f"Unsupported HTTP probe_method {self._config.probe_method!r}; "
+                    "expected GET, HEAD, OPTIONS, or none"
+                )
             response.raise_for_status()
             self._connected = True
             return True
@@ -479,6 +512,8 @@ class HTTPHandler(BaseNetworkHandler):
 class WebSocketHandler(BaseNetworkHandler):
     """WebSocket-based network handler."""
 
+    _simulation_notice_issued: bool = False
+
     def __init__(
         self,
         url: str,
@@ -511,16 +546,16 @@ class WebSocketHandler(BaseNetworkHandler):
         super().__init__(config, **kwargs)
         self._url = url
         self._websocket = None
+        self._ws_transport_simulated = True
+        self._websockets_installed = WEBSOCKETS_AVAILABLE
 
     def _establish_connection(self) -> bool:
-        """Establish WebSocket connection."""
-        if not WEBSOCKETS_AVAILABLE:
-            raise ImportError("websockets library is required for WebSocket handler")
-
+        """Establish WebSocket connection (simulated transport today)."""
         try:
-            # For now, we'll use a synchronous approach
-            # In a real implementation, this would be async
+            # Real `websockets` client integration may be added later; emit path is
+            # intentionally non-network for backward compatibility.
             self._connected = True
+            self._ws_transport_simulated = True
             return True
         except Exception:
             _logger.exception(
@@ -529,6 +564,19 @@ class WebSocketHandler(BaseNetworkHandler):
             )
             self._connected = False
             return False
+
+    def _warn_simulated_transport_once(self) -> None:
+        if not self._ws_transport_simulated:
+            return
+        if WebSocketHandler._simulation_notice_issued:
+            return
+        warnings.warn(
+            "WebSocketHandler uses a simulated transport; log records are not sent "
+            "over the network. Install and configure a real client when available.",
+            UserWarning,
+            stacklevel=2,
+        )
+        WebSocketHandler._simulation_notice_issued = True
 
     async def _connection_worker(self) -> None:
         """Background connection worker."""
@@ -550,6 +598,7 @@ class WebSocketHandler(BaseNetworkHandler):
             return
 
         try:
+            self._warn_simulated_transport_once()
             if self.formatter:
                 message = self.formatter.format(record)
             else:

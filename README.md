@@ -33,6 +33,7 @@ Quick links:
 - [Enterprise tutorials](examples/tutorials/README.md)
 - [Configuration reference](docs/modules/config.md)
 - [Operations diagnostics](docs/OPERATIONS.md)
+- [Release policy & API compatibility](docs/RELEASE_POLICY.md)
 - [Testing and quality gates](docs/TESTING.md)
 - [Performance and benchmarks](docs/PERFORMANCE.md)
 
@@ -218,6 +219,21 @@ Network migration guidance:
 - Prefer explicit typed destinations: `network_http`, `network_ws`, `network_socket`, `network_datagram`.
 - Legacy `network` remains transitional and is mapped to `network_http` when `url` is provided.
 - Update legacy `network` configs incrementally to typed variants to avoid future deprecation friction.
+
+Network behavior (operational):
+
+- **HTTP probe**: `HTTPHandler` runs a separate connectivity probe before use. Default probe uses **GET**
+  (backward compatible). Set `LogDestination.probe_method` to `HEAD`, `OPTIONS`, or `none`, or
+  `connection_probe=False`, if your ingest endpoint must not observe GET side effects.
+- **WebSocket**: `WebSocketHandler` currently uses a **simulated** transport (records are not sent over
+  the wire); a `UserWarning` is emitted once per process on first emit. Treat `network_ws` as
+  simulation until a real client integration ships.
+- **Unknown / unsupported destinations** resolve to a **no-op** `NullHandler`. With
+  `reliability_error_policy="warn"` or strict reliability, the runtime surfaces this instead of failing
+  silently.
+- **Composite async direct I/O**: `CompositeAsyncLogger` with `use_direct_io=True` flushes file writes
+  via a thread pool when an event loop is running, to avoid blocking the loop; sync `close()` still
+  flushes on-thread.
 
 Extension configuration:
 

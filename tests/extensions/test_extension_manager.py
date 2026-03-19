@@ -80,7 +80,9 @@ def test_extension_manager_add_extension_and_configure_missing_name_noop() -> No
     assert manager.get_extension("missing") is None
 
 
-def test_extension_manager_process_data_early_return_and_skip_missing_or_disabled() -> None:
+def test_extension_manager_process_data_early_return_and_skip_missing_or_disabled() -> (
+    None
+):
     manager = ExtensionManager()
     assert manager.process_data("noop") == "noop"
 

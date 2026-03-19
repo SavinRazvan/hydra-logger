@@ -349,6 +349,7 @@ class AsyncLogger(BaseLogger):
         else:
             # For now, return null handler for unsupported types
             handler = NullHandler()
+            self._report_unsupported_destination(destination)
 
         return handler
 
@@ -363,6 +364,8 @@ class AsyncLogger(BaseLogger):
                 url=destination.url or "",
                 timeout=destination.timeout or 30.0,
                 headers=destination.credentials or {},
+                connection_probe=destination.connection_probe,
+                probe_method=destination.probe_method,
             )
         if destination.type == "network_ws":
             return NetworkHandlerFactory.create_websocket_handler(
@@ -612,6 +615,19 @@ class AsyncLogger(BaseLogger):
         except Exception as error:
             self._handle_internal_failure("_log_sync", error)
 
+    def _report_unsupported_destination(self, destination: LogDestination) -> None:
+        """Surface unsupported destination types that resolve to a null sink."""
+        msg = (
+            f"No handler implementation for destination type {destination.type!r}; "
+            "using NullHandler (records are dropped)."
+        )
+        if self._strict_reliability_mode or self._reliability_error_policy == "raise":
+            raise HydraLoggerError(msg)
+        if self._reliability_error_policy == "warn":
+            diagnostics.warning("%s", msg)
+        else:
+            diagnostics.debug("%s", msg)
+
     def _handle_internal_failure(self, context: str, error: Exception) -> None:
         """Process internal failure according to configured reliability policy."""
         self._swallowed_error_count += 1
@@ -623,7 +639,9 @@ class AsyncLogger(BaseLogger):
                 diagnostics.warning("Async logger failure [%s]: %s", context, error)
 
         if self._strict_reliability_mode or self._reliability_error_policy == "raise":
-            raise HydraLoggerError(f"Async logger internal failure [{context}]") from error
+            raise HydraLoggerError(
+                f"Async logger internal failure [{context}]"
+            ) from error
 
     async def _log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
         """Internal async logging method - SIMPLIFIED for reliability."""
@@ -1206,9 +1224,11 @@ class AsyncLogger(BaseLogger):
             "async_queue_enqueued": self._async_queue_enqueued,
             "async_queue_processed": self._async_queue_processed,
             "async_queue_dropped": self._async_queue_dropped,
-            "async_queue_size": self._async_record_queue.qsize()
-            if self._async_record_queue is not None
-            else 0,
+            "async_queue_size": (
+                self._async_record_queue.qsize()
+                if self._async_record_queue is not None
+                else 0
+            ),
             "async_queue_worker_count": len(
                 [task for task in self._async_worker_tasks if not task.done()]
             ),
