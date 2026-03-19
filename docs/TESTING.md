@@ -87,7 +87,7 @@ Static/security staged enforcement policy in CI:
 
 - `mypy` always produces artifacted output; blocking mode is controlled by `MYPY_ENFORCE`.
 - `bandit` high-severity gate runs in report mode by default; blocking mode uses `BANDIT_ENFORCE`.
-- dependency vulnerability scans run through `pip-audit` (with `safety` in transition); blocking mode uses `PIP_AUDIT_ENFORCE`.
+- dependency vulnerability scans run through **`pip-audit`** (`PIP_AUDIT_ENFORCE` on `main`). The optional extra `legacy_safety` installs PyUp `safety` for local use only (pulls transitive `nltk`; not part of default `dev`).
 
 ## Logging Artifact Policy
 
