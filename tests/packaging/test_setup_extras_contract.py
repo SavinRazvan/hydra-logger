@@ -27,7 +27,9 @@ def _extras_require_dict(setup_path: Path) -> dict[str, list[str]]:
         for kw in call.keywords:
             if kw.arg == "extras_require" and isinstance(kw.value, ast.Dict):
                 out: dict[str, list[str]] = {}
-                for key_node, val_node in zip(kw.value.keys, kw.value.values, strict=False):
+                for key_node, val_node in zip(
+                    kw.value.keys, kw.value.values, strict=False
+                ):
                     if key_node is None or val_node is None:
                         continue
                     if not isinstance(key_node, ast.Constant) or not isinstance(
