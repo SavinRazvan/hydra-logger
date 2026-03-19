@@ -33,7 +33,7 @@ class HandlerDispatcher:
             int,
             tuple[
                 tuple[int, int, int],
-                Callable[[LogRecord], Awaitable[None] | None],
+                Callable[[LogRecord], Awaitable[None]],
             ],
         ] = {}
 
@@ -68,7 +68,7 @@ class HandlerDispatcher:
 
     def _resolve_async_dispatch(
         self, handler: Any
-    ) -> Callable[[LogRecord], Awaitable[None] | None]:
+    ) -> Callable[[LogRecord], Awaitable[None]]:
         handler_id = id(handler)
         emit_async = getattr(handler, "emit_async", None)
         handle = getattr(handler, "handle", None)
@@ -104,7 +104,7 @@ class HandlerDispatcher:
 
         else:
 
-            async def _dispatch(_record: LogRecord) -> None:
+            async def _dispatch(record: LogRecord) -> None:
                 return None
 
         self._async_dispatch_cache[handler_id] = (signature, _dispatch)

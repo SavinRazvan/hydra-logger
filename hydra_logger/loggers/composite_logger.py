@@ -16,7 +16,7 @@ Notes:
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from ..config.models import LogDestination, LoggingConfig, LogLayer
 from ..core.exceptions import HydraLoggerError
@@ -46,7 +46,7 @@ class CompositeLogger(BaseLogger):
         self,
         config: Optional[LoggingConfig] = None,
         name: str = "CompositeLogger",
-        components: Optional[List[BaseLogger]] = None,
+        components: Optional[List[Any]] = None,
         **kwargs,
     ):
         """Initialize the composite logger."""
@@ -368,7 +368,7 @@ class CompositeAsyncLogger(BaseLogger):
         self,
         config: Optional[LoggingConfig] = None,
         name: str = "CompositeAsyncLogger",
-        components: Optional[List[BaseLogger]] = None,
+        components: Optional[List[Any]] = None,
         **kwargs,
     ):
         """Initialize the async composite logger."""
@@ -386,22 +386,22 @@ class CompositeAsyncLogger(BaseLogger):
 
         # Use direct I/O instead of complex handlers
         self._use_direct_io = kwargs.get("use_direct_io", True)
-        self._direct_io_buffer = []
+        self._direct_io_buffer: list[str] = []
         self._buffer_size = 1000000  # Large buffer for high throughput
         self._last_flush = TimeUtility.perf_counter()
         self._flush_interval = 2.0  # Balanced flushing for performance
 
         # Batch processing for high performance - OPTIMIZED
-        self._batch_buffer = []
+        self._batch_buffer: list[str] = []
         self._batch_size = 50000  # Balanced batch size for performance
         self._batch_processing = kwargs.get("batch_processing", True)
 
         # Formatter support
-        self._formatters = {}
+        self._formatters: dict[str, Any] = {}
         self._default_formatter = kwargs.get("formatter", None)
 
         # Layer support
-        self._layers = {}
+        self._layers: dict[str, Any] = {}
         self._default_layer = kwargs.get("layer", "default")
 
         # Level support
@@ -436,8 +436,8 @@ class CompositeAsyncLogger(BaseLogger):
         }
 
         # Pre-computed format strings for speed
-        self._format_cache = {}
-        self._string_cache = {}
+        self._format_cache: dict[str, str] = {}
+        self._string_cache: dict[str, str] = {}
 
         # Direct formatting templates (no LogRecord needed)
         self._direct_format_templates = {
@@ -446,11 +446,11 @@ class CompositeAsyncLogger(BaseLogger):
         }
 
         # Pre-allocated string builder for performance
-        self._string_builder = []
+        self._string_builder: list[str] = []
         self._string_builder_size = 0
         self._deferred_async_closes = 0
         self._deferred_async_close_failures = 0
-        self._deferred_close_tasks = set()
+        self._deferred_close_tasks: set[asyncio.Task[Any]] = set()
 
         # Add default async console handler if no components and not using direct I/O
         if not self.components and not self._use_direct_io:
@@ -573,7 +573,7 @@ class CompositeAsyncLogger(BaseLogger):
         if name in self._formatters:
             del self._formatters[name]
 
-    def get_formatter(self, name: str = None):
+    def get_formatter(self, name: Optional[str] = None):
         """Get a formatter by name or the default formatter."""
         if name and name in self._formatters:
             return self._formatters[name]
@@ -624,11 +624,11 @@ class CompositeAsyncLogger(BaseLogger):
     def is_enabled_for(self, level: Union[str, int]) -> bool:
         """Check if logging is enabled for the given level."""
         if isinstance(level, str):
-            level_int = self._level_cache.get(level, 20)
+            level_int = cast(int, self._level_cache.get(level, 20))
         else:
             level_int = level
 
-        current_level_int = self._level_cache.get(self._level, 20)
+        current_level_int = cast(int, self._level_cache.get(self._level, 20))
         return level_int >= current_level_int
 
     async def log(self, level: Union[str, int], message: str, **kwargs) -> None:
@@ -643,14 +643,14 @@ class CompositeAsyncLogger(BaseLogger):
 
         # Convert level to string once - use cached lookup
         level_str = (
-            self._level_cache.get(level, "INFO")
+            cast(str, self._level_cache.get(level, "INFO"))
             if isinstance(level, int)
             else str(level)
         )
 
         # Extract layer - use cached string if possible
         layer = kwargs.get("layer", self._default_layer)
-        layer_str = self._common_strings.get(layer, layer)
+        layer_str = str(self._common_strings.get(layer, layer))
 
         # : Use direct I/O for speed
         if self._use_direct_io:
@@ -722,14 +722,14 @@ class CompositeAsyncLogger(BaseLogger):
 
                 # Convert level to string once
                 level_str = (
-                    self._level_cache.get(level, "INFO")
+                    cast(str, self._level_cache.get(level, "INFO"))
                     if isinstance(level, int)
                     else str(level)
                 )
 
                 # Extract layer
                 layer = kwargs.get("layer", self._default_layer)
-                layer_str = self._common_strings.get(layer, layer)
+                layer_str = str(self._common_strings.get(layer, layer))
 
                 # Use direct string formatting for speed
                 await self._direct_string_format(level_str, message, layer_str, kwargs)
@@ -749,14 +749,14 @@ class CompositeAsyncLogger(BaseLogger):
 
                 # Convert level to string once
                 level_str = (
-                    self._level_cache.get(level, "INFO")
+                    cast(str, self._level_cache.get(level, "INFO"))
                     if isinstance(level, int)
                     else str(level)
                 )
 
                 # Extract layer
                 layer = kwargs.get("layer", self._default_layer)
-                layer_str = self._common_strings.get(layer, layer)
+                layer_str = str(self._common_strings.get(layer, layer))
 
                 # Use direct string formatting for speed
                 await self._direct_string_format(level_str, message, layer_str, kwargs)
@@ -868,7 +868,11 @@ class CompositeAsyncLogger(BaseLogger):
                 await self._flush_direct_io_async()
 
     async def _direct_io_emit(
-        self, level: str, message: str, layer: str = None, pre_formatted: bool = False
+        self,
+        level: str,
+        message: str,
+        layer: Optional[str] = None,
+        pre_formatted: bool = False,
     ) -> None:
         """Direct I/O emit method."""
         if pre_formatted:

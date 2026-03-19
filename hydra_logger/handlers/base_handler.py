@@ -52,7 +52,7 @@ class BaseHandler(ABC):
         self._closed = False
 
         # Performance optimization: cache formatter name
-        self._formatter_name = None
+        self._formatter_name: Optional[str] = None
 
     def format_timestamp(self, record: LogRecord) -> str:
         """

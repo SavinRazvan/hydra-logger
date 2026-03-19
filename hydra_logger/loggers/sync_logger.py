@@ -16,7 +16,7 @@ Notes:
 
 import sys
 import threading
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union, cast
 
 from ..config.models import LogDestination, LoggingConfig
 from ..core.exceptions import HydraLoggerError
@@ -258,6 +258,7 @@ class SyncLogger(BaseLogger):
         self, destination: LogDestination
     ) -> BaseHandler:
         """Create handler from destination configuration."""
+        handler: BaseHandler
         if destination.type in ["console", "sync_console", "async_console"]:
             # Use dedicated sync console handler for better performance
             from ..handlers.console_handler import SyncConsoleHandler
@@ -283,9 +284,12 @@ class SyncLogger(BaseLogger):
             # Use dedicated sync file handler for better performance
             from ..handlers.file_handler import SyncFileHandler
 
+            if self._config is None:
+                return NullHandler()
+
             # Resolve log path using config settings with format-aware extension
             resolved_path = self._config.resolve_log_path(
-                destination.path, destination.format
+                destination.path or "", destination.format
             )
             handler = SyncFileHandler(
                 filename=resolved_path,
@@ -633,7 +637,9 @@ class SyncLogger(BaseLogger):
     def update_security_level(self, level: str) -> None:
         """Update security level at runtime."""
         if self._config:
-            self._config.update_security_level(level)
+            self._config.update_security_level(
+                cast(Literal["low", "medium", "high", "strict"], level)
+            )
             diagnostics.info("Security level updated to: %s", level)
         else:
             diagnostics.warning("No configuration available for runtime updates")
@@ -646,7 +652,14 @@ class SyncLogger(BaseLogger):
     ) -> None:
         """Update monitoring configuration at runtime."""
         if self._config:
-            self._config.update_monitoring_config(detail_level, sample_rate, background)
+            self._config.update_monitoring_config(
+                cast(
+                    Optional[Literal["basic", "standard", "detailed"]],
+                    detail_level,
+                ),
+                sample_rate,
+                background,
+            )
 
             # Update local monitoring settings
             if detail_level:

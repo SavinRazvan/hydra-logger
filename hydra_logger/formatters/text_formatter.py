@@ -49,7 +49,7 @@ class PlainTextFormatter(BaseFormatter):
         self._format_func = self._format_default
 
         # Performance optimization: Caching
-        self._format_cache = {}
+        self._format_cache: dict[str, str] = {}
         self._use_fstring = self._should_use_fstring()
         self._compiled_format = None
 

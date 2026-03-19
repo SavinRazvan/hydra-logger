@@ -133,7 +133,7 @@ class BaseNetworkHandler(BaseHandler):
         """
         super().__init__(name="network", level=LogLevel.NOTSET)
         self._config = config
-        self._connection = None
+        self._connection: Optional[socket.socket] = None
         self._connected = False
         self._retry_count = 0
         self._last_retry = 0.0
@@ -396,7 +396,7 @@ class HTTPHandler(BaseNetworkHandler):
 
         self._url = url
         self._auth = auth
-        self._session = None
+        self._session: Any = None  # requests.Session when connected
         super().__init__(config, **kwargs)
 
     def _establish_connection(self) -> bool:
@@ -405,9 +405,10 @@ class HTTPHandler(BaseNetworkHandler):
             raise ImportError("requests library is required for HTTP handler")
 
         try:
-            self._session = requests.Session()
+            session = requests.Session()
+            self._session = session
             if self._auth:
-                self._session.auth = self._auth
+                session.auth = self._auth
 
             if not self._config.connection_probe:
                 self._connected = True
@@ -423,11 +424,11 @@ class HTTPHandler(BaseNetworkHandler):
                 "verify": self._config.verify_ssl,
             }
             if probe == "GET":
-                response = self._session.get(self._url, **probe_kwargs)
+                response = session.get(self._url, **probe_kwargs)
             elif probe == "HEAD":
-                response = self._session.head(self._url, **probe_kwargs)
+                response = session.head(self._url, **probe_kwargs)
             elif probe == "OPTIONS":
-                response = self._session.options(self._url, **probe_kwargs)
+                response = session.options(self._url, **probe_kwargs)
             else:
                 raise ValueError(
                     f"Unsupported HTTP probe_method {self._config.probe_method!r}; "
@@ -452,6 +453,10 @@ class HTTPHandler(BaseNetworkHandler):
             record: Log record to emit
         """
         if not self._connect():
+            return
+
+        session = self._session
+        if session is None:
             return
 
         try:
@@ -485,7 +490,7 @@ class HTTPHandler(BaseNetworkHandler):
                 "device_id": record.device_id,
             }
 
-            response = self._session.request(
+            response = session.request(
                 method=self._config.method,
                 url=self._url,
                 json=data,
@@ -679,6 +684,10 @@ class SocketHandler(BaseNetworkHandler):
         if not self._connect():
             return
 
+        conn = self._connection
+        if conn is None:
+            return
+
         try:
             if self.formatter:
                 message = self.formatter.format(record)
@@ -687,9 +696,9 @@ class SocketHandler(BaseNetworkHandler):
 
             data = message.encode("utf-8")
             if self._protocol == "tcp":
-                self._connection.send(data)
+                conn.send(data)
             else:
-                self._connection.sendto(data, (self._config.host, self._config.port))
+                conn.sendto(data, (self._config.host, self._config.port))
 
             self._stats["sent"] += 1
         except Exception as error:
@@ -755,6 +764,10 @@ class DatagramHandler(BaseNetworkHandler):
         if not self._connect():
             return
 
+        conn = self._connection
+        if conn is None:
+            return
+
         try:
             if self.formatter:
                 message = self.formatter.format(record)
@@ -766,7 +779,7 @@ class DatagramHandler(BaseNetworkHandler):
                 message = message[: self._max_packet_size - 3] + "..."
 
             data = message.encode("utf-8")
-            self._connection.sendto(data, (self._config.host, self._config.port))
+            conn.sendto(data, (self._config.host, self._config.port))
             self._stats["sent"] += 1
         except Exception as error:
             _logger.exception(

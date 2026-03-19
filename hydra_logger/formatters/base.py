@@ -58,7 +58,10 @@ class BaseFormatter(ABC):
             include_timezone=True,
         )
         self._initialized = True
-        self._formatting_errors = []
+        self._formatting_errors: list[str] = []
+        self._timestamp_cache: dict[int, str] = {}
+        self._timestamp_cache_size = 100
+        self._timestamp_cache_access: list[int] = []
         self.include_headers = False
         self._headers_written = False
         self._file_id = ""
@@ -79,12 +82,6 @@ class BaseFormatter(ABC):
 
         # Cache timestamp formatting
         # Timestamps within the same millisecond share the same formatted string
-        if not hasattr(self, "_timestamp_cache"):
-            # Initialize cache: (timestamp_bucket, formatted_string)
-            self._timestamp_cache = {}
-            self._timestamp_cache_size = 100  # Cache last 100 unique timestamps
-            self._timestamp_cache_access = []  # LRU tracking
-
         # Get timestamp value
         if hasattr(record, "timestamp") and record.timestamp:
             timestamp = record.timestamp

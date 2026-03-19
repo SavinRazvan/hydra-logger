@@ -5,3 +5,20 @@ build-backend = "setuptools.build_meta"
 [tool.isort]
 profile = "black"
 line_length = 88
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["hydra_logger"]
+show_error_codes = true
+warn_unused_configs = true
+warn_return_any = false
+no_implicit_optional = true
+disable_error_code = ["annotation-unchecked"]
+
+[[tool.mypy.overrides]]
+module = "hydra_logger.loggers.composite_logger"
+disable_error_code = ["override"]
+
+[[tool.mypy.overrides]]
+module = "hydra_logger.loggers.async_logger"
+disable_error_code = ["override"]

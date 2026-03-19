@@ -39,7 +39,7 @@ class ConfigurationError(HydraLoggerError):
         config_path: Optional[str] = None,
         config_data: Optional[Dict[str, Any]] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if config_path:
             details["config_path"] = config_path
         if config_data:
@@ -60,7 +60,7 @@ class ValidationError(HydraLoggerError):
         value: Optional[Any] = None,
         rule: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if field:
             details["field"] = field
         if value is not None:
@@ -84,7 +84,7 @@ class HandlerError(HydraLoggerError):
         handler_name: Optional[str] = None,
         operation: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if handler_type:
             details["handler_type"] = handler_type
         if handler_name:
@@ -107,7 +107,7 @@ class FormatterError(HydraLoggerError):
         formatter_type: Optional[str] = None,
         format_string: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if formatter_type:
             details["formatter_type"] = formatter_type
         if format_string:
@@ -128,7 +128,7 @@ class AsyncError(HydraLoggerError):
         coroutine_name: Optional[str] = None,
         event_loop_info: Optional[Dict[str, Any]] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if operation:
             details["operation"] = operation
         if coroutine_name:
@@ -152,7 +152,7 @@ class PluginError(HydraLoggerError):
         plugin_type: Optional[str] = None,
         plugin_path: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if plugin_name:
             details["plugin_name"] = plugin_name
         if plugin_type:
@@ -176,7 +176,7 @@ class DataProtectionError(HydraLoggerError):
         data_type: Optional[str] = None,
         security_level: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if operation:
             details["operation"] = operation
         if data_type:
@@ -200,7 +200,7 @@ class AnalyticsError(HydraLoggerError):
         metric_value: Optional[Any] = None,
         aggregation_type: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if metric_name:
             details["metric_name"] = metric_name
         if metric_value is not None:
@@ -224,7 +224,7 @@ class CompatibilityError(HydraLoggerError):
         new_version: Optional[str] = None,
         feature: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if old_version:
             details["old_version"] = old_version
         if new_version:
@@ -248,7 +248,7 @@ class PerformanceError(HydraLoggerError):
         duration: Optional[float] = None,
         threshold: Optional[float] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if operation:
             details["operation"] = operation
         if duration is not None:
@@ -272,7 +272,7 @@ class SecurityError(HydraLoggerError):
         severity: Optional[str] = None,
         source: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if threat_type:
             details["threat_type"] = threat_type
         if severity:
@@ -296,7 +296,7 @@ class RegistryError(HydraLoggerError):
         component_name: Optional[str] = None,
         operation: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if component_type:
             details["component_type"] = component_type
         if component_name:
@@ -320,7 +320,7 @@ class FactoryError(HydraLoggerError):
         factory_method: Optional[str] = None,
         parameters: Optional[Dict[str, Any]] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if component_type:
             details["component_type"] = component_type
         if factory_method:
@@ -344,7 +344,7 @@ class LifecycleError(HydraLoggerError):
         lifecycle_phase: Optional[str] = None,
         expected_phase: Optional[str] = None,
     ):
-        details = {}
+        details: Dict[str, Any] = {}
         if component:
             details["component"] = component
         if lifecycle_phase:

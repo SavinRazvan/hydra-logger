@@ -106,9 +106,11 @@ class Extension(ExtensionBase, ABC):
         """Get the current configuration."""
         return self.config.copy()
 
-    def update_config(self, new_config: Dict[str, Any]) -> None:
+    def update_config(
+        self, new_config: Optional[Dict[str, Any]] = None, **updates: Any
+    ) -> None:
         """Update the extension configuration."""
-        super().update_config(**new_config)
+        super().update_config(new_config, **updates)
         self._enabled = self.enabled
 
     def __str__(self) -> str:

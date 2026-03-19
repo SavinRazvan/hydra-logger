@@ -18,7 +18,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 # import os  # unused
 
@@ -244,7 +244,7 @@ class LogRecordFactory:
                         break
                 except (AttributeError, KeyError):
                     # Frame might not have expected attributes, skip it
-                    frame = frame.f_back
+                    frame = frame.f_back if frame is not None else None
                     skips += 1
                     continue
 
@@ -407,11 +407,11 @@ class RecordCreationStrategy:
         """
         # Convert level to string for consistency
         if isinstance(level, int):
-            level_name = self._level_cache.get(level, "INFO")
+            level_name = cast(str, self._level_cache.get(level, "INFO"))
             level_int = level
         else:
             level_name = str(level).upper()
-            level_int = self._level_cache.get(level_name, 20)
+            level_int = cast(int, self._level_cache.get(level_name, 20))
 
         # Extract common fields
         layer = kwargs.get("layer", "default")
