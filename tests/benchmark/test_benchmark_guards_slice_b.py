@@ -12,7 +12,6 @@ Notes:
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 
 import benchmark.performance_benchmark as perf_mod
 from benchmark.guards import (

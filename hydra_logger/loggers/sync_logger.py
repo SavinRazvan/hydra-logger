@@ -276,8 +276,6 @@ class SyncLogger(BaseLogger):
 
             # Set handler level if specified
             if destination.level is not None:
-                from ..types.levels import LogLevelManager
-
                 handler.setLevel(LogLevelManager.get_level(destination.level))
 
         elif destination.type in ["file", "sync_file"]:
@@ -306,8 +304,6 @@ class SyncLogger(BaseLogger):
 
             # Set handler level if specified
             if destination.level is not None:
-                from ..types.levels import LogLevelManager
-
                 handler.setLevel(LogLevelManager.get_level(destination.level))
 
         elif destination.type == "null":
@@ -324,8 +320,6 @@ class SyncLogger(BaseLogger):
             )
             handler.setFormatter(formatter)
             if destination.level is not None:
-                from ..types.levels import LogLevelManager
-
                 handler.setLevel(LogLevelManager.get_level(destination.level))
 
         else:

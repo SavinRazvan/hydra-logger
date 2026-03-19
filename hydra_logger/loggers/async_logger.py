@@ -24,7 +24,7 @@ from ..core.exceptions import HydraLoggerError
 from ..formatters.base import BaseFormatter
 from ..handlers.base_handler import BaseHandler
 from ..handlers.null_handler import NullHandler
-from ..types.levels import LogLevel, LogLevelManager
+from ..types.levels import LogLevel
 from ..types.records import LogRecord
 from ..utils import internal_diagnostics as diagnostics
 from ..utils.time_utility import TimeUtility

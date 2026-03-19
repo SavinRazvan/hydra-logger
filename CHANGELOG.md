@@ -8,6 +8,14 @@ All notable, verified changes to Hydra-Logger are documented here.
 - Historical, pre-standard entries were archived to `docs/archive/CHANGELOG_legacy.md`.
 - New releases must add concise notes here, grouped by Added/Changed/Fixed.
 
+## [Unreleased]
+
+### Changed
+
+- CI lint: `flake8` now fails the build on pyflakes/pycodestyle issues under black’s
+  line length (88); `E501` and cyclomatic complexity remain intentionally deferred
+  (see `docs/TESTING.md`, `.flake8`).
+
 ## [0.5.1] - 2026-03-18
 
 ### Changed

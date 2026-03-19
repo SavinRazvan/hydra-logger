@@ -675,8 +675,6 @@ class LoggingConfig(BaseModel):
 
     def get_default_log_path(self) -> str:
         """Get the default log directory path."""
-        from pathlib import Path
-
         return str(self._build_base_log_path().absolute())
 
     def _build_base_log_path(self):

@@ -11,8 +11,6 @@ Notes:
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 import benchmark.profiles as profiles_mod

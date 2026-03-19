@@ -85,6 +85,7 @@ PR preparation (`scripts/pr/prepare.py`) enforces:
 
 Static/security staged enforcement policy in CI:
 
+- `flake8` runs in three passes: **critical** errors (`E9`, `F63`, `F7`, `F82`), a **blocking** pass aligned with **black** (`max-line-length=88`, `extend-ignore=E203,W503,E501`), and an **advisory** cyclomatic complexity report (`max-complexity=10`, `--exit-zero`). Local config: `.flake8`.
 - `mypy` always produces artifacted output; **`MYPY_ENFORCE` is on for `main`** (config in `pyproject.toml`; install `types-*` stubs via `.[dev]`).
 - `bandit` high-severity gate runs in report mode by default; blocking mode uses `BANDIT_ENFORCE`.
 - dependency vulnerability scans run through **`pip-audit`** (`PIP_AUDIT_ENFORCE` on `main`). The optional extra `legacy_safety` installs PyUp `safety` for local use only (pulls transitive `nltk`; not part of default `dev`).
