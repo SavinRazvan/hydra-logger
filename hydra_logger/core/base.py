@@ -71,8 +71,8 @@ class BaseLogger(BaseComponent):
 
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        self._handlers = {}
-        self._formatters = {}
+        self._handlers: Dict[str, Any] = {}
+        self._formatters: Dict[str, Any] = {}
 
     @abstractmethod
     def log(self, level: str, message: str, **kwargs) -> None:
@@ -166,7 +166,7 @@ class BaseMonitor(BaseComponent):
 
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        self._metrics = {}
+        self._metrics: Dict[str, Any] = {}
 
     @abstractmethod
     def collect_metrics(self) -> Dict[str, Any]:

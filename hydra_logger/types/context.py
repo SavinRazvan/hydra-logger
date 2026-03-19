@@ -21,7 +21,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 _logger = logging.getLogger(__name__)
 
@@ -223,7 +223,7 @@ class ContextManager:
 class ContextDetector:
     """Detects and extracts context information from the call stack."""
 
-    _cache = {}
+    _cache: ClassVar[dict[str, CallerInfo]] = {}
     _cache_enabled = True
     _cache_size = 1000
 

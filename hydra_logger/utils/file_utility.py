@@ -31,18 +31,22 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 _logger = logging.getLogger(__name__)
 
 # Optional dependencies - import with graceful fallback
+yaml: Any
 try:
-    import yaml
+    import yaml as _yaml_module
 
+    yaml = _yaml_module
     YAML_AVAILABLE = True
 except ImportError:
     YAML_AVAILABLE = False
     yaml = None
     _logger.debug("Optional dependency 'yaml' is unavailable")
 
+toml: Any
 try:
-    import toml
+    import toml as _toml_module
 
+    toml = _toml_module
     TOML_AVAILABLE = True
 except ImportError:
     TOML_AVAILABLE = False
@@ -962,7 +966,7 @@ class DirectoryScanner:
             if max_depth is not None and current_depth > max_depth:
                 return {}
 
-            tree = {}
+            tree: Dict[str, Any] = {}
 
             try:
                 items = os.listdir(current_path)
@@ -1002,8 +1006,8 @@ class DirectoryScanner:
         total_files = 0
         total_dirs = 0
         total_size = 0
-        file_types = {}
-        extensions = {}
+        file_types: Dict[str, int] = {}
+        extensions: Dict[str, int] = {}
 
         for root, dirs, files in os.walk(path):
             total_dirs += len(dirs)

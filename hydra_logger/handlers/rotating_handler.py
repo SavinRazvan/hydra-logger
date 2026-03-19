@@ -29,7 +29,7 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Deque, Dict, Optional, TextIO, cast
 
 from hydra_logger.handlers.base_handler import BaseHandler
 from hydra_logger.types.enums import TimeUnit
@@ -98,7 +98,7 @@ class RotatingFileHandler(BaseHandler):
         super().__init__(name="rotating_file", level=LogLevel.NOTSET)
         self._filename = filename
         self._config = config or RotationConfig()
-        self._current_file = None
+        self._current_file: Optional[TextIO] = None
         self._lock = threading.RLock()
         self._rotation_count = 0
         self._last_rotation = 0.0
@@ -106,11 +106,11 @@ class RotatingFileHandler(BaseHandler):
         # Performance optimization: Enhanced buffering
         self._buffer_size = buffer_size
         self._flush_interval = flush_interval
-        self._buffer = deque(maxlen=buffer_size)
+        self._buffer: Deque[Any] = deque(maxlen=buffer_size)
         self._last_flush = time.time()
 
         # Pre-allocate string buffer for better performance
-        self._string_buffer = []
+        self._string_buffer: list[str] = []
         self._string_buffer_size = 0
 
         # Ensure directory exists
@@ -253,7 +253,13 @@ class RotatingFileHandler(BaseHandler):
                         backup_files.append(file_path)
 
             # Sort by modification time (oldest first)
-            backup_files.sort(key=lambda x: FileUtility.get_file_info(x).mtime)
+            def _backup_mtime_key(file_path: str) -> float:
+                info = FileUtility.get_file_info(file_path)
+                return float(
+                    getattr(info, "modified", getattr(info, "mtime", 0.0)),
+                )
+
+            backup_files.sort(key=_backup_mtime_key)
 
             # Remove excess files based on strategy
             if self._config.strategy == RotationStrategy.TIME_BASED:
@@ -358,30 +364,35 @@ class RotatingFileHandler(BaseHandler):
         """Write message to current file (legacy method for compatibility)."""
         if self._current_file:
             try:
+                fmt = self.formatter
                 # Smart header handling for streaming formatters
-                if self._needs_header_footer and not self._header_written:
+                if self._needs_header_footer and not self._header_written and fmt:
                     # Reset formatter state
-                    if hasattr(self.formatter, "reset_for_new_file"):
-                        self.formatter.reset_for_new_file()
+                    if hasattr(fmt, "reset_for_new_file"):
+                        fmt.reset_for_new_file()
 
                     # Set file ID for formatters that support it
-                    if hasattr(self.formatter, "set_file_id"):
-                        self.formatter.set_file_id(id(self._current_file))
+                    if hasattr(fmt, "set_file_id"):
+                        fmt.set_file_id(str(id(self._current_file)))
 
                     # Check if we need to write header
                     if self._current_file.tell() == 0:  # New file
-                        if hasattr(self.formatter, "write_header"):
-                            # JSON formatters
-                            header = self.formatter.write_header()
-                            self._current_file.write(header)
-                        elif hasattr(self.formatter, "format_headers") and hasattr(
-                            self.formatter, "should_write_headers"
+                        if hasattr(fmt, "write_header"):
+                            wh_call = cast(Callable[..., Any], fmt.write_header)
+                            try:
+                                header_text = wh_call(self._current_file)
+                            except TypeError:
+                                header_text = wh_call()
+                            if isinstance(header_text, str) and header_text:
+                                self._current_file.write(header_text)
+                        elif hasattr(fmt, "format_headers") and hasattr(
+                            fmt, "should_write_headers"
                         ):
                             # CSV formatters
-                            if self.formatter.should_write_headers(self._filename):
-                                header = self.formatter.format_headers() + "\n"
+                            if fmt.should_write_headers(self._filename):  # type: ignore[call-arg]
+                                header = fmt.format_headers() + "\n"
                                 self._current_file.write(header)
-                                self.formatter.mark_headers_written(self._filename)
+                                fmt.mark_headers_written(self._filename)  # type: ignore[call-arg]
                         self._header_written = True
 
                 self._current_file.write(message)

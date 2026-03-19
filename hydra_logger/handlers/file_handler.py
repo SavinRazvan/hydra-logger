@@ -24,9 +24,11 @@ import atexit
 import logging
 import os
 import sys
+import threading
 import time
 from collections import deque
-from typing import Any, Dict, Tuple, Union
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Deque, Dict, List, Literal, Optional, Tuple, Union, cast
 
 from ..types.levels import LogLevel
 from ..types.records import LogRecord
@@ -83,7 +85,7 @@ class SyncFileHandler(BaseHandler):
 
         self._buffer_size = buffer_size
         self._flush_interval = flush_interval
-        self._buffer = deque(maxlen=buffer_size)
+        self._buffer: Deque[Any] = deque(maxlen=buffer_size)
         self._last_flush = (
             TimeUtility.perf_counter()
         )  # FIX: Use perf_counter for precision
@@ -356,8 +358,8 @@ class AsyncFileHandler(BaseHandler):
         # Hybrid Memory-Disk Architecture
         self._memory_buffer_size = memory_buffer_size  # Memory buffer
         self._disk_flush_interval = disk_flush_interval  # Less frequent disk writes
-        self._memory_buffer = []  # Primary memory buffer
-        self._disk_buffer = []  # Secondary disk buffer
+        self._memory_buffer: list[Any] = []  # Primary memory buffer
+        self._disk_buffer: list[Any] = []  # Secondary disk buffer
         self._last_disk_flush = time.time()
 
         # Multiple workers can process in parallel, but file writes are serialized
@@ -371,22 +373,18 @@ class AsyncFileHandler(BaseHandler):
             _idiag.warning("Could not create directory for %s: %s", filename, e)
 
         # High performance: Smart queue management with threading
-        self._message_queue = asyncio.Queue(maxsize=max_queue_size)
+        self._message_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=max_queue_size)
         self._shutdown_event = asyncio.Event()
-        self._worker_tasks = []  # Multiple worker tasks
-        self._close_task = None
+        self._worker_tasks: list[asyncio.Task[None]] = []  # Multiple worker tasks
+        self._close_task: Optional[asyncio.Task[None]] = None
         self._running = False
 
         # THREADING SUPPORT: for performance
+        self._thread_pool: Optional[ThreadPoolExecutor] = None
+        self._file_lock: Optional[threading.Lock] = None
         if self._use_threading:
-            import threading
-            from concurrent.futures import ThreadPoolExecutor
-
             self._thread_pool = ThreadPoolExecutor(max_workers=self._num_workers)
-            self._file_lock = threading.Lock()  # Thread-safe file writing
-        else:
-            self._thread_pool = None
-            self._file_lock = None
+            self._file_lock = threading.Lock()
 
         # High performance: Batching for throughput
         self._base_batch_size = bulk_size * 10  # Start with larger batches
@@ -402,16 +400,16 @@ class AsyncFileHandler(BaseHandler):
         self._last_flush = TimeUtility.perf_counter()
 
         # High performance: Buffering for throughput
-        self._message_buffer = []
+        self._message_buffer: list[Any] = []
         self._buffer_capacity = max_queue_size  # Use full queue capacity
-        self._overflow_buffer = []  # Overflow protection
+        self._overflow_buffer: list[Any] = []  # Overflow protection
 
         self._messages_processed = 0
         self._messages_dropped = 0
         self._total_bytes_written = 0
         self._start_time = TimeUtility.perf_counter()
         self._batch_count = 0
-        self._performance_samples = []  # For adaptive optimization
+        self._performance_samples: list[Any] = []  # For adaptive optimization
         self._last_performance_check = TimeUtility.perf_counter()
 
         # Register for automatic cleanup
@@ -448,7 +446,7 @@ class AsyncFileHandler(BaseHandler):
         """Compute payload size in bytes."""
         if is_binary:
             return len(payload)
-        return len(payload.encode(self._encoding))
+        return len(cast(str, payload).encode(self._encoding))
 
     def _write_payload_sync(
         self, payload: Union[str, bytes], is_binary: bool, buffering: int = 1
@@ -478,15 +476,18 @@ class AsyncFileHandler(BaseHandler):
             import aiofiles
 
             if is_binary:
-                file_mode = "ab" if self._mode == "a" else "wb"
+                file_mode: Literal["ab", "wb"] = "ab" if self._mode == "a" else "wb"
+                binary_payload = cast(bytes, payload)
                 async with aiofiles.open(self._filename, mode=file_mode) as file_handle:
-                    await file_handle.write(payload)
+                    await file_handle.write(binary_payload)
                     await file_handle.flush()
             else:
+                text_mode = cast(Literal["a", "w", "r+"], self._mode)
+                text_payload = cast(str, payload)
                 async with aiofiles.open(
-                    self._filename, mode=self._mode, encoding=self._encoding
+                    self._filename, mode=text_mode, encoding=self._encoding
                 ) as file_handle:
-                    await file_handle.write(payload)
+                    await file_handle.write(text_payload)
                     await file_handle.flush()
         except ImportError:
             loop = asyncio.get_event_loop()
@@ -534,7 +535,7 @@ class AsyncFileHandler(BaseHandler):
 
                 # Each worker collects its own batch from the shared queue
                 # This allows true parallel processing when num_workers > 1
-                messages_to_process = []
+                messages_to_process: list[Any] = []
                 batch_start_time = TimeUtility.perf_counter()
 
                 # Collect messages from queue (non-blocking, no lock needed)
@@ -960,15 +961,15 @@ class AsyncFileHandler(BaseHandler):
         current_time = TimeUtility.perf_counter()  # Use standardized time utility
 
         # Time-based flush
-        if current_time - self._last_flush > self._flush_interval:
+        if current_time - self._last_flush > self._current_flush_interval:
             return True
 
         # Size-based flush
-        if len(self._message_buffer) >= self._batch_size:
+        if len(self._message_buffer) >= self._current_batch_size:
             return True
 
         # Force flush if buffer is getting large
-        if len(self._message_buffer) >= self._batch_size // 2:
+        if len(self._message_buffer) >= self._current_batch_size // 2:
             return True
 
         return False

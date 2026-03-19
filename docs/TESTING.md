@@ -85,7 +85,7 @@ PR preparation (`scripts/pr/prepare.py`) enforces:
 
 Static/security staged enforcement policy in CI:
 
-- `mypy` always produces artifacted output; blocking mode is controlled by `MYPY_ENFORCE`.
+- `mypy` always produces artifacted output; **`MYPY_ENFORCE` is on for `main`** (config in `pyproject.toml`; install `types-*` stubs via `.[dev]`).
 - `bandit` high-severity gate runs in report mode by default; blocking mode uses `BANDIT_ENFORCE`.
 - dependency vulnerability scans run through **`pip-audit`** (`PIP_AUDIT_ENFORCE` on `main`). The optional extra `legacy_safety` installs PyUp `safety` for local use only (pulls transitive `nltk`; not part of default `dev`).
 

@@ -24,7 +24,7 @@ import threading
 import traceback
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TextIO
 
 
 class SafeErrorLogger:
@@ -36,7 +36,7 @@ class SafeErrorLogger:
     """
 
     _lock = threading.Lock()
-    _error_file = None
+    _error_file: Optional[TextIO] = None
     _initialized = False
     _error_count = 0
     _max_errors_per_session = 10000  # Prevent log spam

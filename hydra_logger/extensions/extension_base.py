@@ -62,9 +62,13 @@ class ExtensionBase(ABC):
         """Get extension configuration."""
         return self.config.copy()
 
-    def update_config(self, **updates) -> None:
+    def update_config(
+        self, new_config: Optional[Dict[str, Any]] = None, **updates: Any
+    ) -> None:
         """Update extension configuration."""
-        self.config.update(updates)
+        merged: Dict[str, Any] = dict(new_config or {})
+        merged.update(updates)
+        self.config.update(merged)
         if self.enabled:
             self._setup()
 

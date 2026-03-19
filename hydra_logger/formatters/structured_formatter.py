@@ -78,7 +78,7 @@ class CsvFormatter(BaseFormatter):
         super().__init__("csv", timestamp_config=timestamp_config)
         self.include_headers = include_headers
         self._headers_written = False
-        self._file_headers_written = set()  # Track headers per file
+        self._file_headers_written: set[str] = set()  # Track headers per file
 
         # Simplified formatter - no performance optimization
         self._format_func = self._format_default

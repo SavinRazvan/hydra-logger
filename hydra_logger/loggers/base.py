@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from ..config.models import LoggingConfig
 from ..core.exceptions import HydraLoggerError
-from ..types.records import LogRecord
+from ..types.records import LogRecord, RecordCreationStrategy
 
 
 # Performance profile constants for LogRecord creation
@@ -55,7 +55,7 @@ class BaseLogger(ABC):
         # Use 'convenient' profile by default to enable auto-detection of
         # file_name, function_name, line_number
         self._performance_profile = kwargs.get("performance_profile", "convenient")
-        self._record_creation_strategy = None
+        self._record_creation_strategy: Optional[RecordCreationStrategy] = None
         self._setup_record_creation_strategy()
 
         # Performance counters

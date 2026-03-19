@@ -18,7 +18,7 @@ import atexit
 import logging
 import sys
 import time
-from typing import Optional, TextIO
+from typing import Any, List, Optional, TextIO
 
 from ..formatters.base import BaseFormatter
 from ..types.records import LogRecord
@@ -64,7 +64,7 @@ class SyncConsoleHandler(BaseHandler):
         # Buffering configuration
         self._buffer_size = buffer_size
         self._flush_interval = flush_interval
-        self._buffer = []
+        self._buffer: List[str] = []
         self._last_flush = time.perf_counter()
 
         # Statistics
@@ -243,14 +243,14 @@ class AsyncConsoleHandler(BaseHandler):
         self._flush_interval = flush_interval
 
         # PERFORMANCE: Buffering for async emit_async (reduces I/O overhead)
-        self._async_buffer = []
+        self._async_buffer: List[str] = []
         self._async_buffer_lock = asyncio.Lock()
         self._last_async_flush = time.perf_counter()
 
         # Simple async queue (for worker loop if needed)
-        self._message_queue = asyncio.Queue(maxsize=buffer_size * 2)
+        self._message_queue: asyncio.Queue[str] = asyncio.Queue(maxsize=buffer_size * 2)
         self._shutdown_event = asyncio.Event()
-        self._worker_task = None
+        self._worker_task: Optional[asyncio.Task[None]] = None
         self._running = False
 
         # Statistics

@@ -1213,8 +1213,8 @@ def test_async_file_handler_optimize_adjust_sleep_flush_batch_and_emit_paths(
         assert handler._calculate_smart_sleep() == 0.1
 
         # _should_flush_batch branches
-        handler._flush_interval = 1000
-        handler._batch_size = 10
+        handler._current_flush_interval = 1000
+        handler._current_batch_size = 10
         handler._last_flush = file_module.TimeUtility.perf_counter()
         handler._message_buffer = ["x"] * 5
         assert handler._should_flush_batch() is True
@@ -1402,9 +1402,9 @@ def test_async_file_handler_remaining_perf_sleep_headers_emit_paths(
         assert handler._calculate_smart_sleep() == 0.001
 
         # _should_flush_batch false branch
-        handler._flush_interval = 1000
+        handler._current_flush_interval = 1000
         handler._last_flush = file_module.TimeUtility.perf_counter()
-        handler._batch_size = 20
+        handler._current_batch_size = 20
         handler._message_buffer = ["x"] * 1
         assert handler._should_flush_batch() is False
 
@@ -1547,7 +1547,7 @@ def test_async_file_handler_close_async_fallback_cancel_and_time_flush_branch(
 
         # _should_flush_batch time-based branch.
         handler._last_flush = 0.0
-        handler._flush_interval = 0.0001
+        handler._current_flush_interval = 0.0001
         assert handler._should_flush_batch() is True
         await handler.aclose()
 

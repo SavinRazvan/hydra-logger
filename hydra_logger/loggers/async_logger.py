@@ -17,7 +17,7 @@ Notes:
 
 import asyncio
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, cast
 
 from ..config.models import LogDestination, LoggingConfig
 from ..core.exceptions import HydraLoggerError
@@ -296,6 +296,7 @@ class AsyncLogger(BaseLogger):
         self, destination: LogDestination
     ) -> BaseHandler:
         """Create handler from destination configuration."""
+        handler: BaseHandler
         if destination.type in ["console", "async_console"]:
             # Use dedicated async console handler for better performance
             from ..handlers.console_handler import AsyncConsoleHandler
@@ -317,9 +318,12 @@ class AsyncLogger(BaseLogger):
             # Use dedicated async file handler for better performance
             from ..handlers.file_handler import AsyncFileHandler
 
+            if self._config is None:
+                return NullHandler()
+
             # Resolve log path using config settings with format-aware extension
             resolved_path = self._config.resolve_log_path(
-                destination.path, destination.format
+                destination.path or "", destination.format
             )
             handler = AsyncFileHandler(
                 filename=resolved_path, mode="a", encoding="utf-8"  # Append mode
@@ -869,7 +873,9 @@ class AsyncLogger(BaseLogger):
             await self._log_async(level, message, **kwargs)
 
     async def log_background_work(
-        self, work_tasks: List[callable], max_concurrent: Optional[int] = None
+        self,
+        work_tasks: List[Callable[..., Any]],
+        max_concurrent: Optional[int] = None,
     ) -> List[Any]:
         """
         Execute background work tasks with TRUE PARALLEL PROCESSING.
@@ -915,16 +921,18 @@ class AsyncLogger(BaseLogger):
             return []
 
     async def _execute_work_with_semaphore(
-        self, semaphore: asyncio.Semaphore, work_task: callable
+        self, semaphore: asyncio.Semaphore, work_task: Callable[..., Any]
     ) -> Any:
         """Execute a single work task with semaphore control."""
         async with semaphore:
             if asyncio.iscoroutinefunction(work_task):
-                return await work_task()
-            else:
-                # Run sync function in executor for true parallelization
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(None, work_task)
+                result = work_task()
+                if asyncio.iscoroutine(result):
+                    return await result
+                return result
+            # Run sync function in executor for true parallelization
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, work_task)
 
     async def _apply_security_processing(self, record: LogRecord) -> LogRecord:
         """Apply security processing to log record if security engine is available."""
@@ -1257,7 +1265,9 @@ class AsyncLogger(BaseLogger):
     def update_security_level(self, level: str) -> None:
         """Update security level at runtime."""
         if self._config:
-            self._config.update_security_level(level)
+            self._config.update_security_level(
+                cast(Literal["low", "medium", "high", "strict"], level)
+            )
             diagnostics.info("Security level updated to: %s", level)
         else:
             diagnostics.warning("No configuration available for runtime updates")
@@ -1270,7 +1280,14 @@ class AsyncLogger(BaseLogger):
     ) -> None:
         """Update monitoring configuration at runtime."""
         if self._config:
-            self._config.update_monitoring_config(detail_level, sample_rate, background)
+            self._config.update_monitoring_config(
+                cast(
+                    Optional[Literal["basic", "standard", "detailed"]],
+                    detail_level,
+                ),
+                sample_rate,
+                background,
+            )
 
             # Update local monitoring settings
             if detail_level:
