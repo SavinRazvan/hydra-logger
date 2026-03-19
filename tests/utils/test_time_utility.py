@@ -15,14 +15,14 @@ import pytest
 from hydra_logger.types.enums import TimeUnit
 from hydra_logger.utils.time_utility import (
     DateFormatter,
-    TimeRange,
     TimeInterval,
-    TimeUtility,
-    TimeZoneUtility,
+    TimeRange,
     TimestampConfig,
     TimestampFormat,
     TimestampFormatter,
     TimestampPrecision,
+    TimeUtility,
+    TimeZoneUtility,
 )
 
 
@@ -102,7 +102,11 @@ def test_timestamp_config_presets_and_roundtrip_dict() -> None:
         assert restored.get_current_timestamp()
 
     dt = datetime(2026, 1, 1, 1, 2, 3, tzinfo=timezone.utc)
-    assert TimestampConfig.rfc3339_standard().format_timestamp(dt).startswith("2026-01-01T")
+    assert (
+        TimestampConfig.rfc3339_standard()
+        .format_timestamp(dt)
+        .startswith("2026-01-01T")
+    )
 
 
 def test_time_range_contains_overlap_false_and_dict() -> None:
@@ -187,12 +191,18 @@ def test_timestamp_formatter_timezone_and_precision_variants() -> None:
     assert ".123" in human_millis
 
     dt_berlin = TimestampFormatter.format_timestamp(
-        dt, TimestampFormat.RFC3339_TZ, TimestampPrecision.SECONDS, timezone_name="Europe/Berlin"
+        dt,
+        TimestampFormat.RFC3339_TZ,
+        TimestampPrecision.SECONDS,
+        timezone_name="Europe/Berlin",
     )
     assert "+" in dt_berlin
 
     nano = TimestampFormatter.format_timestamp(
-        dt, TimestampFormat.RFC3339_NANO, TimestampPrecision.NANOSECONDS, timezone_name="UTC"
+        dt,
+        TimestampFormat.RFC3339_NANO,
+        TimestampPrecision.NANOSECONDS,
+        timezone_name="UTC",
     )
     assert nano.endswith("Z")
     assert len(nano.split(".")[1].rstrip("Z")) == 9
@@ -204,12 +214,17 @@ def test_timestamp_formatter_timezone_and_precision_variants() -> None:
     assert "T03:04:05" in formatted_local
 
     naive_forced_utc = TimestampFormatter.format_timestamp(
-        local_naive, TimestampFormat.RFC3339, TimestampPrecision.SECONDS, timezone_name="UTC"
+        local_naive,
+        TimestampFormat.RFC3339,
+        TimestampPrecision.SECONDS,
+        timezone_name="UTC",
     )
     assert naive_forced_utc.endswith("Z")
 
 
-def test_timestamp_formatter_raises_for_invalid_timezone_and_unsupported_format() -> None:
+def test_timestamp_formatter_raises_for_invalid_timezone_and_unsupported_format() -> (
+    None
+):
     dt = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
     with pytest.raises(ValueError, match="Unknown timezone"):
         TimestampFormatter.format_timestamp(
@@ -258,9 +273,15 @@ def test_timestamp_formatter_parse_variants_and_failures(caplog) -> None:
     with pytest.raises(ValueError, match="Unsupported timestamp format"):
         TimestampFormatter.parse_timestamp("2026", "bad-format")  # type: ignore[arg-type]
 
-    parsed_seconds = TimestampFormatter.parse_timestamp("10", TimestampFormat.UNIX_SECONDS)
-    parsed_micros = TimestampFormatter.parse_timestamp("1000000", TimestampFormat.UNIX_MICROS)
-    parsed_nanos = TimestampFormatter.parse_timestamp("1000000000", TimestampFormat.UNIX_NANOS)
+    parsed_seconds = TimestampFormatter.parse_timestamp(
+        "10", TimestampFormat.UNIX_SECONDS
+    )
+    parsed_micros = TimestampFormatter.parse_timestamp(
+        "1000000", TimestampFormat.UNIX_MICROS
+    )
+    parsed_nanos = TimestampFormatter.parse_timestamp(
+        "1000000000", TimestampFormat.UNIX_NANOS
+    )
     assert parsed_seconds.tzinfo == timezone.utc
     assert parsed_micros.tzinfo == timezone.utc
     assert parsed_nanos.tzinfo == timezone.utc
@@ -280,7 +301,9 @@ def test_timestamp_formatter_parse_variants_and_failures(caplog) -> None:
     assert parsed_offset.tzinfo is not None
 
     with pytest.raises(ValueError, match="Failed to parse RFC3339 timestamp"):
-        TimestampFormatter.parse_timestamp("2026-01-02T03:04:05.bad+0000", TimestampFormat.RFC3339)
+        TimestampFormatter.parse_timestamp(
+            "2026-01-02T03:04:05.bad+0000", TimestampFormat.RFC3339
+        )
 
 
 def test_date_formatter_and_relative_time_and_timezone_utility() -> None:
@@ -288,7 +311,10 @@ def test_date_formatter_and_relative_time_and_timezone_utility() -> None:
     assert DateFormatter.format_date(now, "%Y") == now.strftime("%Y")
     assert DateFormatter.format_relative_time(now - timedelta(days=2)) == "2 days ago"
     assert DateFormatter.format_relative_time(now - timedelta(hours=2)) == "2 hours ago"
-    assert DateFormatter.format_relative_time(now - timedelta(minutes=5)) == "5 minutes ago"
+    assert (
+        DateFormatter.format_relative_time(now - timedelta(minutes=5))
+        == "5 minutes ago"
+    )
     assert DateFormatter.format_relative_time(now) == "just now"
 
     local_tz = TimeZoneUtility.get_local_timezone()

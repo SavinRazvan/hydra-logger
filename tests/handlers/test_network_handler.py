@@ -8,19 +8,34 @@ Notes:
  - Validates retry delay policies and factory error paths.
 """
 
+import importlib
+import sys
+
+import pytest
+
+from hydra_logger.handlers import network_handler as network_module
 from hydra_logger.handlers.network_handler import (
-    HTTPHandler,
     BaseNetworkHandler,
     DatagramHandler,
+    HTTPHandler,
     NetworkConfig,
     NetworkHandlerFactory,
     RetryPolicy,
     SocketHandler,
+    WebSocketHandler,
 )
-from hydra_logger.handlers import network_handler as network_module
 from hydra_logger.types.records import LogRecord
-import importlib
-import sys
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:WebSocketHandler uses a simulated transport:UserWarning",
+)
+
+
+@pytest.fixture(autouse=True)
+def _reset_websocket_simulation_warning() -> None:
+    WebSocketHandler._simulation_notice_issued = False
+    yield
+    WebSocketHandler._simulation_notice_issued = False
 
 
 class DummyNetworkHandler(BaseNetworkHandler):
@@ -154,7 +169,9 @@ def test_network_handler_validate_config_rejects_invalid_values() -> None:
 
 
 def test_network_handler_error_handler_retry_and_disconnect_paths() -> None:
-    handler = DummyNetworkHandler(NetworkConfig(host="localhost", port=8080, max_retries=1))
+    handler = DummyNetworkHandler(
+        NetworkConfig(host="localhost", port=8080, max_retries=1)
+    )
     calls = {"disconnect": 0, "connect": 0}
     handler._disconnect = lambda: calls.__setitem__("disconnect", calls["disconnect"] + 1)  # type: ignore[method-assign]
     handler._connect = lambda: calls.__setitem__("connect", calls["connect"] + 1) or True  # type: ignore[method-assign]
@@ -228,6 +245,57 @@ def test_network_handler_set_formatter_flags_and_reset() -> None:
     assert handler._is_json_formatter is False
     assert handler._is_streaming_formatter is False
     assert handler._needs_special_handling is False
+
+
+def test_http_handler_probe_method_head_and_none_skip_request(monkeypatch) -> None:
+    class _Response:
+        def raise_for_status(self) -> None:
+            return None
+
+    class _SessionHead:
+        def __init__(self) -> None:
+            self.probe = None
+
+        def head(self, *_args, **_kwargs):
+            self.probe = "HEAD"
+            return _Response()
+
+        def request(self, **_kwargs):
+            return _Response()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(network_module, "REQUESTS_AVAILABLE", True)
+    monkeypatch.setattr(network_module.requests, "Session", _SessionHead)
+    handler = HTTPHandler("https://example.com/logs", probe_method="HEAD")
+    assert handler._establish_connection() is True
+    assert handler._session.probe == "HEAD"
+    handler.close()
+
+    class _SessionNone:
+        def __init__(self) -> None:
+            self.called = False
+
+        def get(self, *_args, **_kwargs):
+            self.called = True
+            return _Response()
+
+        def head(self, *_args, **_kwargs):
+            self.called = True
+            return _Response()
+
+        def request(self, **_kwargs):
+            return _Response()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(network_module.requests, "Session", _SessionNone)
+    handler2 = HTTPHandler("https://example.com/other", probe_method="none")
+    assert handler2._establish_connection() is True
+    assert handler2._session.called is False
+    handler2.close()
 
 
 def test_http_handler_emit_and_close_with_mock_session(monkeypatch) -> None:
@@ -360,9 +428,7 @@ def test_websocket_handler_connection_worker_emit_and_close(monkeypatch) -> None
 def test_websocket_handler_error_paths(monkeypatch, caplog) -> None:
     monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", False)
     handler = network_module.WebSocketHandler("ws://example.com/ws")
-    with caplog.at_level("ERROR", logger="hydra_logger.handlers.network_handler"):
-        assert handler._connect() is False
-    assert handler.get_network_stats()["stats"]["connection_errors"] >= 1
+    assert handler._establish_connection() is True
 
     # Emit failure path should increment failed counter via retry handler.
     handler._connect = lambda: True  # type: ignore[method-assign]
@@ -398,7 +464,9 @@ def test_socket_handler_tcp_udp_and_error_paths(monkeypatch, caplog) -> None:
         def close(self) -> None:
             self.closed = True
 
-    monkeypatch.setattr(network_module.socket, "socket", lambda *_a, **_k: DummySocket())
+    monkeypatch.setattr(
+        network_module.socket, "socket", lambda *_a, **_k: DummySocket()
+    )
 
     tcp = SocketHandler(host="localhost", port=514, protocol="tcp")
     assert tcp._establish_connection() is True
@@ -453,7 +521,11 @@ def test_datagram_handler_connection_and_emit_error_paths(monkeypatch, caplog) -
     handler2 = DatagramHandler(host="localhost", port=9999, max_packet_size=64)
     handler2._connected = True
     handler2._connection = DummyConn()
-    monkeypatch.setattr(handler2._connection, "sendto", lambda *_a, **_k: (_ for _ in ()).throw(OSError("send fail")))
+    monkeypatch.setattr(
+        handler2._connection,
+        "sendto",
+        lambda *_a, **_k: (_ for _ in ()).throw(OSError("send fail")),
+    )
     with caplog.at_level("ERROR", logger="hydra_logger.handlers.network_handler"):
         handler2.emit(LogRecord(level=20, level_name="INFO", message="boom"))
     assert handler2.get_network_stats()["stats"]["failed"] >= 1
@@ -582,7 +654,9 @@ def test_http_websocket_socket_datagram_remaining_branches(monkeypatch, caplog) 
     monkeypatch.setattr(network_module.WebSocketHandler, "__setattr__", _boom_setattr)
     with caplog.at_level("ERROR", logger="hydra_logger.handlers.network_handler"):
         assert ws._establish_connection() is False
-    monkeypatch.setattr(network_module.WebSocketHandler, "__setattr__", original_setattr)
+    monkeypatch.setattr(
+        network_module.WebSocketHandler, "__setattr__", original_setattr
+    )
 
     # Worker exception branch.
     async def _run_worker_error() -> None:
@@ -657,7 +731,9 @@ def test_http_websocket_socket_datagram_remaining_branches(monkeypatch, caplog) 
     monkeypatch.setattr(network_module.requests, "Session", _Session)
     monkeypatch.setattr(network_module, "REQUESTS_AVAILABLE", True)
     monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", True)
-    monkeypatch.setattr(network_module.WebSocketHandler, "_establish_connection", lambda self: True)
+    monkeypatch.setattr(
+        network_module.WebSocketHandler, "_establish_connection", lambda self: True
+    )
     monkeypatch.setattr(SocketHandler, "_establish_connection", lambda self: True)
     monkeypatch.setattr(DatagramHandler, "_establish_connection", lambda self: True)
     assert isinstance(

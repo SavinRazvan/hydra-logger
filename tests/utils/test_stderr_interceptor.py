@@ -185,7 +185,9 @@ def test_stderr_interceptor_initializes_error_logger_and_fsyncs(monkeypatch) -> 
 
     monkeypatch.setattr(SafeErrorLogger, "_initialize", _fake_initialize)
     monkeypatch.setattr(interceptor_module, "log_error_message", lambda *_a, **_k: None)
-    monkeypatch.setattr("os.fsync", lambda _fd: calls.__setitem__("fsync", calls["fsync"] + 1))
+    monkeypatch.setattr(
+        "os.fsync", lambda _fd: calls.__setitem__("fsync", calls["fsync"] + 1)
+    )
 
     original_initialized = SafeErrorLogger._initialized
     original_error_file = SafeErrorLogger._error_file

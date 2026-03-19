@@ -40,4 +40,6 @@ def test_data_redaction_private_dict_and_depth_guard_paths() -> None:
 
     redaction._max_depth = 0  # pylint: disable=protected-access
     original = {"email": "x@y.com"}
-    assert redaction._redact_value(original, depth=1) is original  # pylint: disable=protected-access
+    assert (
+        redaction._redact_value(original, depth=1) is original
+    )  # pylint: disable=protected-access

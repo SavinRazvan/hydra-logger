@@ -58,6 +58,18 @@ sequenceDiagram
 
 - Historical docs may still mention database/queue/cloud/system handlers; those are not part of the current module implementation.
 
+### Network handlers
+
+- **HTTP**: connectivity uses a configurable probe (`NetworkConfig.connection_probe`,
+  `NetworkConfig.probe_method` / `LogDestination.connection_probe`, `LogDestination.probe_method`).
+  Default probe verb is **GET** for backward compatibility; prefer **HEAD** or **`none`** when ingest
+  endpoints reject GET.
+- **WebSocket**: `WebSocketHandler` is a **simulated** transport today (stats only); emits a one-time
+  `UserWarning` on first `emit`. Do not assume bytes on the wire until a real client ships.
+- **Diagnostics**: `AsyncFileHandler` routes operational messages through
+  `hydra_logger.utils.internal_diagnostics` (logger `hydra_logger.internal`, `NullHandler` by default)
+  instead of stdout/stderr.
+
 ## Maintenance Notes
 
 - Keep handler-level filtering and formatter assignment explicit.

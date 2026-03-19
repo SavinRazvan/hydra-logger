@@ -30,10 +30,14 @@ from typing import Any, Dict, Tuple, Union
 
 from ..types.levels import LogLevel
 from ..types.records import LogRecord
+from ..utils import internal_diagnostics as _idiag
+from ..utils import slo_metrics
 from ..utils.time_utility import TimeUtility
 from .base_handler import BaseHandler
 
 _logger = logging.getLogger(__name__)
+
+
 class SyncFileHandler(BaseHandler):
     """Synchronous file handler with buffered writes and periodic flushing."""
 
@@ -276,9 +280,9 @@ class SyncFileHandler(BaseHandler):
 
         except Exception as e:
             # Fallback formatting if formatter fails
-            print(
-                f"Warning: Formatter failed: {e}, using fallback formatting",
-                file=sys.stderr,
+            _idiag.warning(
+                "Formatter failed: %s, using fallback formatting",
+                e,
             )
             return f"{record.level_name} [{record.layer}] {record.message}\n"
 
@@ -320,6 +324,7 @@ class SyncFileHandler(BaseHandler):
             "filename": self._filename,
             "handler_type": "sync_file",
         }
+
 
 class AsyncFileHandler(BaseHandler):
     """Asynchronous file handler with queue-driven batching and worker tasks."""
@@ -363,7 +368,7 @@ class AsyncFileHandler(BaseHandler):
         try:
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         except Exception as e:
-            print(f"Warning: Could not create directory for {filename}: {e}")
+            _idiag.warning("Could not create directory for %s: %s", filename, e)
 
         # High performance: Smart queue management with threading
         self._message_queue = asyncio.Queue(maxsize=max_queue_size)
@@ -485,7 +490,9 @@ class AsyncFileHandler(BaseHandler):
                     await file_handle.flush()
         except ImportError:
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self._write_payload_sync, payload, is_binary)
+            await loop.run_in_executor(
+                None, self._write_payload_sync, payload, is_binary
+            )
 
     def _start_worker(self):
         """Start multiple async worker tasks for high throughput performance."""
@@ -502,20 +509,25 @@ class AsyncFileHandler(BaseHandler):
                     task = loop.create_task(self._message_processor(f"Worker-{i+1}"))
                     self._worker_tasks.append(task)
                 self._running = True
-                print(f"Started {self._num_workers} async workers for {self._filename}")
+                _idiag.debug(
+                    "Started %s async workers for %s",
+                    self._num_workers,
+                    self._filename,
+                )
             except RuntimeError:
                 # No event loop running, defer worker start
-                print(
-                    f"No event loop running, deferring worker start for {self._filename}"
+                _idiag.debug(
+                    "No event loop running, deferring worker start for %s",
+                    self._filename,
                 )
                 self._running = False
         except Exception as e:
-            print(f"Failed to start async file workers: {e}", file=sys.stderr)
+            _idiag.error("Failed to start async file workers: %s", e)
             self._running = False
 
     async def _message_processor(self, worker_name: str = "Worker"):
         """Direct direct memory-to-file processor for performance."""
-        print(f"{worker_name} started for {self._filename}")
+        _idiag.debug("%s started for %s", worker_name, self._filename)
 
         while not self._shutdown_event.is_set():
             try:
@@ -552,7 +564,7 @@ class AsyncFileHandler(BaseHandler):
                     await asyncio.sleep(0.0001)  # Short sleep
 
             except Exception as e:
-                print(f"Processor error: {e}", file=sys.stderr)
+                _idiag.warning("Async file processor error: %s", e)
                 await asyncio.sleep(0.001)  # Brief delay on error
 
     async def _direct_memory_to_file_write(self, messages: list):
@@ -573,7 +585,7 @@ class AsyncFileHandler(BaseHandler):
                 await self._bulk_write_to_disk_async(messages)
 
         except Exception as e:
-            print(f"Direct memory-to-file write error: {e}", file=sys.stderr)
+            _idiag.warning("Direct memory-to-file write error: %s", e)
 
     async def _smart_memory_to_disk_transfer(self):
         """Smart memory-to-disk transfer for performance."""
@@ -613,7 +625,7 @@ class AsyncFileHandler(BaseHandler):
             self._disk_buffer.clear()
 
         except Exception as e:
-            print(f"Fast disk flush error: {e}", file=sys.stderr)
+            _idiag.warning("Fast disk flush error: %s", e)
 
     def _bulk_write_to_disk(self, messages: list):
         """Bulk write to disk with performance."""
@@ -631,7 +643,7 @@ class AsyncFileHandler(BaseHandler):
                 self._total_bytes_written += self._payload_byte_size(payload, is_binary)
 
         except Exception as e:
-            print(f"Bulk disk write error: {e}", file=sys.stderr)
+            _idiag.warning("Bulk disk write error: %s", e)
             raise
 
     async def _bulk_write_to_disk_async(self, messages: list):
@@ -659,7 +671,7 @@ class AsyncFileHandler(BaseHandler):
                 self._total_bytes_written += self._payload_byte_size(payload, is_binary)
 
         except Exception as e:
-            print(f"Async bulk disk write error: {e}", file=sys.stderr)
+            _idiag.warning("Async bulk disk write error: %s", e)
             self._messages_dropped += len(messages)
 
     async def _optimization(self, batch_start_time: float, messages_processed: int):
@@ -764,7 +776,7 @@ class AsyncFileHandler(BaseHandler):
                 self._overflow_buffer.clear()
 
         except Exception as e:
-            print(f"Smart flush error: {e}", file=sys.stderr)
+            _idiag.warning("Smart flush error: %s", e)
             # On error, try to preserve messages in overflow buffer
         if self._message_buffer:
             self._overflow_buffer.extend(self._message_buffer)
@@ -784,7 +796,7 @@ class AsyncFileHandler(BaseHandler):
                 await self._write_messages_async(messages)
 
         except Exception as e:
-            print(f"File write error: {e}", file=sys.stderr)
+            _idiag.warning("File write error: %s", e)
             raise
 
     def _write_messages_threaded(self, messages: list):
@@ -803,7 +815,7 @@ class AsyncFileHandler(BaseHandler):
                 self._total_bytes_written += self._payload_byte_size(payload, is_binary)
 
         except Exception as e:
-            print(f"Threaded file write error: {e}", file=sys.stderr)
+            _idiag.warning("Threaded file write error: %s", e)
             raise
 
     async def _write_messages_async(self, messages: list):
@@ -817,7 +829,7 @@ class AsyncFileHandler(BaseHandler):
             self._total_bytes_written += self._payload_byte_size(payload, is_binary)
 
         except Exception as e:
-            print(f"Async file write error: {e}", file=sys.stderr)
+            _idiag.warning("Async file write error: %s", e)
             raise
 
     async def _optimize_performance(
@@ -913,7 +925,9 @@ class AsyncFileHandler(BaseHandler):
                         try:
                             await asyncio.gather(task, return_exceptions=True)
                         except Exception:
-                            _logger.exception("Async file worker cancellation gather failed")
+                            _logger.exception(
+                                "Async file worker cancellation gather failed"
+                            )
                 except Exception:
                     # If anything fails, cancel and await all tasks
                     for task in self._worker_tasks:
@@ -982,7 +996,7 @@ class AsyncFileHandler(BaseHandler):
             self._batch_count += 1
 
         except Exception as e:
-            print(f"Async file batch write error: {e}", file=sys.stderr)
+            _idiag.warning("Async file batch write error: %s", e)
             self._messages_dropped += len(self._message_buffer)
         finally:
             self._message_buffer.clear()
@@ -1018,9 +1032,9 @@ class AsyncFileHandler(BaseHandler):
 
         except Exception as e:
             # Fallback formatting if formatter fails
-            print(
-                f"Warning: Formatter failed: {e}, using fallback formatting",
-                file=sys.stderr,
+            _idiag.warning(
+                "Formatter failed: %s, using fallback formatting",
+                e,
             )
             return f"{record.level_name} [{record.layer}] {record.message}\n"
 
@@ -1057,7 +1071,7 @@ class AsyncFileHandler(BaseHandler):
                     f.write(headers + "\n")
                 return True
         except Exception as e:
-            print(f"Warning: Failed to write CSV headers: {e}", file=sys.stderr)
+            _idiag.warning("Failed to write CSV headers: %s", e)
 
         return False
 
@@ -1082,7 +1096,9 @@ class AsyncFileHandler(BaseHandler):
 
             if not self._running:
                 try:
-                    self._write_payload_sync(message, isinstance(message, bytes), buffering=1)
+                    self._write_payload_sync(
+                        message, isinstance(message, bytes), buffering=1
+                    )
                     self._messages_processed += 1
                     self._total_bytes_written += self._payload_byte_size(
                         message, isinstance(message, bytes)
@@ -1090,7 +1106,7 @@ class AsyncFileHandler(BaseHandler):
                     return
                 except Exception as e:
                     self._messages_dropped += 1
-                    print(f"Direct sync file write error: {e}", file=sys.stderr)
+                    _idiag.warning("Direct sync file write error: %s", e)
                     return
 
             # Add to async queue (non-blocking)
@@ -1099,6 +1115,8 @@ class AsyncFileHandler(BaseHandler):
             except asyncio.QueueFull:
                 # Queue is full, drop message
                 self._messages_dropped += 1
+                slo_metrics.record_dropped_log("async_file_queue_full")
+                slo_metrics.record_queue_saturation("async_file_handler")
                 if self._messages_dropped == 1 or self._messages_dropped % 100 == 0:
                     _logger.warning(
                         "Async file handler queue full; dropped=%s queue_size=%s max=%s",
@@ -1109,7 +1127,7 @@ class AsyncFileHandler(BaseHandler):
 
         except Exception as e:
             self._messages_dropped += 1
-            print(f"File emit error: {e}", file=sys.stderr)
+            _idiag.warning("File emit error: %s", e)
 
     async def emit_async(self, record: LogRecord) -> None:
         """
@@ -1153,7 +1171,7 @@ class AsyncFileHandler(BaseHandler):
                     self._messages_processed += 1
                     return
                 except Exception as e:
-                    print(f"Direct file write error: {e}", file=sys.stderr)
+                    _idiag.warning("Direct file write error: %s", e)
                     self._messages_dropped += 1
                     return
 
@@ -1163,6 +1181,8 @@ class AsyncFileHandler(BaseHandler):
             except asyncio.QueueFull:
                 # Main queue full, drop message
                 self._messages_dropped += 1
+                slo_metrics.record_dropped_log("async_file_queue_full_async")
+                slo_metrics.record_queue_saturation("async_file_handler")
                 if self._messages_dropped == 1 or self._messages_dropped % 100 == 0:
                     _logger.warning(
                         "Async file handler queue full (async); dropped=%s queue_size=%s max=%s",
@@ -1173,7 +1193,7 @@ class AsyncFileHandler(BaseHandler):
 
         except Exception as e:
             self._messages_dropped += 1
-            print(f"Async file emit error: {e}", file=sys.stderr)
+            _idiag.warning("Async file emit error: %s", e)
 
     async def flush(self):
         """Force flush any pending messages."""
@@ -1181,7 +1201,7 @@ class AsyncFileHandler(BaseHandler):
             if self._message_buffer:
                 await self._flush_batch()
         except Exception as e:
-            print(f"Async file flush error: {e}", file=sys.stderr)
+            _idiag.warning("Async file flush error: %s", e)
 
     async def aclose(self):
         """Close the async handler."""
@@ -1271,7 +1291,9 @@ class AsyncFileHandler(BaseHandler):
                 asyncio.run(self.aclose())
 
         except Exception:
-            _logger.exception("Sync close fallback path triggered for async file handler")
+            _logger.exception(
+                "Sync close fallback path triggered for async file handler"
+            )
 
     def _auto_cleanup(self):
         """Automatic cleanup called by atexit."""
@@ -1293,7 +1315,9 @@ class AsyncFileHandler(BaseHandler):
                             task.cancel()
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
-                _logger.debug("Skipping auto cleanup task cancellation due to closed loop")
+                _logger.debug(
+                    "Skipping auto cleanup task cancellation due to closed loop"
+                )
         except Exception:
             _logger.exception("Async file auto cleanup failed")
 
@@ -1317,7 +1341,9 @@ class AsyncFileHandler(BaseHandler):
                             task.cancel()
             except RuntimeError:
                 # Event loop is closed or not running, skip task cancellation
-                _logger.debug("Skipping destructor task cancellation due to closed loop")
+                _logger.debug(
+                    "Skipping destructor task cancellation due to closed loop"
+                )
         except Exception:
             _logger.exception("Async file destructor cleanup failed")
 
@@ -1351,6 +1377,7 @@ class AsyncFileHandler(BaseHandler):
             "filename": self._filename,
             "handler_type": "async_file_handler",
         }
+
 
 # Backward compatibility - FileHandler now chooses the right implementation
 class FileHandler(BaseHandler):

@@ -13,6 +13,7 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
+
 from hydra_logger.loggers.pipeline import (
     ComponentDispatcher,
     ExtensionProcessor,
@@ -157,7 +158,9 @@ def test_record_builder_logs_and_raises_on_invalid_level(caplog) -> None:
     logger = DummyLogger()
     builder = RecordBuilder(logger)
 
-    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.record_builder"):
+    with caplog.at_level(
+        "ERROR", logger="hydra_logger.loggers.pipeline.record_builder"
+    ):
         with pytest.raises(Exception):
             builder.create(object(), "hello")
 
@@ -185,10 +188,15 @@ def test_handler_dispatcher_sync_logs_failure_context(caplog) -> None:
     dispatcher = HandlerDispatcher()
     failing = FailingHandleHandler()
 
-    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.handler_dispatcher"):
+    with caplog.at_level(
+        "ERROR", logger="hydra_logger.loggers.pipeline.handler_dispatcher"
+    ):
         dispatcher.dispatch_sync(record=object(), handlers=[failing])
 
-    assert "Sync handler dispatch failed for handler type=FailingHandleHandler" in caplog.text
+    assert (
+        "Sync handler dispatch failed for handler type=FailingHandleHandler"
+        in caplog.text
+    )
 
 
 def test_handler_dispatcher_async_supports_mixed_handler_shapes() -> None:
@@ -220,7 +228,9 @@ def test_handler_dispatcher_async_logs_failure_context(caplog) -> None:
     dispatcher = HandlerDispatcher()
     bad = FailingAsyncEmitMethodHandler()
 
-    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.handler_dispatcher"):
+    with caplog.at_level(
+        "ERROR", logger="hydra_logger.loggers.pipeline.handler_dispatcher"
+    ):
         asyncio.run(dispatcher.dispatch_async(record=object(), handlers=[bad]))
 
     assert (
@@ -236,10 +246,14 @@ def test_handler_dispatcher_async_noop_handler_shape_and_token_fallback() -> Non
         pass
 
     # Cover callable token fallback branch (non-None, non-bound method).
-    assert dispatcher._callable_token(lambda: None) != 0  # pylint: disable=protected-access
+    assert (
+        dispatcher._callable_token(lambda: None) != 0
+    )  # pylint: disable=protected-access
 
     # Cover default async dispatch branch that returns noop coroutine.
-    asyncio.run(dispatcher.dispatch_async(record=object(), handlers=[NoDispatchMethods()]))
+    asyncio.run(
+        dispatcher.dispatch_async(record=object(), handlers=[NoDispatchMethods()])
+    )
 
 
 def test_extension_processor_applies_enabled_protection_only() -> None:
@@ -272,10 +286,14 @@ def test_extension_processor_logs_extension_failures(caplog) -> None:
     record = SimpleNamespace(message="secret")
     protection = DummyDataProtection(enabled=True, should_fail=True)
 
-    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.extension_processor"):
+    with caplog.at_level(
+        "ERROR", logger="hydra_logger.loggers.pipeline.extension_processor"
+    ):
         processor.apply_data_protection(record, protection)
 
-    assert "Data protection extension failed for type=DummyDataProtection" in caplog.text
+    assert (
+        "Data protection extension failed for type=DummyDataProtection" in caplog.text
+    )
 
 
 def test_extension_processor_applies_data_protection_to_context_and_extra() -> None:
@@ -289,7 +307,9 @@ def test_extension_processor_applies_data_protection_to_context_and_extra() -> N
                 return payload.replace("token=abc", 'token="[REDACTED]"')
             if isinstance(payload, dict):
                 return {
-                    key: self.process(value) if isinstance(value, (dict, str)) else value
+                    key: (
+                        self.process(value) if isinstance(value, (dict, str)) else value
+                    )
                     for key, value in payload.items()
                 }
             return payload
@@ -327,10 +347,14 @@ def test_component_dispatcher_sync_logs_component_failure(caplog) -> None:
     dispatcher = ComponentDispatcher()
     bad = SyncComponent(should_fail=True)
 
-    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.component_dispatcher"):
+    with caplog.at_level(
+        "ERROR", logger="hydra_logger.loggers.pipeline.component_dispatcher"
+    ):
         dispatcher.dispatch_sync(components=[bad], level="INFO", message="fanout")
 
-    assert "Sync component dispatch failed for component type=SyncComponent" in caplog.text
+    assert (
+        "Sync component dispatch failed for component type=SyncComponent" in caplog.text
+    )
 
 
 def test_component_dispatcher_async_mixed_components_and_failure() -> None:
@@ -356,7 +380,9 @@ def test_component_dispatcher_async_logs_component_failure(caplog) -> None:
     dispatcher = ComponentDispatcher()
     bad = AsyncComponent(should_fail=True)
 
-    with caplog.at_level("ERROR", logger="hydra_logger.loggers.pipeline.component_dispatcher"):
+    with caplog.at_level(
+        "ERROR", logger="hydra_logger.loggers.pipeline.component_dispatcher"
+    ):
         asyncio.run(
             dispatcher.dispatch_async(
                 components=[bad],
@@ -365,4 +391,7 @@ def test_component_dispatcher_async_logs_component_failure(caplog) -> None:
             )
         )
 
-    assert "Async component dispatch failed for component type=AsyncComponent" in caplog.text
+    assert (
+        "Async component dispatch failed for component type=AsyncComponent"
+        in caplog.text
+    )

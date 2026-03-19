@@ -84,7 +84,9 @@ def test_dev_logging_configure_dev_mode_file_handler_success(monkeypatch) -> Non
             def emit(self, record: logging.LogRecord) -> None:
                 return None
 
-        monkeypatch.setattr(logging, "FileHandler", lambda *_args, **_kwargs: _DummyFileHandler())
+        monkeypatch.setattr(
+            logging, "FileHandler", lambda *_args, **_kwargs: _DummyFileHandler()
+        )
         dev_logging_mod._configure_root_benchmark_logger()
 
         assert dev_logging_mod._CONFIGURED is True
@@ -118,7 +120,9 @@ def test_measure_sync_batch_throughput_propagates_logger_errors() -> None:
 
 def test_measure_async_batch_throughput_propagates_logger_errors() -> None:
     class _BrokenAsyncLogger:
-        async def log_batch(self, _messages: list[tuple[str, str, dict[str, Any]]]) -> None:
+        async def log_batch(
+            self, _messages: list[tuple[str, str, dict[str, Any]]]
+        ) -> None:
             raise RuntimeError("async boom")
 
     async def _run() -> None:
@@ -134,10 +138,16 @@ def test_measure_async_batch_throughput_propagates_logger_errors() -> None:
         asyncio.run(_run())
 
 
-def test_io_metrics_resolve_bytes_written_fallback_on_getsize_error(monkeypatch, tmp_path) -> None:
+def test_io_metrics_resolve_bytes_written_fallback_on_getsize_error(
+    monkeypatch, tmp_path
+) -> None:
     file_path = tmp_path / "out.log"
     file_path.write_text("hello\n", encoding="utf-8")
-    monkeypatch.setattr(io_metrics_mod.os.path, "getsize", lambda _path: (_ for _ in ()).throw(OSError("size boom")))
+    monkeypatch.setattr(
+        io_metrics_mod.os.path,
+        "getsize",
+        lambda _path: (_ for _ in ()).throw(OSError("size boom")),
+    )
 
     payload = io_metrics_mod.resolve_bytes_written(
         file_path=file_path,
@@ -148,7 +158,9 @@ def test_io_metrics_resolve_bytes_written_fallback_on_getsize_error(monkeypatch,
     assert payload["bytes_written"] == 12
 
 
-def test_load_profile_propagates_oserror_as_contextual_error(monkeypatch, tmp_path) -> None:
+def test_load_profile_propagates_oserror_as_contextual_error(
+    monkeypatch, tmp_path
+) -> None:
     profile = tmp_path / "broken.json"
     profile.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(profiles_mod, "PROFILE_DIR", tmp_path)
@@ -166,7 +178,9 @@ def test_load_profile_propagates_oserror_as_contextual_error(monkeypatch, tmp_pa
         profiles_mod.load_profile("broken")
 
 
-def test_reporting_write_results_artifacts_raises_oserror(monkeypatch, tmp_path) -> None:
+def test_reporting_write_results_artifacts_raises_oserror(
+    monkeypatch, tmp_path
+) -> None:
     payload = {
         "metadata": {"timestamp": "2026-03-16_17-00-00"},
         "results": {},
@@ -177,11 +191,19 @@ def test_reporting_write_results_artifacts_raises_oserror(monkeypatch, tmp_path)
 
     monkeypatch.setattr(Path, "write_text", _raise_write)
     with pytest.raises(OSError, match="Failed to persist benchmark artifacts"):
-        reporting_mod.write_results_artifacts(output_payload=payload, results_dir=tmp_path)
+        reporting_mod.write_results_artifacts(
+            output_payload=payload, results_dir=tmp_path
+        )
 
 
-def test_reporting_write_report_files_raises_oserror_on_copy(monkeypatch, tmp_path) -> None:
-    monkeypatch.setattr(reporting_mod.shutil, "copy2", lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("copy boom")))
+def test_reporting_write_report_files_raises_oserror_on_copy(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(
+        reporting_mod.shutil,
+        "copy2",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("copy boom")),
+    )
     with pytest.raises(OSError, match="Failed to persist benchmark report files"):
         reporting_mod._write_report_files(
             results_dir=tmp_path,
@@ -191,7 +213,9 @@ def test_reporting_write_report_files_raises_oserror_on_copy(monkeypatch, tmp_pa
         )
 
 
-def test_parallel_sync_worker_logs_and_propagates_emit_errors(monkeypatch, tmp_path) -> None:
+def test_parallel_sync_worker_logs_and_propagates_emit_errors(
+    monkeypatch, tmp_path
+) -> None:
     class _BrokenLogger:
         def info(self, _msg: str) -> None:
             raise RuntimeError("emit boom")
@@ -199,7 +223,9 @@ def test_parallel_sync_worker_logs_and_propagates_emit_errors(monkeypatch, tmp_p
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr(runners_mod, "getLogger", lambda *_args, **_kwargs: _BrokenLogger())
+    monkeypatch.setattr(
+        runners_mod, "getLogger", lambda *_args, **_kwargs: _BrokenLogger()
+    )
     with pytest.raises(RuntimeError, match="emit boom"):
         runners_mod.parallel_sync_worker(str(tmp_path), 1, 0, 1)
 
@@ -216,7 +242,9 @@ def test_run_async_concurrent_suite_propagates_task_errors() -> None:
             create_logger=lambda _count: _BrokenAsyncLogger(),
             flush_async=lambda _logger: asyncio.sleep(0),
             close_async=lambda _logger: asyncio.sleep(0),
-            messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+            messages_per_second=lambda total, duration: (
+                total / duration if duration > 0 else 0.0
+            ),
         )
 
     with pytest.raises(RuntimeError, match="task boom"):
@@ -238,14 +266,18 @@ def test_run_async_concurrent_suite_propagates_close_errors() -> None:
             create_logger=lambda _count: _OkAsyncLogger(),
             flush_async=lambda _logger: asyncio.sleep(0),
             close_async=_close_async,
-            messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+            messages_per_second=lambda total, duration: (
+                total / duration if duration > 0 else 0.0
+            ),
         )
 
     with pytest.raises(RuntimeError, match="close boom"):
         asyncio.run(_run())
 
 
-def test_run_parallel_workers_suite_propagates_executor_failures(monkeypatch, tmp_path) -> None:
+def test_run_parallel_workers_suite_propagates_executor_failures(
+    monkeypatch, tmp_path
+) -> None:
     class _BrokenExecutor:
         def __init__(self, max_workers: int) -> None:
             self.max_workers = max_workers
@@ -262,7 +294,9 @@ def test_run_parallel_workers_suite_propagates_executor_failures(monkeypatch, tm
             matrix=[1],
             messages_per_worker=1,
             bench_logs_dir=tmp_path,
-            messages_per_second=lambda total, duration: total / duration if duration > 0 else 0.0,
+            messages_per_second=lambda total, duration: (
+                total / duration if duration > 0 else 0.0
+            ),
         )
 
 

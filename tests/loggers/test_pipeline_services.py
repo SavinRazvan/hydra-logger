@@ -53,7 +53,10 @@ def test_layer_router_handles_threshold_resolution_error(caplog) -> None:
         threshold = router.layer_threshold("x", "INFO")
 
     assert threshold >= 0
-    assert "Layer threshold resolution failed for layer=x default_level=INFO" in caplog.text
+    assert (
+        "Layer threshold resolution failed for layer=x default_level=INFO"
+        in caplog.text
+    )
 
 
 def test_layer_router_handles_handler_resolution_error(caplog) -> None:

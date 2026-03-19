@@ -12,7 +12,7 @@ import asyncio
 
 import pytest
 
-from hydra_logger.config.models import LogDestination, LogLayer, LoggingConfig
+from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.core.exceptions import HydraLoggerError
 from hydra_logger.loggers.composite_logger import CompositeAsyncLogger, CompositeLogger
 
@@ -322,7 +322,7 @@ def test_composite_async_logger_log_batch_direct_io_level_filtering() -> None:
         logger = CompositeAsyncLogger(components=[], use_direct_io=True, level="ERROR")
         seen = []
 
-        def _capture(level, message, layer, kwargs):  # type: ignore[no-untyped-def]
+        async def _capture(level, message, layer, kwargs):  # type: ignore[no-untyped-def]
             seen.append((level, message, layer))
 
         logger._direct_string_format = _capture  # type: ignore[assignment]
@@ -344,7 +344,7 @@ def test_composite_async_logger_log_batch_component_mode_chunks() -> None:
         logger._batch_size = 2
         seen = []
 
-        def _capture(level, message, layer, kwargs):  # type: ignore[no-untyped-def]
+        async def _capture(level, message, layer, kwargs):  # type: ignore[no-untyped-def]
             seen.append((level, message, layer))
 
         logger._direct_string_format = _capture  # type: ignore[assignment]
@@ -366,7 +366,7 @@ def test_composite_async_logger_log_bulk_direct_io_coercion() -> None:
         logger = CompositeAsyncLogger(components=[], use_direct_io=True)
         calls = []
 
-        def _emit(level, message, *args, **kwargs):  # type: ignore[no-untyped-def]
+        async def _emit(level, message, *args, **kwargs):  # type: ignore[no-untyped-def]
             calls.append((level, message))
 
         logger._direct_io_emit = _emit  # type: ignore[assignment]
@@ -468,7 +468,9 @@ def test_composite_logger_setup_from_config_adds_components(
     monkeypatch.setattr("hydra_logger.loggers.sync_logger.SyncLogger", FakeSyncLogger)
     cfg = LoggingConfig(
         layers={
-            "default": LogLayer(destinations=[LogDestination(type="console", format="plain-text")])
+            "default": LogLayer(
+                destinations=[LogDestination(type="console", format="plain-text")]
+            )
         }
     )
     logger = CompositeLogger(config=cfg)
@@ -499,7 +501,9 @@ def test_composite_logger_network_destination_bootstraps_components(
         layers={
             "default": LogLayer(
                 destinations=[
-                    LogDestination(type="network_http", url="https://example.com/ingest")
+                    LogDestination(
+                        type="network_http", url="https://example.com/ingest"
+                    )
                 ]
             )
         }
@@ -604,7 +608,7 @@ def test_composite_async_logger_log_formatter_fallback_and_detailed_format(
         assert "[run]" in logger._direct_io_buffer[-1]
 
         # Exercise _direct_io_emit non-preformatted path with explicit layer.
-        logger._direct_io_emit("INFO", "raw", layer="api", pre_formatted=False)
+        await logger._direct_io_emit("INFO", "raw", layer="api", pre_formatted=False)
         assert "[api]" in logger._direct_io_buffer[-1]
 
         # Exercise flush path where file path comes from component.file_path.
@@ -722,7 +726,9 @@ def test_composite_logger_dispatch_path_and_component_method_failures(
 
 def test_composite_async_logger_wrapper_methods_and_level_checks() -> None:
     async def _run() -> None:
-        logger = CompositeAsyncLogger(components=[], use_direct_io=True, level="WARNING")
+        logger = CompositeAsyncLogger(
+            components=[], use_direct_io=True, level="WARNING"
+        )
         assert logger.is_enabled_for("ERROR") is True
         assert logger.is_enabled_for("INFO") is False
         logger.set_level("DEBUG")
@@ -746,7 +752,11 @@ def test_composite_async_logger_flush_direct_io_from_explicit_config_destination
     cfg = LoggingConfig(
         layers={
             "default": LogLayer(
-                destinations=[LogDestination(type="file", path="cfg-explicit.log", format="plain-text")]
+                destinations=[
+                    LogDestination(
+                        type="file", path="cfg-explicit.log", format="plain-text"
+                    )
+                ]
             )
         }
     )
@@ -788,11 +798,15 @@ def test_composite_async_logger_close_paths_and_health_error_branches() -> None:
         logger.close()
         assert logger._closed is True
 
-        logger2 = CompositeAsyncLogger(components=[FailingSyncCloseComponent()], use_direct_io=True)
+        logger2 = CompositeAsyncLogger(
+            components=[FailingSyncCloseComponent()], use_direct_io=True
+        )
         logger2.close()
         assert logger2._closed is True
 
-        logger3 = CompositeAsyncLogger(components=[BadHealthComponent()], use_direct_io=True)
+        logger3 = CompositeAsyncLogger(
+            components=[BadHealthComponent()], use_direct_io=True
+        )
         health = logger3.get_health_status()
         assert health["overall_health"] == "unhealthy"
         logger3._closed = True
@@ -895,30 +909,40 @@ def test_composite_async_direct_flush_threshold_and_config_fallback_paths(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
-    logger = CompositeAsyncLogger(components=[], use_direct_io=True)
 
-    flushes = {"count": 0}
-    logger._flush_direct_io = lambda: flushes.__setitem__("count", flushes["count"] + 1)  # type: ignore[assignment]
-    logger._buffer_size = 1
-    logger._direct_string_format("INFO", "msg", "default", {})
-    logger._direct_io_emit("INFO", "msg2", pre_formatted=False)
-    assert flushes["count"] >= 2
+    async def _runner() -> None:
+        logger = CompositeAsyncLogger(components=[], use_direct_io=True)
 
-    logger2 = CompositeAsyncLogger(
-        config=LoggingConfig(
-            layers={
-                "default": LogLayer(
-                    destinations=[LogDestination(type="async_file", path="async-target.log")]
-                )
-            }
-        ),
-        components=[],
-        use_direct_io=True,
-    )
-    logger2._direct_io_buffer = ["line\n"]
-    logger2._flush_direct_io()
-    assert (tmp_path / "logs" / "async-target.log").exists()
-    logger2.close()
+        flushes = {"count": 0}
+
+        async def _track_flush() -> None:
+            flushes["count"] += 1
+
+        logger._flush_direct_io_async = _track_flush  # type: ignore[method-assign]
+        logger._buffer_size = 1
+        await logger._direct_string_format("INFO", "msg", "default", {})
+        await logger._direct_io_emit("INFO", "msg2", pre_formatted=False)
+        assert flushes["count"] >= 2
+
+        logger2 = CompositeAsyncLogger(
+            config=LoggingConfig(
+                layers={
+                    "default": LogLayer(
+                        destinations=[
+                            LogDestination(type="async_file", path="async-target.log")
+                        ]
+                    )
+                }
+            ),
+            components=[],
+            use_direct_io=True,
+        )
+        logger2._direct_io_buffer = ["line\n"]
+        logger2._flush_direct_io()
+        assert (tmp_path / "logs" / "async-target.log").exists()
+        logger2.close()
+
+    asyncio.run(_runner())
 
 
 def test_composite_async_flush_fallback_print_and_close_preparation_errors(
@@ -1040,13 +1064,19 @@ def test_composite_async_time_based_flush_and_component_bulk_non_string_conversi
     async def _run() -> None:
         logger = CompositeAsyncLogger(components=[], use_direct_io=True)
         flushed = {"count": 0}
-        logger._flush_direct_io = lambda: flushed.__setitem__("count", flushed["count"] + 1)  # type: ignore[assignment]
+
+        async def _track_flush() -> None:
+            flushed["count"] += 1
+
+        logger._flush_direct_io_async = _track_flush  # type: ignore[method-assign]
         logger._buffer_size = 999
         logger._last_flush = 0.0
         logger._flush_interval = 0.1
-        monkeypatch.setattr("hydra_logger.utils.time_utility.TimeUtility.perf_counter", lambda: 1.0)
-        logger._direct_string_format("INFO", "m", "default", {})
-        logger._direct_io_emit("INFO", "m2", pre_formatted=False)
+        monkeypatch.setattr(
+            "hydra_logger.utils.time_utility.TimeUtility.perf_counter", lambda: 1.0
+        )
+        await logger._direct_string_format("INFO", "m", "default", {})
+        await logger._direct_io_emit("INFO", "m2", pre_formatted=False)
         assert flushed["count"] >= 2
 
         class EmitComponent:
@@ -1073,7 +1103,9 @@ def test_composite_async_close_coroutine_branch_and_error_count_warning() -> Non
             raise RuntimeError("close boom")
 
     async def _run() -> None:
-        logger = CompositeAsyncLogger(components=[CoroutineClose()], use_direct_io=False)
+        logger = CompositeAsyncLogger(
+            components=[CoroutineClose()], use_direct_io=False
+        )
         await logger.aclose()
         assert logger._closed is True
 

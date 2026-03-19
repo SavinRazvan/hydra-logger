@@ -38,7 +38,6 @@ from hydra_logger.types.records import LogRecord
 from hydra_logger.utils.file_utility import FileUtility
 from hydra_logger.utils.time_utility import TimeUtility
 
-
 _logger = logging.getLogger(__name__)
 
 
@@ -272,7 +271,9 @@ class RotatingFileHandler(BaseHandler):
                 try:
                     FileUtility.delete_file(old_file)
                 except Exception as e:
-                    _logger.warning("Failed to delete old rotated file %s: %s", old_file, e)
+                    _logger.warning(
+                        "Failed to delete old rotated file %s: %s", old_file, e
+                    )
 
         except Exception as e:
             _logger.warning("Rotated file cleanup failed: %s", e)
@@ -666,7 +667,9 @@ class HybridRotatingFileHandler(RotatingFileHandler):
                 if file_info.size >= self._max_bytes:
                     return True
             except Exception:
-                _logger.exception("Hybrid rotation size check failed for %s", self._filename)
+                _logger.exception(
+                    "Hybrid rotation size check failed for %s", self._filename
+                )
 
         # Check time-based rotation
         now = datetime.now()

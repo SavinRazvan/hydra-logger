@@ -9,13 +9,10 @@ Notes:
  - Prevents introducing blocking runtime calls in hydra_logger modules.
 """
 
-from pathlib import Path
 import re
+from pathlib import Path
 
-
-FORBIDDEN_CALLS = (
-    re.compile(r"\btime\.sleep\("),
-)
+FORBIDDEN_CALLS = (re.compile(r"\btime\.sleep\("),)
 ALLOWED_FILES = {
     "hydra_logger/utils/stderr_interceptor.py",
 }
@@ -33,4 +30,6 @@ def test_runtime_modules_do_not_use_forbidden_blocking_calls() -> None:
             if any(pattern.search(line) for pattern in FORBIDDEN_CALLS):
                 findings.append(f"{rel}:{line_no}: forbidden runtime blocking call")
 
-    assert findings == [], "Forbidden runtime blocking calls found:\n" + "\n".join(findings)
+    assert findings == [], "Forbidden runtime blocking calls found:\n" + "\n".join(
+        findings
+    )

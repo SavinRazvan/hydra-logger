@@ -23,7 +23,9 @@ def test_init_sets_paths_and_test_config(tmp_path, monkeypatch) -> None:
     removed = []
     monkeypatch.setattr(perf_mod, "removeLogger", lambda name: removed.append(name))
 
-    bench = HydraLoggerBenchmark(save_results=True, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=True, results_dir=str(tmp_path / "results")
+    )
 
     assert bench.results == {}
     assert bench.save_results is True
@@ -36,7 +38,9 @@ def test_init_sets_paths_and_test_config(tmp_path, monkeypatch) -> None:
 
 
 def test_build_benchmark_log_path_sanitizes_prefix(tmp_path) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
     log_path = bench._build_benchmark_log_path("perf async logger")
     path = Path(log_path)
 
@@ -46,7 +50,9 @@ def test_build_benchmark_log_path_sanitizes_prefix(tmp_path) -> None:
 
 
 def test_resolve_output_matrix_file_path_supports_extension_fallbacks(tmp_path) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
     configured = bench._benchmark_logs_dir / "matrix_case.log"
     actual = bench._benchmark_logs_dir / "matrix_case.jsonl"
     actual.write_text('{"msg":"ok"}\n', encoding="utf-8")
@@ -55,8 +61,12 @@ def test_resolve_output_matrix_file_path_supports_extension_fallbacks(tmp_path) 
     assert resolved == str(actual)
 
 
-def test_resolve_output_matrix_file_path_prefers_existing_configured_file(tmp_path) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+def test_resolve_output_matrix_file_path_prefers_existing_configured_file(
+    tmp_path,
+) -> None:
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
     configured = bench._benchmark_logs_dir / "matrix_case.log"
     configured.write_text("line\n", encoding="utf-8")
 
@@ -65,7 +75,9 @@ def test_resolve_output_matrix_file_path_prefers_existing_configured_file(tmp_pa
 
 
 def test_create_performance_config_uses_expected_destination_types(tmp_path) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
 
     sync_config = bench._create_performance_config("sync")
     sync_dest = sync_config.layers["default"].destinations[0]
@@ -83,7 +95,9 @@ def test_create_performance_config_uses_expected_destination_types(tmp_path) -> 
 
 
 def test_create_output_matrix_config_builds_console_and_file_variants(tmp_path) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
 
     console_config = bench._create_output_matrix_config(
         sink="console",
@@ -113,7 +127,9 @@ def test_create_output_matrix_config_builds_console_and_file_variants(tmp_path) 
 
 
 def test_git_commit_sha_returns_unknown_on_failure(tmp_path, monkeypatch) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
 
     def _raise(*_args, **_kwargs):
         raise RuntimeError("git unavailable")
@@ -123,7 +139,9 @@ def test_git_commit_sha_returns_unknown_on_failure(tmp_path, monkeypatch) -> Non
 
 
 def test_ensure_composite_file_target_adds_shim_when_missing(tmp_path) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
     logger = SimpleNamespace(components=[])
 
     bench._ensure_composite_file_target(logger, "composite_probe")
@@ -133,7 +151,9 @@ def test_ensure_composite_file_target_adds_shim_when_missing(tmp_path) -> None:
 
 
 def test_ensure_composite_file_target_keeps_existing_file_component(tmp_path) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
     existing = SimpleNamespace(file_path=str(tmp_path / "already.log"))
     logger = SimpleNamespace(components=[existing])
 
@@ -144,7 +164,9 @@ def test_ensure_composite_file_target_keeps_existing_file_component(tmp_path) ->
 def test_save_results_to_file_writes_metadata_and_latest_copy(
     tmp_path, monkeypatch
 ) -> None:
-    bench = HydraLoggerBenchmark(save_results=True, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=True, results_dir=str(tmp_path / "results")
+    )
     bench.results = {"sample": {"messages_per_second": 123.0}}
     monkeypatch.setattr(bench, "_git_commit_sha", lambda: "deadbee")
 
@@ -166,12 +188,16 @@ def test_save_results_to_file_writes_metadata_and_latest_copy(
 
 
 def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
     order = []
 
     monkeypatch.setattr(bench, "print_header", lambda: order.append("header"))
     monkeypatch.setattr(
-        bench, "test_sync_logger_performance", lambda: order.append("sync") or {"ok": True}
+        bench,
+        "test_sync_logger_performance",
+        lambda: order.append("sync") or {"ok": True},
     )
     monkeypatch.setattr(
         bench,
@@ -191,7 +217,8 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(
         bench,
         "test_composite_async_logger_performance",
-        lambda: order.append("composite_async") or asyncio.sleep(0, result={"ok": True}),
+        lambda: order.append("composite_async")
+        or asyncio.sleep(0, result={"ok": True}),
     )
     monkeypatch.setattr(
         bench,
@@ -204,14 +231,18 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
         lambda: order.append("output_matrix") or asyncio.sleep(0, result={"ok": True}),
     )
     monkeypatch.setattr(
-        bench, "test_file_writing_performance", lambda: order.append("file") or {"ok": True}
+        bench,
+        "test_file_writing_performance",
+        lambda: order.append("file") or {"ok": True},
     )
     monkeypatch.setattr(
         bench,
         "test_async_file_writing_performance",
         lambda: order.append("async_file") or asyncio.sleep(0, result={"ok": True}),
     )
-    monkeypatch.setattr(bench, "test_memory_usage", lambda: order.append("memory") or {"ok": True})
+    monkeypatch.setattr(
+        bench, "test_memory_usage", lambda: order.append("memory") or {"ok": True}
+    )
     monkeypatch.setattr(
         bench,
         "test_concurrent_logging",
@@ -237,10 +268,14 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
         "test_ultra_high_performance",
         lambda: order.append("ultra") or asyncio.sleep(0, result={"ok": True}),
     )
-    monkeypatch.setattr(bench, "print_detailed_results", lambda: order.append("details"))
+    monkeypatch.setattr(
+        bench, "print_detailed_results", lambda: order.append("details")
+    )
     monkeypatch.setattr(bench, "_cleanup_logger_cache", lambda: order.append("cleanup"))
     monkeypatch.setattr(
-        bench, "_final_cleanup", lambda: order.append("final_cleanup") or asyncio.sleep(0)
+        bench,
+        "_final_cleanup",
+        lambda: order.append("final_cleanup") or asyncio.sleep(0),
     )
 
     exit_code = asyncio.run(bench.run_benchmark())
@@ -256,7 +291,9 @@ def test_run_benchmark_orchestrates_all_steps(tmp_path, monkeypatch) -> None:
 
 
 def test_run_benchmark_returns_error_and_still_cleans_up(tmp_path, monkeypatch) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
     calls = []
 
     monkeypatch.setattr(bench, "print_header", lambda: None)
@@ -266,7 +303,9 @@ def test_run_benchmark_returns_error_and_still_cleans_up(tmp_path, monkeypatch) 
 
     monkeypatch.setattr(bench, "test_sync_logger_performance", _explode)
     monkeypatch.setattr(
-        bench, "_final_cleanup", lambda: calls.append("final_cleanup") or asyncio.sleep(0)
+        bench,
+        "_final_cleanup",
+        lambda: calls.append("final_cleanup") or asyncio.sleep(0),
     )
 
     exit_code = asyncio.run(bench.run_benchmark())
@@ -289,7 +328,9 @@ def test_main_returns_run_benchmark_code(monkeypatch) -> None:
 
 
 def test_network_destination_performance_uses_stubbed_http_handler(tmp_path) -> None:
-    bench = HydraLoggerBenchmark(save_results=False, results_dir=str(tmp_path / "results"))
+    bench = HydraLoggerBenchmark(
+        save_results=False, results_dir=str(tmp_path / "results")
+    )
     bench.test_config["typical_single_messages"] = 5
 
     result = bench.test_network_destination_performance()

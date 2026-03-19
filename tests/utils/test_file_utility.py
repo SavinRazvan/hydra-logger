@@ -17,8 +17,8 @@ import pytest
 from hydra_logger.utils import file_utility as file_utility_module
 from hydra_logger.utils.file_utility import (
     DirectoryScanner,
-    FileProcessor,
     FilePermission,
+    FileProcessor,
     FileUtility,
     FileValidator,
     PathUtility,
@@ -66,7 +66,9 @@ def test_path_utility_and_file_validator_helpers(tmp_path: Path) -> None:
     assert FileValidator.validate_file_exists(str(file_path))
     assert FileValidator.validate_directory_exists(str(folder))
     assert FileValidator.validate_file_extension(str(file_path), [".log", ".txt"])
-    assert FileValidator.validate_file_content(str(file_path), lambda content: "entry" in content)
+    assert FileValidator.validate_file_content(
+        str(file_path), lambda content: "entry" in content
+    )
 
 
 def test_file_processor_text_json_and_append(tmp_path: Path) -> None:
@@ -97,7 +99,9 @@ def test_file_utility_info_and_finders_and_delete_directory(tmp_path: Path) -> N
     assert info.md5_hash
     assert info.to_dict()["name"] == "a.txt"
 
-    matches_recursive = FileUtility.find_files("*.txt", root_path=str(root), recursive=True)
+    matches_recursive = FileUtility.find_files(
+        "*.txt", root_path=str(root), recursive=True
+    )
     matches_non_recursive = FileUtility.find_files(
         "*.py", root_path=str(root), recursive=False
     )
@@ -195,7 +199,9 @@ def test_directory_scanner_tree_and_stats(tmp_path: Path) -> None:
         str(root), recursive=True, include_hidden=True
     )
     by_pattern = DirectoryScanner.scan_by_pattern(str(root), "*.py", recursive=True)
-    by_ext = DirectoryScanner.scan_by_extension(str(root), [".txt", "py"], recursive=True)
+    by_ext = DirectoryScanner.scan_by_extension(
+        str(root), [".txt", "py"], recursive=True
+    )
     tree = DirectoryScanner.get_directory_tree(str(root), max_depth=2)
     stats = DirectoryScanner.get_directory_stats(str(root))
 
@@ -207,7 +213,9 @@ def test_directory_scanner_tree_and_stats(tmp_path: Path) -> None:
     assert stats["total_files"] >= 2
 
 
-def test_file_utility_error_and_type_detection_branches(monkeypatch, tmp_path: Path) -> None:
+def test_file_utility_error_and_type_detection_branches(
+    monkeypatch, tmp_path: Path
+) -> None:
     regular_file = tmp_path / "regular.txt"
     regular_file.write_text("hello", encoding="utf-8")
     folder = tmp_path / "d"
@@ -245,19 +253,31 @@ def test_file_utility_error_and_type_detection_branches(monkeypatch, tmp_path: P
         path.write_text("x", encoding="utf-8")
         assert FileUtility._detect_file_type(str(path)) == expected
 
-    assert FileUtility._detect_file_type(str(folder)) == file_utility_module.FileType.UNKNOWN
+    assert (
+        FileUtility._detect_file_type(str(folder))
+        == file_utility_module.FileType.UNKNOWN
+    )
 
     bom_file = tmp_path / "bom.unknown"
     bom_file.write_bytes(b"\xef\xbb\xbfhello")
-    assert FileUtility._detect_file_type(str(bom_file)) == file_utility_module.FileType.TEXT
+    assert (
+        FileUtility._detect_file_type(str(bom_file))
+        == file_utility_module.FileType.TEXT
+    )
 
     binary_file = tmp_path / "binary.unknown"
     binary_file.write_bytes(b"\xff\xfe\x00\x01")
-    assert FileUtility._detect_file_type(str(binary_file)) == file_utility_module.FileType.UNKNOWN
+    assert (
+        FileUtility._detect_file_type(str(binary_file))
+        == file_utility_module.FileType.UNKNOWN
+    )
 
     utf8_file = tmp_path / "utf8.unknown"
     utf8_file.write_bytes(b"plain utf8 text")
-    assert FileUtility._detect_file_type(str(utf8_file)) == file_utility_module.FileType.TEXT
+    assert (
+        FileUtility._detect_file_type(str(utf8_file))
+        == file_utility_module.FileType.TEXT
+    )
 
     original_open = builtins.open
 
@@ -267,7 +287,10 @@ def test_file_utility_error_and_type_detection_branches(monkeypatch, tmp_path: P
         return original_open(path, mode, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "open", failing_open)
-    assert FileUtility._detect_file_type(str(binary_file)) == file_utility_module.FileType.UNKNOWN
+    assert (
+        FileUtility._detect_file_type(str(binary_file))
+        == file_utility_module.FileType.UNKNOWN
+    )
 
 
 def test_file_utility_failure_paths_for_operations(monkeypatch, tmp_path: Path) -> None:
@@ -280,7 +303,11 @@ def test_file_utility_failure_paths_for_operations(monkeypatch, tmp_path: Path) 
     assert FileUtility.move_file(str(src), str(dst), overwrite=False) is False
     assert FileUtility.delete_file(str(tmp_path / "missing.txt")) is False
 
-    monkeypatch.setattr(file_utility_module.os, "remove", lambda _: (_ for _ in ()).throw(OSError("remove")))
+    monkeypatch.setattr(
+        file_utility_module.os,
+        "remove",
+        lambda _: (_ for _ in ()).throw(OSError("remove")),
+    )
     assert FileUtility.delete_file(str(dst)) is False
 
     monkeypatch.setattr(
@@ -331,7 +358,9 @@ def test_get_file_info_handles_content_failures(monkeypatch, tmp_path: Path) -> 
         lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("hash failed")),
     )
 
-    info = file_utility_module.FileUtility.get_file_info(str(text_file), include_content=True)
+    info = file_utility_module.FileUtility.get_file_info(
+        str(text_file), include_content=True
+    )
     assert info.line_count is None
     assert info.md5_hash is None
     assert info.sha1_hash is None
@@ -358,10 +387,17 @@ def test_file_validator_edge_and_failure_branches(tmp_path: Path) -> None:
     assert FileValidator.validate_file_size(str(path), min_size=10_000) is False
     assert FileValidator.validate_file_size(str(path), max_size=1) is False
 
-    assert FileValidator.validate_file_content(str(tmp_path / "missing.txt"), lambda _c: True) is False
+    assert (
+        FileValidator.validate_file_content(
+            str(tmp_path / "missing.txt"), lambda _c: True
+        )
+        is False
+    )
 
 
-def test_file_processor_failure_paths_and_optional_format_success(monkeypatch, tmp_path: Path) -> None:
+def test_file_processor_failure_paths_and_optional_format_success(
+    monkeypatch, tmp_path: Path
+) -> None:
     text_path = tmp_path / "text.txt"
     text_path.write_text("ok", encoding="utf-8")
 
@@ -386,12 +422,16 @@ def test_file_processor_failure_paths_and_optional_format_success(monkeypatch, t
     monkeypatch.setattr(file_utility_module, "YAML_AVAILABLE", True)
     monkeypatch.setattr(file_utility_module, "yaml", DummyYaml)
     assert FileProcessor.read_yaml_file(str(text_path)) == {"loaded": "ok"}
-    assert FileProcessor.write_yaml_file(str(tmp_path / "out.yaml"), {"k": "v"}) is False
+    assert (
+        FileProcessor.write_yaml_file(str(tmp_path / "out.yaml"), {"k": "v"}) is False
+    )
 
     monkeypatch.setattr(file_utility_module, "TOML_AVAILABLE", True)
     monkeypatch.setattr(file_utility_module, "toml", DummyToml)
     assert FileProcessor.read_toml_file(str(text_path)) == {"ok": True}
-    assert FileProcessor.write_toml_file(str(tmp_path / "out.toml"), {"k": "v"}) is False
+    assert (
+        FileProcessor.write_toml_file(str(tmp_path / "out.toml"), {"k": "v"}) is False
+    )
 
     monkeypatch.setattr(
         builtins,
@@ -405,7 +445,9 @@ def test_file_processor_failure_paths_and_optional_format_success(monkeypatch, t
     assert FileProcessor.write_json_file(str(tmp_path / "a.json"), {"x": 1}) is False
 
 
-def test_file_processor_write_success_and_importerror_paths(monkeypatch, tmp_path: Path) -> None:
+def test_file_processor_write_success_and_importerror_paths(
+    monkeypatch, tmp_path: Path
+) -> None:
     out_yaml = tmp_path / "good.yaml"
     out_toml = tmp_path / "good.toml"
 
@@ -465,14 +507,24 @@ def test_directory_scanner_non_recursive_and_tree_error_branches(
     assert any(path.endswith(".c.txt") for path in extension_non_recursive)
     assert shallow_tree["a.txt"]["type"] == "file"
 
-    monkeypatch.setattr(file_utility_module.os, "listdir", lambda *_args, **_kwargs: (_ for _ in ()).throw(PermissionError))
+    monkeypatch.setattr(
+        file_utility_module.os,
+        "listdir",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(PermissionError),
+    )
     assert "<permission_denied>" in DirectoryScanner.get_directory_tree(str(root))
 
-    monkeypatch.setattr(file_utility_module.os, "listdir", lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(
+        file_utility_module.os,
+        "listdir",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
     assert "<error>" in DirectoryScanner.get_directory_tree(str(root))
 
 
-def test_directory_stats_handles_file_stat_failures(monkeypatch, tmp_path: Path) -> None:
+def test_directory_stats_handles_file_stat_failures(
+    monkeypatch, tmp_path: Path
+) -> None:
     root = tmp_path / "stats"
     root.mkdir()
     (root / "x.txt").write_text("x", encoding="utf-8")

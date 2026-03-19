@@ -173,7 +173,9 @@ class SecurityExtension(ExtensionBase):
         if isinstance(value, str):
             return self._process_string(value)
         if isinstance(value, dict):
-            return {key: self._process_value(item, depth + 1) for key, item in value.items()}
+            return {
+                key: self._process_value(item, depth + 1) for key, item in value.items()
+            }
         if isinstance(value, list):
             return [self._process_value(item, depth + 1) for item in value]
         if isinstance(value, tuple):

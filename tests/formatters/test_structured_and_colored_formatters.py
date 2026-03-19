@@ -23,8 +23,8 @@ from hydra_logger.formatters.structured_formatter import (
     SyslogFormatter,
     _get_timestamp_config,
 )
-from hydra_logger.utils.time_utility import TimestampFormat
 from hydra_logger.types.records import LogRecord
+from hydra_logger.utils.time_utility import TimestampFormat
 
 
 def _record() -> LogRecord:
@@ -60,7 +60,9 @@ def test_syslog_gelf_and_logstash_formatters_include_expected_fields() -> None:
     assert gelf_payload["host"] == "host-a"
     assert gelf_payload["short_message"] == 'bad "input", retry'
 
-    logstash_payload = json.loads(LogstashFormatter(type_name="api-logs").format(record))
+    logstash_payload = json.loads(
+        LogstashFormatter(type_name="api-logs").format(record)
+    )
     assert logstash_payload["type"] == "api-logs"
     assert logstash_payload["fields"]["request_id"] == "r-1"
 
@@ -120,7 +122,9 @@ def test_csv_formatter_header_write_lifecycle(tmp_path) -> None:
     assert formatter.should_write_headers(str(empty_file)) is True
 
 
-def test_syslog_detect_app_name_from_env_and_argv(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_syslog_detect_app_name_from_env_and_argv(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("APP_NAME", "svc-env")
     assert SyslogFormatter().app_name == "svc-env"
 

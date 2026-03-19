@@ -25,7 +25,6 @@ from typing import Any
 
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -41,11 +40,15 @@ def _load_module(path: Path, name: str):
 def test_example_04_covers_extension_manager_failure_paths(monkeypatch, capsys) -> None:
     from hydra_logger.extensions import ExtensionManager
 
-    def _raise_init(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - runtime hook
+    def _raise_init(
+        self, *args: Any, **kwargs: Any
+    ) -> None:  # pragma: no cover - runtime hook
         raise RuntimeError("forced extension manager failure")
 
     monkeypatch.setattr(ExtensionManager, "__init__", _raise_init)
-    runpy.run_path(str(ROOT / "examples" / "04_runtime_control.py"), run_name="__main__")
+    runpy.run_path(
+        str(ROOT / "examples" / "04_runtime_control.py"), run_name="__main__"
+    )
     output = capsys.readouterr().out
     assert "ExtensionManager example - this may require additional setup" in output
 
@@ -271,4 +274,6 @@ def test_run_all_examples_dunder_main_executes(tmp_path: Path) -> None:
 
 def test_run_all_examples_original_dunder_main_executes() -> None:
     with pytest.raises(SystemExit):
-        runpy.run_path(str(ROOT / "examples" / "run_all_examples.py"), run_name="__main__")
+        runpy.run_path(
+            str(ROOT / "examples" / "run_all_examples.py"), run_name="__main__"
+        )

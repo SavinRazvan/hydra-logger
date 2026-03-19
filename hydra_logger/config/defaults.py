@@ -18,6 +18,7 @@ from .models import LogDestination, LoggingConfig, LogLayer
 
 _logger = logging.getLogger(__name__)
 
+
 class ConfigurationTemplates:
     """Predefined configuration builders for common runtime profiles."""
 
@@ -31,7 +32,6 @@ class ConfigurationTemplates:
             enable_sanitization=False,
             enable_plugins=False,
             enable_performance_monitoring=False,
-
             buffer_size=16384,  # 16K buffer (larger = better performance)
             flush_interval=0.5,  # 0.5s flush (balance between latency and throughput)
             layers={
@@ -105,7 +105,9 @@ class ConfigurationTemplates:
                 )
 
             # Build layers
-            layers = {"default": LogLayer(level=default_level, destinations=destinations)}
+            layers = {
+                "default": LogLayer(level=default_level, destinations=destinations)
+            }
 
             # Add error layer if requested
             if error_layer:
@@ -282,29 +284,36 @@ class ConfigurationTemplates:
             },
         )
 
+
 # Global instance for easy access
 templates = ConfigurationTemplates()
+
 
 # Convenience functions
 def get_default_config() -> LoggingConfig:
     """Get the default configuration with performance focus."""
     return templates.get_default_config()
 
+
 def get_custom_config(**options) -> LoggingConfig:
     """Create a custom configuration with user-specified features."""
     return templates.get_custom_config(**options)
+
 
 def get_development_config() -> LoggingConfig:
     """Get a development-friendly configuration."""
     return templates.get_development_config()
 
+
 def get_production_config() -> LoggingConfig:
     """Get a production-ready configuration."""
     return templates.get_production_config()
 
+
 def get_enterprise_config() -> LoggingConfig:
     """Get an enterprise hardening configuration profile."""
     return templates.get_enterprise_config()
+
 
 # Configuration registry for backward compatibility
 DEFAULT_CONFIGS: Dict[str, Callable[..., LoggingConfig]] = {
@@ -314,6 +323,7 @@ DEFAULT_CONFIGS: Dict[str, Callable[..., LoggingConfig]] = {
     "enterprise": get_enterprise_config,
     "custom": get_custom_config,
 }
+
 
 def get_named_config(name: str, **options) -> LoggingConfig:
     """Resolve a named configuration builder and return its result."""
@@ -326,6 +336,7 @@ def get_named_config(name: str, **options) -> LoggingConfig:
         return DEFAULT_CONFIGS[name](**options)
     else:
         return DEFAULT_CONFIGS[name]()
+
 
 def list_available_configs() -> Dict[str, str]:
     """List all available configurations."""

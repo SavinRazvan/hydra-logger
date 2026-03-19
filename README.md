@@ -4,8 +4,8 @@
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://github.com/SavinRazvan/hydra-logger/blob/main/setup.py)
 [![Coverage](https://codecov.io/gh/SavinRazvan/hydra-logger/branch/main/graph/badge.svg)](https://codecov.io/gh/SavinRazvan/hydra-logger)
 [![License](https://img.shields.io/github/license/SavinRazvan/hydra-logger)](https://github.com/SavinRazvan/hydra-logger/blob/main/LICENSE)
-[![PyPI version](https://img.shields.io/pypi/v/hydra-logger)](https://pypi.org/project/hydra-logger/)
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/hydra-logger?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/hydra-logger)
+[![PyPI version](https://img.shields.io/pypi/v/hydra-logger?color=blue)](https://pypi.org/project/hydra-logger/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/hydra-logger?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=MAGENTA&left_text=downloads)](https://pepy.tech/projects/hydra-logger)
 
 `hydra-logger` is a modular Python logging library for teams that need configurable logging without coupling application code to fixed transports or formats.
 
@@ -33,6 +33,7 @@ Quick links:
 - [Enterprise tutorials](examples/tutorials/README.md)
 - [Configuration reference](docs/modules/config.md)
 - [Operations diagnostics](docs/OPERATIONS.md)
+- [Release policy & API compatibility](docs/RELEASE_POLICY.md)
 - [Testing and quality gates](docs/TESTING.md)
 - [Performance and benchmarks](docs/PERFORMANCE.md)
 
@@ -218,6 +219,21 @@ Network migration guidance:
 - Prefer explicit typed destinations: `network_http`, `network_ws`, `network_socket`, `network_datagram`.
 - Legacy `network` remains transitional and is mapped to `network_http` when `url` is provided.
 - Update legacy `network` configs incrementally to typed variants to avoid future deprecation friction.
+
+Network behavior (operational):
+
+- **HTTP probe**: `HTTPHandler` runs a separate connectivity probe before use. Default probe uses **GET**
+  (backward compatible). Set `LogDestination.probe_method` to `HEAD`, `OPTIONS`, or `none`, or
+  `connection_probe=False`, if your ingest endpoint must not observe GET side effects.
+- **WebSocket**: `WebSocketHandler` currently uses a **simulated** transport (records are not sent over
+  the wire); a `UserWarning` is emitted once per process on first emit. Treat `network_ws` as
+  simulation until a real client integration ships.
+- **Unknown / unsupported destinations** resolve to a **no-op** `NullHandler`. With
+  `reliability_error_policy="warn"` or strict reliability, the runtime surfaces this instead of failing
+  silently.
+- **Composite async direct I/O**: `CompositeAsyncLogger` with `use_direct_io=True` flushes file writes
+  via a thread pool when an event loop is running, to avoid blocking the loop; sync `close()` still
+  flushes on-thread.
 
 Extension configuration:
 

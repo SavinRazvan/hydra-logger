@@ -8,9 +8,9 @@ Notes:
  - Validates resilient write behavior and session limits.
 """
 
-import json
-import io
 import builtins
+import io
+import json
 from pathlib import Path
 
 from hydra_logger.utils.error_logger import SafeErrorLogger
@@ -43,7 +43,9 @@ def test_safe_error_logger_writes_json_line_to_logs_file(monkeypatch, tmp_path) 
     assert payload["context"]["trace_id"] == "t-1"
 
 
-def test_safe_error_logger_stops_logging_after_session_limit(monkeypatch, tmp_path) -> None:
+def test_safe_error_logger_stops_logging_after_session_limit(
+    monkeypatch, tmp_path
+) -> None:
     _reset_error_logger_state()
     monkeypatch.chdir(tmp_path)
     SafeErrorLogger._max_errors_per_session = 1
@@ -96,7 +98,9 @@ def test_initialize_falls_back_to_stderr_when_open_fails(monkeypatch, tmp_path) 
     assert "Failed to open error.jsonl" in stderr_capture.getvalue()
 
 
-def test_log_error_handles_memory_error_and_generic_write_failures(monkeypatch, tmp_path) -> None:
+def test_log_error_handles_memory_error_and_generic_write_failures(
+    monkeypatch, tmp_path
+) -> None:
     _reset_error_logger_state()
     monkeypatch.chdir(tmp_path)
 
@@ -183,7 +187,9 @@ def test_log_message_handles_memory_and_generic_failures(monkeypatch, tmp_path) 
     assert "[ERROR]" in stderr_capture.getvalue()
 
 
-def test_close_swallow_flush_errors_and_convenience_functions(monkeypatch, tmp_path) -> None:
+def test_close_swallow_flush_errors_and_convenience_functions(
+    monkeypatch, tmp_path
+) -> None:
     from hydra_logger.utils.error_logger import log_error_message, log_error_safe
 
     _reset_error_logger_state()
@@ -235,7 +241,9 @@ def test_logger_fallback_paths_ignore_stderr_failures(monkeypatch, tmp_path) -> 
     SafeErrorLogger.log_message("boom message", level="ERROR")
 
 
-def test_error_logger_init_lock_double_check_and_stderr_nested_failures(monkeypatch, tmp_path) -> None:
+def test_error_logger_init_lock_double_check_and_stderr_nested_failures(
+    monkeypatch, tmp_path
+) -> None:
     _reset_error_logger_state()
     monkeypatch.chdir(tmp_path)
     original_lock = SafeErrorLogger._lock
@@ -272,7 +280,9 @@ def test_error_logger_init_lock_double_check_and_stderr_nested_failures(monkeypa
     SafeErrorLogger._lock = original_lock
 
 
-def test_error_logger_swallow_stderr_failures_in_generic_exception_paths(monkeypatch) -> None:
+def test_error_logger_swallow_stderr_failures_in_generic_exception_paths(
+    monkeypatch,
+) -> None:
     _reset_error_logger_state()
 
     class _AlwaysFailWriter:

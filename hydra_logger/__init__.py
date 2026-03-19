@@ -12,12 +12,6 @@ __version__ = "0.5.1"
 __author__ = "Savin Ionut Razvan"
 __license__ = "MIT"
 
-from .utils.stderr_interceptor import (
-    StderrInterceptor,
-    start_stderr_interception,
-    stop_stderr_interception,
-)
-
 # Configuration
 from .config.configuration_templates import ConfigurationTemplates
 from .config.models import LogDestination, LoggingConfig, LogLayer
@@ -54,6 +48,11 @@ from .types.levels import LogLevel
 
 # Core types
 from .types.records import LogRecord
+from .utils.stderr_interceptor import (
+    StderrInterceptor,
+    start_stderr_interception,
+    stop_stderr_interception,
+)
 
 # Public API
 __all__ = [

@@ -45,13 +45,16 @@ class ConfigurationTemplates:
                 "development", "Development-friendly configuration with debug output"
             )(get_development_config)
             self.register_template(
-                "production", "Production-ready configuration with security and monitoring"
+                "production",
+                "Production-ready configuration with security and monitoring",
             )(get_production_config)
             self.register_template(
                 "custom", "Custom configuration with user-specified features"
             )(get_custom_config)
         except Exception as exc:
-            _logger.exception("Failed to setup built-in configuration templates: %s", exc)
+            _logger.exception(
+                "Failed to setup built-in configuration templates: %s", exc
+            )
             raise
 
     def register_template(self, name: str, description: str = "") -> Callable:
@@ -85,7 +88,9 @@ class ConfigurationTemplates:
         try:
             return self._configs[name]()
         except Exception as e:
-            _logger.exception("Failed creating configuration template '%s': %s", name, e)
+            _logger.exception(
+                "Failed creating configuration template '%s': %s", name, e
+            )
             raise HydraLoggerError(
                 f"Failed to create configuration template '{name}': {e}"
             )
@@ -120,7 +125,9 @@ class ConfigurationTemplates:
             config = self.get_template(name)
             return config.validate_configuration()
         except Exception as e:
-            _logger.exception("Configuration template validation failed for '%s': %s", name, e)
+            _logger.exception(
+                "Configuration template validation failed for '%s': %s", name, e
+            )
             raise HydraLoggerError(
                 f"Configuration template validation failed for '{name}': {e}"
             )

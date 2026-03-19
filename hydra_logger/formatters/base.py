@@ -27,10 +27,12 @@ from ..utils.time_utility import TimestampConfig, TimestampFormat, TimestampPrec
 # Set up logging for formatters
 logger = logging.getLogger(__name__)
 
+
 class FormatterError(Exception):
     """Custom exception for formatter errors."""
 
     pass
+
 
 class BaseFormatter(ABC):
     """Base formatter contract with shared timestamp and validation helpers."""

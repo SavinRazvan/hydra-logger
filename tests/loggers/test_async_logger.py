@@ -18,7 +18,7 @@ import types
 
 import pytest
 
-from hydra_logger.config.models import LogDestination, LogLayer, LoggingConfig
+from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
 from hydra_logger.core.exceptions import HydraLoggerError
 from hydra_logger.loggers.async_logger import AsyncLogger
 from hydra_logger.types.levels import LogLevel
@@ -59,7 +59,9 @@ def test_async_logger_log_concurrent_and_background_work() -> None:
         def sync_task():
             return "sync-ok"
 
-        results = await logger.log_background_work([async_task, sync_task], max_concurrent=2)
+        results = await logger.log_background_work(
+            [async_task, sync_task], max_concurrent=2
+        )
         assert "async-ok" in results
         assert "sync-ok" in results
         assert logger.get_health_status()["log_count"] >= 3
@@ -78,7 +80,9 @@ def test_async_logger_background_work_filters_task_exceptions() -> None:
         def fail_sync():
             raise RuntimeError("boom")
 
-        results = await logger.log_background_work([ok_async, fail_sync], max_concurrent=2)
+        results = await logger.log_background_work(
+            [ok_async, fail_sync], max_concurrent=2
+        )
         assert results == ["ok-async"]
         await logger.aclose()
 
@@ -129,7 +133,9 @@ def test_async_logger_aliases_and_runtime_config_helpers() -> None:
         def update_security_level(self, level: str) -> None:
             self.security_level = level
 
-        def update_monitoring_config(self, detail_level, sample_rate, background) -> None:
+        def update_monitoring_config(
+            self, detail_level, sample_rate, background
+        ) -> None:
             self.monitoring = (detail_level, sample_rate, background)
 
         def toggle_feature(self, feature: str, enabled: bool) -> None:
@@ -167,7 +173,9 @@ def test_async_logger_optimal_concurrency_importerror_fallback(
     logger.close()
 
 
-def test_async_logger_optimal_concurrency_thresholds(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_async_logger_optimal_concurrency_thresholds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     logger = AsyncLogger()
 
     def _set_available_mb(available_mb: int) -> None:
@@ -338,7 +346,9 @@ def test_async_logger_create_handler_variants(
     monkeypatch.setattr(
         "hydra_logger.handlers.console_handler.AsyncConsoleHandler", FakeConsoleHandler
     )
-    monkeypatch.setattr("hydra_logger.handlers.file_handler.AsyncFileHandler", FakeFileHandler)
+    monkeypatch.setattr(
+        "hydra_logger.handlers.file_handler.AsyncFileHandler", FakeFileHandler
+    )
 
     logger = AsyncLogger(
         config=LoggingConfig(
@@ -640,7 +650,9 @@ def test_async_logger_monitoring_toggle_and_concurrency_reasoning_paths(
     logger._optimal_concurrency = 250
     logger._concurrency_semaphore = asyncio.Semaphore(2)
     fake_psutil = types.SimpleNamespace(
-        virtual_memory=lambda: types.SimpleNamespace(available=5000 * 1024 * 1024, percent=42)
+        virtual_memory=lambda: types.SimpleNamespace(
+            available=5000 * 1024 * 1024, percent=42
+        )
     )
     monkeypatch.setitem(sys.modules, "psutil", fake_psutil)
     info = logger.get_concurrency_info()
@@ -715,7 +727,13 @@ def test_async_logger_sync_convenience_methods_return_coroutines_without_loop() 
         return None
 
     logger.log = lambda *_args, **_kwargs: fake_coro()  # type: ignore[assignment]
-    coros = [logger.debug("d"), logger.info("i"), logger.warning("w"), logger.error("e"), logger.critical("c")]
+    coros = [
+        logger.debug("d"),
+        logger.info("i"),
+        logger.warning("w"),
+        logger.error("e"),
+        logger.critical("c"),
+    ]
     for coro in coros:
         assert asyncio.iscoroutine(coro)
         coro.close()
@@ -899,7 +917,9 @@ def test_async_logger_close_and_aclose_cleanup_branches() -> None:
 
 
 def test_async_logger_setup_from_dict_and_not_initialized_early_returns() -> None:
-    logger = AsyncLogger(config={"layers": {"default": {"destinations": [{"type": "null"}]}}})
+    logger = AsyncLogger(
+        config={"layers": {"default": {"destinations": [{"type": "null"}]}}}
+    )
     logger._initialized = False
     assert logger.log("INFO", "skip") is None
     asyncio.run(logger.log_async("INFO", "skip"))
@@ -1066,19 +1086,25 @@ def test_async_logger_health_and_reasoning_remaining_branches(
     assert health["concurrency_available"] == 4
 
     fake_psutil = types.SimpleNamespace(
-        virtual_memory=lambda: types.SimpleNamespace(available=9000 * 1024 * 1024, percent=10)
+        virtual_memory=lambda: types.SimpleNamespace(
+            available=9000 * 1024 * 1024, percent=10
+        )
     )
     monkeypatch.setitem(sys.modules, "psutil", fake_psutil)
     assert "High concurrency" in logger._get_concurrency_reasoning()
 
     fake_psutil_mid = types.SimpleNamespace(
-        virtual_memory=lambda: types.SimpleNamespace(available=3000 * 1024 * 1024, percent=30)
+        virtual_memory=lambda: types.SimpleNamespace(
+            available=3000 * 1024 * 1024, percent=30
+        )
     )
     monkeypatch.setitem(sys.modules, "psutil", fake_psutil_mid)
     assert "Low concurrency" in logger._get_concurrency_reasoning()
 
     fake_psutil_low = types.SimpleNamespace(
-        virtual_memory=lambda: types.SimpleNamespace(available=1000 * 1024 * 1024, percent=70)
+        virtual_memory=lambda: types.SimpleNamespace(
+            available=1000 * 1024 * 1024, percent=70
+        )
     )
     monkeypatch.setitem(sys.modules, "psutil", fake_psutil_low)
     assert "Conservative concurrency" in logger._get_concurrency_reasoning()
@@ -1097,7 +1123,9 @@ def test_async_logger_formatter_colored_console_branch(
         return object()
 
     monkeypatch.setattr("hydra_logger.formatters.get_formatter", fake_get_formatter)
-    logger._create_formatter_for_destination(destination, is_console=True, use_colors=True)
+    logger._create_formatter_for_destination(
+        destination, is_console=True, use_colors=True
+    )
     assert calls and calls[0][0] == "colored"
     logger.close()
 
@@ -1118,7 +1146,9 @@ def test_async_logger_process_chunk_large_branch_item_failure_warning(
             "hydra_logger.loggers.async_logger.diagnostics.warning",
             lambda msg, err: warnings.append((msg, str(err))),
         )
-        big_chunk = [("INFO", "bad", {})] + [("INFO", f"ok-{i}", {}) for i in range(1001)]
+        big_chunk = [("INFO", "bad", {})] + [
+            ("INFO", f"ok-{i}", {}) for i in range(1001)
+        ]
         await logger._process_chunk_optimized(big_chunk)
         assert warnings and "large-item-fail" in warnings[0][1]
         await logger.aclose()
@@ -1218,7 +1248,10 @@ def test_async_logger_queue_mode_drop_newest_policy_counts_drops(
         health = logger.get_health_status()
         assert health["async_queue_dropped"] >= 1
 
-        while logger._async_record_queue is not None and not logger._async_record_queue.empty():
+        while (
+            logger._async_record_queue is not None
+            and not logger._async_record_queue.empty()
+        ):
             logger._async_record_queue.get_nowait()
             logger._async_record_queue.task_done()
         await logger.aclose()

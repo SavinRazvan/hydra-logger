@@ -8,10 +8,10 @@ Notes:
  - Provides reusable record building, routing, extension processing, and dispatch.
 """
 
+from .component_dispatcher import ComponentDispatcher
 from .extension_processor import ExtensionProcessor
 from .handler_dispatcher import HandlerDispatcher
 from .layer_router import LayerRouter
-from .component_dispatcher import ComponentDispatcher
 from .record_builder import RecordBuilder
 
 __all__ = [

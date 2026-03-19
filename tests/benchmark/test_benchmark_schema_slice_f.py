@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 import benchmark.schema_validation as schema_mod
 from benchmark.schema_validation import (
     load_result_schema,
@@ -56,7 +57,9 @@ def test_benchmark_latest_matches_result_schema() -> None:
 
 def test_seeded_baseline_artifact_has_required_shape() -> None:
     project_root = Path(__file__).resolve().parents[2]
-    baseline_path = project_root / "benchmark" / "baselines" / "ci_smoke_baseline_v1.json"
+    baseline_path = (
+        project_root / "benchmark" / "baselines" / "ci_smoke_baseline_v1.json"
+    )
     payload = json.loads(baseline_path.read_text(encoding="utf-8"))
 
     assert payload["baseline_name"] == "ci_smoke_baseline_v1"

@@ -25,7 +25,9 @@ def test_legacy_extension_contract_is_extension_base_compatible() -> None:
 
 
 def test_extension_base_contract_accessors_and_validation_paths() -> None:
-    extension = LegacyCompatibleExtension({"enabled": False, "name": "legacy", "version": "1.2.3"})
+    extension = LegacyCompatibleExtension(
+        {"enabled": False, "name": "legacy", "version": "1.2.3"}
+    )
     assert extension.process({"k": "v"}) == {"k": "v"}
     assert extension.get_name() == "legacy"
     assert extension.get_version() == "1.2.3"

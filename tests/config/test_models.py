@@ -17,8 +17,8 @@ from hydra_logger.config.models import (
     FileHandlerConfig,
     HandlerConfig,
     LogDestination,
-    LogLayer,
     LoggingConfig,
+    LogLayer,
     MemoryHandlerConfig,
     ModularConfig,
 )
@@ -40,7 +40,9 @@ def test_logging_config_validates_core_ranges() -> None:
         LoggingConfig(monitoring_sample_rate=0)
 
 
-def test_logging_config_resolve_log_path_applies_format_extension(tmp_path: Path) -> None:
+def test_logging_config_resolve_log_path_applies_format_extension(
+    tmp_path: Path,
+) -> None:
     config = LoggingConfig(base_log_dir=str(tmp_path))
     resolved = config.resolve_log_path("service.log", format_type="json-lines")
     assert resolved.endswith(".jsonl")
@@ -89,7 +91,9 @@ def test_log_destination_network_typed_variants_and_legacy_alias(caplog) -> None
     assert legacy.type == "network_http"
     assert "deprecated" in caplog.text
 
-    http_destination = LogDestination(type="network_http", url="http://example.com/logs")
+    http_destination = LogDestination(
+        type="network_http", url="http://example.com/logs"
+    )
     ws_destination = LogDestination(type="network_ws", url="wss://example.com/ws")
     socket_destination = LogDestination(
         type="network_socket", host="localhost", port=9000
@@ -125,7 +129,9 @@ def test_log_destination_network_timeout_retry_and_port_bounds() -> None:
     with pytest.raises(ValueError, match="retry_count must be between 0 and 20"):
         LogDestination(type="network_http", url="https://example.com", retry_count=21)
     with pytest.raises(ValueError, match="retry_delay must be between 0 and 300"):
-        LogDestination(type="network_http", url="https://example.com", retry_delay=301.0)
+        LogDestination(
+            type="network_http", url="https://example.com", retry_delay=301.0
+        )
     with pytest.raises(ValueError, match="timeout must be greater than 0"):
         LogDestination(type="network_http", url="https://example.com", timeout=0)
     with pytest.raises(ValueError, match="port must be between 1 and 65535"):
@@ -169,7 +175,11 @@ def test_log_layer_validators_for_level_color_and_destinations() -> None:
     assert ansi_layer.color == "\033[31m"
 
     with pytest.raises(ValueError, match="Invalid color"):
-        LogLayer(level="INFO", color="ultraviolet", destinations=[LogDestination(type="console")])
+        LogLayer(
+            level="INFO",
+            color="ultraviolet",
+            destinations=[LogDestination(type="console")],
+        )
 
     with pytest.raises(ValueError, match="Layer must have at least one destination"):
         LogLayer(level="INFO", destinations=[])
@@ -177,7 +187,12 @@ def test_log_layer_validators_for_level_color_and_destinations() -> None:
     with pytest.raises(ValueError, match="Invalid level"):
         LogLayer(level="TRACE", destinations=[LogDestination(type="console")])
 
-    assert LogLayer(level="INFO", color=None, destinations=[LogDestination(type="console")]).color is None
+    assert (
+        LogLayer(
+            level="INFO", color=None, destinations=[LogDestination(type="console")]
+        ).color
+        is None
+    )
 
 
 def test_logging_config_runtime_helpers_and_toggles(tmp_path: Path) -> None:
@@ -207,7 +222,9 @@ def test_logging_config_runtime_helpers_and_toggles(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="Invalid security level"):
         cfg.update_security_level("very_high")
 
-    cfg.update_monitoring_config(detail_level="detailed", sample_rate=55, background=False)
+    cfg.update_monitoring_config(
+        detail_level="detailed", sample_rate=55, background=False
+    )
     assert cfg.monitoring_detail_level == "detailed"
     assert cfg.monitoring_sample_rate == 55
     assert cfg.monitoring_background is False
@@ -230,7 +247,9 @@ def test_logging_config_runtime_helpers_and_toggles(tmp_path: Path) -> None:
     assert summary["paths"]["default_log_path"]
 
 
-def test_logging_config_path_resolution_and_fallback(monkeypatch, tmp_path: Path) -> None:
+def test_logging_config_path_resolution_and_fallback(
+    monkeypatch, tmp_path: Path
+) -> None:
     cfg = LoggingConfig(base_log_dir=str(tmp_path / "root"), layers={})
     cfg._verbose = True
 
@@ -278,7 +297,9 @@ def test_logging_config_path_resolution_and_fallback(monkeypatch, tmp_path: Path
         assert str(tmp_path / "relative-logs" / "subdir" / "app.log") == rel_resolved
 
 
-def test_logging_config_path_confinement_and_absolute_path_controls(tmp_path: Path) -> None:
+def test_logging_config_path_confinement_and_absolute_path_controls(
+    tmp_path: Path,
+) -> None:
     base_dir = tmp_path / "base"
     cfg_compat = LoggingConfig(
         base_log_dir=str(base_dir),
@@ -327,7 +348,9 @@ def test_logging_config_strict_confinement_does_not_use_fallback_on_mkdir_failur
         layers={},
         enforce_log_path_confinement=True,
     )
-    monkeypatch.setattr(Path, "mkdir", lambda *_a, **_k: (_ for _ in ()).throw(OSError("mkdir-fail")))
+    monkeypatch.setattr(
+        Path, "mkdir", lambda *_a, **_k: (_ for _ in ()).throw(OSError("mkdir-fail"))
+    )
     with pytest.raises(ValueError, match="strict path confinement"):
         cfg.resolve_log_path("safe.log")
 
@@ -350,7 +373,9 @@ def test_logging_config_validation_and_layer_management() -> None:
 
     invalid_dest = LogDestination.model_construct(type="file", path=None, level=None)
     bad_layer = LogLayer.model_construct(level="INFO", destinations=[invalid_dest])
-    invalid_cfg_2 = LoggingConfig.model_construct(default_level="INFO", layers={"bad": bad_layer})
+    invalid_cfg_2 = LoggingConfig.model_construct(
+        default_level="INFO", layers={"bad": bad_layer}
+    )
     with pytest.raises(ValueError, match="Configuration validation failed"):
         invalid_cfg_2.validate_configuration()
 
@@ -385,7 +410,9 @@ def test_get_destination_level_final_default_fallback_with_constructed_layer() -
         level=None,
         destinations=[LogDestination(type="console", level=None)],
     )
-    cfg = LoggingConfig.model_construct(default_level="INFO", layers={"x": layer_without_level})
+    cfg = LoggingConfig.model_construct(
+        default_level="INFO", layers={"x": layer_without_level}
+    )
     assert cfg.get_destination_level("x", 0) == 20
 
 
@@ -409,7 +436,9 @@ def test_models_remaining_validation_and_path_resolution_branches(
 
     with pytest.raises(ValueError, match="Path is required for file destinations"):
         LogDestination.validate_file_path("   ", _Info({"type": "file"}))
-    with pytest.raises(ValueError, match="Service type is required for async cloud destinations"):
+    with pytest.raises(
+        ValueError, match="Service type is required for async cloud destinations"
+    ):
         LogDestination.validate_async_cloud_service(" ", _Info({"type": "async_cloud"}))
     assert (
         LogDestination.validate_async_cloud_service(
@@ -437,8 +466,12 @@ def test_models_remaining_validation_and_path_resolution_branches(
     assert cfg_destination.get_destination_level("layer-level", 0) == 30
 
     # Hit "~" branch where expanduser still yields a relative path.
-    cfg = LoggingConfig(base_log_dir=str(tmp_path / "base"), log_dir_name="svc", layers={})
-    monkeypatch.setattr("hydra_logger.config.models.os.path.isabs", lambda path: path.startswith("/"))
+    cfg = LoggingConfig(
+        base_log_dir=str(tmp_path / "base"), log_dir_name="svc", layers={}
+    )
+    monkeypatch.setattr(
+        "hydra_logger.config.models.os.path.isabs", lambda path: path.startswith("/")
+    )
     monkeypatch.setattr(
         "hydra_logger.config.models.os.path.expanduser",
         lambda _path: "relative-home/logs/event.log",
@@ -466,6 +499,10 @@ def test_models_remaining_validation_and_path_resolution_branches(
     assert "logs" in non_tilde_no_base
 
     valid_cfg = LoggingConfig(
-        layers={"default": LogLayer(level="INFO", destinations=[LogDestination(type="console")])}
+        layers={
+            "default": LogLayer(
+                level="INFO", destinations=[LogDestination(type="console")]
+            )
+        }
     )
     assert valid_cfg.validate_configuration() is True

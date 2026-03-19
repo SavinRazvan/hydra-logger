@@ -37,9 +37,13 @@ def test_detector_adapts_buffer_interval_and_memory_recommendations() -> None:
     detector._system_profile = SystemProfile.HIGH_PERFORMANCE
     detector._cpu_count = 8
 
-    file_buffer = detector.get_optimal_buffer_size("file", min_size=100, max_size=1_000_000)
+    file_buffer = detector.get_optimal_buffer_size(
+        "file", min_size=100, max_size=1_000_000
+    )
     assert file_buffer >= 500000
-    interval = detector.get_optimal_flush_interval("file", min_interval=0.1, max_interval=10.0)
+    interval = detector.get_optimal_flush_interval(
+        "file", min_interval=0.1, max_interval=10.0
+    )
     assert interval == 7.5
 
     status = detector.monitor_memory_usage(current_usage_mb=14000)
@@ -61,7 +65,9 @@ def test_detector_detect_system_capability_profiles_and_importerror_fallback(
 
     def _set_fake_psutil(available_mb: int):
         fake = types.SimpleNamespace(
-            virtual_memory=lambda: types.SimpleNamespace(available=available_mb * 1024 * 1024),
+            virtual_memory=lambda: types.SimpleNamespace(
+                available=available_mb * 1024 * 1024
+            ),
             cpu_count=lambda logical=True: 4,
         )
         monkeypatch.setitem(sys.modules, "psutil", fake)

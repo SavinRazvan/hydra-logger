@@ -54,7 +54,9 @@ def test_print_example_result_shows_error_hint(capsys) -> None:
     assert ".hydra_env/bin/python examples/run_all_examples.py" in output
 
 
-def test_verify_log_files_returns_empty_without_logs(monkeypatch, tmp_path: Path) -> None:
+def test_verify_log_files_returns_empty_without_logs(
+    monkeypatch, tmp_path: Path
+) -> None:
     module = _load_runner_module()
     monkeypatch.chdir(tmp_path)
     found, patterns = module.verify_log_files("01_format_control.py")

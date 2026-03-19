@@ -24,7 +24,6 @@ from ..formatters.base import BaseFormatter
 from ..types.records import LogRecord
 from .base_handler import BaseHandler
 
-
 _logger = logging.getLogger(__name__)
 
 
@@ -463,7 +462,9 @@ class AsyncConsoleHandler(BaseHandler):
                     # Clear messages on error, but continue
                     if self._shutdown_event.is_set():
                         break
-                    _logger.exception("Async console worker iteration failed; clearing batch")
+                    _logger.exception(
+                        "Async console worker iteration failed; clearing batch"
+                    )
                     messages.clear()
         except (RuntimeError, asyncio.CancelledError):
             # Exit immediately on cancellation or loop closure

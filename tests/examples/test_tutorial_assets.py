@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 TUTORIAL_DIR = ROOT / "examples" / "tutorials"
 TUTORIAL_FILES = [
@@ -35,7 +34,9 @@ TUTORIAL_FILES = [
 
 def test_tutorial_scripts_exist() -> None:
     for filename in TUTORIAL_FILES:
-        assert (TUTORIAL_DIR / filename).exists(), f"Missing tutorial script: {filename}"
+        assert (
+            TUTORIAL_DIR / filename
+        ).exists(), f"Missing tutorial script: {filename}"
 
 
 def test_tutorial_readme_references_all_tracks() -> None:

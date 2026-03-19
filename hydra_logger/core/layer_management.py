@@ -143,7 +143,9 @@ class LayerManager:
                 # Create console handler with appropriate formatter
                 stream_name = destination_config.get("stream", "stdout")
                 stream_obj = stdout if stream_name == "stdout" else None
-                console_handler = SyncConsoleHandler(stream=stream_obj, use_colors=use_colors)
+                console_handler = SyncConsoleHandler(
+                    stream=stream_obj, use_colors=use_colors
+                )
 
                 # Set the appropriate formatter based on format type
                 formatter = get_formatter(format_type, use_colors=use_colors)
