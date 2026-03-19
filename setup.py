@@ -64,12 +64,15 @@ setup(
             "mypy>=1.14.0",
             "pyright>=1.1.400",
             "bandit>=1.7.10",
-            "safety>=3.6.2",
             "tomli-w>=1.0.0",
             "psutil>=7.1.0",
         ],
         "perf": [
             "psutil>=7.1.0",
+        ],
+        # Optional: pulls transitive `nltk` (known pip-audit noise until NLTK ships fixes).
+        "legacy_safety": [
+            "safety>=3.6.2",
         ],
         "database": [
             "psycopg2-binary>=2.9.10",

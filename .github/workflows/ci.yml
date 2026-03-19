@@ -10,7 +10,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   MYPY_ENFORCE: "false"
   BANDIT_ENFORCE: "true"
-  PIP_AUDIT_ENFORCE: "false"
+  PIP_AUDIT_ENFORCE: "true"
 
 jobs:
   test:
@@ -195,10 +195,6 @@ jobs:
           bandit -r hydra_logger/ --severity-level high --confidence-level high
         fi
     
-    - name: Run safety check (legacy transition path)
-      run: |
-        safety check --json --output safety-report.json || true
-
     - name: Run pip-audit
       run: |
         pip-audit --format json --output pip-audit-report.json > pip-audit.txt 2>&1 || true
@@ -215,7 +211,6 @@ jobs:
         path: |
           bandit-report.json
           bandit-high.txt
-          safety-report.json
           pip-audit-report.json
           pip-audit.txt
 
