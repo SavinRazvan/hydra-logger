@@ -27,6 +27,7 @@ from ..types.levels import LogLevel, LogLevelManager
 from ..types.records import LogRecord
 from ..utils import internal_diagnostics as diagnostics
 from ..utils.destination_contracts import unsupported_destination_message
+from ..utils.reliability_lifecycle import handle_lifecycle_failure
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ExtensionProcessor, HandlerDispatcher, LayerRouter, RecordBuilder
@@ -120,6 +121,9 @@ class SyncLogger(BaseLogger):
         self._strict_reliability_mode = False
         self._reliability_error_policy = "silent"
         self._failure_warning_interval = 100
+        self._handler_close_failures = 0
+        self._last_lifecycle_error: Optional[str] = None
+        self._close_completed = True
 
         # Formatter cache to ensure consistent instances
         self._formatter_cache = {}
@@ -130,7 +134,7 @@ class SyncLogger(BaseLogger):
 
         # Shared hot-path pipeline services
         self._record_builder = RecordBuilder(self)
-        self._extension_processor = ExtensionProcessor()
+        self._extension_processor = ExtensionProcessor(self)
         self._layer_router = LayerRouter(
             self._layers, self._layer_handlers, self._handler_cache, self._layer_cache
         )
@@ -184,6 +188,25 @@ class SyncLogger(BaseLogger):
                 f"Sync logger internal failure [{context}]"
             ) from error
 
+    def _increment_handler_close_failures(self) -> None:
+        self._handler_close_failures += 1
+
+    def _set_last_lifecycle_error(self, message: str) -> None:
+        self._last_lifecycle_error = message
+
+    def _report_lifecycle_failure(self, context: str, error: Exception) -> None:
+        handle_lifecycle_failure(
+            context=context,
+            error=error,
+            logger_name=self._name,
+            strict_reliability_mode=self._strict_reliability_mode,
+            reliability_error_policy=self._reliability_error_policy,
+            failure_warning_interval=self._failure_warning_interval,
+            increment_close_failures=self._increment_handler_close_failures,
+            get_close_failure_count=lambda: self._handler_close_failures,
+            set_last_error=self._set_last_lifecycle_error,
+        )
+
     def _setup_default_configuration(self):
         """Setup simplified configuration."""
 
@@ -202,38 +225,55 @@ class SyncLogger(BaseLogger):
 
     def _setup_data_protection(self):
         """Setup simple data protection features."""
-        if self._enable_data_protection:
-            try:
-                from ..extensions.extension_base import SecurityExtension
+        self._data_protection = None
+        if not self._enable_data_protection:
+            return
 
-                # Get extension config from LoggingConfig if available
-                patterns = [
-                    "email",
-                    "phone",
-                    "ssn",
-                    "credit_card",
-                    "api_key",
-                    "password",
-                    "token",
-                    "secret",
-                ]
-                if (
-                    self._config
-                    and hasattr(self._config, "extensions")
-                    and self._config.extensions
-                ):
-                    data_protection_config = self._config.extensions.get(
-                        "data_protection", {}
-                    )
-                    patterns = data_protection_config.get("patterns", patterns)
+        mgr = (
+            getattr(self._config, "_extension_manager", None)
+            if self._config is not None
+            else None
+        )
+        if mgr is not None:
+            from ..extensions.extension_base import SecurityExtension
 
-                # Create simple security extension
-                self._data_protection = SecurityExtension(
-                    enabled=True, patterns=patterns
+            ext = mgr.get_extension("data_protection")
+            if ext is None:
+                for candidate in mgr.extensions.values():
+                    if isinstance(candidate, SecurityExtension):
+                        ext = candidate
+                        break
+            if isinstance(ext, SecurityExtension):
+                self._data_protection = ext
+                return
+
+        try:
+            from ..extensions.extension_base import SecurityExtension
+
+            # Get extension config from LoggingConfig if available
+            patterns = [
+                "email",
+                "phone",
+                "ssn",
+                "credit_card",
+                "api_key",
+                "password",
+                "token",
+                "secret",
+            ]
+            if (
+                self._config
+                and hasattr(self._config, "extensions")
+                and self._config.extensions
+            ):
+                data_protection_config = self._config.extensions.get(
+                    "data_protection", {}
                 )
-            except ImportError:
-                self._data_protection = None
-        else:
+                patterns = data_protection_config.get("patterns", patterns)
+
+            # Create simple security extension when no manager instance is available
+            self._data_protection = SecurityExtension(enabled=True, patterns=patterns)
+        except ImportError:
             self._data_protection = None
 
     def _setup_layers(self):
@@ -367,6 +407,7 @@ class SyncLogger(BaseLogger):
         if destination.type == "network_ws":
             return NetworkHandlerFactory.create_websocket_handler(
                 url=destination.url or "",
+                use_real_websocket_transport=destination.use_real_websocket_transport,
             )
         if destination.type == "network_socket":
             return NetworkHandlerFactory.create_socket_handler(
@@ -610,24 +651,38 @@ class SyncLogger(BaseLogger):
         if self._closed:
             return
 
+        self._close_completed = False
         try:
             # Close all handlers
             for handler in self._handlers.values():
                 try:
                     handler.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_lifecycle_failure(
+                        f"handler_close:{type(handler).__name__}", error
+                    )
 
-            # Clear collections
-            self._handlers.clear()
-            self._layer_handlers.clear()
-            self._layers.clear()
+            # Clear collections (legacy: if clear fails, leave logger not closed)
+            try:
+                self._handlers.clear()
+                self._layer_handlers.clear()
+                self._layers.clear()
+            except Exception as error:
+                try:
+                    self._report_lifecycle_failure("close_cleanup", error)
+                except HydraLoggerError:
+                    self._closed = True
+                    raise
+                return
 
             # Mark as closed
             self._closed = True
+            self._close_completed = True
 
-        except Exception:
-            pass
+        except HydraLoggerError:
+            if not self._closed:
+                self._closed = True
+            raise
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get the health status of the logger."""
@@ -646,6 +701,10 @@ class SyncLogger(BaseLogger):
                 self._security_engine.get_security_metrics()
             )
         health_status["swallowed_error_count"] = self._swallowed_error_count
+        health_status["handler_close_failures"] = self._handler_close_failures
+        health_status["close_completed"] = self._close_completed
+        if self._last_lifecycle_error is not None:
+            health_status["last_lifecycle_error"] = self._last_lifecycle_error
 
         return health_status
 

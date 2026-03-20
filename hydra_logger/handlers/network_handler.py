@@ -580,12 +580,14 @@ class WebSocketHandler(BaseNetworkHandler):
             ws_subprotocols=subprotocols or [],
         )
 
-        super().__init__(config, **kwargs)
+        # Set before super().__init__: BaseNetworkHandler connects during __init__.
         self._url = url
         self._websocket: Any = None
         self._use_real_websocket_transport = bool(use_real_websocket_transport)
         self._ws_transport_simulated = not self._use_real_websocket_transport
         self._websockets_installed = WEBSOCKETS_AVAILABLE
+
+        super().__init__(config, **kwargs)
 
     def _websocket_uri(self) -> str:
         """Build ws/wss URI, appending ws_path when the base URL has no path."""

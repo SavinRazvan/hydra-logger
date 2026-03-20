@@ -31,6 +31,8 @@ Monitor and alert on these classes of signals:
 - **Lifecycle cleanup**
   - non-drained queues after close
   - leaked async tasks after logger teardown
+  - **`handler_close_failures`** / **`last_lifecycle_error`** on `get_health_status()` after `close()` / `aclose()` when a handler teardown raised (see `hydra_logger.utils.reliability_lifecycle`)
+  - **`close_completed`**: `False` if teardown stopped before clearing internal collections (for example, a failing `dict.clear()` on a test double); strict mode (`strict_reliability_mode` or `reliability_error_policy="raise"`) re-raises `HydraLoggerError` from lifecycle failures instead of only counting them
 
 ## Operational Triage Flow
 

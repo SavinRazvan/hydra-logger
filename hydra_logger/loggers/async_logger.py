@@ -28,6 +28,7 @@ from ..types.levels import LogLevel
 from ..types.records import LogRecord
 from ..utils import internal_diagnostics as diagnostics
 from ..utils.destination_contracts import unsupported_destination_message
+from ..utils.reliability_lifecycle import handle_lifecycle_failure
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ExtensionProcessor, HandlerDispatcher, LayerRouter, RecordBuilder
@@ -121,6 +122,9 @@ class AsyncLogger(BaseLogger):
         self._strict_reliability_mode = False
         self._reliability_error_policy = "silent"
         self._failure_warning_interval = 100
+        self._handler_close_failures = 0
+        self._last_lifecycle_error: Optional[str] = None
+        self._close_completed = True
 
         # Formatter cache for performance
         self._formatter_cache = {}
@@ -131,7 +135,7 @@ class AsyncLogger(BaseLogger):
 
         # Shared hot-path pipeline services
         self._record_builder = RecordBuilder(self)
-        self._extension_processor = ExtensionProcessor()
+        self._extension_processor = ExtensionProcessor(self)
         self._layer_router = LayerRouter(
             self._layers, self._layer_handlers, self._handler_cache, self._layer_cache
         )
@@ -149,38 +153,53 @@ class AsyncLogger(BaseLogger):
 
     def _setup_data_protection(self):
         """Setup simple data protection features."""
-        if self._enable_data_protection:
-            try:
-                from ..extensions.extension_base import SecurityExtension
+        self._data_protection = None
+        if not self._enable_data_protection:
+            return
 
-                # Get extension config from LoggingConfig if available
-                patterns = [
-                    "email",
-                    "phone",
-                    "ssn",
-                    "credit_card",
-                    "api_key",
-                    "password",
-                    "token",
-                    "secret",
-                ]
-                if (
-                    self._config
-                    and hasattr(self._config, "extensions")
-                    and self._config.extensions
-                ):
-                    data_protection_config = self._config.extensions.get(
-                        "data_protection", {}
-                    )
-                    patterns = data_protection_config.get("patterns", patterns)
+        mgr = (
+            getattr(self._config, "_extension_manager", None)
+            if self._config is not None
+            else None
+        )
+        if mgr is not None:
+            from ..extensions.extension_base import SecurityExtension
 
-                # Create simple security extension
-                self._data_protection = SecurityExtension(
-                    enabled=True, patterns=patterns
+            ext = mgr.get_extension("data_protection")
+            if ext is None:
+                for candidate in mgr.extensions.values():
+                    if isinstance(candidate, SecurityExtension):
+                        ext = candidate
+                        break
+            if isinstance(ext, SecurityExtension):
+                self._data_protection = ext
+                return
+
+        try:
+            from ..extensions.extension_base import SecurityExtension
+
+            patterns = [
+                "email",
+                "phone",
+                "ssn",
+                "credit_card",
+                "api_key",
+                "password",
+                "token",
+                "secret",
+            ]
+            if (
+                self._config
+                and hasattr(self._config, "extensions")
+                and self._config.extensions
+            ):
+                data_protection_config = self._config.extensions.get(
+                    "data_protection", {}
                 )
-            except ImportError:
-                self._data_protection = None
-        else:
+                patterns = data_protection_config.get("patterns", patterns)
+
+            self._data_protection = SecurityExtension(enabled=True, patterns=patterns)
+        except ImportError:
             self._data_protection = None
 
     def _setup_plugins(self):
@@ -398,6 +417,7 @@ class AsyncLogger(BaseLogger):
         if destination.type == "network_ws":
             return NetworkHandlerFactory.create_websocket_handler(
                 url=destination.url or "",
+                use_real_websocket_transport=destination.use_real_websocket_transport,
             )
         if destination.type == "network_socket":
             return NetworkHandlerFactory.create_socket_handler(
@@ -667,6 +687,25 @@ class AsyncLogger(BaseLogger):
             raise HydraLoggerError(
                 f"Async logger internal failure [{context}]"
             ) from error
+
+    def _increment_handler_close_failures(self) -> None:
+        self._handler_close_failures += 1
+
+    def _set_last_lifecycle_error(self, message: str) -> None:
+        self._last_lifecycle_error = message
+
+    def _report_lifecycle_failure(self, context: str, error: Exception) -> None:
+        handle_lifecycle_failure(
+            context=context,
+            error=error,
+            logger_name=self._name,
+            strict_reliability_mode=self._strict_reliability_mode,
+            reliability_error_policy=self._reliability_error_policy,
+            failure_warning_interval=self._failure_warning_interval,
+            increment_close_failures=self._increment_handler_close_failures,
+            get_close_failure_count=lambda: self._handler_close_failures,
+            set_last_error=self._set_last_lifecycle_error,
+        )
 
     async def _log_async(self, level: Union[str, int], message: str, **kwargs) -> None:
         """Internal async logging method - SIMPLIFIED for reliability."""
@@ -1097,6 +1136,7 @@ class AsyncLogger(BaseLogger):
         if self._closed:
             return
 
+        self._close_completed = False
         try:
             # Mark as closed first to prevent new operations
             self._closed = True
@@ -1119,15 +1159,20 @@ class AsyncLogger(BaseLogger):
                 try:
                     if hasattr(handler, "close"):
                         handler.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_lifecycle_failure(
+                        f"handler_close:{type(handler).__name__}", error
+                    )
 
             # Clean up console handler
             if hasattr(self, "_console_handler") and self._console_handler:
                 try:
                     self._console_handler.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_lifecycle_failure(
+                        f"console_handler_close:{type(self._console_handler).__name__}",
+                        error,
+                    )
 
             # Clean up concurrency resources
             if hasattr(self, "_concurrency_semaphore"):
@@ -1143,10 +1188,15 @@ class AsyncLogger(BaseLogger):
 
             # Clear handler cache
             self._handler_cache.clear()
+            self._close_completed = True
 
-        except Exception:
-            # Silent cleanup - don't fail on close
-            pass
+        except HydraLoggerError:
+            raise
+        except Exception as error:
+            try:
+                self._report_lifecycle_failure("close_cleanup", error)
+            except HydraLoggerError:
+                raise
 
     async def close_async(self):
         """Async close method for proper async cleanup."""
@@ -1157,16 +1207,19 @@ class AsyncLogger(BaseLogger):
         if self._closed:
             return
 
+        self._close_completed = False
         try:
             # Drain queue-mode payloads before shutdown.
             if self._use_async_queue and self._async_record_queue is not None:
-                try:
-                    await asyncio.wait_for(self._async_record_queue.join(), timeout=2.0)
-                except asyncio.TimeoutError:
-                    diagnostics.warning(
-                        "Async logger queue drain timed out; remaining=%s",
-                        self._async_record_queue.qsize(),
-                    )
+                join_fn = getattr(self._async_record_queue, "join", None)
+                if callable(join_fn):
+                    try:
+                        await asyncio.wait_for(join_fn(), timeout=2.0)
+                    except asyncio.TimeoutError:
+                        diagnostics.warning(
+                            "Async logger queue drain timed out; remaining=%s",
+                            self._async_record_queue.qsize(),
+                        )
 
             # Mark as closed first
             self._closed = True
@@ -1195,8 +1248,10 @@ class AsyncLogger(BaseLogger):
                         await handler.close_async()
                     elif hasattr(handler, "close"):
                         handler.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_lifecycle_failure(
+                        f"handler_aclose:{type(handler).__name__}", error
+                    )
 
             # Clean up console handler
             if hasattr(self, "_console_handler") and self._console_handler:
@@ -1213,8 +1268,11 @@ class AsyncLogger(BaseLogger):
                         await self._console_handler.close_async()
                     else:
                         self._console_handler.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_lifecycle_failure(
+                        f"console_handler_aclose:{type(self._console_handler).__name__}",
+                        error,
+                    )
 
             # Clean up concurrency resources
             if hasattr(self, "_concurrency_semaphore"):
@@ -1229,15 +1287,22 @@ class AsyncLogger(BaseLogger):
                 self._overflow_worker_task.cancel()
                 try:
                     await self._overflow_worker_task
-                except (asyncio.CancelledError, Exception):
+                except asyncio.CancelledError:
                     pass
+                except Exception as error:
+                    self._report_lifecycle_failure("overflow_worker_join", error)
 
             # Clear handler cache
             self._handler_cache.clear()
+            self._close_completed = True
 
-        except Exception:
-            # Silent cleanup - don't fail on close
-            pass
+        except HydraLoggerError:
+            raise
+        except Exception as error:
+            try:
+                self._report_lifecycle_failure("aclose_cleanup", error)
+            except HydraLoggerError:
+                raise
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get the health status of the logger."""
@@ -1261,7 +1326,12 @@ class AsyncLogger(BaseLogger):
             "async_queue_worker_count": len(
                 [task for task in self._async_worker_tasks if not task.done()]
             ),
+            "handler_close_failures": self._handler_close_failures,
+            "close_completed": self._close_completed,
         }
+
+        if self._last_lifecycle_error is not None:
+            health_status["last_lifecycle_error"] = self._last_lifecycle_error
 
         # REAL ASYNC: Add concurrency information
         if self._concurrency_semaphore:

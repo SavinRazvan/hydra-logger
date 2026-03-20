@@ -77,6 +77,34 @@ def test_logger_factory_applies_extension_config_and_attaches_manager() -> None:
     assert hasattr(cfg, "_extension_manager")
 
 
+def test_factory_sync_logger_data_protection_uses_extension_manager_instance() -> None:
+    factory = LoggerFactory()
+    config = {
+        "enable_data_protection": True,
+        "layers": {
+            "default": {
+                "level": "INFO",
+                "destinations": [{"type": "console"}],
+            }
+        },
+        "extensions": {
+            "security_ext": {
+                "type": "security",
+                "enabled": True,
+                "patterns": ["email"],
+            }
+        },
+    }
+    logger = factory.create_sync_logger(config=config)
+    cfg = logger.get_config()
+    assert cfg is not None
+    mgr = getattr(cfg, "_extension_manager", None)
+    assert mgr is not None
+    ext = mgr.get_extension("security_ext")
+    assert ext is not None
+    assert logger._data_protection is ext
+
+
 def test_create_logger_convenience_accepts_name_string() -> None:
     logger = create_logger("unit-logger", logger_type="sync")
     assert isinstance(logger, SyncLogger)
