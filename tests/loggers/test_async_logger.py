@@ -492,6 +492,45 @@ def test_async_logger_create_network_handlers_from_typed_destinations(
     logger.close()
 
 
+def test_async_logger_network_http_batched_with_named_encoder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeBatchHandler:
+        def __init__(self, **kwargs) -> None:  # type: ignore[no-untyped-def]
+            self.kwargs = kwargs
+            self.formatter = None
+
+        def setFormatter(self, formatter) -> None:  # type: ignore[no-untyped-def]
+            self.formatter = formatter
+
+    monkeypatch.setattr(
+        "hydra_logger.handlers.http_payload_encoders.resolve_http_payload_encoder",
+        lambda _name: (lambda _record, _fmt: {"ok": True}),
+    )
+    monkeypatch.setattr(
+        "hydra_logger.handlers.batched_http_handler.BatchedHTTPHandler",
+        FakeBatchHandler,
+    )
+
+    logger = AsyncLogger(
+        config=LoggingConfig(
+            layers={"default": LogLayer(destinations=[LogDestination(type="null")])}
+        )
+    )
+    destination = LogDestination(
+        type="network_http",
+        url="https://example.com/ingest",
+        http_payload_encoder="named",
+        http_batch_size=3,
+        http_batch_flush_interval=0.5,
+    )
+    handler = logger._create_network_handler_from_destination(destination)
+    assert handler.kwargs["url"] == "https://example.com/ingest"
+    assert handler.kwargs["batch_size"] == 3
+    assert handler.kwargs["payload_encoder"] is not None
+    logger.close()
+
+
 def test_async_logger_log_batch_wraps_chunk_processing_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -338,23 +338,32 @@ class SyncLogger(BaseLogger):
             encoder = None
             if destination.http_payload_encoder:
                 encoder = resolve_http_payload_encoder(destination.http_payload_encoder)
-            common_kw = dict(
-                url=destination.url or "",
-                timeout=destination.timeout or 30.0,
-                headers=destination.credentials or {},
-                connection_probe=destination.connection_probe,
-                probe_method=destination.probe_method,
-                payload_encoder=encoder,
-            )
+            url = destination.url or ""
+            timeout = destination.timeout or 30.0
+            headers = destination.credentials or {}
+            connection_probe = destination.connection_probe
+            probe_method = destination.probe_method
             if destination.http_batch_size and destination.http_batch_size > 0:
                 from ..handlers.batched_http_handler import BatchedHTTPHandler
 
                 return BatchedHTTPHandler(
+                    url=url,
+                    timeout=timeout,
+                    headers=headers,
+                    connection_probe=connection_probe,
+                    probe_method=probe_method,
+                    payload_encoder=encoder,
                     batch_size=destination.http_batch_size,
                     flush_interval=destination.http_batch_flush_interval,
-                    **common_kw,
                 )
-            return NetworkHandlerFactory.create_http_handler(**common_kw)
+            return NetworkHandlerFactory.create_http_handler(
+                url=url,
+                timeout=timeout,
+                headers=headers,
+                connection_probe=connection_probe,
+                probe_method=probe_method,
+                payload_encoder=encoder,
+            )
         if destination.type == "network_ws":
             return NetworkHandlerFactory.create_websocket_handler(
                 url=destination.url or "",

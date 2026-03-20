@@ -13,7 +13,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel
 
+from hydra_logger.config import loader as loader_module
 from hydra_logger.config.loader import (
     clear_logging_config_cache,
     load_logging_config,
@@ -151,3 +153,103 @@ def test_extends_max_depth_raises(tmp_path: Path) -> None:
 def test_file_not_found() -> None:
     with pytest.raises(FileNotFoundError):
         load_logging_config(Path("/nonexistent/hydra-logging.yaml"))
+
+
+def test_extends_validation_and_yaml_root_guardrails(tmp_path: Path) -> None:
+    bad_extends_item = tmp_path / "bad_extends_item.yaml"
+    bad_extends_item.write_text(
+        """
+extends:
+  - ok.yaml
+  - 123
+default_level: INFO
+layers:
+  a:
+    level: INFO
+    destinations:
+      - type: console
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="non-empty strings"):
+        load_logging_config(bad_extends_item)
+
+    bad_extends_type = tmp_path / "bad_extends_type.yaml"
+    bad_extends_type.write_text(
+        """
+extends: 123
+default_level: INFO
+layers:
+  a:
+    level: INFO
+    destinations:
+      - type: console
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="string or a list"):
+        load_logging_config(bad_extends_type)
+
+    empty_yaml = tmp_path / "empty.yaml"
+    empty_yaml.write_text("", encoding="utf-8")
+    # Empty YAML normalizes to {} and still validates with model defaults.
+    cfg = load_logging_config(empty_yaml)
+    assert cfg is not None
+
+    list_root = tmp_path / "list_root.yaml"
+    list_root.write_text("- item", encoding="utf-8")
+    with pytest.raises(ValueError, match="YAML root must be a mapping"):
+        load_logging_config(list_root)
+
+
+def test_extends_merged_nodes_guardrail_raises(tmp_path: Path) -> None:
+    base = tmp_path / "base_nodes.yaml"
+    base.write_text(
+        """
+default_level: INFO
+layers:
+  a:
+    level: INFO
+    destinations:
+      - type: console
+""",
+        encoding="utf-8",
+    )
+    child = tmp_path / "child_nodes.yaml"
+    child.write_text(
+        """
+extends: base_nodes.yaml
+layers:
+  a:
+    level: DEBUG
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="max_merged_nodes"):
+        load_logging_config(child, max_merged_nodes=5)
+
+
+def test_loader_internal_type_guard_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg_file = tmp_path / "strict.yaml"
+    cfg_file.write_text(
+        """
+default_level: INFO
+layers:
+  a:
+    level: INFO
+    destinations:
+      - type: console
+""",
+        encoding="utf-8",
+    )
+
+    class FakeModel(BaseModel):
+        dummy: int = 1
+
+    monkeypatch.setattr(
+        loader_module.StrictLoggingConfig,
+        "model_validate",
+        classmethod(lambda cls, _data: FakeModel()),
+    )
+    with pytest.raises(TypeError, match="not LoggingConfig"):
+        load_logging_config(cfg_file, strict_unknown_fields=True)

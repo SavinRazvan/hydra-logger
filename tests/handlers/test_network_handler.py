@@ -880,6 +880,11 @@ def test_network_handler_probe_and_connection_guard_branches(
     datagram_handler._connection = None
     datagram_handler.emit(record)
 
+    # HTTP _emit_single_payload guard for missing session.
+    emit_guard = HTTPHandler("https://example.com/single", connection_probe=False)
+    emit_guard._session = None
+    emit_guard._emit_single_payload({"message": "x"})
+
 
 def test_websocket_handler_real_transport_emits_json_payload(
     monkeypatch: pytest.MonkeyPatch,

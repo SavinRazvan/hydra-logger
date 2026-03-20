@@ -77,9 +77,12 @@ def load_http_encoders_from_entry_points(
 
     try:
         eps = entry_points()
-        selected = (
-            eps.select(group=group) if hasattr(eps, "select") else eps.get(group, [])
-        )
+        selected: Any
+        if hasattr(eps, "select"):
+            selected = eps.select(group=group)
+        else:
+            legacy_get = getattr(eps, "get", None)
+            selected = legacy_get(group) if callable(legacy_get) else ()
     except Exception as exc:  # pragma: no cover - defensive
         _logger.debug("Entry point scan failed: %s", exc)
         return

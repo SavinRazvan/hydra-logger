@@ -83,3 +83,41 @@ def test_batched_mixed_payload_falls_back_to_single_posts() -> None:
     h.emit(LogRecord(message="a", level_name="INFO", layer="L"))
     h.emit(LogRecord(message="b", level_name="INFO", layer="L"))
     assert session.request.call_count == 2
+
+
+def test_batched_emit_and_flush_guard_and_error_paths() -> None:
+    h = BatchedHTTPHandler(
+        "http://example.test/ingest",
+        connection_probe=False,
+        batch_size=2,
+        flush_interval=300.0,
+    )
+    record = LogRecord(message="x", level_name="INFO", layer="L")
+
+    # emit guard: _connect() false
+    h._connect = lambda: False  # type: ignore[method-assign]
+    h.emit(record)
+
+    # emit guard: no session
+    h._connect = lambda: True  # type: ignore[method-assign]
+    h._session = None
+    h.emit(record)
+
+    # emit exception handling branch
+    h._session = MagicMock()
+    h._compose_payload = lambda _r: (_ for _ in ()).throw(RuntimeError("compose-fail"))  # type: ignore[method-assign]
+    h.emit(record)
+
+    # _flush_batch guards
+    h._flush_batch([])
+    h._connect = lambda: False  # type: ignore[method-assign]
+    h._flush_batch([{"m": "x"}])
+    h._connect = lambda: True  # type: ignore[method-assign]
+    h._session = None
+    h._flush_batch([{"m": "x"}])
+
+    # _flush_batch exception branch
+    bad_session = MagicMock()
+    bad_session.request.side_effect = RuntimeError("request-fail")
+    h._session = bad_session
+    h._flush_batch([{"m": "x"}])

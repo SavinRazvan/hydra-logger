@@ -69,3 +69,26 @@ layers:
     )
     with pytest.raises(ValueError, match="only one"):
         logger_factory.create_sync_logger(config=cfg, config_path=p)
+
+
+def test_factory_forwards_loader_kwargs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from hydra_logger.factories.logger_factory import LoggerFactory
+
+    captured: dict[str, object] = {}
+
+    def _fake_loader(_path: Path, **kwargs):  # type: ignore[no-untyped-def]
+        captured.update(kwargs)
+        from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
+
+        return LoggingConfig(
+            layers={"default": LogLayer(destinations=[LogDestination(type="null")])}
+        )
+
+    monkeypatch.setattr("hydra_logger.config.loader.load_logging_config", _fake_loader)
+    fac = LoggerFactory()
+    logger = fac.create_sync_logger(
+        config_path=tmp_path / "cfg.yaml",
+        max_merged_nodes=1234,
+    )
+    assert captured["max_merged_nodes"] == 1234
+    logger.close()
