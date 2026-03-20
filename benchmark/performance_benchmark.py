@@ -116,7 +116,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
         )
         # Create results directory if saving
         if self.save_results:
-            self.results_dir.mkdir(exist_ok=True)
+            self.results_dir.mkdir(parents=True, exist_ok=True)
 
         # Track all created loggers for proper cleanup
         self._created_loggers = []
