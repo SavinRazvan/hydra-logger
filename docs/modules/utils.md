@@ -24,7 +24,7 @@ Utility layer for text, time, file, stderr interception, system detection, and e
 
 ```mermaid
 flowchart LR
-  A[Core/logger code] --> B[time_utility]
+  A["Core/logger code"] --> B["time_utility"]
   A --> C[text_utility]
   A --> D[file_utility]
   A --> E[stderr_interceptor]

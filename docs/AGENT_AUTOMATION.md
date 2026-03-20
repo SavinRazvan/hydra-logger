@@ -25,7 +25,7 @@ This lets workflow scripts infer attribution defaults instead of passing them ea
 
 Preflight environment health before any workflow phase:
 
-- `python scripts/dev/check_env_health.py --strict`
+- `python scripts/dev/check_env_health.py --strict --auto-upgrade-toolchain --json`
 
 Preferred one-command implementation start (clean branch + draft PR):
 
@@ -79,9 +79,11 @@ Finalize phase (post-merge branch cleanup):
 
 ## Full Pipeline
 
-Run entire flow in one command:
+Run post-implementation flow in one command (feature branch only):
 
 - `python scripts/pr/workflow.py --phase full --title "<title>" --summary "<item>" --summary "<item>"`
+
+`full` runs `create -> review -> prepare -> merge -> finalize`. It does not run `start` or `commit`.
 
 ## Required Delivery Order
 
@@ -148,7 +150,7 @@ Mandatory evidence for each slice:
 ## Notes
 
 - `create/review/prepare/merge/full` are blocked on `main`; run them from a feature branch.
-- `start` is the only phase that begins from `main`.
+- `start` is the standard implementation-entry phase from `main`; `finalize` supports `--feature-branch` when run on `main`.
 - `workflow.py` runs env preflight by default for `create/review/prepare/merge/full`.
 - Direct wrappers (`scripts/pr/create.py`, `scripts/pr/prepare.py`, `scripts/pr/status.py`) also run env preflight by default.
 - Emergency-only override: `--skip-env-check`.

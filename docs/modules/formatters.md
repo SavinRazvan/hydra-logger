@@ -23,11 +23,11 @@ Converts `LogRecord` objects into destination-specific string payloads.
 
 ```mermaid
 flowchart LR
-  A[Destination format string] --> B[get_formatter(format_type, use_colors)]
+  A["Destination format string"] --> B["get_formatter(format_type, use_colors)"]
   B --> C{Known type?}
   C -->|yes| D[Specific formatter instance]
   C -->|no| E[PlainTextFormatter fallback]
-  D --> F[format(record)]
+  D --> F["format(record)"]
   E --> F
 ```
 
