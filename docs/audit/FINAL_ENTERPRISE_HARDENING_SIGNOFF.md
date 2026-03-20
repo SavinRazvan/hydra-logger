@@ -3,7 +3,7 @@
 **Scope:** Close-the-loop matrix for the **external hardening assessment** and the
 internal **remaining enterprise hardening plan** (merged via PR **#48**, `main`).
 
-**Canonical repo version (at sign-off artifact):** `0.5.3` (`hydra_logger/__init__.py`).
+**Canonical repo version (current):** `0.7.0` (`hydra_logger/__init__.py`). *Original hardening sign-off was recorded at `0.5.3`.*
 
 **Statuses**
 

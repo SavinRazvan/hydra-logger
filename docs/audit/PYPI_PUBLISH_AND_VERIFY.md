@@ -37,8 +37,8 @@ Align the tag with **`__version__`** (leading `v` is convention only; be
 consistent with past releases):
 
 ```bash
-git tag -a "v0.5.3" -m "Release 0.5.3"
-git push origin "v0.5.3"
+git tag -a "v0.7.0" -m "Release 0.7.0"
+git push origin "v0.7.0"
 ```
 
 Create a **GitHub Release** for that tag; attach `dist/*` (sdist + wheel) or link
