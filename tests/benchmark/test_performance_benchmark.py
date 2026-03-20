@@ -315,16 +315,46 @@ def test_run_benchmark_returns_error_and_still_cleans_up(tmp_path, monkeypatch) 
 
 def test_main_returns_run_benchmark_code(monkeypatch) -> None:
     class DummyBenchmark:
-        def __init__(self, save_results=True, results_dir=None, profile=None):
+        def __init__(
+            self,
+            save_results=True,
+            results_dir=None,
+            profile=None,
+            enabled_sections=None,
+        ):
             assert save_results is True
             assert results_dir is None
             assert profile is None
+            assert enabled_sections is None
 
         async def run_benchmark(self):
             return 7
 
     monkeypatch.setattr(perf_mod, "HydraLoggerBenchmark", DummyBenchmark)
     assert asyncio.run(perf_mod.main()) == 7
+
+
+def test_main_forwards_enabled_sections(monkeypatch) -> None:
+    seen = {}
+
+    class DummyBenchmark:
+        def __init__(
+            self,
+            save_results=True,
+            results_dir=None,
+            profile=None,
+            enabled_sections=None,
+        ):
+            seen["enabled_sections"] = enabled_sections
+
+        async def run_benchmark(self):
+            return 0
+
+    monkeypatch.setattr(perf_mod, "HydraLoggerBenchmark", DummyBenchmark)
+    assert (
+        asyncio.run(perf_mod.main(enabled_sections=["sync_logger", "async_logger"])) == 0
+    )
+    assert seen["enabled_sections"] == ["sync_logger", "async_logger"]
 
 
 def test_network_destination_performance_uses_stubbed_http_handler(tmp_path) -> None:
@@ -338,3 +368,66 @@ def test_network_destination_performance_uses_stubbed_http_handler(tmp_path) -> 
     assert result["total_messages"] == 5
     assert result["dispatched_messages"] == 5
     assert result["individual_messages_per_second"] > 0
+
+
+def test_init_rejects_unknown_enabled_sections(tmp_path) -> None:
+    try:
+        HydraLoggerBenchmark(
+            save_results=False,
+            results_dir=str(tmp_path / "results"),
+            enabled_sections=["unknown_section"],
+        )
+    except ValueError as exc:
+        assert "Unknown benchmark section(s)" in str(exc)
+    else:
+        raise AssertionError("Expected unknown section validation error")
+
+
+def test_run_benchmark_honors_enabled_sections_subset(tmp_path, monkeypatch) -> None:
+    bench = HydraLoggerBenchmark(
+        save_results=True,
+        results_dir=str(tmp_path / "results"),
+        enabled_sections=["sync_logger", "memory"],
+    )
+    assert bench.save_results is False
+    order = []
+
+    monkeypatch.setattr(bench, "print_header", lambda: order.append("header"))
+    monkeypatch.setattr(
+        bench,
+        "test_sync_logger_performance",
+        lambda: order.append("sync") or {"ok": True},
+    )
+    monkeypatch.setattr(
+        bench,
+        "test_memory_usage",
+        lambda: order.append("memory") or {"ok": True},
+    )
+    monkeypatch.setattr(
+        bench,
+        "_enforce_reliability_guards",
+        lambda: order.append("guards"),
+    )
+    monkeypatch.setattr(
+        bench,
+        "print_detailed_results",
+        lambda: order.append("details"),
+    )
+    monkeypatch.setattr(
+        bench,
+        "save_results_to_file",
+        lambda: order.append("save"),
+    )
+    monkeypatch.setattr(bench, "_cleanup_logger_cache", lambda: order.append("cleanup"))
+    monkeypatch.setattr(
+        bench,
+        "_final_cleanup",
+        lambda: order.append("final_cleanup") or asyncio.sleep(0),
+    )
+
+    exit_code = asyncio.run(bench.run_benchmark())
+    assert exit_code == 0
+    assert "sync_logger" in bench.results
+    assert "memory" in bench.results
+    assert "async_logger" not in bench.results
+    assert "save" not in order

@@ -201,6 +201,172 @@ def test_composite_async_logger_health_for_empty_components() -> None:
     logger.close()
 
 
+def test_composite_logger_lifecycle_hydraerror_and_health_last_error_paths() -> None:
+    logger = CompositeLogger(components=[])
+
+    class EmptyIterableWithFailingClear:
+        def __iter__(self):
+            return iter(())
+
+        @staticmethod
+        def clear() -> None:
+            raise RuntimeError("clear-fail")
+
+    logger.components = EmptyIterableWithFailingClear()  # type: ignore[assignment]
+    logger._report_lifecycle_failure = lambda _ctx, _err: (_ for _ in ()).throw(  # type: ignore[assignment]
+        HydraLoggerError("close-policy")
+    )
+    with pytest.raises(HydraLoggerError, match="close-policy"):
+        logger.close()
+    assert logger._closed is True
+
+    logger2 = CompositeLogger(components=[])
+    logger2._last_lifecycle_error = "sync-last-error"
+    health = logger2.get_health_status()
+    assert health["last_lifecycle_error"] == "sync-last-error"
+
+
+def test_composite_async_lifecycle_hydraerror_and_health_last_error_paths() -> None:
+    class EmptyIterableWithFailingClear:
+        def __iter__(self):
+            return iter(())
+
+        @staticmethod
+        def clear() -> None:
+            raise RuntimeError("clear-fail")
+
+    async def _run() -> None:
+        logger = CompositeAsyncLogger(components=[], use_direct_io=False)
+        logger.components = EmptyIterableWithFailingClear()  # type: ignore[assignment]
+        logger._report_async_lifecycle_failure = lambda _ctx, _err: (_ for _ in ()).throw(  # type: ignore[assignment]
+            HydraLoggerError("async-close-policy")
+        )
+        with pytest.raises(HydraLoggerError, match="async-close-policy"):
+            await logger._async_close()
+
+        logger2 = CompositeAsyncLogger(components=[], use_direct_io=False)
+        logger2.components = EmptyIterableWithFailingClear()  # type: ignore[assignment]
+        logger2._report_async_lifecycle_failure = lambda _ctx, _err: (_ for _ in ()).throw(  # type: ignore[assignment]
+            HydraLoggerError("sync-close-policy")
+        )
+        with pytest.raises(HydraLoggerError, match="sync-close-policy"):
+            logger2.close()
+
+        class HealthyComponent:
+            name = "healthy"
+
+            @staticmethod
+            def get_health_status():
+                return {"health": "healthy"}
+
+        logger3 = CompositeAsyncLogger(
+            components=[HealthyComponent()], use_direct_io=False
+        )  # type: ignore[list-item]
+        logger3._last_lifecycle_error = "async-last-error"
+        health = logger3.get_health_status()
+        assert health["last_lifecycle_error"] == "async-last-error"
+        await logger3.aclose()
+
+    asyncio.run(_run())
+
+
+def test_composite_logger_health_payload_includes_last_lifecycle_error_with_components() -> (
+    None
+):
+    class HealthyComponent:
+        name = "healthy"
+
+        @staticmethod
+        def get_health_status():
+            return {"health": "healthy"}
+
+    logger = CompositeLogger(components=[HealthyComponent()])  # type: ignore[list-item]
+    logger._last_lifecycle_error = "sync-health-last-error"
+    health = logger.get_health_status()
+    assert health["last_lifecycle_error"] == "sync-health-last-error"
+    logger.close()
+
+
+def test_composite_logger_outer_hydra_close_branch_sets_closed() -> None:
+    class RaiseOnClose:
+        name = "raise-close"
+
+        @staticmethod
+        def close() -> None:
+            raise RuntimeError("close-fail")
+
+    logger = CompositeLogger(components=[RaiseOnClose()])  # type: ignore[list-item]
+    logger._report_lifecycle_failure = lambda _ctx, _err: (_ for _ in ()).throw(  # type: ignore[assignment]
+        HydraLoggerError("outer-close-policy")
+    )
+    with pytest.raises(HydraLoggerError, match="outer-close-policy"):
+        logger.close()
+    assert logger._closed is True
+
+
+def test_composite_async_close_return_and_outer_error_branches() -> None:
+    class EmptyIterableWithFailingClear:
+        def __iter__(self):
+            return iter(())
+
+        @staticmethod
+        def clear() -> None:
+            raise RuntimeError("clear-fail")
+
+    async def _run_async_close_return_branch() -> None:
+        logger = CompositeAsyncLogger(components=[], use_direct_io=False)
+        logger.components = EmptyIterableWithFailingClear()  # type: ignore[assignment]
+        seen = []
+        logger._report_async_lifecycle_failure = lambda ctx, _err: seen.append(ctx)  # type: ignore[assignment]
+        await logger._async_close()
+        assert "async_composite_clear" in seen
+
+    asyncio.run(_run_async_close_return_branch())
+
+    class BadIterable:
+        def __iter__(self):
+            raise RuntimeError("iter-fail")
+
+        @staticmethod
+        def clear() -> None:
+            return None
+
+    async def _run_async_close_outer_branch() -> None:
+        logger = CompositeAsyncLogger(components=[], use_direct_io=False)
+        logger.components = BadIterable()  # type: ignore[assignment]
+        logger._report_async_lifecycle_failure = lambda _ctx, _err: (_ for _ in ()).throw(  # type: ignore[assignment]
+            HydraLoggerError("async-outer-policy")
+        )
+        with pytest.raises(HydraLoggerError, match="async-outer-policy"):
+            await logger._async_close()
+
+    asyncio.run(_run_async_close_outer_branch())
+
+    logger_sync_return = CompositeAsyncLogger(components=[], use_direct_io=False)
+    logger_sync_return.components = EmptyIterableWithFailingClear()  # type: ignore[assignment]
+    seen_sync = []
+    logger_sync_return._report_async_lifecycle_failure = lambda ctx, _err: seen_sync.append(ctx)  # type: ignore[assignment]
+    logger_sync_return.close()
+    assert "composite_async_sync_close_cleanup" in seen_sync
+
+    logger_sync_outer = CompositeAsyncLogger(components=[], use_direct_io=False)
+    logger_sync_outer.components = BadIterable()  # type: ignore[assignment]
+    logger_sync_outer._report_async_lifecycle_failure = lambda _ctx, _err: (_ for _ in ()).throw(  # type: ignore[assignment]
+        HydraLoggerError("sync-outer-policy")
+    )
+    with pytest.raises(HydraLoggerError, match="sync-outer-policy"):
+        logger_sync_outer.close()
+
+
+def test_composite_async_health_empty_payload_includes_last_error() -> None:
+    logger = CompositeAsyncLogger(components=[], use_direct_io=False)
+    logger.components = []
+    logger._last_lifecycle_error = "empty-health-last-error"
+    health = logger.get_health_status()
+    assert health["last_lifecycle_error"] == "empty-health-last-error"
+    logger.close()
+
+
 def test_composite_async_logger_flush_direct_io_clears_buffer_on_write_failure(
     monkeypatch,
 ) -> None:

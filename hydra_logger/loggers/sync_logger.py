@@ -94,6 +94,7 @@ class SyncLogger(BaseLogger):
         self._data_sanitizer = None
         self._fallback_handler = None
         self._plugin_manager = None
+        self._extension_manager = None
 
         # Feature flags - DISABLED by default for performance
         self._enable_security = False
@@ -226,14 +227,15 @@ class SyncLogger(BaseLogger):
     def _setup_data_protection(self):
         """Setup simple data protection features."""
         self._data_protection = None
-        if not self._enable_data_protection:
-            return
-
         mgr = (
             getattr(self._config, "_extension_manager", None)
             if self._config is not None
             else None
         )
+        self._extension_manager = mgr
+        if not self._enable_data_protection:
+            return
+
         if mgr is not None:
             from ..extensions.extension_base import SecurityExtension
 
@@ -525,6 +527,11 @@ class SyncLogger(BaseLogger):
             record = self._record_builder.create(level, message, **kwargs)
             record = self._extension_processor.apply_data_protection(
                 record, self._data_protection
+            )
+            record = self._extension_processor.apply_non_data_protection_extensions(
+                record,
+                self._extension_manager,
+                self._data_protection,
             )
 
             layer_name = kwargs.get("layer", "default")

@@ -134,3 +134,26 @@ def test_extension_manager_collects_metrics_only_from_extensions_with_method() -
     manager.add_extension("with_metrics", MetricsExtension(enabled=True))
     manager.add_extension("without_metrics", PrefixExtension(enabled=True))
     assert manager.get_extension_metrics() == {"with_metrics": {"hits": 1}}
+
+
+def test_extension_manager_reenable_moves_extension_to_tail() -> None:
+    manager = ExtensionManager()
+    manager.register_extension_type("prefix", PrefixExtension)
+    manager.create_extension("a", "prefix", enabled=True)
+    manager.create_extension("b", "prefix", enabled=True)
+    assert manager.get_processing_order() == ["a", "b"]
+
+    manager.disable_extension("a")
+    manager.enable_extension("a")
+    assert manager.get_processing_order() == ["b", "a"]
+
+
+def test_extension_manager_set_processing_order_overrides_registration_order() -> None:
+    manager = ExtensionManager()
+    manager.register_extension_type("prefix", PrefixExtension)
+    manager.create_extension("a", "prefix", enabled=True)
+    manager.create_extension("b", "prefix", enabled=True)
+    manager.create_extension("c", "prefix", enabled=True)
+    manager.set_processing_order(["c", "a", "b"])
+    assert manager.process_data("x") == "prefix:prefix:prefix:x"
+    assert manager.get_processing_order() == ["c", "a", "b"]

@@ -603,6 +603,84 @@ def test_sync_logger_data_protection_import_error_branch(
     logger.close()
 
 
+def test_sync_logger_data_protection_failure_respects_reliability_modes() -> None:
+    strict_logger = SyncLogger(
+        config={
+            "strict_reliability_mode": True,
+            "enable_data_protection": True,
+            "layers": {
+                "default": {
+                    "destinations": [{"type": "console", "format": "plain-text"}]
+                }
+            },
+        }
+    )
+    assert strict_logger._data_protection is not None
+    strict_logger._data_protection.process = lambda _payload: (_ for _ in ()).throw(  # type: ignore[assignment]
+        RuntimeError("dp-fail")
+    )
+    with pytest.raises(HydraLoggerError, match="internal failure"):
+        strict_logger.log("INFO", "token=abc")
+    strict_logger.close()
+
+    warn_logger = SyncLogger(
+        config={
+            "reliability_error_policy": "warn",
+            "enable_data_protection": True,
+            "layers": {
+                "default": {
+                    "destinations": [{"type": "console", "format": "plain-text"}]
+                }
+            },
+        }
+    )
+    assert warn_logger._data_protection is not None
+    warn_logger._data_protection.process = lambda _payload: (_ for _ in ()).throw(  # type: ignore[assignment]
+        RuntimeError("dp-fail")
+    )
+    warn_logger.log("INFO", "token=abc")
+    assert warn_logger.get_health_status()["swallowed_error_count"] >= 1
+    warn_logger.close()
+
+
+def test_sync_logger_executes_non_data_extensions_in_deterministic_order() -> None:
+    from hydra_logger.extensions.extension_base import ExtensionBase, SecurityExtension
+    from hydra_logger.extensions.extension_manager import ExtensionManager
+
+    class SuffixExtension(ExtensionBase):
+        def process(self, data):  # type: ignore[no-untyped-def]
+            if isinstance(data, str):
+                return f"{data}{self.get_config().get('suffix', '')}"
+            return data
+
+    logger = SyncLogger(
+        config={
+            "enable_data_protection": True,
+            "layers": {"default": {"destinations": [{"type": "null"}]}},
+        }
+    )
+    manager = ExtensionManager()
+    manager.register_extension_type("suffix", SuffixExtension)
+    manager.create_extension("append_a", "suffix", enabled=True, suffix=":A")
+    manager.create_extension("append_b", "suffix", enabled=True, suffix=":B")
+    manager.add_extension(
+        "data_protection",
+        SecurityExtension(enabled=True, patterns=["token"]),
+    )
+    manager.set_processing_order(["append_a", "data_protection", "append_b"])
+
+    logger._extension_manager = manager
+    logger._data_protection = manager.get_extension("data_protection")
+    captured = {}
+    logger._handler_dispatcher.dispatch_sync = (
+        lambda rec, _handlers: captured.setdefault("message", rec.message)
+    )  # type: ignore[method-assign]
+
+    logger.log("INFO", "token=abc")
+    assert captured["message"] == 'token="[REDACTED]":A:B'
+    logger.close()
+
+
 def test_sync_logger_internal_failure_warn_policy_logs_warning(caplog) -> None:
     logger = SyncLogger(
         config={
@@ -618,3 +696,21 @@ def test_sync_logger_internal_failure_warn_policy_logs_warning(caplog) -> None:
         logger._handle_internal_failure("unit-test", RuntimeError("boom"))
     assert "Sync logger failure [unit-test]" in caplog.text
     logger.close()
+
+
+def test_sync_logger_close_cleanup_hydraerror_branch() -> None:
+    logger = SyncLogger()
+
+    class BadDict(dict):
+        def clear(self) -> None:
+            raise RuntimeError("clear-fail")
+
+    logger._handlers = BadDict()  # type: ignore[assignment]
+    logger._layer_handlers = BadDict()  # type: ignore[assignment]
+    logger._layers = BadDict()  # type: ignore[assignment]
+    logger._report_lifecycle_failure = lambda _ctx, _err: (_ for _ in ()).throw(  # type: ignore[assignment]
+        HydraLoggerError("close-policy")
+    )
+    with pytest.raises(HydraLoggerError, match="close-policy"):
+        logger.close()
+    assert logger._closed is True
