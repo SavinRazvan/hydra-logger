@@ -62,7 +62,9 @@ def test_load_http_encoders_from_entry_points_noop() -> None:
     load_http_encoders_from_entry_points()
 
 
-def test_encoder_registry_input_and_overwrite_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_encoder_registry_input_and_overwrite_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     with pytest.raises(ValueError, match="non-empty"):
         register_http_payload_encoder("   ", lambda _r, _f: {})
 

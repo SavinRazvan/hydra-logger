@@ -229,7 +229,9 @@ layers:
         load_logging_config(child, max_merged_nodes=5)
 
 
-def test_loader_internal_type_guard_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_loader_internal_type_guard_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     cfg_file = tmp_path / "strict.yaml"
     cfg_file.write_text(
         """

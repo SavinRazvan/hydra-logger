@@ -71,7 +71,9 @@ layers:
         logger_factory.create_sync_logger(config=cfg, config_path=p)
 
 
-def test_factory_forwards_loader_kwargs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_factory_forwards_loader_kwargs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     from hydra_logger.factories.logger_factory import LoggerFactory
 
     captured: dict[str, object] = {}
