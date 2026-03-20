@@ -823,7 +823,9 @@ class LoggingConfig(BaseModel):
             Resolved absolute path with directories created
         """
         candidate_path = self._normalize_candidate_path(destination_path)
-        final_path = self._apply_path_confinement_policy(candidate_path, destination_path)
+        final_path = self._apply_path_confinement_policy(
+            candidate_path, destination_path
+        )
 
         # Automatically create directories
         try:
