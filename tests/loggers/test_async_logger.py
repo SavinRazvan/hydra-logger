@@ -651,7 +651,9 @@ def test_async_logger_data_protection_failure_respects_reliability_modes() -> No
     asyncio.run(_run_warn())
 
 
-def test_async_logger_close_and_aclose_hydraerror_branches(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_async_logger_close_and_aclose_hydraerror_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     logger = AsyncLogger()
 
     class BadClear:

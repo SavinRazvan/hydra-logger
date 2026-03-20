@@ -352,7 +352,8 @@ def test_main_forwards_enabled_sections(monkeypatch) -> None:
 
     monkeypatch.setattr(perf_mod, "HydraLoggerBenchmark", DummyBenchmark)
     assert (
-        asyncio.run(perf_mod.main(enabled_sections=["sync_logger", "async_logger"])) == 0
+        asyncio.run(perf_mod.main(enabled_sections=["sync_logger", "async_logger"]))
+        == 0
     )
     assert seen["enabled_sections"] == ["sync_logger", "async_logger"]
 

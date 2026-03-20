@@ -75,7 +75,9 @@ def test_benchmark_profile_enabled_sections_applied_when_cli_absent(
     assert bench.enabled_sections == ["sync_logger", "memory"]
 
 
-def test_benchmark_cli_sections_override_profile_sections(tmp_path, monkeypatch) -> None:
+def test_benchmark_cli_sections_override_profile_sections(
+    tmp_path, monkeypatch
+) -> None:
     def fake_profile(_name):  # type: ignore[no-untyped-def]
         return {
             "enabled_sections": ["sync_logger", "memory"],
