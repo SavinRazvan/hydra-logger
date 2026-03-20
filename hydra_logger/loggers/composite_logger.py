@@ -1146,9 +1146,7 @@ class CompositeAsyncLogger(BaseLogger):
                 self.components.clear()
             except Exception as error:
                 try:
-                    self._report_async_lifecycle_failure(
-                        "async_composite_clear", error
-                    )
+                    self._report_async_lifecycle_failure("async_composite_clear", error)
                 except HydraLoggerError:
                     raise
                 return
