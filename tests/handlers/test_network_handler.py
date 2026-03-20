@@ -835,7 +835,9 @@ def test_network_handler_probe_and_connection_guard_branches(
     fake_client = types.ModuleType("websockets.sync.client")
     fake_client.connect = _fake_connect  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "websockets", types.ModuleType("websockets"))
-    monkeypatch.setitem(sys.modules, "websockets.sync", types.ModuleType("websockets.sync"))
+    monkeypatch.setitem(
+        sys.modules, "websockets.sync", types.ModuleType("websockets.sync")
+    )
     monkeypatch.setitem(sys.modules, "websockets.sync.client", fake_client)
     monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", True)
 
