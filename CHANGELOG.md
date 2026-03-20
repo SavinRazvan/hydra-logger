@@ -10,6 +10,20 @@ All notable, verified changes to Hydra-Logger are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- Optional **real WebSocket** transport via `WebSocketHandler(..., use_real_websocket_transport=True)`
+  (requires `websockets` / `network` extra).
+- `scripts/release/check_pypi_parity.py` and optional `preflight.py --pypi-parity` for
+  post-publish PyPI metadata verification.
+- Shared messaging for integration-only destinations (`hydra_logger.utils.destination_contracts`).
+- Corpus tests documenting regex redaction limits (`tests/extensions/security/test_data_redaction_corpus.py`).
+
+### Changed
+
+- CI lint/security jobs use explicit **report + gate** steps instead of shell `|| true` swallowing.
+- Documentation: reliability defaults vs enterprise presets, operator baseline, redaction limits.
+
 ## [0.5.3] - 2026-03-19
 
 ### Changed

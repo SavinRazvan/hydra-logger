@@ -82,6 +82,22 @@ should export these to their metrics stack; initial **SLO targets** are owned by
 the deploying team (suggested starting points: dropped logs ≈ 0 in steady state;
 flush p99 within service budget; handler errors not trending up release-over-release).
 
+## Data redaction (defense-in-depth)
+
+Built-in regex redaction (for example via `DataRedaction` / security extensions) is a
+**best-effort hygiene** layer. It is **not** a data-loss-prevention (DLP) product:
+
+- Expect **false negatives** (obfuscated secrets, novel formats, non-text payloads).
+- Expect **false positives** (innocent digit groups matching phone/card heuristics).
+
+**Operator guidance**
+
+- Treat redaction as **supplemental** to secret management, vaults, and transport
+  controls.
+- Add **custom patterns** for org-specific tokens when needed.
+- Run the corpus tests in `tests/extensions/security/test_data_redaction_corpus.py`
+  when changing built-in regex maps.
+
 ## References
 
 - `docs/TESTING.md`

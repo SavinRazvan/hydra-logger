@@ -20,6 +20,7 @@ Notes:
 # pyright: reportCallIssue=false, reportArgumentType=false
 
 import asyncio
+import json
 import logging
 import socket
 import ssl
@@ -28,7 +29,7 @@ import warnings
 from dataclasses import dataclass, field
 from enum import Enum
 from importlib.util import find_spec
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 from urllib.parse import urlparse
 
 from ..types.levels import LogLevel
@@ -524,6 +525,7 @@ class WebSocketHandler(BaseNetworkHandler):
         url: str,
         path: str = "/ws",
         subprotocols: Optional[List[str]] = None,
+        use_real_websocket_transport: bool = False,
         **kwargs,
     ):
         """
@@ -533,6 +535,8 @@ class WebSocketHandler(BaseNetworkHandler):
             url: WebSocket URL
             path: WebSocket path
             subprotocols: WebSocket subprotocols
+            use_real_websocket_transport: When True and `websockets` is installed,
+                use the sync client (`websockets.sync.client`) for real I/O.
             **kwargs: Additional arguments
         """
         parsed_url = urlparse(url)
@@ -550,15 +554,50 @@ class WebSocketHandler(BaseNetworkHandler):
 
         super().__init__(config, **kwargs)
         self._url = url
-        self._websocket = None
-        self._ws_transport_simulated = True
+        self._websocket: Any = None
+        self._use_real_websocket_transport = bool(use_real_websocket_transport)
+        self._ws_transport_simulated = not self._use_real_websocket_transport
         self._websockets_installed = WEBSOCKETS_AVAILABLE
 
+    def _websocket_uri(self) -> str:
+        """Build ws/wss URI, appending ws_path when the base URL has no path."""
+        parsed = urlparse(self._url)
+        if parsed.scheme in ("ws", "wss"):
+            if parsed.path and parsed.path != "/":
+                return self._url
+            netloc = parsed.netloc or f"{self._config.host}:{self._config.port}"
+            return f"{parsed.scheme}://{netloc}{self._config.ws_path}"
+        scheme = "wss" if self._config.protocol == NetworkProtocol.WSS else "ws"
+        return (
+            f"{scheme}://{self._config.host}:{self._config.port}{self._config.ws_path}"
+        )
+
     def _establish_connection(self) -> bool:
-        """Establish WebSocket connection (simulated transport today)."""
+        """Establish WebSocket connection (simulated by default; optional real client)."""
         try:
-            # Real `websockets` client integration may be added later; emit path is
-            # intentionally non-network for backward compatibility.
+            if self._use_real_websocket_transport:
+                if not WEBSOCKETS_AVAILABLE:
+                    _logger.error(
+                        "Real WebSocket transport requested but websockets is not installed "
+                        "(install hydra-logger with the `network` extra)."
+                    )
+                    self._connected = False
+                    return False
+                from websockets.sync.client import connect
+
+                uri = self._websocket_uri()
+                subs = self._config.ws_subprotocols
+                conn_kw: dict[str, Any] = {
+                    "open_timeout": float(self._config.timeout),
+                }
+                if subs:
+                    conn_kw["subprotocols"] = cast(Any, tuple(subs))
+                self._websocket = connect(uri, **conn_kw)
+                self._connected = True
+                self._ws_transport_simulated = False
+                return True
+
+            # Default: simulated transport for backward compatibility.
             self._connected = True
             self._ws_transport_simulated = True
             return True
@@ -603,7 +642,8 @@ class WebSocketHandler(BaseNetworkHandler):
             return
 
         try:
-            self._warn_simulated_transport_once()
+            if not self._use_real_websocket_transport:
+                self._warn_simulated_transport_once()
             if self.formatter:
                 message = self.formatter.format(record)
             else:
@@ -613,9 +653,13 @@ class WebSocketHandler(BaseNetworkHandler):
             if record.layer:
                 data["layer"] = record.layer
 
-            # In a real implementation, this would send via WebSocket
-            # For now, we'll just simulate success
-            self._stats["sent"] += 1
+            if self._use_real_websocket_transport and self._websocket is not None:
+                payload = json.dumps(data, ensure_ascii=False)
+                self._websocket.send(payload)
+                self._stats["sent"] += 1
+                self._stats["bytes_sent"] += len(payload.encode("utf-8"))
+            else:
+                self._stats["sent"] += 1
         except Exception as error:
             _logger.exception(
                 "WebSocket emit failed for url=%s", self._safe_url_for_logs(self._url)
@@ -624,8 +668,13 @@ class WebSocketHandler(BaseNetworkHandler):
 
     def _close_connection(self) -> None:
         """Close WebSocket connection."""
-        if self._websocket:
-            self._websocket.close()
+        if self._websocket is not None:
+            try:
+                closer = getattr(self._websocket, "close", None)
+                if callable(closer):
+                    closer()
+            except Exception:
+                _logger.debug("WebSocket close failed", exc_info=True)
             self._websocket = None
 
 

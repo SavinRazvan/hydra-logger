@@ -26,6 +26,7 @@ from ..handlers.null_handler import NullHandler
 from ..types.levels import LogLevel, LogLevelManager
 from ..types.records import LogRecord
 from ..utils import internal_diagnostics as diagnostics
+from ..utils.destination_contracts import unsupported_destination_message
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ExtensionProcessor, HandlerDispatcher, LayerRouter, RecordBuilder
@@ -160,10 +161,7 @@ class SyncLogger(BaseLogger):
 
     def _report_unsupported_destination(self, destination: LogDestination) -> None:
         """Surface unsupported destination types that resolve to a null sink."""
-        msg = (
-            f"No handler implementation for destination type {destination.type!r}; "
-            "using NullHandler (records are dropped)."
-        )
+        msg = unsupported_destination_message(destination.type)
         if self._strict_reliability_mode or self._reliability_error_policy == "raise":
             raise HydraLoggerError(msg)
         if self._reliability_error_policy == "warn":

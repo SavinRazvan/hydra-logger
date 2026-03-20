@@ -378,6 +378,51 @@ def test_async_logger_create_handler_variants(
     logger.close()
 
 
+def test_async_logger_async_cloud_warns_when_reliability_policy_warn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    warnings: list[str] = []
+
+    def _warn(fmt: str, *args) -> None:  # type: ignore[no-untyped-def]
+        warnings.append(fmt % args if args else fmt)
+
+    monkeypatch.setattr("hydra_logger.loggers.async_logger.diagnostics.warning", _warn)
+    logger = AsyncLogger(
+        config=LoggingConfig(
+            reliability_error_policy="warn",
+            layers={
+                "default": LogLayer(
+                    destinations=[LogDestination(type="console", format="plain-text")]
+                )
+            },
+        )
+    )
+    handler = logger._create_handler_from_destination(
+        LogDestination(type="async_cloud", service_type="s3")
+    )
+    assert handler.__class__.__name__ == "NullHandler"
+    assert warnings and "async_cloud" in warnings[0]
+    logger.close()
+
+
+def test_async_logger_async_cloud_raises_when_strict_reliability_enabled() -> None:
+    logger = AsyncLogger(
+        config=LoggingConfig(
+            strict_reliability_mode=True,
+            layers={
+                "default": LogLayer(
+                    destinations=[LogDestination(type="console", format="plain-text")]
+                )
+            },
+        )
+    )
+    with pytest.raises(HydraLoggerError):
+        logger._create_handler_from_destination(
+            LogDestination(type="async_cloud", service_type="s3")
+        )
+    logger.close()
+
+
 def test_async_logger_create_network_handlers_from_typed_destinations(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

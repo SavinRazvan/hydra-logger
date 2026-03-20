@@ -112,6 +112,26 @@ conda activate "$(pwd)/.hydra_env"
 
 Environment maintenance and troubleshooting are documented in `docs/ENVIRONMENT_SETUP.md`.
 
+## Production operator baseline
+
+Recommended starting posture for services where **lost or silent-dropped logs** matter:
+
+- Enable **`strict_reliability_mode`** and set **`reliability_error_policy`** to `warn`
+  or `raise` (see `docs/RELEASE_POLICY.md` and enterprise tutorials).
+- Prefer **`performance_profile`** `minimal` or `balanced` on hot paths; keep
+  `convenient` for diagnostics-heavy workloads (`docs/PERFORMANCE.md`).
+- Treat **`async_cloud`** and similar schema-level destinations as **integration points**:
+  core ships **no default sink**—wire a custom handler or expect `NullHandler` with
+  policy-governed diagnostics (`docs/modules/config.md`, `docs/modules/handlers.md`).
+- For **`network_ws`**, default remains **simulated**; opt into real I/O with
+  `use_real_websocket_transport=True` on `WebSocketHandler` and the **`network`**
+  extra (`websockets`).
+- Do **not** rely on regex redaction as DLP—see `docs/OPERATIONS.md`.
+
+Anti-patterns: assuming PyPI version matches a git checkout without running
+`scripts/release/check_pypi_parity.py --require-match` after publish; enabling cloud
+destinations without adapters; ignoring `UserWarning` from simulated WebSocket emits.
+
 ## Quick Start
 
 ```python

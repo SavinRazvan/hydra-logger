@@ -115,13 +115,19 @@ jobs:
       run: |
         isort --check-only --diff hydra_logger/ tests/
     
-    - name: Run mypy
+    - name: Run mypy (report artifact)
+      continue-on-error: true
       run: |
-        mypy hydra_logger/ > mypy-report.txt 2>&1 || true
-        cat mypy-report.txt
-        if [ "${MYPY_ENFORCE}" = "true" ]; then
-          mypy hydra_logger/
+        set -o pipefail
+        mypy hydra_logger/ 2>&1 | tee mypy-report.txt
+
+    - name: Enforce mypy gate
+      run: |
+        if [ "${MYPY_ENFORCE}" != "true" ]; then
+          echo "MYPY_ENFORCE is not true; skipping gate."
+          exit 0
         fi
+        mypy hydra_logger/
 
     - name: Upload mypy report
       if: always()
@@ -184,25 +190,37 @@ jobs:
         pip install pip-audit
         pip install -e ".[database,cloud,queues,network]"
     
-    - name: Run bandit security scan
+    - name: Bandit JSON report
+      continue-on-error: true
+      run: bandit -r hydra_logger/ -f json -o bandit-report.json
+
+    - name: Bandit human-readable report
+      continue-on-error: true
       run: |
-        bandit -r hydra_logger/ -f json -o bandit-report.json || true
+        set -o pipefail
+        bandit -r hydra_logger/ --severity-level high --confidence-level high 2>&1 | tee bandit-high.txt
 
     - name: Enforce bandit high-severity gate
       run: |
-        bandit -r hydra_logger/ --severity-level high --confidence-level high > bandit-high.txt 2>&1 || true
-        cat bandit-high.txt
-        if [ "${BANDIT_ENFORCE}" = "true" ]; then
-          bandit -r hydra_logger/ --severity-level high --confidence-level high
+        if [ "${BANDIT_ENFORCE}" != "true" ]; then
+          echo "BANDIT_ENFORCE is not true; skipping gate."
+          exit 0
         fi
-    
-    - name: Run pip-audit
+        bandit -r hydra_logger/ --severity-level high --confidence-level high
+
+    - name: pip-audit JSON report
+      continue-on-error: true
       run: |
-        pip-audit --format json --output pip-audit-report.json > pip-audit.txt 2>&1 || true
-        cat pip-audit.txt
-        if [ "${PIP_AUDIT_ENFORCE}" = "true" ]; then
-          pip-audit
+        set -o pipefail
+        pip-audit --format json --output pip-audit-report.json 2>&1 | tee pip-audit.txt
+
+    - name: Enforce pip-audit gate
+      run: |
+        if [ "${PIP_AUDIT_ENFORCE}" != "true" ]; then
+          echo "PIP_AUDIT_ENFORCE is not true; skipping gate."
+          exit 0
         fi
+        pip-audit
     
     - name: Upload security reports
       if: always()
