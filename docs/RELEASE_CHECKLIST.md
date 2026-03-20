@@ -2,6 +2,10 @@
 
 Use this checklist before tagging and publishing a release artifact.
 
+**Audit / sign-off:** after shipping, record parity verification and complete the
+maintainer table in [docs/audit/FINAL_ENTERPRISE_HARDENING_SIGNOFF.md](audit/FINAL_ENTERPRISE_HARDENING_SIGNOFF.md).
+Step-by-step publish order: [docs/audit/PYPI_PUBLISH_AND_VERIFY.md](audit/PYPI_PUBLISH_AND_VERIFY.md).
+
 ## Required Order
 
 1. Confirm branch and release scope are correct.

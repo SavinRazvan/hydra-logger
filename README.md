@@ -411,6 +411,7 @@ Enterprise tutorial tracks:
 
 - [Release policy (semver, classifiers, defaults)](docs/RELEASE_POLICY.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Audit sign-off matrix](docs/audit/FINAL_ENTERPRISE_HARDENING_SIGNOFF.md) · [PyPI publish + parity verify](docs/audit/PYPI_PUBLISH_AND_VERIFY.md)
 - [Agent automation workflow](docs/AGENT_AUTOMATION.md)
 - [Changelog](CHANGELOG.md)
 
