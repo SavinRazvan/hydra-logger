@@ -331,16 +331,30 @@ class SyncLogger(BaseLogger):
         self, destination: LogDestination
     ) -> BaseHandler:
         """Create network handler from typed destination configuration."""
+        from ..handlers.http_payload_encoders import resolve_http_payload_encoder
         from ..handlers.network_handler import NetworkHandlerFactory
 
         if destination.type == "network_http":
-            return NetworkHandlerFactory.create_http_handler(
+            encoder = None
+            if destination.http_payload_encoder:
+                encoder = resolve_http_payload_encoder(destination.http_payload_encoder)
+            common_kw = dict(
                 url=destination.url or "",
                 timeout=destination.timeout or 30.0,
                 headers=destination.credentials or {},
                 connection_probe=destination.connection_probe,
                 probe_method=destination.probe_method,
+                payload_encoder=encoder,
             )
+            if destination.http_batch_size and destination.http_batch_size > 0:
+                from ..handlers.batched_http_handler import BatchedHTTPHandler
+
+                return BatchedHTTPHandler(
+                    batch_size=destination.http_batch_size,
+                    flush_interval=destination.http_batch_flush_interval,
+                    **common_kw,
+                )
+            return NetworkHandlerFactory.create_http_handler(**common_kw)
         if destination.type == "network_ws":
             return NetworkHandlerFactory.create_websocket_handler(
                 url=destination.url or "",

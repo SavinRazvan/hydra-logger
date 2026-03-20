@@ -1,0 +1,12 @@
+hydra_config_schema_version: 1
+default_level: INFO
+layers:
+  ship:
+    level: INFO
+    destinations:
+      - type: network_http
+        url: https://httpbin.org/post
+        timeout: 5.0
+        connection_probe: true
+        probe_method: HEAD
+        http_batch_size: 0

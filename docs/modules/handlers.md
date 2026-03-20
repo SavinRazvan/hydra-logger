@@ -16,6 +16,8 @@ Delivers formatted log records to destinations (console, file, network, null, ro
 - `console_handler.py` - sync/async console output.
 - `file_handler.py` - file-based handlers.
 - `network_handler.py` - network transport handlers and protocols.
+- `batched_http_handler.py` - optional NDJSON batching for HTTP sinks.
+- `http_payload_encoders.py` - named encoder registry for custom HTTP bodies.
 - `rotating_handler.py` - file rotation strategies.
 - `null_handler.py` - no-op sink.
 - `__init__.py` - exported handler classes and config enums.
@@ -49,7 +51,8 @@ sequenceDiagram
 - Base: `BaseHandler`
 - Console: `SyncConsoleHandler`, `AsyncConsoleHandler`
 - File/rotation: `FileHandler`, `RotatingFileHandler`, `TimedRotatingFileHandler`, `SizeRotatingFileHandler`, `HybridRotatingFileHandler`
-- Network: `BaseNetworkHandler`, `HTTPHandler`, `WebSocketHandler`, `SocketHandler`, `DatagramHandler`, `NetworkHandlerFactory`
+- Network: `BaseNetworkHandler`, `HTTPHandler`, `BatchedHTTPHandler`, `WebSocketHandler`, `SocketHandler`, `DatagramHandler`, `NetworkHandlerFactory`
+- HTTP customization: `register_http_payload_encoder`, `resolve_http_payload_encoder`, `load_http_encoders_from_entry_points`
 - Network configs/policies: `NetworkConfig`, `NetworkProtocol`, `RetryPolicy`
 - Rotation/time configs: `RotationConfig`, `RotationStrategy`, `TimeUnit`
 - Utility: `NullHandler`
@@ -64,6 +67,9 @@ sequenceDiagram
   `NetworkConfig.probe_method` / `LogDestination.connection_probe`, `LogDestination.probe_method`).
   Default probe verb is **GET** for backward compatibility; prefer **HEAD** or **`none`** when ingest
   endpoints reject GET.
+  Optional **`http_payload_encoder`** (registered name) or **`http_batch_size` / `http_batch_flush_interval`**
+  (batched NDJSON) are configured on `LogDestination` for `network_http` only; see
+  `docs/plans/config-from-path-enterprise.md`.
 - **WebSocket**: default mode is a **simulated** transport (stats only) with a one-time
   `UserWarning` on first `emit`. Set **`use_real_websocket_transport=True`** and install
   the **`network`** extra (`websockets`) to use the synchronous `websockets.sync.client`

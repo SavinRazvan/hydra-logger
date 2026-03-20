@@ -8,6 +8,7 @@ Notes:
  - Re-exports the hydra_logger.config public API with stable import paths.
 """
 
+from .loader import clear_logging_config_cache, load_logging_config
 from .configuration_templates import (
     configuration_templates,
     get_configuration_template,
@@ -38,6 +39,8 @@ from .models import (
 from .runtime import LoggingConfig
 
 __all__ = [
+    "load_logging_config",
+    "clear_logging_config_cache",
     # Models
     "LoggingConfig",
     "LogLayer",

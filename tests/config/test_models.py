@@ -158,6 +158,31 @@ def test_log_destination_network_timeout_retry_and_port_bounds() -> None:
     assert LogDestination.validate_port(514) == 514
 
 
+def test_log_destination_http_extensions_only_on_network_http() -> None:
+    with pytest.raises(ValueError, match="http_batch_size"):
+        LogDestination(
+            type="network_ws",
+            url="wss://example.com/stream",
+            http_batch_size=5,
+        )
+    with pytest.raises(ValueError, match="http_payload_encoder"):
+        LogDestination(
+            type="network_ws",
+            url="wss://example.com/stream",
+            http_payload_encoder="vendor",
+        )
+
+
+def test_logging_config_schema_version_guard() -> None:
+    from hydra_logger.config.models import LogLayer, LoggingConfig
+
+    with pytest.raises(Exception):
+        LoggingConfig(
+            hydra_config_schema_version=0,
+            layers={"a": LogLayer(destinations=[LogDestination(type="console")])},
+        )
+
+
 def test_log_layer_validators_for_level_color_and_destinations() -> None:
     layer = LogLayer(
         level="debug",

@@ -11,6 +11,7 @@ Notes:
 """
 
 import logging
+from pathlib import Path
 from typing import Any, Dict, Optional, Union, cast
 
 from ..config.configuration_templates import configuration_templates
@@ -22,6 +23,16 @@ from ..loggers.composite_logger import CompositeAsyncLogger, CompositeLogger
 from ..loggers.sync_logger import SyncLogger
 
 _logger = logging.getLogger(__name__)
+
+_CONFIG_LOADER_KWARGS = frozenset(
+    {
+        "strict_unknown_fields",
+        "max_extends_depth",
+        "max_merged_nodes",
+        "use_config_cache",
+        "encoding",
+    }
+)
 
 
 class LoggerFactory:
@@ -40,6 +51,19 @@ class LoggerFactory:
         """Create a logger instance for the requested runtime mode."""
 
         # Logs directory structure - simplified (no automatic creation)
+
+        config_path = kwargs.pop("config_path", None)
+        loader_kwargs: Dict[str, Any] = {}
+        for key in _CONFIG_LOADER_KWARGS:
+            if key in kwargs:
+                loader_kwargs[key] = kwargs.pop(key)
+
+        if config_path is not None:
+            if config is not None:
+                raise ValueError("Pass only one of config or config_path")
+            from ..config.loader import load_logging_config
+
+            config = load_logging_config(Path(config_path), **loader_kwargs)
 
         # Parse configuration
         if isinstance(config, dict):

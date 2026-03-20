@@ -13,6 +13,7 @@ Defines configuration models and template helpers used to build logger/runtime c
 ## Key Files
 
 - `models.py` - schema objects (`LoggingConfig`, `LogLayer`, `LogDestination`, and related configs).
+- `loader.py` - load and validate YAML from disk (`extends`, optional cache, strict unknown fields).
 - `defaults.py` - default/template helper utilities.
 - `configuration_templates.py` - template registry and lookup helpers.
 - `__init__.py` - exported config API surface.
@@ -36,6 +37,36 @@ flowchart TD
   C --> D[Destinations mapped to handlers]
   D --> E["Handlers receive formatter + level"]
 ```
+
+## File-based YAML (enterprise path)
+
+Load a validated `LoggingConfig` once at startup (not per log line):
+
+```python
+from pathlib import Path
+
+from hydra_logger import create_sync_logger
+from hydra_logger.config.loader import load_logging_config
+
+config = load_logging_config(Path("config/logging.yaml"))
+logger = create_sync_logger(config, name="app")
+
+# or keyword-only:
+logger = create_sync_logger(config_path=Path("config/logging.yaml"), name="app")
+```
+
+YAML features:
+
+- **`extends`**: path or list of paths (relative to the including file) merged before validation; depth and graph size are capped (see `load_logging_config` docstring).
+- **`hydra_config_schema_version`**: optional integer field on the root model for migration tracking.
+- **`strict_unknown_fields=True`**: fail on unknown top-level keys when loading.
+
+Network destinations may set:
+
+- **`http_payload_encoder`**: registered name for a Python-side encoder (see `docs/plans/config-from-path-enterprise.md`).
+- **`http_batch_size` / `http_batch_flush_interval`**: optional batching for HTTP sinks.
+
+Canonical design notes: [`plans/config-from-path-enterprise.md`](../plans/config-from-path-enterprise.md).
 
 ## Caveats
 

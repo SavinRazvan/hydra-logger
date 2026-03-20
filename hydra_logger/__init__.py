@@ -14,6 +14,7 @@ __license__ = "MIT"
 
 # Configuration
 from .config.configuration_templates import ConfigurationTemplates
+from .config.loader import clear_logging_config_cache, load_logging_config
 from .config.models import LogDestination, LoggingConfig, LogLayer
 
 # Exception classes
@@ -76,6 +77,8 @@ __all__ = [
     "LogDestination",
     "LogLayer",
     "ConfigurationTemplates",
+    "load_logging_config",
+    "clear_logging_config_cache",
     # Core types
     "LogRecord",
     "LogLevel",

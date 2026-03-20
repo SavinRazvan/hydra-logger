@@ -7,6 +7,7 @@ Detailed package behavior, exports, and maintenance guidance now live in `docs/m
 ## Canonical References
 
 - Module index: [`modules/README.md`](modules/README.md)
+- Public plans (config-from-path, templates, vendor hooks): [`plans/config-from-path-enterprise.md`](plans/config-from-path-enterprise.md) and [`plans/INDEX.md`](plans/INDEX.md)
 - Workflow details: [`WORKFLOW_ARCHITECTURE.md`](WORKFLOW_ARCHITECTURE.md)
 - Performance context: [`PERFORMANCE.md`](PERFORMANCE.md)
 - Module audit and coverage: [`modules/MODULE_COVERAGE_MATRIX.md`](modules/MODULE_COVERAGE_MATRIX.md)

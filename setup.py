@@ -127,5 +127,6 @@ setup(
         "console_scripts": [
             "hydra-logger=hydra_logger.cli:main",
         ],
+        "hydra_logger.http_encoders": [],
     },
 )

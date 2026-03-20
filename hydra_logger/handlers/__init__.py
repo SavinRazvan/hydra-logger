@@ -10,9 +10,17 @@ Notes:
 
 from hydra_logger.types.enums import TimeUnit
 
+from .batched_http_handler import BatchedHTTPHandler
 from .base_handler import BaseHandler
 from .console_handler import AsyncConsoleHandler, SyncConsoleHandler
 from .file_handler import FileHandler
+from .http_payload_encoders import (
+    clear_http_payload_encoders,
+    load_http_encoders_from_entry_points,
+    register_http_payload_encoder,
+    resolve_http_payload_encoder,
+    unregister_http_payload_encoder,
+)
 from .network_handler import (
     BaseNetworkHandler,
     DatagramHandler,
@@ -56,6 +64,7 @@ __all__ = [
     "TimeUnit",
     # Network handlers
     "BaseNetworkHandler",
+    "BatchedHTTPHandler",
     "HTTPHandler",
     "WebSocketHandler",
     "SocketHandler",
@@ -64,6 +73,11 @@ __all__ = [
     "NetworkConfig",
     "NetworkProtocol",
     "RetryPolicy",
+    "register_http_payload_encoder",
+    "unregister_http_payload_encoder",
+    "clear_http_payload_encoders",
+    "resolve_http_payload_encoder",
+    "load_http_encoders_from_entry_points",
     # Utility handlers
     "NullHandler",
 ]
