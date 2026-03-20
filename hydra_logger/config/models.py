@@ -759,11 +759,19 @@ class LoggingConfig(BaseModel):
 
         return self._build_base_log_path() / destination_path
 
-    def _apply_path_confinement_policy(self, candidate_path):
+    def _source_path_is_absolute(self, destination_path: str) -> bool:
+        """Determine whether the original destination path is absolute."""
+        if os.path.isabs(destination_path):
+            return True
+        if destination_path.startswith("~"):
+            return os.path.isabs(os.path.expanduser(destination_path))
+        return False
+
+    def _apply_path_confinement_policy(self, candidate_path, destination_path: str):
         """Apply optional confinement policy and return normalized final path."""
         base_root = self._build_base_log_path().resolve()
         resolved_path = candidate_path.resolve()
-        is_absolute_source = os.path.isabs(str(candidate_path))
+        is_absolute_source = self._source_path_is_absolute(destination_path)
         in_base_root = base_root == resolved_path or base_root in resolved_path.parents
 
         if is_absolute_source and not self.allow_absolute_log_paths:
@@ -815,7 +823,7 @@ class LoggingConfig(BaseModel):
             Resolved absolute path with directories created
         """
         candidate_path = self._normalize_candidate_path(destination_path)
-        final_path = self._apply_path_confinement_policy(candidate_path)
+        final_path = self._apply_path_confinement_policy(candidate_path, destination_path)
 
         # Automatically create directories
         try:
