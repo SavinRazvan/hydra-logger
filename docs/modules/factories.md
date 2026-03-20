@@ -38,10 +38,13 @@ sequenceDiagram
 - `create_composite_logger`
 - `create_composite_async_logger`
 - default/dev/prod/custom helper creators
+- **File configs:** keyword-only `config_path` loads YAML via `hydra_logger.config.loader.load_logging_config`
+  (optional: `strict_unknown_fields`, `max_extends_depth`, `max_merged_nodes`, `use_config_cache`, `encoding`).
 
 ## Caveats And Known Gaps
 
 - Factory naming must remain aligned across `hydra_logger/__init__.py` and `hydra_logger/factories/__init__.py` to avoid fragmented user entry points.
+- Do not pass both `config` and `config_path` to the same factory call.
 
 ## Maintenance Notes
 

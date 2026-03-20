@@ -331,15 +331,38 @@ class SyncLogger(BaseLogger):
         self, destination: LogDestination
     ) -> BaseHandler:
         """Create network handler from typed destination configuration."""
+        from ..handlers.http_payload_encoders import resolve_http_payload_encoder
         from ..handlers.network_handler import NetworkHandlerFactory
 
         if destination.type == "network_http":
+            encoder = None
+            if destination.http_payload_encoder:
+                encoder = resolve_http_payload_encoder(destination.http_payload_encoder)
+            url = destination.url or ""
+            timeout = destination.timeout or 30.0
+            headers = destination.credentials or {}
+            connection_probe = destination.connection_probe
+            probe_method = destination.probe_method
+            if destination.http_batch_size and destination.http_batch_size > 0:
+                from ..handlers.batched_http_handler import BatchedHTTPHandler
+
+                return BatchedHTTPHandler(
+                    url=url,
+                    timeout=timeout,
+                    headers=headers,
+                    connection_probe=connection_probe,
+                    probe_method=probe_method,
+                    payload_encoder=encoder,
+                    batch_size=destination.http_batch_size,
+                    flush_interval=destination.http_batch_flush_interval,
+                )
             return NetworkHandlerFactory.create_http_handler(
-                url=destination.url or "",
-                timeout=destination.timeout or 30.0,
-                headers=destination.credentials or {},
-                connection_probe=destination.connection_probe,
-                probe_method=destination.probe_method,
+                url=url,
+                timeout=timeout,
+                headers=headers,
+                connection_probe=connection_probe,
+                probe_method=probe_method,
+                payload_encoder=encoder,
             )
         if destination.type == "network_ws":
             return NetworkHandlerFactory.create_websocket_handler(

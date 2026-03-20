@@ -127,6 +127,29 @@ class LogDestination(BaseModel):
             "method). Use HEAD or none to avoid ingest side effects from GET."
         ),
     )
+    http_payload_encoder: Optional[str] = Field(
+        default=None,
+        description=(
+            "For network_http: name of a registered in-process HTTP payload encoder "
+            "(see hydra_logger.handlers.http_payload_encoders)."
+        ),
+    )
+    http_batch_size: int = Field(
+        default=0,
+        ge=0,
+        description=(
+            "For network_http: when > 0, use batched HTTP delivery with this many "
+            "records per flush (also see http_batch_flush_interval)."
+        ),
+    )
+    http_batch_flush_interval: float = Field(
+        default=1.0,
+        ge=0.0,
+        description=(
+            "For network_http: when http_batch_size > 0, flush buffered records after "
+            "this many seconds even if batch is not full."
+        ),
+    )
 
     # Handler-specific configuration
     max_queue_size: Optional[int] = Field(
@@ -347,6 +370,12 @@ class LogDestination(BaseModel):
             if self.port is None:
                 raise ValueError(f"port is required for {self.type} destinations")
 
+        if self.type != "network_http":
+            if self.http_payload_encoder:
+                raise ValueError("http_payload_encoder is only valid for network_http")
+            if self.http_batch_size > 0:
+                raise ValueError("http_batch_size is only valid for network_http")
+
         return self
 
 
@@ -423,6 +452,14 @@ class LogLayer(BaseModel):
 class LoggingConfig(BaseModel):
     """Root logging configuration model used by logger factories and runtimes."""
 
+    hydra_config_schema_version: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Optional schema version for file-based configs; used for migrations and "
+            "governance (not required for in-code LoggingConfig construction)."
+        ),
+    )
     default_level: str = Field(
         default="INFO", description="Default log level for all layers"
     )

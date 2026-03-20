@@ -28,6 +28,7 @@ from .defaults import (
 )
 from .destinations import LogDestination
 from .layers import LogLayer
+from .loader import clear_logging_config_cache, load_logging_config
 from .models import (
     ConsoleHandlerConfig,
     FileHandlerConfig,
@@ -38,6 +39,8 @@ from .models import (
 from .runtime import LoggingConfig
 
 __all__ = [
+    "load_logging_config",
+    "clear_logging_config_cache",
     # Models
     "LoggingConfig",
     "LogLayer",

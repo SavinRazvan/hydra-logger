@@ -29,7 +29,7 @@ import warnings
 from dataclasses import dataclass, field
 from enum import Enum
 from importlib.util import find_spec
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Union, cast
 from urllib.parse import urlparse
 
 from ..types.levels import LogLevel
@@ -362,6 +362,7 @@ class HTTPHandler(BaseNetworkHandler):
         verify_ssl: bool = True,
         connection_probe: bool = True,
         probe_method: str = "GET",
+        payload_encoder: Optional[Any] = None,
         **kwargs,
     ):
         """
@@ -376,6 +377,7 @@ class HTTPHandler(BaseNetworkHandler):
             verify_ssl: Whether to verify SSL
             connection_probe: When True, verify connectivity with `probe_method` before use
             probe_method: Probe verb: GET, HEAD, OPTIONS, or none (skip probe)
+            payload_encoder: Optional callable ``(record, formatter) -> dict|str|bytes``
             **kwargs: Additional arguments
         """
         parsed_url = urlparse(url)
@@ -398,6 +400,7 @@ class HTTPHandler(BaseNetworkHandler):
         self._url = url
         self._auth = auth
         self._session: Any = None  # requests.Session when connected
+        self._payload_encoder: Optional[Any] = payload_encoder
         super().__init__(config, **kwargs)
 
     def _establish_connection(self) -> bool:
@@ -446,6 +449,71 @@ class HTTPHandler(BaseNetworkHandler):
             self._connected = False
             return False
 
+    def _format_message_for_payload(self, record: LogRecord) -> str:
+        if self.formatter:
+            if hasattr(self.formatter, "format_for_streaming"):
+                return self.formatter.format_for_streaming(record)
+            return self.formatter.format(record)
+        return f"{record.level_name}: {record.message}"
+
+    def _compose_payload(self, record: LogRecord) -> Union[Dict[str, Any], str, bytes]:
+        if self._payload_encoder is not None:
+            return self._payload_encoder(record, self.formatter)
+        message = self._format_message_for_payload(record)
+        return {
+            "message": message,
+            "level": record.level_name,
+            "timestamp": self.format_timestamp(record),
+            "layer": record.layer,
+            "filename": record.filename,
+            "function_name": record.function_name,
+            "line_number": record.line_number,
+            "thread_id": record.thread_id,
+            "process_id": record.process_id,
+            "agent_id": record.agent_id,
+            "user_id": record.user_id,
+            "request_id": record.request_id,
+            "correlation_id": record.correlation_id,
+            "environment": record.environment,
+            "event_id": record.event_id,
+            "device_id": record.device_id,
+        }
+
+    def _emit_single_payload(self, payload: Union[Dict[str, Any], str, bytes]) -> None:
+        session = self._session
+        if session is None:
+            return
+
+        if isinstance(payload, dict):
+            response = session.request(
+                method=self._config.method,
+                url=self._url,
+                json=payload,
+                headers=self._config.headers,
+                timeout=self._config.timeout,
+                verify=self._config.verify_ssl,
+            )
+            response.raise_for_status()
+            self._stats["sent"] += 1
+            self._stats["bytes_sent"] += len(str(payload).encode("utf-8"))
+            return
+
+        body = payload.encode("utf-8") if isinstance(payload, str) else payload
+        hdrs = dict(self._config.headers)
+        if not any(k.lower() == "content-type" for k in hdrs):
+            hdrs["Content-Type"] = "application/octet-stream"
+        response = session.request(
+            method=self._config.method,
+            url=self._url,
+            data=body,
+            headers=hdrs,
+            timeout=self._config.timeout,
+            verify=self._config.verify_ssl,
+        )
+        response.raise_for_status()
+        self._stats["sent"] += 1
+        self._stats["bytes_sent"] += len(body)
+
     def emit(self, record: LogRecord) -> None:
         """
         Emit log record via HTTP.
@@ -456,52 +524,12 @@ class HTTPHandler(BaseNetworkHandler):
         if not self._connect():
             return
 
-        session = self._session
-        if session is None:
+        if self._session is None:
             return
 
         try:
-            # Enhanced formatter handling
-            if self.formatter:
-                # Check if this is a streaming formatter that needs special handling
-                if hasattr(self.formatter, "format_for_streaming"):
-                    message = self.formatter.format_for_streaming(record)
-                else:
-                    message = self.formatter.format(record)
-            else:
-                message = f"{record.level_name}: {record.message}"
-
-            # Prepare data with enhanced record information
-            data = {
-                "message": message,
-                "level": record.level_name,
-                "timestamp": self.format_timestamp(record),
-                "layer": record.layer,
-                "filename": record.filename,
-                "function_name": record.function_name,
-                "line_number": record.line_number,
-                "thread_id": record.thread_id,
-                "process_id": record.process_id,
-                "agent_id": record.agent_id,
-                "user_id": record.user_id,
-                "request_id": record.request_id,
-                "correlation_id": record.correlation_id,
-                "environment": record.environment,
-                "event_id": record.event_id,
-                "device_id": record.device_id,
-            }
-
-            response = session.request(
-                method=self._config.method,
-                url=self._url,
-                json=data,
-                headers=self._config.headers,
-                timeout=self._config.timeout,
-                verify=self._config.verify_ssl,
-            )
-            response.raise_for_status()
-            self._stats["sent"] += 1
-            self._stats["bytes_sent"] += len(str(data).encode("utf-8"))
+            payload = self._compose_payload(record)
+            self._emit_single_payload(payload)
         except Exception as error:
             _logger.exception(
                 "HTTP emit failed for url=%s", self._safe_url_for_logs(self._url)
