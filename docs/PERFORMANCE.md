@@ -44,6 +44,9 @@ Primary references:
 .hydra_env/bin/python benchmark/performance_benchmark.py --profile ci_smoke
 .hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate
 .hydra_env/bin/python benchmark/performance_benchmark.py --profile nightly_truth
+
+# Targeted local/CI slice (comma-separated benchmark sections)
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate --sections sync_logger,memory
 ```
 
 Use profile-specific artifact roots for cleaner comparison history:
@@ -53,6 +56,13 @@ Use profile-specific artifact roots for cleaner comparison history:
 .hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate --results-dir benchmark/results/pr_gate
 .hydra_env/bin/python benchmark/performance_benchmark.py --profile nightly_truth --results-dir benchmark/results/nightly_truth
 ```
+
+Section filtering notes:
+
+- Profile config may define `enabled_sections`.
+- CLI `--sections` overrides profile `enabled_sections`.
+- Partial section runs are treated as diagnostic slices and do not persist artifacts by
+  default, so timestamped full-suite benchmark history remains schema-compatible.
 
 ---
 

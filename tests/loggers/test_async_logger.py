@@ -592,6 +592,181 @@ def test_async_logger_setup_data_protection_uses_configured_patterns(
     logger.close()
 
 
+def test_async_logger_setup_data_protection_uses_first_security_extension_from_manager() -> (
+    None
+):
+    from hydra_logger.extensions.extension_base import SecurityExtension
+    from hydra_logger.extensions.extension_manager import ExtensionManager
+
+    logger = AsyncLogger()
+    logger._enable_data_protection = True
+    manager = ExtensionManager()
+    sec = SecurityExtension(enabled=True, patterns=["token"])
+    manager.add_extension("security_custom", sec)
+    logger._config = LoggingConfig()  # type: ignore[assignment]
+    setattr(logger._config, "_extension_manager", manager)  # type: ignore[arg-type]
+    logger._setup_data_protection()
+    assert logger._data_protection is sec
+    logger.close()
+
+
+def test_async_logger_data_protection_failure_respects_reliability_modes() -> None:
+    strict_logger = AsyncLogger(
+        config={
+            "strict_reliability_mode": True,
+            "enable_data_protection": True,
+            "layers": {"default": {"destinations": [{"type": "null"}]}},
+        }
+    )
+    assert strict_logger._data_protection is not None
+    strict_logger._data_protection.process = lambda _payload: (_ for _ in ()).throw(  # type: ignore[assignment]
+        RuntimeError("dp-fail")
+    )
+
+    original_get_running_loop = asyncio.get_running_loop
+    asyncio.get_running_loop = lambda: (_ for _ in ()).throw(RuntimeError("no-loop"))  # type: ignore[assignment]
+    try:
+        with pytest.raises(HydraLoggerError, match="internal failure"):
+            strict_logger.log("INFO", "token=abc")
+    finally:
+        asyncio.get_running_loop = original_get_running_loop  # type: ignore[assignment]
+    strict_logger.close()
+
+    async def _run_warn() -> None:
+        warn_logger = AsyncLogger(
+            config={
+                "reliability_error_policy": "warn",
+                "enable_data_protection": True,
+                "layers": {"default": {"destinations": [{"type": "null"}]}},
+            }
+        )
+        assert warn_logger._data_protection is not None
+        warn_logger._data_protection.process = lambda _payload: (_ for _ in ()).throw(  # type: ignore[assignment]
+            RuntimeError("dp-fail")
+        )
+        await warn_logger.log_async("INFO", "token=abc")
+        assert warn_logger.get_health_status()["swallowed_error_count"] >= 1
+        await warn_logger.aclose()
+
+    asyncio.run(_run_warn())
+
+
+def test_async_logger_close_and_aclose_hydraerror_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = AsyncLogger()
+
+    class BadClear:
+        def clear(self) -> None:
+            raise RuntimeError("clear-fail")
+
+    monkeypatch.setattr(
+        logger,
+        "_report_lifecycle_failure",
+        lambda _ctx, _err: (_ for _ in ()).throw(HydraLoggerError("close-policy")),
+    )
+    logger._handler_cache = BadClear()  # type: ignore[assignment]
+    with pytest.raises(HydraLoggerError, match="close-policy"):
+        logger.close()
+
+    async def _run() -> None:
+        logger2 = AsyncLogger()
+
+        class BadTask:
+            @staticmethod
+            def done() -> bool:
+                return False
+
+            @staticmethod
+            def cancel() -> None:
+                return None
+
+            def __await__(self):
+                raise RuntimeError("join-fail")
+                yield
+
+        logger2._overflow_worker_task = BadTask()  # type: ignore[assignment]
+        contexts = []
+        monkeypatch.setattr(
+            logger2,
+            "_report_lifecycle_failure",
+            lambda ctx, _err: contexts.append(ctx),
+        )
+        await logger2.aclose()
+        assert "overflow_worker_join" in contexts
+
+        logger3 = AsyncLogger()
+        logger3._handler_cache = BadClear()  # type: ignore[assignment]
+        monkeypatch.setattr(
+            logger3,
+            "_report_lifecycle_failure",
+            lambda _ctx, _err: (_ for _ in ()).throw(HydraLoggerError("aclose-policy")),
+        )
+        with pytest.raises(HydraLoggerError, match="aclose-policy"):
+            await logger3.aclose()
+
+    asyncio.run(_run())
+
+
+def test_async_logger_close_direct_hydraerror_branch() -> None:
+    logger = AsyncLogger()
+
+    class BadTask:
+        @staticmethod
+        def done() -> bool:
+            return False
+
+        @staticmethod
+        def cancel() -> None:
+            raise HydraLoggerError("cancel-hydra")
+
+    logger._overflow_worker_task = BadTask()  # type: ignore[assignment]
+    with pytest.raises(HydraLoggerError, match="cancel-hydra"):
+        logger.close()
+
+
+def test_async_logger_executes_non_data_extensions_in_deterministic_order() -> None:
+    from hydra_logger.extensions.extension_base import ExtensionBase, SecurityExtension
+    from hydra_logger.extensions.extension_manager import ExtensionManager
+
+    class SuffixExtension(ExtensionBase):
+        def process(self, data):  # type: ignore[no-untyped-def]
+            if isinstance(data, str):
+                return f"{data}{self.get_config().get('suffix', '')}"
+            return data
+
+    async def _run() -> None:
+        logger = AsyncLogger(
+            config={
+                "enable_data_protection": True,
+                "layers": {"default": {"destinations": [{"type": "null"}]}},
+            }
+        )
+        manager = ExtensionManager()
+        manager.register_extension_type("suffix", SuffixExtension)
+        manager.create_extension("append_a", "suffix", enabled=True, suffix=":A")
+        manager.create_extension("append_b", "suffix", enabled=True, suffix=":B")
+        manager.add_extension(
+            "data_protection",
+            SecurityExtension(enabled=True, patterns=["token"]),
+        )
+        manager.set_processing_order(["append_a", "data_protection", "append_b"])
+
+        logger._extension_manager = manager
+        logger._data_protection = manager.get_extension("data_protection")
+        captured = {}
+
+        async def _capture(record):  # type: ignore[no-untyped-def]
+            captured["message"] = record.message
+
+        logger._emit_to_handlers = _capture  # type: ignore[method-assign]
+        await logger.log_async("INFO", "token=abc")
+        assert captured["message"] == 'token="[REDACTED]":A:B'
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
 def test_async_logger_ensure_concurrency_semaphore_starts_worker(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

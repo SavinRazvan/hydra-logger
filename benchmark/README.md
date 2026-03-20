@@ -62,6 +62,14 @@ Expected behavior:
   - Valid names currently include `ci_smoke`, `pr_gate`, `nightly_truth`.
 - `--results-dir <path>`: custom artifact root (default is `benchmark/results`).
 - `--no-save-results`: run benchmark without persisting artifacts.
+- `--sections <csv>`: run only selected benchmark sections (comma-separated).
+  - Valid section names: `sync_logger`, `network_destination`, `async_logger`,
+    `composite_logger`, `composite_async_logger`, `configurations`, `output_matrix`,
+    `file_writing`, `async_file_writing`, `memory`, `concurrent`, `async_concurrent`,
+    `parallel_workers`, `advanced_concurrent`, `ultra_high_performance`.
+  - Precedence is `--sections` (CLI) over profile `enabled_sections`.
+  - Partial section runs automatically disable result persistence unless you already
+    set `--no-save-results`, preserving full-suite artifact contract expectations.
 
 Examples:
 
@@ -74,6 +82,9 @@ python3 benchmark/performance_benchmark.py --profile pr_gate --results-dir bench
 
 # Run without artifact persistence
 python3 benchmark/performance_benchmark.py --profile ci_smoke --no-save-results
+
+# Run only a local diagnostic slice
+python3 benchmark/performance_benchmark.py --profile pr_gate --sections sync_logger,memory
 ```
 
 Report verbosity environment variable:

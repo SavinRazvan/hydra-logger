@@ -27,7 +27,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 import platform
-from typing import Any, Dict, List, Literal, Tuple, cast
+from typing import Any, Dict, List, Literal, Optional, Tuple, cast
 
 # Add the project root to Python path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -94,6 +94,7 @@ class HydraLoggerBenchmark:  # pragma: no cover
         save_results: bool = True,
         results_dir: str | None = None,
         profile: str | None = None,
+        enabled_sections: List[str] | None = None,
     ):
         self.results = {}
         self.save_results = save_results
@@ -194,6 +195,112 @@ class HydraLoggerBenchmark:  # pragma: no cover
             if isinstance(repetition_sections, list)
             else []
         )
+        profile_enabled_sections = self.profile.get("enabled_sections", [])
+        self.enabled_sections = self._resolve_enabled_sections(
+            cli_sections=enabled_sections,
+            profile_sections=profile_enabled_sections,
+        )
+        self._is_partial_section_run = len(self.enabled_sections) < len(
+            self._all_section_names()
+        )
+        if self._is_partial_section_run and self.save_results:
+            print(
+                "Partial section benchmark requested; disabling result artifact persistence "
+                "to preserve full-suite benchmark schema contracts."
+            )
+            self.save_results = False
+
+    def _section_plan(
+        self,
+    ) -> List[Tuple[str, Literal["sync", "async"], Any, Optional[int]]]:
+        """Ordered benchmark section execution plan."""
+        return [
+            ("sync_logger", "sync", self.test_sync_logger_performance, None),
+            (
+                "network_destination",
+                "sync",
+                self.test_network_destination_performance,
+                1,
+            ),
+            ("async_logger", "async", self.test_async_logger_performance, None),
+            ("composite_logger", "sync", self.test_composite_logger_performance, None),
+            (
+                "composite_async_logger",
+                "async",
+                self.test_composite_async_logger_performance,
+                None,
+            ),
+            ("configurations", "sync", self.test_configuration_performance, 1),
+            ("output_matrix", "async", self.test_output_matrix_performance, 1),
+            ("file_writing", "sync", self.test_file_writing_performance, None),
+            (
+                "async_file_writing",
+                "async",
+                self.test_async_file_writing_performance,
+                None,
+            ),
+            ("memory", "sync", self.test_memory_usage, 1),
+            ("concurrent", "async", self.test_concurrent_logging, None),
+            ("async_concurrent", "async", self.test_async_concurrent_suite, None),
+            ("parallel_workers", "sync", self.test_parallel_workers_suite, None),
+            (
+                "advanced_concurrent",
+                "async",
+                self.test_advanced_concurrent_logging,
+                None,
+            ),
+            (
+                "ultra_high_performance",
+                "async",
+                self.test_ultra_high_performance,
+                None,
+            ),
+        ]
+
+    def _all_section_names(self) -> List[str]:
+        """Return all supported benchmark section names in execution order."""
+        return [name for name, _kind, _scenario, _repeat in self._section_plan()]
+
+    @staticmethod
+    def _normalize_sections(raw: Any) -> List[str]:
+        """Normalize section config/CLI payloads into ordered unique names."""
+        if raw is None:
+            return []
+        if isinstance(raw, str):
+            items = [item.strip() for item in raw.split(",")]
+        elif isinstance(raw, list):
+            items = [str(item).strip() for item in raw]
+        else:
+            raise ValueError("enabled_sections must be a list of section names or CSV string")
+
+        normalized: List[str] = []
+        for item in items:
+            if not item:
+                continue
+            if item not in normalized:
+                normalized.append(item)
+        return normalized
+
+    def _resolve_enabled_sections(
+        self, cli_sections: Any, profile_sections: Any
+    ) -> List[str]:
+        """Resolve active sections with precedence CLI > profile > full suite."""
+        supported = self._all_section_names()
+        selected = self._normalize_sections(cli_sections) or self._normalize_sections(
+            profile_sections
+        )
+        if not selected:
+            return supported
+
+        unknown = [name for name in selected if name not in supported]
+        if unknown:
+            raise ValueError(
+                "Unknown benchmark section(s): "
+                + ", ".join(unknown)
+                + ". Supported sections: "
+                + ", ".join(supported)
+            )
+        return selected
 
     def _build_benchmark_log_path(self, prefix: str) -> str:
         """Create a unique benchmark log path under benchmark_logs."""
@@ -3297,74 +3404,24 @@ class HydraLoggerBenchmark:  # pragma: no cover
     async def run_benchmark(self):
         """Run the complete benchmark suite."""
         self.print_header()
+        print(f"Active sections: {', '.join(self.enabled_sections)}")
 
         try:
-            # Run all performance tests
-            # Cleanup between tests ensures each test starts with a clean state
-            self.results["sync_logger"] = self._run_repeated_sync(
-                section="sync_logger",
-                scenario=self.test_sync_logger_performance,
-            )
-            self.results["network_destination"] = self._run_repeated_sync(
-                section="network_destination",
-                scenario=self.test_network_destination_performance,
-                repeat=1,
-            )
-            self.results["async_logger"] = await self._run_repeated_async(
-                section="async_logger",
-                scenario=self.test_async_logger_performance,
-            )
-            self.results["composite_logger"] = self._run_repeated_sync(
-                section="composite_logger",
-                scenario=self.test_composite_logger_performance,
-            )
-            self.results["composite_async_logger"] = await self._run_repeated_async(
-                section="composite_async_logger",
-                scenario=self.test_composite_async_logger_performance,
-            )
-            self.results["configurations"] = self._run_repeated_sync(
-                section="configurations",
-                scenario=self.test_configuration_performance,
-                repeat=1,
-            )
-            self.results["output_matrix"] = await self._run_repeated_async(
-                section="output_matrix",
-                scenario=self.test_output_matrix_performance,
-                repeat=1,
-            )
-            self.results["file_writing"] = self._run_repeated_sync(
-                section="file_writing",
-                scenario=self.test_file_writing_performance,
-            )
-            self.results["async_file_writing"] = await self._run_repeated_async(
-                section="async_file_writing",
-                scenario=self.test_async_file_writing_performance,
-            )
-            self.results["memory"] = self._run_repeated_sync(
-                section="memory",
-                scenario=self.test_memory_usage,
-                repeat=1,
-            )
-            self.results["concurrent"] = await self._run_repeated_async(
-                section="concurrent",
-                scenario=self.test_concurrent_logging,
-            )
-            self.results["async_concurrent"] = await self._run_repeated_async(
-                section="async_concurrent",
-                scenario=self.test_async_concurrent_suite,
-            )
-            self.results["parallel_workers"] = self._run_repeated_sync(
-                section="parallel_workers",
-                scenario=self.test_parallel_workers_suite,
-            )
-            self.results["advanced_concurrent"] = await self._run_repeated_async(
-                section="advanced_concurrent",
-                scenario=self.test_advanced_concurrent_logging,
-            )
-            self.results["ultra_high_performance"] = await self._run_repeated_async(
-                section="ultra_high_performance",
-                scenario=self.test_ultra_high_performance,
-            )
+            for section_name, section_kind, scenario, repeat in self._section_plan():
+                if section_name not in self.enabled_sections:
+                    continue
+                if section_kind == "sync":
+                    self.results[section_name] = self._run_repeated_sync(
+                        section=section_name,
+                        scenario=scenario,
+                        repeat=repeat,
+                    )
+                else:
+                    self.results[section_name] = await self._run_repeated_async(
+                        section=section_name,
+                        scenario=scenario,
+                        repeat=repeat,
+                    )
 
             # Enforce hard reliability rules before reporting/saving artifacts.
             self._enforce_reliability_guards()
@@ -3400,12 +3457,14 @@ async def main(
     profile: str | None = None,
     save_results: bool = True,
     results_dir: str | None = None,
+    enabled_sections: List[str] | None = None,
 ):
     """Main entry point for the benchmark suite."""
     benchmark = HydraLoggerBenchmark(
         save_results=save_results,
         results_dir=results_dir,
         profile=profile,
+        enabled_sections=enabled_sections,
     )
     return await benchmark.run_benchmark()
 
@@ -3428,12 +3487,24 @@ if __name__ == "__main__":  # pragma: no cover
         default=None,
         help="Custom directory for benchmark result artifacts.",
     )
+    parser.add_argument(
+        "--sections",
+        default=None,
+        help=(
+            "Comma-separated benchmark section names to run. "
+            "Overrides profile enabled_sections."
+        ),
+    )
     args = parser.parse_args()
+    section_list = (
+        [item.strip() for item in args.sections.split(",")] if args.sections else None
+    )
     exit_code = asyncio.run(
         main(
             profile=args.profile,
             save_results=not args.no_save_results,
             results_dir=args.results_dir,
+            enabled_sections=section_list,
         )
     )
     sys.exit(exit_code)

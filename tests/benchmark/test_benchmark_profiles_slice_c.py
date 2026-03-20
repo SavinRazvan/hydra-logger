@@ -55,3 +55,40 @@ def test_benchmark_init_applies_profile_overrides(tmp_path) -> None:
     assert bench.strict_reliability_guards is False
     assert bench.write_markdown_reports is False
     assert bench.output_matrix_overrides["include_extensions"] is False
+
+
+def test_benchmark_profile_enabled_sections_applied_when_cli_absent(
+    tmp_path, monkeypatch
+) -> None:
+    def fake_profile(_name):  # type: ignore[no-untyped-def]
+        return {
+            "enabled_sections": ["sync_logger", "memory"],
+            "test_config_overrides": {},
+        }
+
+    monkeypatch.setattr("benchmark.performance_benchmark.load_profile", fake_profile)
+    bench = HydraLoggerBenchmark(
+        save_results=False,
+        results_dir=str(tmp_path / "results"),
+        profile="custom",
+    )
+    assert bench.enabled_sections == ["sync_logger", "memory"]
+
+
+def test_benchmark_cli_sections_override_profile_sections(
+    tmp_path, monkeypatch
+) -> None:
+    def fake_profile(_name):  # type: ignore[no-untyped-def]
+        return {
+            "enabled_sections": ["sync_logger", "memory"],
+            "test_config_overrides": {},
+        }
+
+    monkeypatch.setattr("benchmark.performance_benchmark.load_profile", fake_profile)
+    bench = HydraLoggerBenchmark(
+        save_results=False,
+        results_dir=str(tmp_path / "results"),
+        profile="custom",
+        enabled_sections=["async_logger"],
+    )
+    assert bench.enabled_sections == ["async_logger"]

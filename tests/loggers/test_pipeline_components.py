@@ -14,6 +14,9 @@ from types import SimpleNamespace
 
 import pytest
 
+from hydra_logger.core.exceptions import HydraLoggerError
+from hydra_logger.extensions.extension_base import ExtensionBase, SecurityExtension
+from hydra_logger.extensions.extension_manager import ExtensionManager
 from hydra_logger.loggers.pipeline import (
     ComponentDispatcher,
     ExtensionProcessor,
@@ -112,6 +115,17 @@ class DummyDataProtection:
         if self._should_fail:
             raise RuntimeError("process failed")
         return f"masked:{message}"
+
+
+class FailingOwner:
+    def __init__(self, raise_hydra_error: bool = False) -> None:
+        self.raise_hydra_error = raise_hydra_error
+        self.calls = []
+
+    def _handle_internal_failure(self, context: str, error: Exception) -> None:
+        self.calls.append((context, str(error)))
+        if self.raise_hydra_error:
+            raise HydraLoggerError("strict failure")
 
 
 class SyncComponent:
@@ -324,6 +338,103 @@ def test_extension_processor_applies_data_protection_to_context_and_extra() -> N
     assert 'token="[REDACTED]"' in updated.message
     assert updated.context["auth"]["detail"] == 'token="[REDACTED]"'
     assert updated.extra["password"] == 'token="[REDACTED]"'
+
+
+def test_extension_processor_owner_handles_data_protection_failure_context() -> None:
+    owner = FailingOwner()
+    processor = ExtensionProcessor(owner)
+    record = SimpleNamespace(message="secret")
+    protection = DummyDataProtection(enabled=True, should_fail=True)
+
+    updated = processor.apply_data_protection(record, protection)
+    assert updated.message == "secret"
+    assert owner.calls == [("extension_data_protection", "process failed")]
+
+
+def test_extension_processor_reraises_hydra_error_from_owner() -> None:
+    owner = FailingOwner(raise_hydra_error=True)
+    processor = ExtensionProcessor(owner)
+    record = SimpleNamespace(message="secret")
+    protection = DummyDataProtection(enabled=True, should_fail=True)
+
+    with pytest.raises(HydraLoggerError, match="strict failure"):
+        processor.apply_data_protection(record, protection)
+
+
+def test_extension_processor_applies_non_data_extensions_in_order() -> None:
+    class SuffixExtension(ExtensionBase):
+        def process(self, data):  # type: ignore[no-untyped-def]
+            if isinstance(data, str):
+                return f"{data}{self.get_config().get('suffix', '')}"
+            return data
+
+    manager = ExtensionManager()
+    manager.register_extension_type("suffix", SuffixExtension)
+    manager.create_extension("append_a", "suffix", enabled=True, suffix=":A")
+    manager.create_extension("append_b", "suffix", enabled=True, suffix=":B")
+    manager.add_extension(
+        "data_protection",
+        SecurityExtension(enabled=True, patterns=["token"]),
+    )
+    manager.set_processing_order(["append_a", "data_protection", "append_b"])
+
+    processor = ExtensionProcessor()
+    record = SimpleNamespace(
+        message='token="abc"',
+        context={"message": 'token="abc"'},
+        extra={"note": "x"},
+    )
+    updated = processor.apply_non_data_protection_extensions(
+        record,
+        manager,
+        manager.get_extension("data_protection"),
+    )
+    assert updated.message == 'token="abc":A:B'
+    assert updated.context["message"] == 'token="abc"'
+
+
+def test_extension_processor_non_data_extension_failure_uses_owner_policy() -> None:
+    class FailingExtension(ExtensionBase):
+        def process(self, _data):  # type: ignore[no-untyped-def]
+            raise RuntimeError("ext-fail")
+
+    owner = FailingOwner(raise_hydra_error=True)
+    manager = ExtensionManager()
+    manager.register_extension_type("failing", FailingExtension)
+    manager.create_extension("boom", "failing", enabled=True)
+    processor = ExtensionProcessor(owner)
+    record = SimpleNamespace(message="x", context=None, extra=None)
+
+    with pytest.raises(HydraLoggerError, match="strict failure"):
+        processor.apply_non_data_protection_extensions(record, manager, None)
+
+
+def test_extension_processor_non_data_extensions_skip_disabled_and_log_ownerless_failures(
+    caplog,
+) -> None:
+    class DisabledExtension(ExtensionBase):
+        def process(self, data):  # type: ignore[no-untyped-def]
+            return f"disabled:{data}"
+
+    class FailingExtension(ExtensionBase):
+        def process(self, _data):  # type: ignore[no-untyped-def]
+            raise RuntimeError("no-owner-fail")
+
+    manager = ExtensionManager()
+    manager.register_extension_type("disabled_ext", DisabledExtension)
+    manager.register_extension_type("failing_ext", FailingExtension)
+    manager.create_extension("disabled_one", "disabled_ext", enabled=False)
+    manager.create_extension("failing_one", "failing_ext", enabled=True)
+    manager.set_processing_order(["disabled_one", "failing_one"])
+
+    processor = ExtensionProcessor()
+    record = SimpleNamespace(message="x", context=None, extra=None)
+    with caplog.at_level(
+        "ERROR", logger="hydra_logger.loggers.pipeline.extension_processor"
+    ):
+        updated = processor.apply_non_data_protection_extensions(record, manager, None)
+    assert updated.message == "x"
+    assert "Extension processing failed for extension=failing_one" in caplog.text
 
 
 def test_component_dispatcher_sync_fanout_tolerates_component_failure() -> None:
