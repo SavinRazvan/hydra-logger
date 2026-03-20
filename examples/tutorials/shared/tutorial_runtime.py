@@ -1,4 +1,12 @@
-"""Shared runtime helpers for tutorial scripts."""
+"""
+Role: Create canonical tutorial log output directories under the repo.
+Used By:
+ - Tutorial scripts writing to `examples/logs/tutorials/`.
+Depends On:
+ - pathlib
+Notes:
+ - Matches `.gitignore` entry for `examples/logs/`; run from repo root when possible.
+"""
 
 from pathlib import Path
 
