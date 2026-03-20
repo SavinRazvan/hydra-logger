@@ -3,6 +3,7 @@
 This document describes runtime workflows and interaction boundaries.
 
 For module-level ownership and symbol detail, use `docs/modules/README.md`.
+For PR/release delivery workflow automation, use `docs/AGENT_AUTOMATION.md`.
 
 ## Workflow Scope
 
@@ -28,7 +29,7 @@ flowchart TD
   levelCheck -->|BelowThreshold| stopDrop[DropMessage]
   levelCheck -->|Pass| resolveHandlers[ResolveHandlersForLayer]
   variantPath -->|AsyncLogger| resolveHandlers
-  variantPath -->|CompositeAsync direct I/O| directIoPath[Direct I/O emit path]
+  variantPath -->|"CompositeAsync direct I/O"| directIoPath["Direct I/O emit path"]
   resolveHandlers --> formatterSelect[SelectFormatter]
   formatterSelect --> handlerEmit[EmitToDestination]
   handlerEmit --> doneNode[Done]
@@ -137,7 +138,7 @@ graph TD
   factoriesPkg --> configPkg
   handlersPkg --> formattersPkg
   handlersPkg --> typesPkg
-  loggersPkg --> pipelinePkg[loggers/pipeline]
+  loggersPkg --> pipelinePkg["loggers/pipeline"]
   pipelinePkg --> handlersPkg
   pipelinePkg --> formattersPkg
   pipelinePkg --> extensionsPkg

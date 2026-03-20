@@ -28,15 +28,15 @@ Implements logger runtimes: synchronous, asynchronous, and composite forms.
 
 ```mermaid
 flowchart TD
-  A[log/info/warning/error] --> B[BaseLogger.create_log_record]
+  A["log/info/warning/error"] --> B["BaseLogger.create_log_record"]
   B --> C{Logger type}
   C -->|SyncLogger| D[Sync layer resolution]
   C -->|AsyncLogger| E[Async emit path]
-  C -->|Composite*| F[Fan-out to components]
+  C -->|"Composite*"| F["Fan-out to components"]
   D --> G[Handlers]
   E --> G
   F --> G
-  G --> H[Formatter + destination output]
+  G --> H["Formatter + destination output"]
 ```
 
 ## Key Behaviors

@@ -37,8 +37,8 @@ graph TD
   rootPkg --> corePkg[core]
   rootPkg --> extensionsPkg[extensions]
   rootPkg --> utilsPkg[utils]
-  rootPkg --> cliMod[cli.py]
-  loggersPkg --> pipelinePkg[loggers/pipeline]
+  rootPkg --> cliMod["cli.py"]
+  loggersPkg --> pipelinePkg["loggers/pipeline"]
 ```
 
 ## Runtime Data Path
@@ -52,7 +52,7 @@ flowchart LR
   emitPath -->|Handler pipeline| handlerDispatch[HandlerDispatch]
   handlerDispatch --> formatterApply[FormatterApply]
   formatterApply --> destinationWrite[DestinationWrite]
-  emitPath -->|Composite async direct I/O| destinationWrite
+  emitPath -->|"Composite async direct I/O"| destinationWrite
 ```
 
 ## Module Documentation Map

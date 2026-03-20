@@ -31,10 +31,10 @@ graph TD
 
 ```mermaid
 flowchart TD
-  A[Create LoggingConfig] --> B[Pass config to logger/factory]
+  A["Create LoggingConfig"] --> B["Pass config to logger/factory"]
   B --> C[Logger sets up layers]
   C --> D[Destinations mapped to handlers]
-  D --> E[Handlers receive formatter + level]
+  D --> E["Handlers receive formatter + level"]
 ```
 
 ## Caveats

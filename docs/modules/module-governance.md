@@ -25,7 +25,7 @@ Update module docs when any of these change:
 
 ```mermaid
 flowchart LR
-  A[Code change merged in branch] --> B[Identify touched module(s)]
+  A["Code change merged in branch"] --> B["Identify touched module(s)"]
   B --> C[Update module doc pages]
   C --> D[Update cross-links and index]
   D --> E[Run docs alignment audit]

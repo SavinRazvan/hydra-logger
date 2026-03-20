@@ -39,10 +39,10 @@ Coverage is required as evidence, not vanity:
 - report residual gaps explicitly in PR notes;
 - tighten global threshold incrementally (coverage ratchet) rather than one-time jumps.
 
-Current CI/prepare ratchet stage (2026-03 baseline):
+Current coverage gate stage (2026-03 baseline):
 
-- `hydra_logger` fail-under: `95`
-- `benchmark` package fail-under: `95`
+- CI `hydra_logger` fail-under: `95`
+- CI benchmark package fail-under: `95`
 
 Planned enterprise ratchet sequence for `hydra_logger`:
 
@@ -75,20 +75,20 @@ Nightly benchmark workflow (`.github/workflows/benchmark-nightly.yml`) executes:
 
 - `nightly_truth` profile on schedule/manual dispatch.
 
-PR preparation (`scripts/pr/prepare.py`) enforces:
+PR preparation (`scripts/pr/prepare.py`) runs these gates via the active Python interpreter:
 
-- `.hydra_env/bin/python -m pytest -q`
-- `.hydra_env/bin/python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=95 -q`
-- `.hydra_env/bin/python scripts/dev/check_version_consistency.py`
-- `.hydra_env/bin/python scripts/pr/check_slim_headers.py --all-python --strict`
-- `.hydra_env/bin/python benchmark/performance_benchmark.py --profile ci_smoke --no-save-results` (unless explicitly skipped)
+- `python -m pytest -q`
+- `python -m pytest --cov=hydra_logger --cov-report=term-missing --cov-fail-under=95 -q`
+- `python scripts/dev/check_version_consistency.py`
+- `python scripts/pr/check_slim_headers.py --all-python --strict`
+- `python benchmark/performance_benchmark.py --profile ci_smoke --no-save-results` (unless explicitly skipped)
 
 Static/security staged enforcement policy in CI:
 
 - `flake8` runs in three passes: **critical** errors (`E9`, `F63`, `F7`, `F82`), a **blocking** pass aligned with **black** (`max-line-length=88`, `extend-ignore=E203,W503,E501`), and an **advisory** cyclomatic complexity report (`max-complexity=10`, `--exit-zero`). Local config: `.flake8`.
-- `mypy` always produces artifacted output; **`MYPY_ENFORCE` is on for `main`** (config in `pyproject.toml`; install `types-*` stubs via `.[dev]`).
-- `bandit` high-severity gate runs in report mode by default; blocking mode uses `BANDIT_ENFORCE`.
-- dependency vulnerability scans run through **`pip-audit`** (`PIP_AUDIT_ENFORCE` on `main`). The optional extra `legacy_safety` installs PyUp `safety` for local use only (pulls transitive `nltk`; not part of default `dev`).
+- `mypy` always produces artifact output and enforces blocking mode when `MYPY_ENFORCE=true` (enabled in CI workflow env).
+- `bandit` high-severity gate always generates reports and enforces blocking mode when `BANDIT_ENFORCE=true` (enabled in CI workflow env).
+- dependency vulnerability scans run through **`pip-audit`**, with blocking mode when `PIP_AUDIT_ENFORCE=true` (enabled in CI workflow env). The optional extra `legacy_safety` installs PyUp `safety` for local use only (pulls transitive `nltk`; not part of default `dev`).
 
 ## Logging Artifact Policy
 
@@ -115,5 +115,4 @@ Before merge:
 
 - `tests/README.md`
 - `.agents/skills/test-module-coverage/SKILL.md`
-- `.cursor/agents/test-runner.md`
-- `.cursor/agents/verifier.md`
+- `docs/RELEASE_CHECKLIST.md`

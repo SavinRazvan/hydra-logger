@@ -24,7 +24,7 @@ flowchart TD
   A[Logger receives message] --> B{Extension enabled?}
   B -->|no| C[Continue without extension cost]
   B -->|yes| D[Run extension process step]
-  D --> E[Return transformed message/record]
+  D --> E["Return transformed message/record"]
   E --> F[Continue logger pipeline]
 ```
 
