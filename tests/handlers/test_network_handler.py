@@ -9,6 +9,7 @@ Notes:
 """
 
 import importlib
+import json
 import sys
 
 import pytest
@@ -753,3 +754,43 @@ def test_http_websocket_socket_datagram_remaining_branches(monkeypatch, caplog) 
     http3 = HTTPHandler("https://example.com")
     http3.setFormatter(Fmt())
     http3.emit(LogRecord(level=20, level_name="INFO", message="fmt-http"))
+
+
+def test_websocket_handler_real_transport_emits_json_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("websockets")
+    sent: list[str] = []
+
+    class FakeWs:
+        def send(self, payload: str) -> None:
+            sent.append(payload)
+
+        def close(self) -> None:
+            return None
+
+    def fake_connect(*_a, **_k):
+        return FakeWs()
+
+    monkeypatch.setattr("websockets.sync.client.connect", fake_connect)
+    monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", True)
+    handler = WebSocketHandler(
+        "ws://127.0.0.1:65530/logging",
+        use_real_websocket_transport=True,
+    )
+    assert handler._ws_transport_simulated is False
+    rec = LogRecord(level=20, level_name="INFO", message="hello")
+    handler.emit(rec)
+    assert sent
+
+    body = json.loads(sent[0])
+    assert "hello" in body["message"]
+    handler.close()
+
+
+def test_websocket_handler_real_transport_without_websockets_package_not_connected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", False)
+    handler = WebSocketHandler("ws://127.0.0.1:1/x", use_real_websocket_transport=True)
+    assert handler._connected is False

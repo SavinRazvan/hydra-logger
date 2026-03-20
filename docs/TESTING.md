@@ -90,6 +90,13 @@ Static/security staged enforcement policy in CI:
 - `bandit` high-severity gate always generates reports and enforces blocking mode when `BANDIT_ENFORCE=true` (enabled in CI workflow env).
 - dependency vulnerability scans run through **`pip-audit`**, with blocking mode when `PIP_AUDIT_ENFORCE=true` (enabled in CI workflow env). The optional extra `legacy_safety` installs PyUp `safety` for local use only (pulls transitive `nltk`; not part of default `dev`).
 
+### Deterministic CI stages (lint / security)
+
+Lint and security jobs use **separate** steps for **report capture** (`continue-on-error:
+true`, preserves artifacts even when the tool exits non-zero) and **blocking gates**
+(explicit `mypy` / `bandit` / `pip-audit` invocations). This avoids shell `|| true`
+patterns that can obscure failures while still uploading machine-readable reports.
+
 ## Logging Artifact Policy
 
 Runtime logs are destination-controlled:

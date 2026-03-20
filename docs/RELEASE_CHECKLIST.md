@@ -32,6 +32,24 @@ If you need persisted benchmark evidence for release notes, run a saved benchmar
 .hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate
 ```
 
+## PyPI publication parity (post-upload)
+
+After `twine upload` (or CI publish) completes, confirm the public index reflects the
+tag you intended:
+
+```bash
+.hydra_env/bin/python scripts/release/check_pypi_parity.py --require-match
+```
+
+Optional: include the same check in an integrated preflight run (requires network):
+
+```bash
+.hydra_env/bin/python scripts/release/preflight.py --pypi-parity
+```
+
+Expect this step to **fail** until the new version is visible on PyPI (and classifiers
+match `setup.py`).
+
 ## Gate Details
 
 - **Version consistency**: `scripts/dev/check_version_consistency.py` must pass.

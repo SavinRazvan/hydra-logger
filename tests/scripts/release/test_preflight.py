@@ -51,6 +51,16 @@ def test_default_steps_can_skip_optional_segments() -> None:
     assert "verify_dist_contents" not in step_ids
 
 
+def test_default_steps_include_pypi_parity_when_enabled() -> None:
+    module = _load_preflight_module()
+    steps = module._default_steps(
+        skip_benchmark=True, skip_build=True, pypi_parity=True
+    )
+    step_ids = [item.step_id for item in steps]
+    assert "pypi_parity" in step_ids
+    assert step_ids.index("pypi_parity") > step_ids.index("version_consistency")
+
+
 def test_run_preflight_stops_on_first_failure(monkeypatch) -> None:
     module = _load_preflight_module()
     first = module.PreflightStep("a", "first", ["echo", "1"])

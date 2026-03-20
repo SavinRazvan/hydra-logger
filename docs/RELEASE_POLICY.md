@@ -34,6 +34,22 @@ consumer expectations.
   a default change on a **MINOR** line, it must be explicitly documented as safe
   with an opt-in migration path (prefer avoiding this pattern).
 
+### Reliability and record profiling (operator contract)
+
+| Control | Library default | Enterprise recommendation |
+| --- | --- | --- |
+| `strict_reliability_mode` | `False` | `True` in regulated / SRE-owned environments |
+| `reliability_error_policy` | `"silent"` | `"warn"` or `"raise"` when dropped logs are unacceptable |
+| Logger `performance_profile` / record creation | `"convenient"` (richer auto context) | `"minimal"` or `"balanced"` on hot paths (see `docs/PERFORMANCE.md`) |
+
+- **Silent + NullHandler**: unsupported or integration-only destinations (for example
+  `async_cloud` without a custom adapter) resolve to `NullHandler`; diagnostics follow
+  `reliability_error_policy` / `strict_reliability_mode` (see tests under
+  `tests/loggers/`).
+- **Migration**: tightening defaults is a **MAJOR** change; today, adopt enterprise
+  presets explicitly (`ConfigurationTemplates.get_named_config("enterprise")` or
+  equivalent YAML) rather than assuming library defaults match production policy.
+
 ## Public API
 
 Stable imports are those documented in `README.md`, `docs/modules/`, and

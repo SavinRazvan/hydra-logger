@@ -64,8 +64,11 @@ sequenceDiagram
   `NetworkConfig.probe_method` / `LogDestination.connection_probe`, `LogDestination.probe_method`).
   Default probe verb is **GET** for backward compatibility; prefer **HEAD** or **`none`** when ingest
   endpoints reject GET.
-- **WebSocket**: `WebSocketHandler` is a **simulated** transport today (stats only); emits a one-time
-  `UserWarning` on first `emit`. Do not assume bytes on the wire until a real client ships.
+- **WebSocket**: default mode is a **simulated** transport (stats only) with a one-time
+  `UserWarning` on first `emit`. Set **`use_real_websocket_transport=True`** and install
+  the **`network`** extra (`websockets`) to use the synchronous `websockets.sync.client`
+  path for real frames (JSON payload per emit). Connection lifecycle follows handler
+  `close()` semantics.
 - **Diagnostics**: `AsyncFileHandler` routes operational messages through
   `hydra_logger.utils.internal_diagnostics` (logger `hydra_logger.internal`, `NullHandler` by default)
   instead of stdout/stderr.

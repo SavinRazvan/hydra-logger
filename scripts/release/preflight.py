@@ -17,12 +17,11 @@ Notes:
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from pathlib import Path
 import subprocess
 import sys
 import time
-
+from dataclasses import dataclass
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -46,7 +45,9 @@ class PreflightResult:
         return self.return_code == 0
 
 
-def _default_steps(skip_benchmark: bool, skip_build: bool) -> list[PreflightStep]:
+def _default_steps(
+    skip_benchmark: bool, skip_build: bool, pypi_parity: bool = False
+) -> list[PreflightStep]:
     python_bin = sys.executable
     steps: list[PreflightStep] = [
         PreflightStep(
@@ -54,35 +55,53 @@ def _default_steps(skip_benchmark: bool, skip_build: bool) -> list[PreflightStep
             description="Validate governed version consistency",
             command=[python_bin, "scripts/dev/check_version_consistency.py"],
         ),
-        PreflightStep(
-            step_id="unit_tests",
-            description="Run project unit test suite",
-            command=[python_bin, "-m", "pytest", "-q"],
-        ),
-        PreflightStep(
-            step_id="coverage_hydra_logger",
-            description="Validate hydra_logger coverage threshold",
-            command=[
-                python_bin,
-                "-m",
-                "pytest",
-                "--cov=hydra_logger",
-                "--cov-report=term-missing",
-                "--cov-fail-under=95",
-                "-q",
-            ],
-        ),
-        PreflightStep(
-            step_id="slim_headers",
-            description="Enforce slim metadata headers",
-            command=[
-                python_bin,
-                "scripts/pr/check_slim_headers.py",
-                "--all-python",
-                "--strict",
-            ],
-        ),
     ]
+
+    if pypi_parity:
+        steps.append(
+            PreflightStep(
+                step_id="pypi_parity",
+                description="Require PyPI index parity with repository (post-publish)",
+                command=[
+                    python_bin,
+                    "scripts/release/check_pypi_parity.py",
+                    "--require-match",
+                ],
+            )
+        )
+
+    steps.extend(
+        [
+            PreflightStep(
+                step_id="unit_tests",
+                description="Run project unit test suite",
+                command=[python_bin, "-m", "pytest", "-q"],
+            ),
+            PreflightStep(
+                step_id="coverage_hydra_logger",
+                description="Validate hydra_logger coverage threshold",
+                command=[
+                    python_bin,
+                    "-m",
+                    "pytest",
+                    "--cov=hydra_logger",
+                    "--cov-report=term-missing",
+                    "--cov-fail-under=95",
+                    "-q",
+                ],
+            ),
+            PreflightStep(
+                step_id="slim_headers",
+                description="Enforce slim metadata headers",
+                command=[
+                    python_bin,
+                    "scripts/pr/check_slim_headers.py",
+                    "--all-python",
+                    "--strict",
+                ],
+            ),
+        ]
+    )
 
     if not skip_benchmark:
         steps.append(
@@ -206,11 +225,21 @@ def main(argv: list[str] | None = None) -> int:
         default=False,
         help="Skip build/twine/dist-verification checks.",
     )
+    parser.add_argument(
+        "--pypi-parity",
+        action="store_true",
+        default=False,
+        help=(
+            "After version consistency, require live PyPI metadata to match the "
+            "repository (network; use after successful upload)."
+        ),
+    )
     args = parser.parse_args(argv)
 
     steps = _default_steps(
         skip_benchmark=args.skip_benchmark,
         skip_build=args.skip_build,
+        pypi_parity=args.pypi_parity,
     )
     return run_preflight(
         steps=steps,
