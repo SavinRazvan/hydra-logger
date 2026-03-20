@@ -38,3 +38,21 @@ def test_slo_metrics_flush_latency_percentiles() -> None:
 def test_slo_metrics_percentile_edge_cases() -> None:
     assert slo_metrics.percentile([], 50) == 0.0
     assert slo_metrics.percentile([1.0], 50) == 1.0
+
+
+def test_slo_metrics_trim_and_percentile_boundaries() -> None:
+    slo_metrics.reset_metrics()
+    for idx in range(10_002):
+        slo_metrics.record_flush_latency("trim", float(idx))
+
+    percentiles = slo_metrics.flush_latency_percentiles()
+    assert percentiles["count"] == 5001.0
+    assert slo_metrics.percentile([1.0, 2.0, 3.0], 0) == 1.0
+    assert slo_metrics.percentile([1.0, 2.0, 3.0], 100) == 3.0
+
+    slo_metrics.reset_metrics()
+    assert slo_metrics.flush_latency_percentiles() == {
+        "p95": 0.0,
+        "p99": 0.0,
+        "count": 0.0,
+    }

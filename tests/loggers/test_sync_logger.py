@@ -180,6 +180,16 @@ def test_sync_logger_async_cloud_raises_when_strict_reliability_enabled() -> Non
     logger.close()
 
 
+def test_sync_logger_file_destination_without_config_uses_null_handler() -> None:
+    logger = SyncLogger()
+    logger._config = None
+    handler = logger._create_handler_from_destination(
+        LogDestination(type="file", path="no-config.log")
+    )
+    assert handler.__class__.__name__ == "NullHandler"
+    logger.close()
+
+
 def test_sync_logger_create_console_handler_applies_level(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

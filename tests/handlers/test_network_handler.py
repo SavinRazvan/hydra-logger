@@ -756,6 +756,129 @@ def test_http_websocket_socket_datagram_remaining_branches(monkeypatch, caplog) 
     http3.emit(LogRecord(level=20, level_name="INFO", message="fmt-http"))
 
 
+def test_network_handler_probe_and_connection_guard_branches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import types
+
+    class _Response:
+        @staticmethod
+        def raise_for_status() -> None:
+            return None
+
+    class _Session:
+        def __init__(self) -> None:
+            self.options_calls = 0
+
+        def get(self, *_args, **_kwargs):
+            return _Response()
+
+        def head(self, *_args, **_kwargs):
+            return _Response()
+
+        def options(self, *_args, **_kwargs):
+            self.options_calls += 1
+            return _Response()
+
+        def request(self, **_kwargs):
+            return _Response()
+
+    monkeypatch.setattr(network_module, "REQUESTS_AVAILABLE", True)
+    monkeypatch.setattr(network_module.requests, "Session", _Session)
+
+    # HTTP: connection_probe False.
+    no_probe = HTTPHandler("https://example.com/no-probe", connection_probe=False)
+    assert no_probe._establish_connection() is True
+
+    # HTTP: OPTIONS probe branch.
+    options_probe = HTTPHandler("https://example.com/options", probe_method="OPTIONS")
+    assert options_probe._establish_connection() is True
+    assert options_probe._session is not None
+    assert options_probe._session.options_calls == 1
+
+    # HTTP: invalid probe method branch.
+    invalid_probe = HTTPHandler("https://example.com/invalid", probe_method="PATCH")
+    assert invalid_probe._establish_connection() is False
+
+    # HTTP emit: _connect True but session missing.
+    emit_guard = HTTPHandler("https://example.com/emit-guard")
+    emit_guard._connect = lambda: True  # type: ignore[method-assign]
+    emit_guard._session = None
+    emit_guard.emit(LogRecord(level=20, level_name="INFO", message="guard"))
+
+    # WebSocket URI composition branches.
+    ws_default_path = WebSocketHandler("ws://example.com")
+    assert ws_default_path._websocket_uri() == "ws://example.com/ws"
+    ws_non_ws_url = WebSocketHandler("http://example.com", path="/stream")
+    assert ws_non_ws_url._websocket_uri() == "ws://example.com:80/stream"
+
+    # Real transport requested without websockets dependency.
+    monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", False)
+    ws_unavailable = WebSocketHandler(
+        "ws://example.com/ws",
+        use_real_websocket_transport=True,
+    )
+    assert ws_unavailable._establish_connection() is False
+
+    # Real transport branch with subprotocols tuple wiring.
+    connect_kwargs: dict[str, object] = {}
+
+    class _ConnectedWebSocket:
+        @staticmethod
+        def close() -> None:
+            return None
+
+    def _fake_connect(_uri, **kwargs):
+        connect_kwargs.update(kwargs)
+        return _ConnectedWebSocket()
+
+    fake_client = types.ModuleType("websockets.sync.client")
+    fake_client.connect = _fake_connect  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "websockets", types.ModuleType("websockets"))
+    monkeypatch.setitem(sys.modules, "websockets.sync", types.ModuleType("websockets.sync"))
+    monkeypatch.setitem(sys.modules, "websockets.sync.client", fake_client)
+    monkeypatch.setattr(network_module, "WEBSOCKETS_AVAILABLE", True)
+
+    ws_real = WebSocketHandler(
+        "ws://example.com/ws",
+        subprotocols=["proto-a"],
+        use_real_websocket_transport=True,
+    )
+    assert ws_real._establish_connection() is True
+    assert connect_kwargs["subprotocols"] == ("proto-a",)
+
+    # Simulated warning guards.
+    ws_warn = WebSocketHandler("ws://example.com/ws")
+    ws_warn._ws_transport_simulated = False
+    ws_warn._warn_simulated_transport_once()
+    ws_warn._ws_transport_simulated = True
+    WebSocketHandler._simulation_notice_issued = True
+    ws_warn._warn_simulated_transport_once()
+
+    # Close websocket with close() exception.
+    class _BadSocket:
+        @staticmethod
+        def close() -> None:
+            raise RuntimeError("close failed")
+
+    ws_close = WebSocketHandler("ws://example.com/ws")
+    ws_close._websocket = _BadSocket()
+    ws_close._close_connection()
+    assert ws_close._websocket is None
+
+    # Socket and datagram emit guards for missing connection.
+    record = LogRecord(level=20, level_name="INFO", message="payload")
+    socket_handler = SocketHandler("localhost", 1234, protocol="tcp")
+    socket_handler._connect = lambda: True  # type: ignore[method-assign]
+    socket_handler._connection = None
+    socket_handler.emit(record)
+
+    datagram_handler = DatagramHandler("localhost", 1234)
+    datagram_handler._connect = lambda: True  # type: ignore[method-assign]
+    datagram_handler._connection = None
+    datagram_handler.emit(record)
+
+
 def test_websocket_handler_real_transport_emits_json_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

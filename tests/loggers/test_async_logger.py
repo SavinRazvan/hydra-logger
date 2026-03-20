@@ -1156,6 +1156,30 @@ def test_async_logger_health_and_reasoning_remaining_branches(
     logger.close()
 
 
+def test_async_logger_file_destination_without_config_and_sync_coroutine_guard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = AsyncLogger()
+        logger._config = None
+        handler = logger._create_handler_from_destination(
+            LogDestination(type="file", path="no-config.log")
+        )
+        assert handler.__class__.__name__ == "NullHandler"
+
+        def _sync_callable() -> str:
+            return "sync-value"
+
+        monkeypatch.setattr(asyncio, "iscoroutinefunction", lambda _fn: True)
+        result = await logger._execute_work_with_semaphore(
+            asyncio.Semaphore(1), _sync_callable
+        )
+        assert result == "sync-value"
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
 def test_async_logger_formatter_colored_console_branch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

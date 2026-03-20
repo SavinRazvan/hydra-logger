@@ -1095,6 +1095,36 @@ def test_composite_async_time_based_flush_and_component_bulk_non_string_conversi
     asyncio.run(_run())
 
 
+def test_composite_async_direct_io_empty_payload_and_runtime_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run() -> None:
+        logger = CompositeAsyncLogger(components=[], use_direct_io=True)
+        logger._write_direct_io_payload(None, "")
+
+        logger._direct_io_buffer = ["payload"]
+        monkeypatch.setattr(
+            "hydra_logger.utils.time_utility.TimeUtility.perf_counter",
+            lambda: 1.0,
+        )
+        monkeypatch.setattr(
+            asyncio,
+            "get_running_loop",
+            lambda: (_ for _ in ()).throw(RuntimeError("no-running-loop")),
+        )
+        captured: list[str] = []
+
+        def _capture_write(_file_path, payload):  # type: ignore[no-untyped-def]
+            captured.append(payload)
+
+        monkeypatch.setattr(logger, "_write_direct_io_payload", _capture_write)
+        await logger._flush_direct_io_async()
+        assert captured == ["payload"]
+        await logger.aclose()
+
+    asyncio.run(_run())
+
+
 def test_composite_async_close_coroutine_branch_and_error_count_warning() -> None:
     class CoroutineClose:
         name = "coroutine-close"
