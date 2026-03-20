@@ -409,6 +409,43 @@ def test_extension_processor_non_data_extension_failure_uses_owner_policy() -> N
         processor.apply_non_data_protection_extensions(record, manager, None)
 
 
+def test_extension_processor_non_data_extensions_returns_record_when_manager_missing() -> None:
+    processor = ExtensionProcessor()
+    record = SimpleNamespace(message="x", context={"k": "v"}, extra={"n": 1})
+
+    updated = processor.apply_non_data_protection_extensions(record, None, None)
+
+    assert updated is record
+    assert updated.message == "x"
+    assert updated.context == {"k": "v"}
+    assert updated.extra == {"n": 1}
+
+
+def test_extension_processor_non_data_extensions_skips_other_security_extensions() -> None:
+    class SuffixExtension(ExtensionBase):
+        def process(self, data):  # type: ignore[no-untyped-def]
+            if isinstance(data, str):
+                return f"{data}:N"
+            return data
+
+    manager = ExtensionManager()
+    manager.register_extension_type("suffix", SuffixExtension)
+    manager.create_extension("append_non_security", "suffix", enabled=True)
+    manager.add_extension("security_other", SecurityExtension(enabled=True, patterns=["x"]))
+    manager.set_processing_order(["security_other", "append_non_security"])
+
+    processor = ExtensionProcessor()
+    record = SimpleNamespace(message="msg", context=None, extra=None)
+
+    updated = processor.apply_non_data_protection_extensions(
+        record,
+        manager,
+        None,
+    )
+
+    assert updated.message == "msg:N"
+
+
 def test_extension_processor_non_data_extensions_skip_disabled_and_log_ownerless_failures(
     caplog,
 ) -> None:
