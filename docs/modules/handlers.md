@@ -71,10 +71,11 @@ sequenceDiagram
   (batched NDJSON) are configured on `LogDestination` for `network_http` only; see
   `docs/plans/config-from-path-enterprise.md`.
 - **WebSocket**: default mode is a **simulated** transport (stats only) with a one-time
-  `UserWarning` on first `emit`. Set **`use_real_websocket_transport=True`** and install
-  the **`network`** extra (`websockets`) to use the synchronous `websockets.sync.client`
-  path for real frames (JSON payload per emit). Connection lifecycle follows handler
-  `close()` semantics.
+  `UserWarning` on first `emit`. Set **`use_real_websocket_transport=True`** on
+  **`WebSocketHandler`** or **`use_real_websocket_transport: true`** on a `network_ws`
+  **`LogDestination`**, and install the **`network`** extra (`websockets`) to use the
+  synchronous `websockets.sync.client` path for real frames (JSON payload per emit).
+  Connection lifecycle follows handler `close()` semantics.
 - **Diagnostics**: `AsyncFileHandler` routes operational messages through
   `hydra_logger.utils.internal_diagnostics` (logger `hydra_logger.internal`, `NullHandler` by default)
   instead of stdout/stderr.

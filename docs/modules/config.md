@@ -65,6 +65,7 @@ Network destinations may set:
 
 - **`http_payload_encoder`**: registered name for a Python-side encoder (see `docs/plans/config-from-path-enterprise.md`).
 - **`http_batch_size` / `http_batch_flush_interval`**: optional batching for HTTP sinks.
+- **`use_real_websocket_transport`** (for `network_ws` only): when `True`, `WebSocketHandler` uses real WebSocket I/O (requires the `network` extra / `websockets`). Default remains simulated transport for config-driven `network_ws` until this flag is set.
 
 Canonical design notes: [`plans/config-from-path-enterprise.md`](../plans/config-from-path-enterprise.md).
 

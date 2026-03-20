@@ -150,6 +150,13 @@ class LogDestination(BaseModel):
             "this many seconds even if batch is not full."
         ),
     )
+    use_real_websocket_transport: bool = Field(
+        default=False,
+        description=(
+            "For network_ws: when True, use real WebSocket I/O (requires the network "
+            "extra and websockets). When False, transport is simulated by default."
+        ),
+    )
 
     # Handler-specific configuration
     max_queue_size: Optional[int] = Field(
@@ -375,6 +382,11 @@ class LogDestination(BaseModel):
                 raise ValueError("http_payload_encoder is only valid for network_http")
             if self.http_batch_size > 0:
                 raise ValueError("http_batch_size is only valid for network_http")
+
+        if self.type != "network_ws" and self.use_real_websocket_transport:
+            raise ValueError(
+                "use_real_websocket_transport is only valid for network_ws"
+            )
 
         return self
 

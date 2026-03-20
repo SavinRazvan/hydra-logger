@@ -124,8 +124,11 @@ Recommended starting posture for services where **lost or silent-dropped logs** 
   core ships **no default sink**—wire a custom handler or expect `NullHandler` with
   policy-governed diagnostics (`docs/modules/config.md`, `docs/modules/handlers.md`).
 - For **`network_ws`**, default remains **simulated**; opt into real I/O with
-  `use_real_websocket_transport=True` on `WebSocketHandler` and the **`network`**
+  `use_real_websocket_transport=True` on `WebSocketHandler` (or
+  **`use_real_websocket_transport`** on the **`LogDestination`**) and the **`network`**
   extra (`websockets`).
+- On shutdown, inspect **`get_health_status()`** for **`handler_close_failures`** /
+  **`last_lifecycle_error`** when using strict reliability settings (`docs/OPERATIONS.md`).
 - Do **not** rely on regex redaction as DLP—see `docs/OPERATIONS.md`.
 
 Anti-patterns: assuming PyPI version matches a git checkout without running

@@ -59,6 +59,8 @@ flowchart TD
 
 - Some logger docstrings describe legacy capabilities; rely on implementation and exports, not historical narrative comments.
 - Composite async internals include direct I/O buffering logic; evaluate carefully before changing defaults.
+- Legacy **plugin** hooks (`enable_plugins`, `_execute_pre_log_plugins` / `_execute_post_log_plugins`) are no-ops; extension behavior is driven by **`LoggingConfig.extensions`** and the factory-built **`ExtensionManager`** on the config (`_extension_manager`). Data protection reuses the **`SecurityExtension`** instance from that manager when `enable_data_protection` is true.
+- **`close()` / `aclose()`** failures on individual handlers are surfaced via **`hydra_logger.utils.reliability_lifecycle`** (internal diagnostics + `handler_close_failures` on `get_health_status()`), and honor **`strict_reliability_mode`** / **`reliability_error_policy`**.
 
 ## Maintenance Notes
 

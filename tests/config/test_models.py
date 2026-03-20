@@ -173,6 +173,21 @@ def test_log_destination_http_extensions_only_on_network_http() -> None:
         )
 
 
+def test_log_destination_ws_real_transport_only_on_network_ws() -> None:
+    with pytest.raises(ValueError, match="use_real_websocket_transport"):
+        LogDestination(
+            type="network_http",
+            url="https://example.com/ingest",
+            use_real_websocket_transport=True,
+        )
+    ws = LogDestination(
+        type="network_ws",
+        url="wss://example.com/stream",
+        use_real_websocket_transport=True,
+    )
+    assert ws.use_real_websocket_transport is True
+
+
 def test_logging_config_schema_version_guard() -> None:
     from hydra_logger.config.models import LoggingConfig, LogLayer
 

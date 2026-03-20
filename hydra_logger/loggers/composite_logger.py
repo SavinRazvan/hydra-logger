@@ -23,6 +23,7 @@ from ..core.exceptions import HydraLoggerError
 from ..handlers.base_handler import BaseHandler
 from ..types.records import LogRecordFactory
 from ..utils import internal_diagnostics, slo_metrics
+from ..utils.reliability_lifecycle import handle_lifecycle_failure
 from ..utils.time_utility import TimeUtility
 from .base import BaseLogger
 from .pipeline import ComponentDispatcher
@@ -58,6 +59,12 @@ class CompositeLogger(BaseLogger):
         self._initialized = False
         self._closed = False
         self._batch_dispatch_errors = 0
+        self._handler_close_failures = 0
+        self._last_lifecycle_error: Optional[str] = None
+        self._close_completed = True
+        self._strict_reliability_mode = False
+        self._reliability_error_policy = "silent"
+        self._failure_warning_interval = 100
 
         # FIX: Setup configuration and handlers if config provided
         if config:
@@ -75,6 +82,14 @@ class CompositeLogger(BaseLogger):
             self._config = LoggingConfig(**config)
         else:
             self._config = config
+
+        if self._config:
+            self._strict_reliability_mode = bool(
+                getattr(self._config, "strict_reliability_mode", False)
+            )
+            self._reliability_error_policy = str(
+                getattr(self._config, "reliability_error_policy", "silent")
+            ).lower()
 
         # Setup layers and handlers
         self._setup_layers()
@@ -142,8 +157,11 @@ class CompositeLogger(BaseLogger):
             if hasattr(component, "close") and callable(component.close):
                 try:
                     component.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_lifecycle_failure(
+                        f"remove_component_close:{getattr(component, 'name', type(component).__name__)}",
+                        error,
+                    )
 
             self.components.remove(component)
 
@@ -211,28 +229,61 @@ class CompositeLogger(BaseLogger):
             except Exception:
                 pass
 
+    def _increment_handler_close_failures(self) -> None:
+        self._handler_close_failures += 1
+
+    def _set_last_lifecycle_error(self, message: str) -> None:
+        self._last_lifecycle_error = message
+
+    def _report_lifecycle_failure(self, context: str, error: Exception) -> None:
+        handle_lifecycle_failure(
+            context=context,
+            error=error,
+            logger_name=self.name,
+            strict_reliability_mode=self._strict_reliability_mode,
+            reliability_error_policy=self._reliability_error_policy,
+            failure_warning_interval=self._failure_warning_interval,
+            increment_close_failures=self._increment_handler_close_failures,
+            get_close_failure_count=lambda: self._handler_close_failures,
+            set_last_error=self._set_last_lifecycle_error,
+        )
+
     def close(self):
         """Close all component loggers."""
         if self._closed:
             return
 
+        self._close_completed = False
         try:
             # Close all components
             for component in self.components:
                 try:
                     if hasattr(component, "close") and callable(component.close):
                         component.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_lifecycle_failure(
+                        f"component_close:{getattr(component, 'name', type(component).__name__)}",
+                        error,
+                    )
 
-            # Clear components
-            self.components.clear()
+            try:
+                self.components.clear()
+            except Exception as error:
+                try:
+                    self._report_lifecycle_failure("composite_close_cleanup", error)
+                except HydraLoggerError:
+                    self._closed = True
+                    raise
+                return
 
             # Mark as closed
             self._closed = True
+            self._close_completed = True
 
-        except Exception:
-            pass
+        except HydraLoggerError:
+            if not self._closed:
+                self._closed = True
+            raise
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get aggregate health status of all components."""
@@ -242,6 +293,13 @@ class CompositeLogger(BaseLogger):
                 "closed": self._closed,
                 "component_count": 0,
                 "overall_health": "unknown",
+                "handler_close_failures": self._handler_close_failures,
+                "close_completed": self._close_completed,
+                **(
+                    {"last_lifecycle_error": self._last_lifecycle_error}
+                    if self._last_lifecycle_error is not None
+                    else {}
+                ),
             }
 
         # Collect health status from all components
@@ -275,14 +333,19 @@ class CompositeLogger(BaseLogger):
                 )
                 overall_health = "unhealthy"
 
-        return {
+        payload = {
             "initialized": self._initialized,
             "closed": self._closed,
             "component_count": len(self.components),
             "overall_health": overall_health,
             "components": component_health,
             "batch_dispatch_errors": self._batch_dispatch_errors,
+            "handler_close_failures": self._handler_close_failures,
+            "close_completed": self._close_completed,
         }
+        if self._last_lifecycle_error is not None:
+            payload["last_lifecycle_error"] = self._last_lifecycle_error
+        return payload
 
     def __enter__(self):
         """Context manager entry."""
@@ -451,6 +514,20 @@ class CompositeAsyncLogger(BaseLogger):
         self._deferred_async_closes = 0
         self._deferred_async_close_failures = 0
         self._deferred_close_tasks: set[asyncio.Task[Any]] = set()
+        self._handler_close_failures = 0
+        self._last_lifecycle_error: Optional[str] = None
+        self._close_completed = True
+        self._strict_reliability_mode = (
+            bool(getattr(self._config, "strict_reliability_mode", False))
+            if self._config
+            else False
+        )
+        self._reliability_error_policy = (
+            str(getattr(self._config, "reliability_error_policy", "silent")).lower()
+            if self._config
+            else "silent"
+        )
+        self._failure_warning_interval = 100
 
         # Add default async console handler if no components and not using direct I/O
         if not self.components and not self._use_direct_io:
@@ -551,10 +628,32 @@ class CompositeAsyncLogger(BaseLogger):
             if hasattr(component, "close") and callable(component.close):
                 try:
                     component.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_async_lifecycle_failure(
+                        f"remove_component_close:{getattr(component, 'name', type(component).__name__)}",
+                        error,
+                    )
 
             self.components.remove(component)
+
+    def _increment_async_handler_close_failures(self) -> None:
+        self._handler_close_failures += 1
+
+    def _set_async_last_lifecycle_error(self, message: str) -> None:
+        self._last_lifecycle_error = message
+
+    def _report_async_lifecycle_failure(self, context: str, error: Exception) -> None:
+        handle_lifecycle_failure(
+            context=context,
+            error=error,
+            logger_name=self.name,
+            strict_reliability_mode=self._strict_reliability_mode,
+            reliability_error_policy=self._reliability_error_policy,
+            failure_warning_interval=self._failure_warning_interval,
+            increment_close_failures=self._increment_async_handler_close_failures,
+            get_close_failure_count=lambda: self._handler_close_failures,
+            set_last_error=self._set_async_last_lifecycle_error,
+        )
 
     def get_component(self, name: str) -> Optional[BaseLogger]:
         """Get a component by name."""
@@ -988,6 +1087,7 @@ class CompositeAsyncLogger(BaseLogger):
         if self._closed:
             return
 
+        self._close_completed = False
         try:
             # Mark as closed
             self._closed = True
@@ -1010,53 +1110,63 @@ class CompositeAsyncLogger(BaseLogger):
                                 None, component.close
                             )
                         )
-                except Exception as e:
-                    component_name = getattr(component, "name", "unknown")
-                    internal_diagnostics.warning(
-                        "Error preparing to close component %s: %s",
-                        component_name,
-                        e,
+                except Exception as error:
+                    self._report_async_lifecycle_failure(
+                        f"component_close_prepare:{getattr(component, 'name', 'unknown')}",
+                        error,
                     )
 
             if close_tasks:
                 try:
                     results = await asyncio.gather(*close_tasks, return_exceptions=True)
-                    error_count = sum(
-                        1 for result in results if isinstance(result, Exception)
+                    for result in results:
+                        if isinstance(result, Exception):
+                            self._deferred_async_close_failures += 1
+                            self._report_async_lifecycle_failure(
+                                "component_aclose_gather", result
+                            )
+                except Exception as error:
+                    self._report_async_lifecycle_failure(
+                        "component_gather_close", error
                     )
-                    if error_count > 0:
-                        self._deferred_async_close_failures += error_count
-                        internal_diagnostics.warning(
-                            "%s component(s) failed to close properly",
-                            error_count,
-                        )
-                except Exception as e:
-                    internal_diagnostics.warning("Error closing components: %s", e)
 
             if self._deferred_close_tasks:
                 deferred_results = await asyncio.gather(
                     *list(self._deferred_close_tasks), return_exceptions=True
                 )
-                deferred_errors = sum(
-                    1 for result in deferred_results if isinstance(result, Exception)
-                )
-                if deferred_errors > 0:
-                    self._deferred_async_close_failures += deferred_errors
+                for result in deferred_results:
+                    if isinstance(result, Exception):
+                        self._deferred_async_close_failures += 1
+                        self._report_async_lifecycle_failure(
+                            "deferred_component_aclose", result
+                        )
                 self._deferred_close_tasks.clear()
 
-            # Clear components
-            self.components.clear()
+            try:
+                self.components.clear()
+            except Exception as error:
+                try:
+                    self._report_async_lifecycle_failure("async_composite_clear", error)
+                except HydraLoggerError:
+                    raise
+                return
 
-        except Exception as e:
-            internal_diagnostics.error("Unexpected error during async close: %s", e)
-            # Still mark as closed even if there were errors
-            self._closed = True
+            self._close_completed = True
+
+        except HydraLoggerError:
+            raise
+        except Exception as error:
+            try:
+                self._report_async_lifecycle_failure("async_composite_close", error)
+            except HydraLoggerError:
+                raise
 
     def close(self):
         """Synchronous close method for backward compatibility."""
         if self._closed:
             return
 
+        self._close_completed = False
         try:
             # Mark as closed
             self._closed = True
@@ -1072,15 +1182,34 @@ class CompositeAsyncLogger(BaseLogger):
                         continue
                     if hasattr(component, "close") and callable(component.close):
                         component.close()
-                except Exception:
-                    pass
+                except Exception as error:
+                    self._report_async_lifecycle_failure(
+                        f"component_close:{getattr(component, 'name', type(component).__name__)}",
+                        error,
+                    )
 
-            # Clear components
-            self.components.clear()
+            try:
+                self.components.clear()
+            except Exception as error:
+                try:
+                    self._report_async_lifecycle_failure(
+                        "composite_async_sync_close_cleanup", error
+                    )
+                except HydraLoggerError:
+                    raise
+                return
 
-        except Exception:
-            # Still mark as closed even if there were errors
-            self._closed = True
+            self._close_completed = True
+
+        except HydraLoggerError:
+            raise
+        except Exception as error:
+            try:
+                self._report_async_lifecycle_failure(
+                    "composite_async_sync_close", error
+                )
+            except HydraLoggerError:
+                raise
 
     async def aclose(self):
         """Async close method for async context manager support."""
@@ -1089,7 +1218,7 @@ class CompositeAsyncLogger(BaseLogger):
     def get_health_status(self) -> Dict[str, Any]:
         """Get aggregate health status of all components."""
         if not self.components:
-            return {
+            payload_empty = {
                 "initialized": self._initialized,
                 "closed": self._closed,
                 "component_count": 0,
@@ -1097,7 +1226,12 @@ class CompositeAsyncLogger(BaseLogger):
                 "deferred_async_closes": self._deferred_async_closes,
                 "deferred_async_close_failures": self._deferred_async_close_failures,
                 "pending_deferred_closes": len(self._deferred_close_tasks),
+                "handler_close_failures": self._handler_close_failures,
+                "close_completed": self._close_completed,
             }
+            if self._last_lifecycle_error is not None:
+                payload_empty["last_lifecycle_error"] = self._last_lifecycle_error
+            return payload_empty
 
         # Collect health status from all components
         component_health = []
@@ -1130,7 +1264,7 @@ class CompositeAsyncLogger(BaseLogger):
                 )
                 overall_health = "unhealthy"
 
-        return {
+        payload = {
             "initialized": self._initialized,
             "closed": self._closed,
             "component_count": len(self.components),
@@ -1141,7 +1275,12 @@ class CompositeAsyncLogger(BaseLogger):
             "deferred_async_close_failures": self._deferred_async_close_failures,
             "pending_deferred_closes": len(self._deferred_close_tasks),
             "uptime": TimeUtility.perf_counter() - self._start_time,
+            "handler_close_failures": self._handler_close_failures,
+            "close_completed": self._close_completed,
         }
+        if self._last_lifecycle_error is not None:
+            payload["last_lifecycle_error"] = self._last_lifecycle_error
+        return payload
 
     def get_stats(self) -> Dict[str, Any]:
         """Get performance statistics including object pool stats."""
