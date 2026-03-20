@@ -11,11 +11,24 @@ This audit captures every file currently under `examples/` and records:
 
 The focus is repository-internal evidence only (file names and in-repo content intent), to prepare the next refactor pass.
 
+## Current layout (maintained)
+
+Use this as the **source of truth** for onboarding; the big table below is partly **historical**.
+
+- **Python tutorials:** `examples/tutorials/python/t01_*.py` … `t20_*.py`
+- **Notebooks:** `examples/tutorials/notebooks/t##_*.ipynb` (regenerate via `temp_nb_factory/generate_notebooks.py`)
+- **Notebook bootstrap:** `examples/tutorials/utility/` (`notebook_bootstrap`, `HYDRA_LOGGER_REPO`, repo-root cwd)
+- **Configs:** `examples/config/*.yaml` (see `examples/config/README.md` for `base_log_dir` / path rules)
+- **Outputs:** `examples/logs/tutorials/` (gitignored)
+- **Smoke runner:** `examples/run_all_examples.py` (all Python tutorials)
+- **Tests:** `tests/examples/` (`pytest tests/examples -q`) — assets, runner, branch coverage, `utility`
+- **Docs:** `examples/README.md`, `examples/tutorials/README.md`, `examples/tutorials/notebooks/README.md`
+
 ## Full Inventory: File Name -> Goal
 
 | File | Goal / Purpose | Track | Notes |
 |---|---|---|---|
-| `examples/README.md` | Main entrypoint for examples; directs users to tutorial-first onboarding. | docs/onboarding | Path reference mismatch to notebook location. |
+| `examples/README.md` | Main entrypoint; canonical layout + links to tutorials/tests. | docs/onboarding | Keep in sync with `tutorials/README.md`. |
 | `examples/01_format_control.py` | Show per-destination output format control (`json`, plain, `json-lines`). | legacy/foundations | Keep as legacy baseline. |
 | `examples/02_destination_control.py` | Show per-layer destination routing (`auth`, `api`, `error`). | legacy/foundations | Good behavior-oriented sample. |
 | `examples/03_extension_control.py` | Show config-level extension enable/disable behavior. | legacy/extensions | Overlaps with `13_...` and `tutorials/t04`. |
@@ -33,7 +46,7 @@ The focus is repository-internal evidence only (file names and in-repo content i
 | `examples/15_eda_microservices_patterns.py` | Show EDA/microservice logging patterns and graceful shutdown. | legacy/operations | Strong advanced reference. |
 | `examples/16_multi_layer_web_app.py` | Simulate multi-layer web app with concurrent logging flow. | legacy/framework-patterns | Heavy complexity for onboarding tier 1. |
 | `examples/17_network_typed_destinations.py` | Show typed network destination usage with deterministic stubs. | legacy/network | Overlaps `tutorials/t12`-`t15`. |
-| `examples/run_all_examples.py` | Execute numbered legacy examples and report pass/fail. | operations/tooling | Does not cover tutorials/notebook/config validation paths. |
+| `examples/run_all_examples.py` | Execute all `examples/tutorials/python/*.py` and report pass/fail. | operations/tooling | Covered by `tests/examples/`; notebooks not executed in CI by default. |
 | `examples/config/README.md` | Explain config preset library and loading flow. | docs/config | Clear and reusable. |
 | `examples/config/minimal.yaml` | Minimal valid YAML logger config starter. | config/foundation | Currently duplicates `base.yaml`. |
 | `examples/config/base.yaml` | Base preset intended for extension overlays. | config/foundation | Currently same content as `minimal.yaml`. |
@@ -47,34 +60,19 @@ The focus is repository-internal evidence only (file names and in-repo content i
 | `examples/config/with_network_ws.yaml` | Basic typed `network_ws` preset. | config/network | Keep notes on simulated-vs-real WS behavior in docs. |
 | `examples/config/with_network_socket_datagram.yaml` | Socket + datagram typed destination preset. | config/network | Good transport cookbook piece. |
 | `examples/config/enterprise_onboarding_starter.yaml` | Enterprise onboarding preset combining strict + ops/network. | config/enterprise | Good enterprise starter artifact. |
-| `examples/tutorials/README.md` | Tutorial index and progression map (`t01`-`t20`). | tutorials/docs | Notebook path reference mismatch (`tutorials` vs `notebooks`). |
-| `examples/tutorials/t01_production_quick_start.py` | Production-safe quick start across sync/async/composite modes. | tutorials/quick-start | Strong first tutorial. |
-| `examples/tutorials/t02_configuration_recipes.py` | Environment and destination configuration recipes. | tutorials/config | Clear progression after `t01`. |
-| `examples/tutorials/t03_layers_customization.py` | Layer taxonomy, context routing, and customization patterns. | tutorials/layers | Strong onboarding for layer model. |
-| `examples/tutorials/t04_extensions_plugins.py` | Built-in extension toggles plus custom extension creation. | tutorials/extensions | Primary canonical extension tutorial. |
-| `examples/tutorials/t05_framework_patterns.py` | Framework-style integration for API + worker flows. | tutorials/framework | Good practical app integration sample. |
-| `examples/tutorials/t06_migration_adoption.py` | Migration path from stdlib logging to Hydra logger. | tutorials/migration | Useful adoption bridge. |
-| `examples/tutorials/t07_operational_playbook.py` | Operational checks, validation flow, and rollout guidance. | tutorials/operations | Useful runbook-aligned sample. |
-| `examples/tutorials/t08_console_configuration_cookbook.py` | Console formatting and color behavior cookbook. | tutorials/console-format | Good operator-facing formatting reference. |
-| `examples/tutorials/t09_levels_columns_date_and_destinations.py` | Advanced level, columns, date, and destination settings. | tutorials/advanced-config | Good power-user config walkthrough. |
-| `examples/tutorials/t10_enterprise_profile_config.py` | Show enterprise profile configuration behavior and output. | tutorials/enterprise | Contains runtime compatibility shim; verify still needed. |
-| `examples/tutorials/t11_enterprise_policy_layers.py` | Show enterprise policy layering behavior. | tutorials/enterprise | Contains compatibility shim; verify still needed. |
-| `examples/tutorials/t12_network_http_typed_destination.py` | Show typed HTTP destination onboarding flow. | tutorials/network | Good typed network intro. |
-| `examples/tutorials/t13_network_ws_resilient_typed_destination.py` | Show resilient typed WS destination with retry semantics. | tutorials/network | Good WS tutorial with reliability emphasis. |
-| `examples/tutorials/t14_network_local_http_simulation.py` | Demonstrate local in-process HTTP ingest simulation. | tutorials/network | Useful deterministic local validation path. |
-| `examples/tutorials/t15_enterprise_network_hardening_playbook.py` | Enterprise network hardening playbook across transports. | tutorials/network-enterprise | Strong enterprise-oriented tutorial. |
-| `examples/tutorials/t16_enterprise_config_templates_at_scale.py` | Show config templates and scaling workflow using `extends`. | tutorials/config-at-scale | Good medium/advanced config operations bridge. |
-| `examples/tutorials/t17_enterprise_benchmark_comparison_workflow.py` | Demonstrate benchmark profile run + comparison workflow. | tutorials/benchmark | Strong performance governance tutorial. |
-| `examples/tutorials/t18_enterprise_bring_your_own_config_benchmark.py` | Show BYOC benchmark workflow and result persistence. | tutorials/benchmark+config | Useful for adoption in existing systems. |
-| `examples/tutorials/t19_enterprise_nightly_drift_snapshot.py` | Produce nightly drift snapshot from benchmark history. | tutorials/benchmark-ops | Good continuous performance tracking sample. |
-| `examples/notebooks/t20_notebook_hydra_config_onboarding.ipynb` | Interactive notebook onboarding for config path + emitted artifacts. | tutorials/notebook | Path referenced incorrectly in both README files. |
+| `examples/tutorials/README.md` | Tutorial index, validation commands, track matrix. | tutorials/docs | Single consolidated doc (no duplicate blocks). |
+| `examples/tutorials/python/t01_production_quick_start.py` | YAML + `create_sync_logger` + layered DI demo. | tutorials/quick-start | Pairs with notebook T01 (multi-cell). |
+| `examples/tutorials/python/t02_*.py` … `t19_*.py` | (same goals as before; paths now under `python/`). | tutorials/* | See tutorial README matrix. |
+| `examples/tutorials/python/t20_notebook_hydra_config_onboarding.py` | Script twin for T20 notebook theme. | tutorials/notebook | Notebook lives under `notebooks/`. |
+| `examples/tutorials/notebooks/t##_*.ipynb` | Generated hands-on tutorials; T01 multi-cell. | tutorials/notebook | Source: `temp_nb_factory/`. |
+| `examples/tutorials/utility/` | Notebook path/bootstrap helpers. | tutorials/tooling | Used by generated notebook first cells. |
+| `examples/tutorials/notebooks/temp_nb_factory/` | `generate_notebooks.py`, `scenarios.py`. | tutorials/tooling | Regenerate ipynb after edits. |
 
 ## Cross-File Findings
 
 ### 1) Path And Reference Consistency
 
-- Notebook path is documented as if under `examples/tutorials/`, but file is under `examples/notebooks/`.
-- Affects `examples/README.md` and `examples/tutorials/README.md`.
+- **Resolved:** notebooks live under `examples/tutorials/notebooks/`; READMEs updated.
 
 ### 2) Overlap And Redundancy
 
@@ -88,8 +86,8 @@ The focus is repository-internal evidence only (file names and in-repo content i
 
 ### 4) Onboarding Flow Friction
 
-- Repository has two parallel paths: legacy numbered examples and enterprise tutorial series.
-- `run_all_examples.py` validates legacy numbered scripts only, so tutorial path lacks equivalent single-command runner coverage.
+- **Reduced:** `run_all_examples.py` runs Python tutorials; `tests/examples` adds CI coverage.
+- Legacy numbered scripts removed from tree (archival only).
 
 ## Suggested Refactor Priorities (Input For Next Instructions)
 
@@ -333,15 +331,17 @@ The `examples/` tree is rich and valuable, with strong enterprise tutorial cover
 
 ## Implementation Status: Canonical Rebuild
 
-Status: in progress and actively applied in repository.
+Status: **applied**; docs/tests aligned with layout below (see also **Current layout** above).
 
 ### Canonical Structure Applied
 
 - `examples/config/`
 - `examples/tutorials/python/`
-- `examples/tutorials/notebooks/`
+- `examples/tutorials/notebooks/` (+ `temp_nb_factory/` generator)
 - `examples/tutorials/shared/`
+- `examples/tutorials/utility/` (notebook bootstrap)
 - `examples/run_all_examples.py`
+- `tests/examples/` (pytest guardrails for tutorials + runner + utility)
 
 ### Config Rename / Standardization Matrix
 

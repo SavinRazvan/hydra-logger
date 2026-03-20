@@ -97,6 +97,19 @@ true`, preserves artifacts even when the tool exits non-zero) and **blocking gat
 (explicit `mypy` / `bandit` / `pip-audit` invocations). This avoids shell `|| true`
 patterns that can obscure failures while still uploading machine-readable reports.
 
+## Examples and tutorials
+
+- **`tests/examples/`** — tutorial **asset** presence (`test_tutorial_assets.py`), **`run_all_examples.py`**
+  behavior (`test_run_all_examples.py`, `test_examples_branch_coverage.py`), **notebook generator**
+  contract (`test_examples_and_tutorials_runtime.py` where applicable), and **`examples/tutorials/utility`**
+  (`test_tutorial_utility.py`).
+- Run: `.hydra_env/bin/python -m pytest tests/examples -q`.
+- **`examples/run_all_examples.py`** — optional full smoke of all `examples/tutorials/python/*.py`
+  (also exercised by tests).
+- **Jupyter notebooks** under `examples/tutorials/notebooks/` are generated from
+  `temp_nb_factory/generate_notebooks.py`; they are not part of the default CI matrix unless
+  explicitly added.
+
 ## Logging Artifact Policy
 
 Runtime logs are destination-controlled:

@@ -16,6 +16,11 @@ Use one folder per production module when tests are added:
 ```text
 tests/
   README.md
+  examples/
+    test_tutorial_assets.py
+    test_run_all_examples.py
+    test_examples_and_tutorials_runtime.py
+    ...
   loggers/
     test_sync_logger_*.py
     test_async_logger_*.py

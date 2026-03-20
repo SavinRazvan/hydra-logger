@@ -70,8 +70,11 @@ Examples and tutorials:
 - Tutorial tracks: [`examples/tutorials/README.md`](examples/tutorials/README.md)
 - Full examples catalog: [`examples/README.md`](examples/README.md)
 - Run examples individually with `.hydra_env/bin/python <script_path>`.
-- Most tutorials write to `examples/logs/...`; network simulation tutorials may also
-  emit local result artifacts.
+- Most tutorials write under `examples/logs/tutorials/` (gitignored); network tutorials may
+  emit JSON artifacts there too.
+- **Notebooks:** open from repo root or set `HYDRA_LOGGER_REPO`; see
+  `examples/tutorials/notebooks/README.md`.
+- **CI:** tutorial scripts and layout are covered by `tests/examples/` (`pytest tests/examples -q`).
 
 ## Install
 
@@ -360,6 +363,9 @@ Quality and validation commands:
 
 # Run all examples
 .hydra_env/bin/python examples/run_all_examples.py
+
+# Tutorial guardrails (assets, runner, notebook factory contract)
+.hydra_env/bin/python -m pytest tests/examples -q
 
 # Performance benchmark
 .hydra_env/bin/python benchmark/performance_benchmark.py
