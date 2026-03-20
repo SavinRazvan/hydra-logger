@@ -686,7 +686,7 @@ class SyncLogger(BaseLogger):
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get the health status of the logger."""
-        health_status = {
+        health_status: Dict[str, Any] = {
             "initialized": self._initialized,
             "closed": self._closed,
             "log_count": self._log_count,
