@@ -10,6 +10,8 @@ All notable, verified changes to Hydra-Logger are documented here.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-03-19
+
 ### Changed
 
 - CI lint: `flake8` now fails the build on pyflakes/pycodestyle issues under black’s
