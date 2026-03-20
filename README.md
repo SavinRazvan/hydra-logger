@@ -62,7 +62,7 @@ Start quickly:
 
 ```bash
 pip install hydra-logger
-.hydra_env/bin/python examples/tutorials/t01_production_quick_start.py
+.hydra_env/bin/python examples/tutorials/python/t01_production_quick_start.py
 ```
 
 Examples and tutorials:
@@ -70,8 +70,11 @@ Examples and tutorials:
 - Tutorial tracks: [`examples/tutorials/README.md`](examples/tutorials/README.md)
 - Full examples catalog: [`examples/README.md`](examples/README.md)
 - Run examples individually with `.hydra_env/bin/python <script_path>`.
-- Most tutorials write to `logs/examples/...`; network simulation tutorials may also
-  emit local result artifacts.
+- Most tutorials write under `examples/logs/tutorials/` (gitignored); network tutorials may
+  emit JSON artifacts there too.
+- **Notebooks:** open from repo root or set `HYDRA_LOGGER_REPO`; see
+  `examples/tutorials/notebooks/README.md`.
+- **CI:** tutorial scripts and layout are covered by `tests/examples/` (`pytest tests/examples -q`).
 
 ## Install
 
@@ -361,6 +364,9 @@ Quality and validation commands:
 # Run all examples
 .hydra_env/bin/python examples/run_all_examples.py
 
+# Tutorial guardrails (assets, runner, notebook factory contract)
+.hydra_env/bin/python -m pytest tests/examples -q
+
 # Performance benchmark
 .hydra_env/bin/python benchmark/performance_benchmark.py
 
@@ -371,15 +377,15 @@ Quality and validation commands:
 Enterprise tutorial tracks:
 
 ```bash
-.hydra_env/bin/python examples/tutorials/t01_production_quick_start.py
-.hydra_env/bin/python examples/tutorials/t03_layers_customization.py
-.hydra_env/bin/python examples/tutorials/t04_extensions_plugins.py
-.hydra_env/bin/python examples/tutorials/t07_operational_playbook.py
-.hydra_env/bin/python examples/tutorials/t10_enterprise_profile_config.py
-.hydra_env/bin/python examples/tutorials/t11_enterprise_policy_layers.py
-.hydra_env/bin/python examples/tutorials/t12_network_http_typed_destination.py
-.hydra_env/bin/python examples/tutorials/t13_network_ws_resilient_typed_destination.py
-.hydra_env/bin/python examples/tutorials/t14_network_local_http_simulation.py
+.hydra_env/bin/python examples/tutorials/python/t01_production_quick_start.py
+.hydra_env/bin/python examples/tutorials/python/t03_layers_customization.py
+.hydra_env/bin/python examples/tutorials/python/t04_extensions_plugins.py
+.hydra_env/bin/python examples/tutorials/python/t07_operational_playbook.py
+.hydra_env/bin/python examples/tutorials/python/t10_enterprise_profile_config.py
+.hydra_env/bin/python examples/tutorials/python/t11_enterprise_policy_layers.py
+.hydra_env/bin/python examples/tutorials/python/t12_network_http_typed_destination.py
+.hydra_env/bin/python examples/tutorials/python/t13_network_ws_resilient_typed_destination.py
+.hydra_env/bin/python examples/tutorials/python/t14_network_local_http_simulation.py
 ```
 
 ## Documentation

@@ -1,141 +1,220 @@
-# Enterprise Onboarding Tutorials
+# Enterprise tutorials
 
-This tutorial suite upgrades the examples folder into a deterministic onboarding path for mixed enterprise audiences:
+Deterministic onboarding for `hydra-logger`: **Python scripts** (`t01`–`t20`), **Jupyter notebooks**
+(same IDs where present), and shared **config** under `examples/config/`.
 
-- backend engineering teams
-- platform/SRE teams
-- full-stack product teams
+## Validation
 
-## Deterministic Run Commands
+| Check | Command |
+|-------|---------|
+| Pytest (assets, runners, branches, `utility`) | `.hydra_env/bin/python -m pytest tests/examples -q` |
+| Smoke all Python tutorials | `.hydra_env/bin/python examples/run_all_examples.py` |
 
-Run tutorials with the project environment to avoid import drift:
+Notebooks are **generated** from `notebooks/temp_nb_factory/`; they are not executed in default CI
+(dependency on Jupyter). Regenerate after changing factory or scenarios:
 
 ```bash
-.hydra_env/bin/python examples/tutorials/t01_production_quick_start.py
-.hydra_env/bin/python examples/tutorials/t02_configuration_recipes.py
-.hydra_env/bin/python examples/tutorials/t03_layers_customization.py
-.hydra_env/bin/python examples/tutorials/t04_extensions_plugins.py
-.hydra_env/bin/python examples/tutorials/t05_framework_patterns.py
-.hydra_env/bin/python examples/tutorials/t06_migration_adoption.py
-.hydra_env/bin/python examples/tutorials/t07_operational_playbook.py
-.hydra_env/bin/python examples/tutorials/t08_console_configuration_cookbook.py
-.hydra_env/bin/python examples/tutorials/t09_levels_columns_date_and_destinations.py
-.hydra_env/bin/python examples/tutorials/t10_enterprise_profile_config.py
-.hydra_env/bin/python examples/tutorials/t11_enterprise_policy_layers.py
-.hydra_env/bin/python examples/tutorials/t12_network_http_typed_destination.py
-.hydra_env/bin/python examples/tutorials/t13_network_ws_resilient_typed_destination.py
-.hydra_env/bin/python examples/tutorials/t14_network_local_http_simulation.py
+python3 examples/tutorials/notebooks/temp_nb_factory/generate_notebooks.py
 ```
 
-## Track Matrix
+## Notebook bootstrap (`utility/`)
 
-Each track follows this recommended structure:
+`examples/tutorials/utility` provides **`notebook_bootstrap()`** and path helpers so notebook cells
+stay short. Notebooks expect **Jupyter started from the repo root** or **`HYDRA_LOGGER_REPO`**
+set to it. See the API table in the source docstring of `utility/__init__.py`.
 
-1. Goal
-2. Prerequisites
-3. Run
-4. Expected output
-5. Customization knobs
-6. Failure modes
-7. Production notes
+Generated cells: `sys.path` + `import utility` + `repo_root = notebook_bootstrap()`.
 
-### T01 Production Quick Start
+**T01** uses **multiple cells**: setup → imports / `CONFIG_PATH` → optional `load_logging_config` →
+`PaymentService` → `create_sync_logger` + scenarios → file tails. Use **Run All** for the full path.
 
-- Goal: choose sync/async/composite logger patterns with safe defaults.
-- Logs: `logs/examples/tutorials/t01_*.jsonl`.
-- Customization: logger type, destination formats, default level.
+Notebook index: `examples/tutorials/notebooks/README.md` — [open](notebooks/README.md).
 
-### T02 Configuration Recipes
+## Python track
 
-- Goal: configure destinations, formats, and environment-aware settings.
-- Logs: `logs/examples/tutorials/t02_*.jsonl`.
-- Customization: layer destinations, format, level thresholds.
+Scripts live in **`examples/tutorials/python/`** (each name must appear in docs for CI):
 
-### T03 Layers Customization
+- `t01_production_quick_start.py`
+- `t02_configuration_recipes.py`
+- `t03_layers_customization.py`
+- `t04_extensions_plugins.py`
+- `t05_framework_patterns.py`
+- `t06_migration_adoption.py`
+- `t07_operational_playbook.py`
+- `t08_console_configuration_cookbook.py`
+- `t09_levels_columns_date_and_destinations.py`
+- `t10_enterprise_profile_config.py`
+- `t11_enterprise_policy_layers.py`
+- `t12_network_http_typed_destination.py`
+- `t13_network_ws_resilient_typed_destination.py`
+- `t14_network_local_http_simulation.py`
+- `t15_enterprise_network_hardening_playbook.py`
+- `t16_enterprise_config_templates_at_scale.py`
+- `t17_enterprise_benchmark_comparison_workflow.py`
+- `t18_enterprise_bring_your_own_config_benchmark.py`
+- `t19_enterprise_nightly_drift_snapshot.py`
+- `t20_notebook_hydra_config_onboarding.py`
 
-- Goal: design layer taxonomy and route per-layer traffic.
-- Logs: `logs/examples/tutorials/t03_layers_*.jsonl`.
-- Customization: layer naming policy, per-layer destination policy, context fields.
+Run from repository root:
 
-### T04 Extensions and Plugins
+```bash
+.hydra_env/bin/python examples/tutorials/python/t01_production_quick_start.py
+```
 
-- Goal: enable/tune built-in extensions and register custom extension types.
-- Logs: `logs/examples/tutorials/t04_extensions.jsonl`.
-- Customization: extension enablement, processing order, plugin registration.
+Run everything:
 
-### T05 Framework Patterns
+```bash
+.hydra_env/bin/python examples/run_all_examples.py
+```
 
-- Goal: apply logging patterns to API and async worker flows.
-- Logs: `logs/examples/tutorials/t05_framework_*.jsonl`.
-- Customization: correlation context propagation and layer mapping.
+## Notebook track
 
-### T06 Migration and Adoption
+Generated `.ipynb` files (subset of the Python track — **no** notebooks for `t05`–`t07`, `t10`,
+`t11`, `t15`). Source of truth: `notebooks/temp_nb_factory/generate_notebooks.py` → `TUTORIAL_SPECS`.
 
-- Goal: migrate incrementally from legacy app logger to layered hydra logger.
-- Logs: `logs/examples/tutorials/t06_migration.jsonl`.
-- Customization: side-by-side rollout and rollback switch strategy.
+| Notebook |
+|----------|
+| `t01_production_quick_start.ipynb` |
+| `t02_configuration_recipes.ipynb` |
+| `t03_layers_customization.ipynb` |
+| `t04_extensions_plugins.ipynb` |
+| `t08_console_configuration_cookbook.ipynb` |
+| `t09_levels_columns_date_and_destinations.ipynb` |
+| `t12_network_http_typed_destination.ipynb` |
+| `t13_network_ws_resilient_typed_destination.ipynb` |
+| `t14_network_local_http_simulation.ipynb` |
+| `t16_enterprise_config_templates_at_scale.ipynb` |
+| `t17_enterprise_benchmark_comparison_workflow.ipynb` |
+| `t18_enterprise_bring_your_own_config_benchmark.ipynb` |
+| `t19_enterprise_nightly_drift_snapshot.ipynb` |
+| `t20_notebook_hydra_config_onboarding.ipynb` |
 
-### T07 Operational Playbook
+Details: [`notebooks/README.md`](notebooks/README.md).
 
-- Goal: run preflight checks and validate onboarding rollout behavior.
-- Logs: `logs/examples/tutorials/t07_ops.jsonl`.
-- Customization: health checks, release gates, smoke workflow.
+```bash
+.hydra_env/bin/python -m jupyter lab examples/tutorials/notebooks/t01_production_quick_start.ipynb
+```
 
-### T08 Console Configuration Cookbook
+## Shared script helpers (`shared/`)
 
-- Goal: configure console output policies for colors, formats, and layer behavior.
-- Logs: `logs/examples/tutorials/t08_*.jsonl` and `logs/examples/tutorials/t08_*.log`.
-- Customization: `use_colors`, console format, per-layer console strategy.
+`examples/tutorials/shared/` — path bootstrap and artifact checks used by some **Python** tutorials
+(not the same as `utility/`, which targets notebooks).
 
-### T09 Levels, Columns, Date, and Destinations
+---
 
-- Goal: teach level inheritance/overrides and advanced formatter customization.
-- Logs: `logs/examples/tutorials/t09_*.jsonl` and `logs/examples/tutorials/t09_*.log`.
-- Customization: global/layer/destination levels, formatter columns, timestamp format, multi-destination routing.
+## Track matrix (goals & artifacts)
 
-### T10 Enterprise Profile Configuration
+Each track follows: goal → run → expected artifacts → customization.
 
-- Goal: validate enterprise-ready defaults from `get_enterprise_config`.
-- Logs: `logs/examples/tutorials/t10_*.log` and `logs/examples/tutorials/t10_*.jsonl` (tutorial-normalized outputs).
-- Customization: reliability and path-confinement controls on enterprise profile.
-- Runtime note: tutorial applies compatibility shims (`async_runtime` removal and temporary absolute-path allowance) so execution remains deterministic with current runtime constraints.
+### T01 Production quick start
 
-### T11 Enterprise Policy Layers and Routing
+- **Goal:** YAML → `create_sync_logger` → inject logger → `layer` / `context` / `extra`.
+- **Logs:** `examples/logs/tutorials/t01_app.jsonl`, `t01_audit.log`, `t01_error.jsonl`.
+- **Notebook:** multi-cell flow; **Python:** `python/t01_production_quick_start.py`.
 
-- Goal: apply enterprise policy controls to multi-layer routing and destination overrides.
-- Logs: `logs/examples/tutorials/t11_*.jsonl` and `logs/examples/tutorials/t11_audit.log`.
-- Customization: layer-level policy, destination-level filtering, and context propagation.
+### T02 Configuration recipes
 
-### T12 Typed Network HTTP Destination
+- **Goal:** overlays / merged YAML (`extends`).
+- **Logs:** `examples/logs/tutorials/t02_*` (per script config).
 
-- Goal: onboard typed `network_http` destination configuration with strict validation.
-- Logs/artifacts: `logs/examples/tutorials/t12_network_http_stub_results.json`.
-- Customization: `url`, `timeout`, `retry_count`, `retry_delay`, and header credentials.
+### T03 Layers customization
 
-### T13 Resilient Typed Network WebSocket Destination
+- **Goal:** layer taxonomy and routing.
+- **Logs:** `examples/logs/tutorials/t03_layers_*.jsonl` (script) / `api.jsonl` + `worker.jsonl` (preset notebooks).
 
-- Goal: onboard typed `network_ws` destination with resilient retry semantics.
-- Logs/artifacts: `logs/examples/tutorials/t13_network_ws_stub_results.json`.
-- Customization: `url`, retry controls, and resilient stream-layer routing policy.
+### T04 Extensions and plugins
 
-### T14 Local HTTP Route Simulation
+- **Goal:** extensions (`model_copy`, security redaction, etc.).
+- **Logs:** `examples/logs/tutorials/` per preset.
 
-- Goal: validate typed `network_http` end-to-end against a local `/ingest` simulation route.
-- Logs/artifacts: `logs/examples/tutorials/t14_network_ingest_payloads.json`.
-- Customization: local route path/port, retry policy, payload assertions.
+### T05 Framework patterns
 
-## Legacy Example Mapping
+- **Goal:** API + worker style flows.
+- **Logs:** `examples/logs/tutorials/t05_framework_*.jsonl`.
 
-- `examples/11_quick_start_basic.py` -> T01
-- `examples/12_quick_start_async.py` -> T01
-- `examples/01_format_control.py`, `examples/02_destination_control.py`, `examples/05_custom_configurations.py` -> T02
-- `examples/07_multi_layer_colored_logging.py`, `examples/16_multi_layer_web_app.py` -> T03/T05
-- `examples/03_extension_control.py`, `examples/04_runtime_control.py`, `examples/13_extension_system_example.py` -> T04
-- `examples/14_class_based_logging.py`, `examples/15_eda_microservices_patterns.py` -> T05
+### T06 Migration and adoption
 
-## Validation Checklist
+- **Goal:** incremental adoption from stdlib logging.
+- **Logs:** `examples/logs/tutorials/t06_migration.jsonl`.
+
+### T07 Operational playbook
+
+- **Goal:** preflight / rollout checks.
+- **Logs:** `examples/logs/tutorials/t07_ops.jsonl`.
+
+### T08 Console configuration cookbook
+
+- **Goal:** console format / colors + file mirror.
+- **Logs:** `examples/logs/tutorials/dev_app.jsonl` (preset).
+
+### T09 Levels, columns, date, destinations
+
+- **Goal:** strict file-only preset behavior.
+- **Logs:** `examples/logs/tutorials/prod_app.jsonl`.
+
+### T10 Enterprise profile configuration
+
+- **Goal:** enterprise defaults / profile wiring.
+- **Logs:** `examples/logs/tutorials/t10_*`.
+
+### T11 Enterprise policy layers
+
+- **Goal:** policy-oriented routing.
+- **Logs:** `examples/logs/tutorials/t11_*`.
+
+### T12 Typed network HTTP destination
+
+- **Goal:** `network_http` config shape.
+- **Artifacts:** `examples/logs/tutorials/t12_network_http_stub_results.json` (when script generates).
+
+### T13 Typed network WebSocket destination
+
+- **Goal:** `network_ws` config shape.
+- **Artifacts:** `examples/logs/tutorials/t13_network_ws_stub_results.json`.
+
+### T14 Local HTTP simulation
+
+- **Goal:** batched / local ingest patterns.
+- **Artifacts:** `examples/logs/tutorials/t14_network_ingest_payloads.json`.
+
+### T15 Enterprise network hardening playbook
+
+- **Goal:** hardened network posture across transports.
+- **Artifacts:** `examples/logs/tutorials/t15_network_hardening_results.json`.
+
+### T16 Enterprise config templates at scale
+
+- **Goal:** templates / `extends` at scale.
+- **Artifacts:** summaries under `examples/logs/tutorials/` + `t16_configs/` as applicable.
+
+### T17 Benchmark comparison workflow
+
+- **Goal:** benchmark artifacts and comparison.
+- **Artifacts:** `benchmark/results/...`, tutorial summaries under `examples/logs/tutorials/`.
+
+### T18 Bring-your-own-config benchmark
+
+- **Goal:** user YAML + benchmark persistence.
+- **Artifacts:** `benchmark/results/tutorials/t18_byoc/`, tutorial configs under `examples/logs/tutorials/`.
+
+### T19 Nightly drift snapshot
+
+- **Goal:** drift-style signals from benchmarks.
+- **Artifacts:** `examples/logs/tutorials/t19_nightly_drift_snapshot.json` (script); benchmark MD/JSON for notebooks.
+
+### T20 Notebook / config onboarding
+
+- **Goal:** strict enterprise preset in notebook + script twin.
+- **Notebook:** `examples/tutorials/notebooks/t20_notebook_hydra_config_onboarding.ipynb`.
+- **Outputs:** `examples/logs/tutorials/enterprise_app.jsonl` (preset).
+
+## Legacy mapping (historical)
+
+Older numbered examples (`examples/01_*.py` …) map conceptually to these tutorials; they are not
+shipped in-tree. See [`docs/audit/EXAMPLES-AUDIT.md`](../../docs/audit/EXAMPLES-AUDIT.md).
+
+## Checklist (manual)
 
 - Tutorial script exits `0`.
-- Expected tutorial artifact(s) exist (`logs/examples/tutorials/` logs and network result JSON where applicable).
-- Output includes a completion marker for each track.
-- Track shows at least one customization knob change from default behavior.
+- Expected artifacts under `examples/logs/tutorials/` (and benchmark paths where applicable).
+- After changing notebooks: run `generate_notebooks.py` and re-read `notebooks/README.md`.

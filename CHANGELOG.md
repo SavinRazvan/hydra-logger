@@ -10,6 +10,8 @@ All notable, verified changes to Hydra-Logger are documented here.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-20
+
 ### Added
 
 - Optional **real WebSocket** transport via `WebSocketHandler(..., use_real_websocket_transport=True)`
@@ -21,6 +23,8 @@ All notable, verified changes to Hydra-Logger are documented here.
 
 ### Changed
 
+- Bumped canonical package version to **0.7.0** across Python metadata, extension defaults,
+  governed templates (`scripts/dev/check_version_consistency.py` targets), and documentation.
 - CI lint/security jobs use explicit **report + gate** steps instead of shell `|| true` swallowing.
 - Documentation: reliability defaults vs enterprise presets, operator baseline, redaction limits.
 

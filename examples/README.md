@@ -1,71 +1,48 @@
-# Hydra-Logger Examples and Tutorials
+# Hydra-Logger examples
 
-This directory now has two onboarding layers:
+Canonical onboarding for the **clone / dev** workflow. Published-package users follow the same APIs;
+paths below assume the **repository root** as the working directory.
 
-- **Legacy numbered examples (`01`-`17`)** for feature-by-feature exploration.
-- **Enterprise tutorial tracks (`tutorials/`)** for production onboarding.
+## Layout
 
-## Enterprise Onboarding First
+| Path | Purpose |
+|------|---------|
+| `examples/config/` | YAML/JSON presets (`examples/config/README.md`) |
+| `examples/tutorials/python/` | Runnable tutorials `t01`–`t20` |
+| `examples/tutorials/notebooks/` | Jupyter tutorials (generated + multi-cell flow) |
+| `examples/tutorials/utility/` | Notebook bootstrap (`notebook_bootstrap`, paths) |
+| `examples/tutorials/shared/` | Helpers for scripts (`path_bootstrap`, artifacts) |
+| `examples/tutorials/notebooks/temp_nb_factory/` | Regenerate `.ipynb` from `generate_notebooks.py` + `scenarios.py` |
+| `examples/run_all_examples.py` | Runs all `tutorials/python/*.py` in sequence |
+| `examples/logs/` | **Gitignored** — tutorial runtime output (e.g. `tutorials/t01_*.jsonl`) |
 
-For enterprise onboarding, start here:
-
-- [`examples/tutorials/README.md`](tutorials/README.md)
-
-Run each tutorial with deterministic environment commands:
-
-```bash
-.hydra_env/bin/python examples/tutorials/t01_production_quick_start.py
-.hydra_env/bin/python examples/tutorials/t02_configuration_recipes.py
-.hydra_env/bin/python examples/tutorials/t03_layers_customization.py
-.hydra_env/bin/python examples/tutorials/t04_extensions_plugins.py
-.hydra_env/bin/python examples/tutorials/t05_framework_patterns.py
-.hydra_env/bin/python examples/tutorials/t06_migration_adoption.py
-.hydra_env/bin/python examples/tutorials/t07_operational_playbook.py
-.hydra_env/bin/python examples/tutorials/t08_console_configuration_cookbook.py
-.hydra_env/bin/python examples/tutorials/t09_levels_columns_date_and_destinations.py
-.hydra_env/bin/python examples/tutorials/t10_enterprise_profile_config.py
-.hydra_env/bin/python examples/tutorials/t11_enterprise_policy_layers.py
-.hydra_env/bin/python examples/tutorials/t12_network_http_typed_destination.py
-.hydra_env/bin/python examples/tutorials/t13_network_ws_resilient_typed_destination.py
-.hydra_env/bin/python examples/tutorials/t14_network_local_http_simulation.py
-```
-
-## Full Example Verification
-
-Run the legacy examples runner:
+## Quick start
 
 ```bash
+.hydra_env/bin/python examples/tutorials/python/t01_production_quick_start.py
 .hydra_env/bin/python examples/run_all_examples.py
 ```
 
-This executes all numbered examples, verifies generated logs, and reports pass/fail with diagnostics.
+**Notebooks:** start Jupyter from the repo root (or set `HYDRA_LOGGER_REPO`). See
+`examples/tutorials/notebooks/README.md` — [Notebook track](tutorials/notebooks/README.md).
 
-## Legacy Example Catalog
+```bash
+.hydra_env/bin/python -m jupyter lab examples/tutorials/notebooks/t01_production_quick_start.ipynb
+```
 
-Most examples write output to `logs/examples/`; network-focused examples can produce JSON artifacts instead.
+## Indexes
 
-1. `01_format_control.py` - format control
-2. `02_destination_control.py` - destination control
-3. `03_extension_control.py` - extension toggles
-4. `04_runtime_control.py` - runtime extension management
-5. `05_custom_configurations.py` - custom config composition
-6. `06_basic_colored_logging.py` - basic colored output
-7. `07_multi_layer_colored_logging.py` - per-layer coloring
-8. `08_mixed_console_file_output.py` - console + file output split
-9. `09_all_logger_types_colors.py` - sync/async/composite types
-10. `10_disable_colors.py` - non-colored output policy
-11. `11_quick_start_basic.py` - synchronous quick start
-12. `12_quick_start_async.py` - async quick start
-13. `13_extension_system_example.py` - extension configuration
-14. `14_class_based_logging.py` - class-based integration
-15. `15_eda_microservices_patterns.py` - EDA and microservices pattern
-16. `16_multi_layer_web_app.py` - multi-layer web app simulation
-17. `17_network_typed_destinations.py` - typed HTTP/WS network destination routing
+- Tutorials: `examples/tutorials/README.md` — [open](tutorials/README.md)
+- Config presets: `examples/config/README.md` — [Presets](config/README.md)
+- Audit / migration: `docs/audit/EXAMPLES-AUDIT.md` — [EXAMPLES-AUDIT](../docs/audit/EXAMPLES-AUDIT.md)
 
-## Onboarding Guidance
+## Tests
 
-- Use `.hydra_env/bin/python` commands from the repository root.
-- Confirm environment health before onboarding rollout:
-  - `.hydra_env/bin/python scripts/dev/check_env_health.py --strict`
-- Keep layer naming consistent across services (for example `api`, `database`, `auth`, `worker`, `audit`).
-- Prefer `json-lines` file output for production ingestion pipelines.
+Tutorial scripts and assets are exercised in CI via `tests/examples/` (run locally with
+`python -m pytest tests/examples -q`). This complements `run_all_examples.py` for smoke runs.
+
+## Legacy numbered examples
+
+Older `01_*.py` … `17_*.py` demos are **not** in this tree anymore; canonical material is
+`t01`–`t20` under `examples/tutorials/python/` and matching notebooks. Historical copies may
+live in a private archive; see [docs/audit/EXAMPLES-AUDIT.md](../docs/audit/EXAMPLES-AUDIT.md).

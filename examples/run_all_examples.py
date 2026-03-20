@@ -84,12 +84,12 @@ def verify_log_files(example_name: str) -> Tuple[List[str], List[str]]:
     Returns:
         Tuple of (found_files, expected_patterns)
     """
-    logs_dir = Path("logs/examples")
+    logs_dir = Path("examples/logs/tutorials")
     if not logs_dir.exists():
         return [], []
 
     example_num = example_name.split("_")[0] if "_" in example_name else ""
-    example_base = example_name.replace(".py", "").replace("_", "_")
+    example_base = example_name.replace(".py", "")
 
     patterns = [
         f"{example_base}.log",
@@ -130,11 +130,11 @@ def print_header():
     """Print professional header."""
     print()
     print(colorize("=" * 80, Colors.BOLD))
-    print(colorize(" Hydra-Logger Examples Test Runner", Colors.BOLD + Colors.CYAN))
+    print(colorize(" Hydra-Logger Tutorials Test Runner", Colors.BOLD + Colors.CYAN))
     print(colorize("=" * 80, Colors.BOLD))
     print()
-    print(" Running tests on all example files...")
-    print(" Verifying log file creation and function tracking...")
+    print(" Running tests on canonical Python tutorial files...")
+    print(" Verifying tutorial artifact creation and completion behavior...")
     print()
 
 
@@ -198,7 +198,7 @@ def print_summary(
 
     if failed == 0:
         print(
-            f"  {colorize('All Examples:', Colors.GREEN + Colors.BOLD)} "
+            f"  {colorize('All Tutorials:', Colors.GREEN + Colors.BOLD)} "
             f"{passed}/{len(results)} passed"
         )
     else:
@@ -226,7 +226,7 @@ def print_summary(
         print()
 
     if failed > 0:
-        print(f"  {colorize('Failed Examples:', Colors.RED)}")
+        print(f"  {colorize('Failed Tutorials:', Colors.RED)}")
         for name, success, duration, logs in results:
             if not success:
                 print(f"     • {name} ({format_duration(duration)})")
@@ -234,10 +234,10 @@ def print_summary(
 
     if failed == 0:
         print(
-            f"  {colorize('All examples executed successfully!', Colors.GREEN + Colors.BOLD)}"
+            f"  {colorize('All tutorials executed successfully!', Colors.GREEN + Colors.BOLD)}"
         )
         print(
-            f"  {colorize('Check logs/examples/ for generated log files.', Colors.CYAN)}"
+            f"  {colorize('Check examples/logs/tutorials/ for generated artifacts.', Colors.CYAN)}"
         )
         print()
 
@@ -246,13 +246,11 @@ def main():
     """Run all examples and report results."""
     start_time = time.time()
 
-    examples_dir = Path(__file__).parent
-    example_files = sorted(examples_dir.glob("*.py"))
-
-    example_files = [f for f in example_files if f.name != "run_all_examples.py"]
+    examples_dir = Path(__file__).parent / "tutorials" / "python"
+    example_files = sorted(examples_dir.glob("t*.py"))
 
     if not example_files:
-        print(colorize("No example files found!", Colors.RED))
+        print(colorize("No tutorial files found!", Colors.RED))
         return 1
 
     print_header()
@@ -261,13 +259,8 @@ def main():
     for example_file in example_files:
         success, stdout, stderr, duration, metadata = run_example(example_file)
 
-        # Some async examples flush on shutdown; a short delay avoids false negatives.
-        is_async_example = (
-            "async" in example_file.name.lower()
-            or "eda" in example_file.name.lower()
-            or "microservice" in example_file.name.lower()
-            or "multi_layer" in example_file.name.lower()  # Example 16
-        )
+        # Some async tutorial flows flush on shutdown; a short delay avoids false negatives.
+        is_async_example = "async" in example_file.name.lower()
         if is_async_example and success:
             time.sleep(0.5)
 

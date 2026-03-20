@@ -1,0 +1,32 @@
+hydra_config_schema_version: 1
+default_level: INFO
+strict_reliability_mode: true
+reliability_error_policy: warn
+# Joins as cwd / examples/logs/tutorials / <destination path> (not cwd / logs / examples / ...)
+base_log_dir: examples/logs
+log_dir_name: tutorials
+layers:
+  app:
+    level: INFO
+    destinations:
+      - type: console
+        format: plain-text
+        use_colors: false
+      - type: file
+        path: t01_app
+        format: json-lines
+  audit:
+    level: WARNING
+    destinations:
+      - type: file
+        path: t01_audit
+        format: plain-text
+  error:
+    level: ERROR
+    destinations:
+      - type: console
+        format: plain-text
+        use_colors: false
+      - type: file
+        path: t01_error
+        format: json-lines

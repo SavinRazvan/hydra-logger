@@ -1,0 +1,15 @@
+hydra_config_schema_version: 1
+default_level: INFO
+layers:
+  tcp:
+    level: INFO
+    destinations:
+      - type: network_socket
+        host: localhost
+        port: 9001
+  udp:
+    level: INFO
+    destinations:
+      - type: network_datagram
+        host: localhost
+        port: 9002

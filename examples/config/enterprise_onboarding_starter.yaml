@@ -1,0 +1,17 @@
+hydra_config_schema_version: 1
+default_level: INFO
+strict_reliability_mode: true
+reliability_error_policy: warn
+enforce_log_path_confinement: true
+allow_absolute_log_paths: false
+base_log_dir: examples/logs
+log_dir_name: tutorials
+layers:
+  app:
+    level: INFO
+    destinations:
+      - type: console
+        format: colored
+      - type: file
+        path: enterprise_app
+        format: json-lines

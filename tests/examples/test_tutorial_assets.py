@@ -13,35 +13,24 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-TUTORIAL_DIR = ROOT / "examples" / "tutorials"
-TUTORIAL_FILES = [
-    "t01_production_quick_start.py",
-    "t02_configuration_recipes.py",
-    "t03_layers_customization.py",
-    "t04_extensions_plugins.py",
-    "t05_framework_patterns.py",
-    "t06_migration_adoption.py",
-    "t07_operational_playbook.py",
-    "t08_console_configuration_cookbook.py",
-    "t09_levels_columns_date_and_destinations.py",
-    "t10_enterprise_profile_config.py",
-    "t11_enterprise_policy_layers.py",
-    "t12_network_http_typed_destination.py",
-    "t13_network_ws_resilient_typed_destination.py",
-    "t14_network_local_http_simulation.py",
-]
+TUTORIAL_DIR = ROOT / "examples" / "tutorials" / "python"
+
+
+def _current_tutorial_files() -> list[str]:
+    """Return current tutorial scripts from the canonical python track directory."""
+    return sorted(path.name for path in TUTORIAL_DIR.glob("t*.py"))
 
 
 def test_tutorial_scripts_exist() -> None:
-    for filename in TUTORIAL_FILES:
+    for filename in _current_tutorial_files():
         assert (
             TUTORIAL_DIR / filename
         ).exists(), f"Missing tutorial script: {filename}"
 
 
 def test_tutorial_readme_references_all_tracks() -> None:
-    readme = (TUTORIAL_DIR / "README.md").read_text(encoding="utf-8")
-    for filename in TUTORIAL_FILES:
+    readme = (ROOT / "examples" / "tutorials" / "README.md").read_text(encoding="utf-8")
+    for filename in _current_tutorial_files():
         assert filename in readme
 
 

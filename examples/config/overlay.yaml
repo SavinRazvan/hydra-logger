@@ -1,5 +1,0 @@
-extends: base.yaml
-default_level: DEBUG
-layers:
-  app:
-    level: DEBUG

@@ -59,6 +59,6 @@ def test_verify_log_files_returns_empty_without_logs(
 ) -> None:
     module = _load_runner_module()
     monkeypatch.chdir(tmp_path)
-    found, patterns = module.verify_log_files("01_format_control.py")
+    found, patterns = module.verify_log_files("t01_production_quick_start.py")
     assert found == []
     assert patterns == []
