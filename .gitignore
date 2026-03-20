@@ -211,6 +211,7 @@ __marimo__
 
 # Log files and directories (generated during testing and demos)
 logs/
+examples/logs/
 workflow_logs/
 demo_logs/
 _tests_logs/
@@ -284,3 +285,4 @@ docs/private/
 
 # Temporary Tools
 .tmp_tools
+
