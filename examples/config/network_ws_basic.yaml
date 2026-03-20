@@ -1,0 +1,11 @@
+hydra_config_schema_version: 1
+default_level: INFO
+layers:
+  stream:
+    level: INFO
+    destinations:
+      - type: network_ws
+        url: wss://echo.websocket.events
+        timeout: 10.0
+        retry_count: 2
+        retry_delay: 1.0

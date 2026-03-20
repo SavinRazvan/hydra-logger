@@ -1,3 +1,78 @@
+# Hydra-Logger Examples
+
+This folder contains the canonical onboarding structure for `hydra-logger`.
+
+## Structure
+
+- `examples/config/` - standardized configuration presets
+- `examples/tutorials/python/` - runnable tutorial scripts
+- `examples/tutorials/notebooks/` - guided notebook tutorials
+- `examples/tutorials/shared/` - shared tutorial helpers
+- `examples/run_all_examples.py` - runner for canonical Python tutorials
+
+## Start Here
+
+- Tutorial index: [`examples/tutorials/README.md`](tutorials/README.md)
+- Config preset guide: [`examples/config/README.md`](config/README.md)
+
+## Deterministic Commands
+
+Run tutorial scripts:
+
+```bash
+.hydra_env/bin/python examples/tutorials/python/t01_production_quick_start.py
+.hydra_env/bin/python examples/tutorials/python/t05_framework_patterns.py
+.hydra_env/bin/python examples/tutorials/python/t15_enterprise_network_hardening_playbook.py
+```
+
+Run all canonical Python tutorials:
+
+```bash
+.hydra_env/bin/python examples/run_all_examples.py
+```
+
+Open notebooks:
+
+```bash
+.hydra_env/bin/python -m jupyter lab examples/tutorials/notebooks/t20_notebook_hydra_config_onboarding.ipynb
+```
+# Hydra-Logger Examples
+
+This folder is the canonical onboarding surface for `hydra-logger`.
+
+## Structure
+
+- `examples/config/` - reusable configuration presets
+- `examples/tutorials/python/` - runnable tutorial scripts
+- `examples/tutorials/notebooks/` - guided notebook tutorials
+- `examples/tutorials/shared/` - shared helper utilities
+
+## Start Here
+
+- Tutorial index: [`examples/tutorials/README.md`](tutorials/README.md)
+- Config preset guide: [`examples/config/README.md`](config/README.md)
+
+## Deterministic Runs
+
+Run tutorial scripts from repository root:
+
+```bash
+.hydra_env/bin/python examples/tutorials/python/t01_production_quick_start.py
+.hydra_env/bin/python examples/tutorials/python/t05_framework_patterns.py
+.hydra_env/bin/python examples/tutorials/python/t15_enterprise_network_hardening_playbook.py
+```
+
+Run all canonical Python tutorials:
+
+```bash
+.hydra_env/bin/python examples/run_all_examples.py
+```
+
+Open notebook tutorials:
+
+```bash
+.hydra_env/bin/python -m jupyter lab examples/tutorials/notebooks/t20_notebook_hydra_config_onboarding.ipynb
+```
 # Hydra-Logger Examples and Tutorials
 
 This directory now has two onboarding layers:
@@ -28,6 +103,12 @@ Run each tutorial with deterministic environment commands:
 .hydra_env/bin/python examples/tutorials/t12_network_http_typed_destination.py
 .hydra_env/bin/python examples/tutorials/t13_network_ws_resilient_typed_destination.py
 .hydra_env/bin/python examples/tutorials/t14_network_local_http_simulation.py
+.hydra_env/bin/python examples/tutorials/t15_enterprise_network_hardening_playbook.py
+.hydra_env/bin/python examples/tutorials/t16_enterprise_config_templates_at_scale.py
+.hydra_env/bin/python examples/tutorials/t17_enterprise_benchmark_comparison_workflow.py
+.hydra_env/bin/python examples/tutorials/t18_enterprise_bring_your_own_config_benchmark.py
+.hydra_env/bin/python examples/tutorials/t19_enterprise_nightly_drift_snapshot.py --profile ci_smoke
+.hydra_env/bin/python -m jupyter lab examples/tutorials/t20_notebook_hydra_config_onboarding.ipynb
 ```
 
 ## Full Example Verification
@@ -42,7 +123,7 @@ This executes all numbered examples, verifies generated logs, and reports pass/f
 
 ## Legacy Example Catalog
 
-Most examples write output to `logs/examples/`; network-focused examples can produce JSON artifacts instead.
+Most examples write output to `examples/logs/`; network-focused examples can produce JSON artifacts instead.
 
 1. `01_format_control.py` - format control
 2. `02_destination_control.py` - destination control
@@ -61,6 +142,14 @@ Most examples write output to `logs/examples/`; network-focused examples can pro
 15. `15_eda_microservices_patterns.py` - EDA and microservices pattern
 16. `16_multi_layer_web_app.py` - multi-layer web app simulation
 17. `17_network_typed_destinations.py` - typed HTTP/WS network destination routing
+
+## Config Presets
+
+Reusable onboarding config packs live in `examples/config/`.
+
+- Start guide: `examples/config/README.md`
+- Includes minimal/base overlays, strict production preset, multi-layer service preset,
+  and typed network destination presets (HTTP/WS/socket/datagram).
 
 ## Onboarding Guidance
 
