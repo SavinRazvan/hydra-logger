@@ -174,7 +174,7 @@ def test_log_destination_http_extensions_only_on_network_http() -> None:
 
 
 def test_logging_config_schema_version_guard() -> None:
-    from hydra_logger.config.models import LogLayer, LoggingConfig
+    from hydra_logger.config.models import LoggingConfig, LogLayer
 
     with pytest.raises(Exception):
         LoggingConfig(

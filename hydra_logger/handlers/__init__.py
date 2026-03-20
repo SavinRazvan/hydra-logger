@@ -10,8 +10,8 @@ Notes:
 
 from hydra_logger.types.enums import TimeUnit
 
-from .batched_http_handler import BatchedHTTPHandler
 from .base_handler import BaseHandler
+from .batched_http_handler import BatchedHTTPHandler
 from .console_handler import AsyncConsoleHandler, SyncConsoleHandler
 from .file_handler import FileHandler
 from .http_payload_encoders import (

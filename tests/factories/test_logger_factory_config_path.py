@@ -45,7 +45,7 @@ layers:
 
 
 def test_factory_rejects_config_and_config_path_together(tmp_path: Path) -> None:
-    from hydra_logger.config.models import LogDestination, LogLayer, LoggingConfig
+    from hydra_logger.config.models import LogDestination, LoggingConfig, LogLayer
     from hydra_logger.factories.logger_factory import logger_factory
 
     p = tmp_path / "l.yaml"
