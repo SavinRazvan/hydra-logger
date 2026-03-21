@@ -285,6 +285,7 @@ scripts/dev/*
 !scripts/dev/check_env_health.py
 !scripts/dev/check_logs_clean.py
 !scripts/dev/check_version_consistency.py
+!scripts/dev/run_notebook_smoke.py
 !scripts/release/
 scripts/release/*
 !scripts/release/preflight.py
