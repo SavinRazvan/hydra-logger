@@ -1,8 +1,8 @@
 [
   {
-    "message": "| 2026-03-21 17:25:15 | INFO | http | [T14] local route simulation started",
+    "message": "| 2026-03-21 18:13:25 | INFO | http | [T14] local route simulation started",
     "level": "INFO",
-    "timestamp": "2026-03-21T17:25:15.945992-03:00",
+    "timestamp": "2026-03-21T18:13:25.266158-03:00",
     "layer": "http",
     "filename": null,
     "function_name": "main",
@@ -18,9 +18,9 @@
     "device_id": null
   },
   {
-    "message": "| 2026-03-21 17:25:15 | WARNING | http | [T14] local route simulation warning",
+    "message": "| 2026-03-21 18:13:25 | WARNING | http | [T14] local route simulation warning",
     "level": "WARNING",
-    "timestamp": "2026-03-21T17:25:15.949083-03:00",
+    "timestamp": "2026-03-21T18:13:25.270206-03:00",
     "layer": "http",
     "filename": null,
     "function_name": "main",
@@ -36,9 +36,9 @@
     "device_id": null
   },
   {
-    "message": "| 2026-03-21 17:25:15 | ERROR | http | [T14] local route simulation error",
+    "message": "| 2026-03-21 18:13:25 | ERROR | http | [T14] local route simulation error",
     "level": "ERROR",
-    "timestamp": "2026-03-21T17:25:15.952637-03:00",
+    "timestamp": "2026-03-21T18:13:25.273782-03:00",
     "layer": "http",
     "filename": null,
     "function_name": "main",
