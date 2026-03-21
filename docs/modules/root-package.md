@@ -30,9 +30,9 @@ Primary exported groups:
 
 ```mermaid
 sequenceDiagram
-  participant U as User Import
-  participant P as hydra_logger.__init__
-  participant M as Module Exports
+  participant U as "User import"
+  participant P as "hydra_logger.__init__"
+  participant M as "Module exports"
 
   U->>P: import hydra_logger
   P->>M: import/re-export symbols

@@ -10,6 +10,7 @@ Notes:
 
 import asyncio
 import io
+import logging
 from datetime import datetime, timezone
 
 import pytest
@@ -133,6 +134,34 @@ def test_sync_console_handler_auto_cleanup_flushes_pending_buffer() -> None:
     handler.emit(LogRecord(level=20, level_name="INFO", message="pending"))
     handler._auto_cleanup()
     assert "pending" in stream.getvalue()
+
+
+def test_sync_console_handler_close_flushes_buffered_messages() -> None:
+    stream = io.StringIO()
+    handler = SyncConsoleHandler(stream=stream, buffer_size=100, flush_interval=60)
+    handler.emit(LogRecord(level=10, level_name="DEBUG", message="dbg-before-close"))
+    assert stream.getvalue() == ""
+    handler.close()
+    assert "dbg-before-close" in stream.getvalue()
+    assert handler.is_closed() is True
+
+
+def test_sync_console_handler_close_flush_failure_is_logged(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    stream = io.StringIO()
+    handler = SyncConsoleHandler(stream=stream, buffer_size=100, flush_interval=60)
+    handler.emit(LogRecord(level=20, level_name="INFO", message="pending"))
+    assert handler._buffer
+
+    def _boom() -> None:
+        raise RuntimeError("flush boom")
+
+    monkeypatch.setattr(handler, "_flush_buffer", _boom)
+    with caplog.at_level(logging.ERROR, logger="hydra_logger.handlers.console_handler"):
+        handler.close()
+    assert handler.is_closed() is True
+    assert "Sync console flush during close failed" in caplog.text
 
 
 def test_sync_console_handler_auto_cleanup_handles_closed_stream(caplog) -> None:

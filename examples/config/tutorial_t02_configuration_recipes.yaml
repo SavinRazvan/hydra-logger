@@ -1,0 +1,7 @@
+# Tutorial T02 — same merge as `base_overlay_debug.yaml`, named for the tutorial track.
+# Demonstrates `extends` + overlay: DEBUG on `app` while inheriting console from `base_default.yaml`.
+extends: base_default.yaml
+default_level: DEBUG
+layers:
+  app:
+    level: DEBUG

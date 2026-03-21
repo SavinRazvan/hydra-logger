@@ -40,7 +40,7 @@ def test_t15_tutorial_executes_under_main(monkeypatch) -> None:
             ROOT
             / "examples"
             / "tutorials"
-            / "python"
+            / "cli_tutorials"
             / "t15_enterprise_network_hardening_playbook.py"
         ),
         run_name="__main__",
@@ -71,7 +71,7 @@ def test_run_all_examples_branch_paths(monkeypatch, tmp_path: Path, capsys) -> N
     assert success is False
     assert "forced subprocess failure" in stderr
 
-    logs_dir = tmp_path / "examples" / "logs" / "tutorials"
+    logs_dir = tmp_path / "examples" / "logs" / "cli-tutorials"
     logs_dir.mkdir(parents=True)
     (logs_dir / "t01_production_quick_start.log").write_text("x", encoding="utf-8")
     (logs_dir / "t01_other.jsonl").write_text("x", encoding="utf-8")
@@ -120,11 +120,11 @@ def test_run_all_examples_main_paths(monkeypatch, tmp_path: Path) -> None:
     assert module.main() == 1
 
     full_dir = tmp_path / "full"
-    (full_dir / "tutorials" / "python").mkdir(parents=True)
+    (full_dir / "tutorials" / "cli_tutorials").mkdir(parents=True)
     full_entry = full_dir / "run_all_examples.py"
     full_entry.write_text("# fake", encoding="utf-8")
     for file_name in ("t02_configuration_recipes.py", "t03_layers_customization.py"):
-        (full_dir / "tutorials" / "python" / file_name).write_text(
+        (full_dir / "tutorials" / "cli_tutorials" / file_name).write_text(
             "print('ok')", encoding="utf-8"
         )
 

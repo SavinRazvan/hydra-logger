@@ -1,7 +1,7 @@
 """
 Role: Lightweight existence checks for tutorial-generated artifacts.
 Used By:
- - Tutorial scripts validating outputs under `examples/logs/tutorials/`.
+ - Tutorial scripts validating outputs under `examples/logs/cli-tutorials/`.
 Depends On:
  - pathlib
 Notes:

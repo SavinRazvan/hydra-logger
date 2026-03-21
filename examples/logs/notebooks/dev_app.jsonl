@@ -1,0 +1,5 @@
+{"timestamp":"2026-03-21 16:52:51","level":20,"level_name":"INFO","message":"login","logger_name":"tutorial-t04","layer":"app","file_name":"3863519392.py","function_name":"<module>","line_number":15,"extra":{"password":"do-not-log-raw"}}
+{"timestamp":"2026-03-21 17:18:27","level":20,"level_name":"INFO","message":"login","logger_name":"tutorial-t04","layer":"app","file_name":"3863519392.py","function_name":"<module>","line_number":15,"extra":{"password":"do-not-log-raw"}}
+{"timestamp":"2026-03-21 17:18:35","level":20,"level_name":"INFO","message":"info","logger_name":"tutorial-t08","layer":"app","file_name":"908824066.py","function_name":"<module>","line_number":6}
+{"timestamp":"2026-03-21 17:18:35","level":30,"level_name":"WARNING","message":"warning","logger_name":"tutorial-t08","layer":"app","file_name":"908824066.py","function_name":"<module>","line_number":7}
+{"timestamp":"2026-03-21 17:18:35","level":40,"level_name":"ERROR","message":"error","logger_name":"tutorial-t08","layer":"app","file_name":"908824066.py","function_name":"<module>","line_number":8}

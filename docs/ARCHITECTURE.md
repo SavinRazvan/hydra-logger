@@ -28,7 +28,7 @@ Hydra-Logger is organized as a modular package with distinct runtime layers:
 ## Package Topology
 
 ```mermaid
-graph TD
+flowchart TD
   rootPkg[hydra_logger] --> loggersPkg[loggers]
   rootPkg --> factoriesPkg[factories]
   rootPkg --> configPkg[config]

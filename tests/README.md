@@ -18,8 +18,12 @@ tests/
   README.md
   examples/
     test_tutorial_assets.py
+    test_tutorial_utility.py
     test_run_all_examples.py
+    test_run_all_cli_tutorials.py
+    test_cli_tutorial_footer.py
     test_examples_and_tutorials_runtime.py
+    test_examples_branch_coverage.py
     ...
   loggers/
     test_sync_logger_*.py

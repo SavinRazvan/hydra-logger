@@ -1,7 +1,7 @@
 """
 Role: Create canonical tutorial log output directories under the repo.
 Used By:
- - Tutorial scripts writing to `examples/logs/tutorials/`.
+ - Tutorial scripts writing to `examples/logs/cli-tutorials/`.
 Depends On:
  - pathlib
 Notes:
@@ -12,6 +12,6 @@ from pathlib import Path
 
 
 def tutorial_output_dir() -> Path:
-    out = Path("examples/logs/tutorials")
+    out = Path("examples/logs/cli-tutorials")
     out.mkdir(parents=True, exist_ok=True)
     return out

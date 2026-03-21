@@ -5,6 +5,8 @@ dependencies:
   - python=3.11
   - pip
   - pip:
-    # Keep dependency versions in setup.py; this env installs core package + dev tools.
-    # Install optional feature extras separately when needed (e.g. .[network], .[perf]).
-    - "-e .[dev]"
+    # Versions live in setup.py. [dev] pulls pytest/black/mypy/pyright/psutil/etc.
+    # [database,cloud,queues,network] matches .github/workflows/ci.yml so the full test
+    # suite and optional handlers (real WS, integration stubs) resolve without extra steps.
+    # For a slimmer env, use only "-e .[dev]" and install other extras as needed.
+    - "-e .[dev,database,cloud,queues,network]"

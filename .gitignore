@@ -77,6 +77,8 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+# Legacy notebook standalone folder (prefer OS temp dir — see generate_notebooks.py)
+examples/tutorials/notebooks/hydra_notebook_workspace/
 
 # IPython
 profile_default/
@@ -211,12 +213,21 @@ __marimo__
 
 # Log files and directories (generated during testing and demos)
 logs/
-examples/logs/
+# Tutorial sample outputs: ignore examples/logs except cli-tutorials/ + notebooks/ (committed for onboarding).
+examples/logs/**
+!examples/logs/
+!examples/logs/cli-tutorials/
+!examples/logs/cli-tutorials/**
+!examples/logs/notebooks/
+!examples/logs/notebooks/**
 workflow_logs/
 demo_logs/
 _tests_logs/
 benchmark/bench_logs/
 *.log
+# Tutorial sample `.log` files under examples/logs (override global *.log above)
+!examples/logs/cli-tutorials/**/*.log
+!examples/logs/notebooks/**/*.log
 
 # Test artifacts
 test.log
@@ -266,23 +277,19 @@ config.local.toml
 .local/
 .agents/
 .cursor/
-scripts/
-!scripts/
-scripts/*
-!scripts/dev/
-scripts/dev/*
-!scripts/dev/check_env_health.py
-!scripts/dev/check_logs_clean.py
-!scripts/dev/check_version_consistency.py
-!scripts/release/
-scripts/release/*
-!scripts/release/preflight.py
-!scripts/release/verify_dist_contents.py
-!scripts/release/check_pypi_parity.py
+# scripts/: ignore local automation only (equivalent to old whitelist for current tree).
+# Add paths here if you add dev-only files that must not ship in the repo.
+scripts/pr/
+scripts/plans/
+scripts/dev/patch_notebook_standalone_configs.py
+scripts/dev/safe_clean.sh
 AGENTS.md
 docs/AGENT_AUTOMATION.md
 docs/private/
 
 # Temporary Tools
 .tmp_tools
+!examples/tutorials/notebooks/temp_nb_factory
 
+# Ephemeral benchmark stub from notebook runs (not real CI artifacts)
+benchmark/results/tutorials/t18_byoc/stub_notebook_run/

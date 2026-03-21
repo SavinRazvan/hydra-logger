@@ -5,7 +5,7 @@ reliability_error_policy: warn
 enforce_log_path_confinement: true
 allow_absolute_log_paths: false
 base_log_dir: examples/logs
-log_dir_name: tutorials
+log_dir_name: notebooks
 layers:
   api:
     level: INFO

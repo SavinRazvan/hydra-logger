@@ -10,6 +10,7 @@ Notes:
 
 import importlib
 import json
+import logging
 import sys
 
 import pytest
@@ -27,16 +28,27 @@ from hydra_logger.handlers.network_handler import (
 )
 from hydra_logger.types.records import LogRecord
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:WebSocketHandler uses a simulated transport:UserWarning",
-)
-
 
 @pytest.fixture(autouse=True)
 def _reset_websocket_simulation_warning() -> None:
     WebSocketHandler._simulation_notice_issued = False
     yield
     WebSocketHandler._simulation_notice_issued = False
+
+
+def test_websocket_handler_simulated_transport_emits_info_notice_once(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Default WS transport is simulated; first emit should log INFO once (tutorial/CI friendly)."""
+    with caplog.at_level(logging.INFO, logger="hydra_logger.handlers.network_handler"):
+        handler = WebSocketHandler("ws://127.0.0.1:65530/ws")
+        rec = LogRecord(level=20, level_name="INFO", message="hello")
+        handler.emit(rec)
+        handler.emit(rec)
+
+    sim = [r for r in caplog.records if "simulated transport" in r.getMessage().lower()]
+    assert len(sim) == 1
+    assert sim[0].levelname == "INFO"
 
 
 class DummyNetworkHandler(BaseNetworkHandler):

@@ -61,7 +61,9 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$(pwd)/.hydra_env"
 ```
 
-Editable package install is already defined in `environment.yml` (`-e .[dev]`).
+Editable package install is already defined in `environment.yml`
+(`-e .[dev,database,cloud,queues,network]`, aligned with CI). For a lighter Conda env,
+edit that line to `-e .[dev]` only and add extras manually when needed.
 
 ## Environment Health Check
 
@@ -117,5 +119,5 @@ Deterministic repair sequence when health checks fail:
 
 1. Remove the corrupted `.hydra_env`.
 2. Recreate `.hydra_env` using your chosen model (venv or Conda prefix).
-3. Reinstall project dependencies (`-e .[dev]`) and `pyright` if using venv.
+3. Reinstall project dependencies (`-e .[dev]` or match `environment.yml` extras).
 4. Re-run `.hydra_env/bin/python scripts/dev/check_env_health.py --strict` until healthy.

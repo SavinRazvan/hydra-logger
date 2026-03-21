@@ -18,7 +18,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_DIR = ROOT / "examples"
-TUTORIALS_DIR = EXAMPLES_DIR / "tutorials" / "python"
+TUTORIALS_DIR = EXAMPLES_DIR / "tutorials" / "cli_tutorials"
 
 TUTORIAL_SCRIPTS = [
     "t01_production_quick_start.py",

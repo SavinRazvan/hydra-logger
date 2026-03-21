@@ -104,11 +104,19 @@ patterns that can obscure failures while still uploading machine-readable report
   contract (`test_examples_and_tutorials_runtime.py` where applicable), and **`examples/tutorials/utility`**
   (`test_tutorial_utility.py`).
 - Run: `.hydra_env/bin/python -m pytest tests/examples -q`.
-- **`examples/run_all_examples.py`** — optional full smoke of all `examples/tutorials/python/*.py`
+- **`examples/run_all_examples.py`** — optional full smoke of all `examples/tutorials/cli_tutorials/*.py`
   (also exercised by tests).
-- **Jupyter notebooks** under `examples/tutorials/notebooks/` are generated from
-  `temp_nb_factory/generate_notebooks.py`; they are not part of the default CI matrix unless
-  explicitly added.
+- **`examples/tutorials/shared/run_all_cli_tutorials.py`** — same scripts in order with **streamed** stdout/stderr
+  (human-friendly; not required in CI; `--dry-run` / `--fail-fast` supported).
+- **Jupyter notebooks** under `examples/tutorials/notebooks/` are **committed** artifacts; asset tests
+  assert clean VCS state (no stored outputs) and notebook content contracts.
+- **`test_tutorial_assets.py`** asserts subset preset embedding, `extends` closure for T02, plumbing vs scenario
+  cell separation, **clean VCS state** (`execution_count` / `outputs` cleared), and **`skip-ci`** tags on §0 `%pip` cells.
+- **Notebook CI smoke** (GitHub Actions job `notebook-smoke`): installs `pip install -e ".[notebook_smoke]"` and runs
+  `python scripts/dev/run_notebook_smoke.py`, which executes **T01** and **T02** from the **repository root** after
+  stripping cells tagged `skip-ci` (avoids redundant `pip install` during execute). **T17–T19** are **excluded** until
+  benchmark artifacts are seeded or fixtures exist under `tests/fixtures/` — see `examples/tutorials/notebooks/README.md`.
+- Local smoke (optional): `pip install -e ".[notebook_smoke]"` then `python scripts/dev/run_notebook_smoke.py`.
 
 ## Logging Artifact Policy
 

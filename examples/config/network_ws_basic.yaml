@@ -1,11 +1,22 @@
 hydra_config_schema_version: 1
 default_level: INFO
+base_log_dir: examples/logs
+log_dir_name: notebooks
 layers:
   stream:
     level: INFO
     destinations:
+      - type: console
+        format: plain-text
+        use_colors: false
+      - type: file
+        path: t13_network_ws_layer
+        format: json-lines
+      # Simulated transport by default: no DNS/outbound TCP (reliable in WSL/CI/offline).
+      # For a real echo test: set use_real_websocket_transport: true and fix DNS/network.
       - type: network_ws
         url: wss://echo.websocket.events
         timeout: 10.0
         retry_count: 2
         retry_delay: 1.0
+        use_real_websocket_transport: false

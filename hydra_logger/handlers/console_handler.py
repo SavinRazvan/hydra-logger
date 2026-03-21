@@ -174,6 +174,15 @@ class SyncConsoleHandler(BaseHandler):
         except Exception:
             _logger.exception("Sync console auto cleanup failed")
 
+    def close(self) -> None:
+        """Flush buffered lines before closing (Jupyter cells exit before process atexit)."""
+        try:
+            if hasattr(self, "_buffer") and self._buffer:
+                self._flush_buffer()
+        except Exception:
+            _logger.exception("Sync console flush during close failed")
+        super().close()
+
     def get_stats(self) -> dict:
         """Get handler statistics."""
         runtime = time.perf_counter() - self._start_time

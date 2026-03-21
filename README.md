@@ -62,16 +62,17 @@ Start quickly:
 
 ```bash
 pip install hydra-logger
-.hydra_env/bin/python examples/tutorials/python/t01_production_quick_start.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t01_production_quick_start.py
 ```
 
 Examples and tutorials:
 
 - Tutorial tracks: [`examples/tutorials/README.md`](examples/tutorials/README.md)
 - Full examples catalog: [`examples/README.md`](examples/README.md)
-- Run examples individually with `.hydra_env/bin/python <script_path>`.
-- Most tutorials write under `examples/logs/tutorials/` (gitignored); network tutorials may
-  emit JSON artifacts there too.
+- Run examples individually with `.hydra_env/bin/python <script_path>`, or stream all CLI tutorials with
+  `.hydra_env/bin/python examples/tutorials/shared/run_all_cli_tutorials.py`.
+- **Notebooks** write under `examples/logs/notebooks/`; **CLI** tutorials under `examples/logs/cli-tutorials/` (gitignored); network tutorials may
+  emit JSON artifacts there too (T12/T13 use **stub** transports; T14 uses **localhost** only).
 - **Notebooks:** open from repo root or set `HYDRA_LOGGER_REPO`; see
   `examples/tutorials/notebooks/README.md`.
 - **CI:** tutorial scripts and layout are covered by `tests/examples/` (`pytest tests/examples -q`).
@@ -82,9 +83,27 @@ Examples and tutorials:
 pip install hydra-logger
 ```
 
-Core install includes only required baseline dependencies. Optional extras install
-dependency bundles for specific integration scenarios (including custom handlers and
-application-side adapters), for example:
+### Core dependencies (always installed)
+
+`pip` installs these from `setup.py` `install_requires` so a normal install is **complete
+for the supported baseline API** (loggers, factories, YAML config loading, HTTP sinks,
+async file paths, TOML helpers in `file_utility`, timestamps):
+
+| Package | Role |
+|--------|------|
+| `pydantic` | `LoggingConfig` / validation |
+| `PyYAML` | `load_logging_config`, safe YAML utilities |
+| `aiofiles` | Async file handler I/O |
+| `pytz` | Timezone-aware timestamps |
+| `toml` | TOML read/write helpers in `utils.file_utility` |
+| `requests` | `network_http` / batched HTTP (gracefully absent only if you strip deps manually) |
+
+Nothing **new in v0.7.0** required changing this list: optional **real** WebSocket I/O
+stays behind the **`network`** extra (`websockets`).
+
+### Optional extras
+
+Extras install bundles for integrations and tooling, for example:
 
 ```bash
 pip install "hydra-logger[network]"
@@ -94,7 +113,11 @@ pip install "hydra-logger[full]"
 ```
 
 Notes about extras:
-- `network` supports built-in typed network destinations (`network_http`, `network_ws`, `network_socket`, `network_datagram`).
+- `network`: adds **`websockets`** for **real** WebSocket transport when you enable
+  `use_real_websocket_transport` / `WebSocketHandler(..., use_real_websocket_transport=True)`.
+  Other built-in network kinds (`network_http` with `requests`, socket/datagram, **simulated**
+  WS) work with the core install as documented.
+- `perf`: adds **`psutil`** for optional diagnostics hooks (also included in `dev`).
 - `database`, `cloud`, `queues`, and `system` provide optional dependency bundles for advanced/custom integrations.
 
 Development environment:
@@ -136,7 +159,7 @@ Recommended starting posture for services where **lost or silent-dropped logs** 
 
 Anti-patterns: assuming PyPI version matches a git checkout without running
 `scripts/release/check_pypi_parity.py --require-match` after publish; enabling cloud
-destinations without adapters; ignoring `UserWarning` from simulated WebSocket emits.
+destinations without adapters; ignoring **INFO** logs from simulated `network_ws` when you meant to enable real transport.
 
 ## Quick Start
 
@@ -251,9 +274,10 @@ Network behavior (operational):
 - **HTTP probe**: `HTTPHandler` runs a separate connectivity probe before use. Default probe uses **GET**
   (backward compatible). Set `LogDestination.probe_method` to `HEAD`, `OPTIONS`, or `none`, or
   `connection_probe=False`, if your ingest endpoint must not observe GET side effects.
-- **WebSocket**: `WebSocketHandler` currently uses a **simulated** transport (records are not sent over
-  the wire); a `UserWarning` is emitted once per process on first emit. Treat `network_ws` as
-  simulation until a real client integration ships.
+- **WebSocket**: With **`use_real_websocket_transport: false`** (default for many tutorials), records
+  are not sent over the wire; the handler logs a one-time **INFO** on first emit. Set
+  **`use_real_websocket_transport: true`** (and install **`hydra-logger[network]`**) for real I/O when
+  DNS and connectivity are available.
 - **Unknown / unsupported destinations** resolve to a **no-op** `NullHandler`. With
   `reliability_error_policy="warn"` or strict reliability, the runtime surfaces this instead of failing
   silently.
@@ -377,15 +401,15 @@ Quality and validation commands:
 Enterprise tutorial tracks:
 
 ```bash
-.hydra_env/bin/python examples/tutorials/python/t01_production_quick_start.py
-.hydra_env/bin/python examples/tutorials/python/t03_layers_customization.py
-.hydra_env/bin/python examples/tutorials/python/t04_extensions_plugins.py
-.hydra_env/bin/python examples/tutorials/python/t07_operational_playbook.py
-.hydra_env/bin/python examples/tutorials/python/t10_enterprise_profile_config.py
-.hydra_env/bin/python examples/tutorials/python/t11_enterprise_policy_layers.py
-.hydra_env/bin/python examples/tutorials/python/t12_network_http_typed_destination.py
-.hydra_env/bin/python examples/tutorials/python/t13_network_ws_resilient_typed_destination.py
-.hydra_env/bin/python examples/tutorials/python/t14_network_local_http_simulation.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t01_production_quick_start.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t03_layers_customization.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t04_extensions_plugins.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t07_operational_playbook.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t10_enterprise_profile_config.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t11_enterprise_policy_layers.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t12_network_http_typed_destination.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t13_network_ws_resilient_typed_destination.py
+.hydra_env/bin/python examples/tutorials/cli_tutorials/t14_network_local_http_simulation.py
 ```
 
 ## Documentation

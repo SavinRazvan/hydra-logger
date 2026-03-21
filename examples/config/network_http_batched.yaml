@@ -1,14 +1,21 @@
 hydra_config_schema_version: 1
 default_level: INFO
+base_log_dir: examples/logs
+log_dir_name: notebooks
 layers:
   ship:
     level: INFO
     destinations:
+      - type: console
+        format: plain-text
+        use_colors: false
+      - type: file
+        path: t14_network_http_layer
+        format: json-lines
       - type: network_http
         url: https://httpbin.org/post
         timeout: 5.0
         retry_count: 3
         retry_delay: 0.5
-        connection_probe: true
-        probe_method: HEAD
+        connection_probe: false
         http_batch_size: 50
