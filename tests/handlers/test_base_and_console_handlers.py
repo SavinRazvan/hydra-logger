@@ -135,6 +135,16 @@ def test_sync_console_handler_auto_cleanup_flushes_pending_buffer() -> None:
     assert "pending" in stream.getvalue()
 
 
+def test_sync_console_handler_close_flushes_buffered_messages() -> None:
+    stream = io.StringIO()
+    handler = SyncConsoleHandler(stream=stream, buffer_size=100, flush_interval=60)
+    handler.emit(LogRecord(level=10, level_name="DEBUG", message="dbg-before-close"))
+    assert stream.getvalue() == ""
+    handler.close()
+    assert "dbg-before-close" in stream.getvalue()
+    assert handler.is_closed() is True
+
+
 def test_sync_console_handler_auto_cleanup_handles_closed_stream(caplog) -> None:
     stream = io.StringIO()
     handler = SyncConsoleHandler(stream=stream, buffer_size=100, flush_interval=60)
