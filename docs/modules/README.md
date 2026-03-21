@@ -18,7 +18,7 @@ Each module page in this folder should include:
 1. Scope
 2. Responsibilities
 3. Key files
-4. Public API/export surface (if applicable)
+4. Public API/export surface (if applicable) — **must match** the submodule’s `hydra_logger/<module>/__init__.py` `__all__` (and note anything exported **only** from root `hydra_logger/__init__.py`)
 5. Runtime workflow (Mermaid)
 6. Caveats and known gaps
 7. Maintenance checklist
@@ -75,6 +75,7 @@ flowchart TD
 2. Move to `loggers.md` and `config.md` for runtime behavior.
 3. Follow links to `handlers.md` and `formatters.md` for output flow.
 4. Use `module-governance.md` before PR merge to keep docs synchronized.
+5. For a **repo-wide** doc index (examples, benchmarks, `tests/`, audits, release policy), use [`../audit/DOCS_CODEBASE_ALIGNMENT.md`](../audit/DOCS_CODEBASE_ALIGNMENT.md).
 
 ## Module Tracking Snapshot
 

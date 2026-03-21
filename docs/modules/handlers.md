@@ -20,7 +20,7 @@ Delivers formatted log records to destinations (console, file, network, null, ro
 - `http_payload_encoders.py` - named encoder registry for custom HTTP bodies.
 - `rotating_handler.py` - file rotation strategies.
 - `null_handler.py` - no-op sink.
-- `__init__.py` - exported handler classes and config enums.
+- `__init__.py` - exported handler classes, network helpers, HTTP encoder registry (`__all__` is canonical).
 
 ## Delivery Flow
 
@@ -52,7 +52,7 @@ sequenceDiagram
 - Console: `SyncConsoleHandler`, `AsyncConsoleHandler`
 - File/rotation: `FileHandler`, `RotatingFileHandler`, `TimedRotatingFileHandler`, `SizeRotatingFileHandler`, `HybridRotatingFileHandler`
 - Network: `BaseNetworkHandler`, `HTTPHandler`, `BatchedHTTPHandler`, `WebSocketHandler`, `SocketHandler`, `DatagramHandler`, `NetworkHandlerFactory`
-- HTTP customization: `register_http_payload_encoder`, `resolve_http_payload_encoder`, `load_http_encoders_from_entry_points`
+- HTTP customization: `register_http_payload_encoder`, `unregister_http_payload_encoder`, `clear_http_payload_encoders`, `resolve_http_payload_encoder`, `load_http_encoders_from_entry_points`
 - Network configs/policies: `NetworkConfig`, `NetworkProtocol`, `RetryPolicy`
 - Rotation/time configs: `RotationConfig`, `RotationStrategy`, `TimeUnit`
 - Utility: `NullHandler`
@@ -70,12 +70,11 @@ sequenceDiagram
   Optional **`http_payload_encoder`** (registered name) or **`http_batch_size` / `http_batch_flush_interval`**
   (batched NDJSON) are configured on `LogDestination` for `network_http` only; see
   `docs/plans/config-from-path-enterprise.md`.
-- **WebSocket**: default mode is a **simulated** transport (stats only) with a one-time
-  `UserWarning` on first `emit`. Set **`use_real_websocket_transport=True`** on
-  **`WebSocketHandler`** or **`use_real_websocket_transport: true`** on a `network_ws`
-  **`LogDestination`**, and install the **`network`** extra (`websockets`) to use the
-  synchronous `websockets.sync.client` path for real frames (JSON payload per emit).
-  Connection lifecycle follows handler `close()` semantics.
+- **WebSocket**: default mode is a **simulated** transport (no wire I/O). On first emit the handler emits a one-time
+  **INFO** log on logger **`hydra_logger.handlers.network_handler`** (not a `UserWarning`). Set
+  **`use_real_websocket_transport=True`** on **`WebSocketHandler`** or **`use_real_websocket_transport: true`** on a
+  `network_ws` **`LogDestination`**, and install the **`network`** extra (`websockets`) to use the synchronous
+  `websockets.sync.client` path for real frames (JSON payload per emit). Connection lifecycle follows handler `close()` semantics.
 - **Diagnostics**: `AsyncFileHandler` routes operational messages through
   `hydra_logger.utils.internal_diagnostics` (logger `hydra_logger.internal`, `NullHandler` by default)
   instead of stdout/stderr.

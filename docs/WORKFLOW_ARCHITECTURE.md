@@ -66,7 +66,7 @@ sequenceDiagram
   participant Handler as AsyncCapableHandler
   participant Dest as Destination
 
-  User->>AsyncLog: log/log_async(...)
+  User->>AsyncLog: info/debug or info_async/log_async(...)
   AsyncLog->>AsyncLog: create_log_record(...)
   AsyncLog->>AsyncLog: async or sync fallback path
   AsyncLog->>Handler: emit_async(record) or emit(record)

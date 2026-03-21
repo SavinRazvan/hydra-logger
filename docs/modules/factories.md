@@ -30,16 +30,14 @@ sequenceDiagram
   L-->>U: configured logger
 ```
 
-## Public Factory Surface
+## Public Factory Surface (`hydra_logger.factories` / `factories/__init__.py`)
 
-- `create_logger`
-- `create_sync_logger`
-- `create_async_logger`
-- `create_composite_logger`
-- `create_composite_async_logger`
-- default/dev/prod/custom helper creators
-- **File configs:** keyword-only `config_path` loads YAML via `hydra_logger.config.loader.load_logging_config`
+- **Primary:** `create_logger`, `create_sync_logger`, `create_async_logger`, `create_composite_logger`, `create_composite_async_logger`
+- **Preset helpers:** `create_default_logger`, `create_development_logger`, `create_production_logger`, `create_custom_logger`
+- **File configs:** keyword-only `config_path` loads YAML (or JSON parseable as YAML) via `hydra_logger.config.loader.load_logging_config`
   (optional: `strict_unknown_fields`, `max_extends_depth`, `max_merged_nodes`, `use_config_cache`, `encoding`).
+
+Same symbols are re-exported at the **root** `hydra_logger` package except the four preset helpers (those are **submodule-only** unless added to root later).
 
 ## Caveats And Known Gaps
 

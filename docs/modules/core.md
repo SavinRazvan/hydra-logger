@@ -28,15 +28,17 @@ flowchart LR
   C --> D[Runtime error pathways via core exceptions]
 ```
 
-## Public Surface (module-level)
+## Public Surface (`hydra_logger.core` / `core/__init__.py`)
 
-- Constants: `Colors`, `LogLevel`, `QueuePolicy`, `ShutdownPhase`
+- Constants: `Colors`, `LogLevel`, `QueuePolicy`, `ShutdownPhase` (`LogLevel` here is the **same** type re-exported from `hydra_logger.types.levels` for convenience)
 - Layer management: `LayerManager`, `LayerConfiguration`
-- Exceptions: `HydraLoggerError` family
+- Exceptions: `HydraLoggerError`, `ConfigurationError`, `ValidationError`, `HandlerError`, `FormatterError`, `PluginError`, `SecurityError`
+
+**Not** exported from `hydra_logger.core`: `getLogger`, `getSyncLogger`, `getAsyncLogger`. Those live in `hydra_logger.core.logger_management` and are re-exported from the **root** package (`import hydra_logger` / `hydra_logger/__init__.py`) only.
 
 ## Caveats And Known Gaps
 
-- Core module docstrings can drift toward internal implementation details; treat `core/__init__.py` exports as the canonical public surface for user-facing docs.
+- Core module docstrings can drift toward internal implementation details; treat `core/__init__.py` exports as the canonical **`hydra_logger.core`** surface. For “everything users import from `hydra_logger`”, use `root-package.md` and `hydra_logger/__init__.py`.
 
 ## Maintenance Notes
 

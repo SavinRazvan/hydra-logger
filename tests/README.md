@@ -45,6 +45,10 @@ tests/
     test_*.py
   utils/
     test_*.py
+  benchmark/
+    test_*.py
+  scripts/
+    test_*.py
 ```
 
 Notes:

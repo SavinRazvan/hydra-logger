@@ -15,10 +15,12 @@ Utility layer for text, time, file, stderr interception, system detection, and e
 - `text_utility.py` - text processing/validation helpers.
 - `time_utility.py` - timestamps and time formatting helpers.
 - `file_utility.py` - file/path utility helpers.
-- `stderr_interceptor.py` - explicit stderr interception controls and interception runtime.
-- `system_detector.py` - runtime environment/system detection.
+- `stderr_interceptor.py` - stderr interception (**exported from root `hydra_logger`**, not from `hydra_logger.utils.__all__`).
+- `system_detector.py` - runtime environment/system detection (internal).
 - `error_logger.py` - internal error logging helpers.
-- `__init__.py` - utility exports.
+- `internal_diagnostics.py`, `reliability_lifecycle.py`, `slo_metrics.py` - lifecycle/diagnostics hooks (internal; referenced from logger/handler docs).
+- `destination_contracts.py` - destination typing helpers (internal).
+- `__init__.py` - **narrow** public utility exports (see below).
 
 ## Utility Usage Pattern
 
@@ -34,15 +36,17 @@ flowchart LR
   E --> F
 ```
 
-## Public Surface (module-level)
+## Public Surface (`hydra_logger.utils` / `utils/__init__.py`)
 
-- Text helpers: `TextProcessor`, `TextFormatter`, `TextValidator`, `TextSanitizer`, `TextAnalyzer`
-- Time helpers: `TimeUtility`, `TimestampFormatter`, `TimestampFormat`, `TimestampPrecision`, `TimestampConfig`, `DateFormatter`, `TimeZoneUtility`, `TimeRange`, `TimeInterval`
-- File helpers: `FileUtility`, `PathUtility`, `FileValidator`, `FileProcessor`, `DirectoryScanner`
+- Text: `TextProcessor`, `TextFormatter`, `TextValidator`, `TextSanitizer`, `TextAnalyzer`
+- Time: `TimeUtility`, `TimestampFormatter`, `TimestampFormat`, `TimestampPrecision`, `TimestampConfig`, `DateFormatter`, `TimeZoneUtility`, `TimeRange`, `TimeInterval`
+- File: `FileUtility`, `PathUtility`, `FileValidator`, `FileProcessor`, `DirectoryScanner`
+
+**Root-only public API (not in `utils.__all__`):** `StderrInterceptor`, `start_stderr_interception`, `stop_stderr_interception` from `hydra_logger` top-level.
 
 ## Caveats And Known Gaps
 
-- General utility exports are intentionally narrow; helpers outside `utils/__init__.py` should not be documented as public API unless explicitly exported.
+- General utility exports are intentionally narrow; modules under `hydra_logger.utils` that are **not** in `utils/__init__.py` are **internal** unless promoted and documented.
 
 ## Maintenance Notes
 

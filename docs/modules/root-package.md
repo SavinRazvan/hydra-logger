@@ -18,8 +18,9 @@ Primary exported groups:
 - Loggers: `SyncLogger`, `AsyncLogger`, `CompositeLogger`, `CompositeAsyncLogger`.
 - Factories: `create_logger`, `create_sync_logger`, `create_async_logger`, `create_composite_logger`, `create_composite_async_logger`.
 - Logger manager API: `getLogger`, `getSyncLogger`, `getAsyncLogger`.
-- Config/types/exceptions: `LoggingConfig`, `LogDestination`, `LogLayer`, `ConfigurationTemplates`, `LogRecord`, `LogLevel`, `LogContext`, and core exception classes.
+- Config/types/exceptions: `LoggingConfig`, `LogDestination`, `LogLayer`, `ConfigurationTemplates`, `load_logging_config`, `clear_logging_config_cache`, `LogRecord`, `LogLevel`, `LogContext`, and core exception classes.
 - Runtime controls and metadata: `StderrInterceptor`, `start_stderr_interception`, `stop_stderr_interception`, `__version__`, `__author__`, `__license__`.
+- Back-compat aliases: `HydraLogger` → `SyncLogger`, `AsyncHydraLogger` → `AsyncLogger` (included in `__all__`).
 
 ## Caveats And Known Gaps
 
@@ -44,6 +45,12 @@ sequenceDiagram
 - Re-validate `__all__` when exports change.
 - Keep compatibility aliases explicitly documented if retained.
 - Keep top-level imports side-effect minimal; runtime controls remain explicit opt-in.
+
+## Symmetry check
+
+The authoritative export list is `__all__` in `hydra_logger/__init__.py`. After any export change, update the **Public API Surface** section above and run:
+
+`python -c "import hydra_logger as h; print(sorted(h.__all__))"`
 
 ## Maintenance Checklist
 

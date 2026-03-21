@@ -10,7 +10,12 @@ Detailed package behavior, exports, and maintenance guidance now live in `docs/m
 - Public plans (config-from-path, templates, vendor hooks): [`plans/config-from-path-enterprise.md`](plans/config-from-path-enterprise.md) and [`plans/INDEX.md`](plans/INDEX.md)
 - Workflow details: [`WORKFLOW_ARCHITECTURE.md`](WORKFLOW_ARCHITECTURE.md)
 - Performance context: [`PERFORMANCE.md`](PERFORMANCE.md)
+- Operations / diagnostics: [`OPERATIONS.md`](OPERATIONS.md)
+- Hands-on config checklist: [`LOGGER_CONFIGURATION_TEST.md`](LOGGER_CONFIGURATION_TEST.md)
+- EDA / microservices usage: [`EDA_MICROSERVICES_GUIDE.md`](EDA_MICROSERVICES_GUIDE.md)
+- Security disclosure: [`../SECURITY.md`](../SECURITY.md) (repo root)
 - Module audit and coverage: [`modules/MODULE_COVERAGE_MATRIX.md`](modules/MODULE_COVERAGE_MATRIX.md)
+- Docs ↔ code alignment (periodic audit): [`audit/DOCS_CODEBASE_ALIGNMENT.md`](audit/DOCS_CODEBASE_ALIGNMENT.md)
 
 ## Architecture Summary
 

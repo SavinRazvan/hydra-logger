@@ -22,7 +22,8 @@ Implements logger runtimes: synchronous, asynchronous, and composite forms.
 - `pipeline/handler_dispatcher.py` - destination dispatch orchestration.
 - `pipeline/extension_processor.py` - extension execution in logging flow.
 - `pipeline/component_dispatcher.py` - composite component fan-out dispatch.
-- `__init__.py` - module export surface and convenience `getLogger()`.
+- `pipeline/__init__.py` - exports `RecordBuilder`, `LayerRouter`, `HandlerDispatcher`, `ExtensionProcessor`, `ComponentDispatcher` (pipeline internals; not re-listed on `hydra_logger.loggers` root `__all__`).
+- `__init__.py` - module export surface, record-creation helpers, convenience `getLogger()` (local shim to factory).
 
 ## Runtime Flow
 
@@ -46,14 +47,13 @@ flowchart TD
 - `AsyncLogger` supports async contexts, queue-runtime mode, and sync fallback behavior.
 - Composite loggers coordinate multiple logger instances and aggregate health; composite async defaults to a direct-I/O path unless configured otherwise.
 
-## Public Surface (module-level)
+## Public Surface (`hydra_logger.loggers` / `loggers/__init__.py`)
 
-- `BaseLogger`
-- `SyncLogger`
-- `AsyncLogger`
-- `CompositeLogger`
-- `CompositeAsyncLogger`
-- record creation strategy helpers from `hydra_logger.types.records`
+- **Loggers:** `BaseLogger`, `PerformanceProfiles`, `SyncLogger`, `AsyncLogger`, `CompositeLogger`, `CompositeAsyncLogger`
+- **Record creation (re-exported from `types.records`):** `RecordCreationStrategy`, `get_record_creation_strategy`, `create_log_record`, `MINIMAL_STRATEGY`, `CONTEXT_STRATEGY`, `AUTO_CONTEXT_STRATEGY`
+- **Convenience:** `getLogger` (delegates to `factories.create_logger`; prefer root `hydra_logger.getLogger` for consistency with `getSyncLogger` / `getAsyncLogger`)
+
+For pipeline classes, import `hydra_logger.loggers.pipeline` explicitly (tests / advanced introspection).
 
 ## Caveats
 

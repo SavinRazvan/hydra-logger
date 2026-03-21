@@ -1,5 +1,5 @@
 """
-Role: Load and validate LoggingConfig from YAML files with optional composition.
+Role: Load and validate LoggingConfig from YAML (or JSON) files with optional composition.
 Used By:
  - Logger factories and applications using file-based configuration.
 Depends On:
@@ -7,7 +7,8 @@ Depends On:
  - hydra_logger.config.models
  - yaml
 Notes:
- - Uses yaml.safe_load only; supports extends, optional cache, and strict top-level keys.
+ - Uses ``yaml.safe_load`` only; typical JSON documents parse the same way (same schema as YAML). Supports ``extends``,
+   optional cache, and strict top-level keys.
 """
 
 from __future__ import annotations
@@ -132,13 +133,14 @@ def load_logging_config(
     encoding: str = "utf-8",
 ) -> LoggingConfig:
     """
-    Load a LoggingConfig from a YAML file.
+    Load a LoggingConfig from a YAML or JSON file.
 
     The file may declare ``extends`` (string or list of strings) with paths relative
     to the including file. Parents are merged first; the current file overrides.
+    JSON is supported when it parses via ``yaml.safe_load`` (usual ``.json`` configs qualify).
 
     Args:
-        path: Filesystem path to YAML.
+        path: Filesystem path to ``.yaml`` / ``.yml`` / ``.json`` (or any text parseable as a mapping).
         strict_unknown_fields: When True, unknown top-level keys raise validation error.
         max_extends_depth: Maximum number of nested extends resolutions.
         max_merged_nodes: Approximate node-count guardrail after merge.

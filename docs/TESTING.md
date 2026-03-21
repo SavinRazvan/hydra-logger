@@ -110,12 +110,15 @@ patterns that can obscure failures while still uploading machine-readable report
   (human-friendly; not required in CI; `--dry-run` / `--fail-fast` supported).
 - **Jupyter notebooks** under `examples/tutorials/notebooks/` are **committed** artifacts; asset tests
   assert clean VCS state (no stored outputs) and notebook content contracts.
-- **`test_tutorial_assets.py`** asserts subset preset embedding, `extends` closure for T02, plumbing vs scenario
-  cell separation, **clean VCS state** (`execution_count` / `outputs` cleared), and **`skip-ci`** tags on §0 `%pip` cells.
+- **`test_tutorial_assets.py`** asserts **no embedded preset copies** in committed notebooks (repo `examples/config/` only),
+  `jupyter_workspace` / `prime_notebook_workspace` wiring, on-disk `extends` closure for T02/T03, preset file coverage,
+  benchmark notebook `CONFIG_PATH` / iterate text, **clean VCS state** (`execution_count` / `outputs` cleared), and
+  **`skip-ci`** tags on §0 `%pip` cells where present.
 - **Notebook CI smoke** (GitHub Actions job `notebook-smoke`): installs `pip install -e ".[notebook_smoke]"` and runs
   `python scripts/dev/run_notebook_smoke.py`, which executes **T01** and **T02** from the **repository root** after
-  stripping cells tagged `skip-ci` (avoids redundant `pip install` during execute). **T17–T19** are **excluded** until
-  benchmark artifacts are seeded or fixtures exist under `tests/fixtures/` — see `examples/tutorials/notebooks/README.md`.
+  stripping cells tagged `skip-ci` (avoids redundant `pip install` during execute). **T17–T19** are **not** in the smoke
+  set (they depend on `benchmark/results/` narrative); notebooks may create **minimal stubs** when artifacts are missing
+  — see `docs/tutorials/ENTERPRISE_NOTEBOOKS.md` and `examples/tutorials/notebooks/README.md`.
 - Local smoke (optional): `pip install -e ".[notebook_smoke]"` then `python scripts/dev/run_notebook_smoke.py`.
 
 ## Logging Artifact Policy

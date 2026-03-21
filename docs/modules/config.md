@@ -12,11 +12,14 @@ Defines configuration models and template helpers used to build logger/runtime c
 
 ## Key Files
 
-- `models.py` - schema objects (`LoggingConfig`, `LogLayer`, `LogDestination`, and related configs).
-- `loader.py` - load and validate YAML from disk (`extends`, optional cache, strict unknown fields).
-- `defaults.py` - default/template helper utilities.
-- `configuration_templates.py` - template registry and lookup helpers.
-- `__init__.py` - exported config API surface.
+- `models.py` - canonical Pydantic schema (`LoggingConfig`, handler sub-configs, destination fields, extensions block).
+- `layers.py` / `destinations.py` - `LogLayer` and `LogDestination` model modules (re-exported from `hydra_logger.config`).
+- `runtime.py` - thin re-export of `LoggingConfig` (stable import path for package layout).
+- `loader.py` - load and validate config from disk (YAML; JSON accepted when it parses via `yaml.safe_load`, same schema; `extends`, optional cache, strict unknown fields).
+- `validation.py` - validation helpers used by schema/runtime paths.
+- `defaults.py` - named presets (`get_default_config`, `get_development_config`, `get_production_config`, `get_named_config`, `ConfigurationTemplates`, `templates`, …). Module-level **`get_enterprise_config()`** also lives here (see README); it is **not** listed on `hydra_logger.config.__all__` — import from `hydra_logger.config.defaults` or use `get_named_config` / template registry as appropriate.
+- `configuration_templates.py` - named template registry (`register_configuration_template`, `list_configuration_templates`, …).
+- `__init__.py` - **canonical** submodule public API (`__all__`); keep in sync with this page.
 
 ## Configuration Hierarchy
 
@@ -38,9 +41,10 @@ flowchart TD
   D --> E["Handlers receive formatter + level"]
 ```
 
-## File-based YAML (enterprise path)
+## File-based YAML / JSON (enterprise path)
 
-Load a validated `LoggingConfig` once at startup (not per log line):
+Load a validated `LoggingConfig` once at startup (not per log line). **JSON** files work for the same schema because the
+loader uses `yaml.safe_load` (typical JSON is valid YAML 1.2). Prefer **YAML** when using **`extends`**.
 
 ```python
 from pathlib import Path
@@ -82,7 +86,7 @@ Canonical design notes: [`plans/config-from-path-enterprise.md`](../plans/config
 ## Network Destination Examples
 
 ```python
-from hydra_logger.config.models import LoggingConfig, LogDestination, LogLayer
+from hydra_logger.config import LoggingConfig, LogDestination, LogLayer
 
 config = LoggingConfig(
     layers={
@@ -112,11 +116,17 @@ config = LoggingConfig(
 )
 ```
 
-## Public Surface (module-level)
+## Public Surface (`hydra_logger.config` / `config/__init__.py`)
 
-- Core schema: `LoggingConfig`, `LogLayer`, `LogDestination`
-- Additional config models from `models.py`
-- Template/default helpers from `defaults.py` and `configuration_templates.py`
+Aligned with `__all__` in code:
+
+- **Loaders:** `load_logging_config`, `clear_logging_config_cache`
+- **Core models:** `LoggingConfig`, `LogLayer`, `LogDestination`
+- **Handler config models:** `HandlerConfig`, `FileHandlerConfig`, `ConsoleHandlerConfig`, `MemoryHandlerConfig`, `ModularConfig`
+- **Defaults / presets:** `ConfigurationTemplates`, `get_default_config`, `get_custom_config`, `get_development_config`, `get_production_config`, `get_named_config`, `list_available_configs`, `templates`
+- **Template registry:** `configuration_templates`, `register_configuration_template`, `get_configuration_template`, `list_configuration_templates`, `has_configuration_template`, `validate_configuration_template`
+
+Top-level `hydra_logger` re-exports the most common subset (`LoggingConfig`, `LogLayer`, `LogDestination`, `ConfigurationTemplates`, loaders); use `hydra_logger.config` for the full template/registry surface.
 
 ## Maintenance Notes
 

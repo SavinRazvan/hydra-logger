@@ -15,7 +15,8 @@ Extension interfaces and extension manager plumbing, including security-related 
 - `base.py` and `extension_base.py` - extension classes and concrete extension types.
 - `extension_manager.py` - extension coordination.
 - `security/data_redaction.py` - redaction-focused security extension.
-- `__init__.py` and `security/__init__.py` - export surfaces.
+- `__init__.py` - extension manager + extension types (`__all__` canonical).
+- `security/__init__.py` - **`DataRedaction`** (submodule public surface; optional import path for advanced security wiring).
 
 ## Extension Processing Flow
 
@@ -28,15 +29,11 @@ flowchart TD
   E --> F[Continue logger pipeline]
 ```
 
-## Public Surface (module-level)
+## Public Surface
 
-- `ExtensionBase`
-- `Extension`
-- `ExtensionConfig`
-- `SecurityExtension`
-- `FormattingExtension`
-- `PerformanceExtension`
-- `ExtensionManager`
+**`hydra_logger.extensions`:** `ExtensionBase`, `Extension`, `ExtensionConfig`, `SecurityExtension`, `FormattingExtension`, `PerformanceExtension`, `ExtensionManager` (`extensions/__init__.py` `__all__`).
+
+**`hydra_logger.extensions.security`:** `DataRedaction` (`extensions/security/__init__.py`).
 
 ## Caveats And Known Gaps
 

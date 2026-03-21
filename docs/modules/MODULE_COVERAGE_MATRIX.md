@@ -17,11 +17,12 @@ This matrix tracks `hydra_logger/` documentation coverage against current packag
 | `hydra_logger/factories/` | `docs/modules/factories.md` | covered | P3 | Factory entrypoints and creation flow documented. |
 | `hydra_logger/types/` | `docs/modules/types.md` | covered | P2 | Broad enum/type surface requires periodic sync. |
 | `hydra_logger/extensions/` | `docs/modules/extensions.md` | covered | P3 | Extension contracts and manager behavior documented. |
-| `hydra_logger/extensions/security/` | `docs/modules/extensions.md` | partial | P2 | Security behavior covered within extensions page; split page only if surface grows. |
+| `hydra_logger/extensions/security/` | `docs/modules/extensions.md` | covered | P3 | `DataRedaction` + `SecurityExtension` documented; dedicated page only if surface grows. |
 | `hydra_logger/utils/` | `docs/modules/utils.md` | covered | P2 | Distinguishes public utility exports from internal utility helpers. |
 
 ## Review Cadence
 
+- Deep docs ↔ code alignment checklist: [`../audit/DOCS_CODEBASE_ALIGNMENT.md`](../audit/DOCS_CODEBASE_ALIGNMENT.md).
 - Re-check this matrix when module boundaries or package `__init__.py` exports change.
 - Update `Priority` if runtime risk or API volatility changes.
 - Keep references aligned with `docs/modules/README.md`.

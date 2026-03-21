@@ -31,13 +31,14 @@ flowchart LR
 ## Caveats
 
 - The enum surface is broad and used across modules; treat removals/renames as cross-module changes requiring coordinated doc updates.
+- **Name collision:** `hydra_logger.types.enums` defines an enum **`LogLayer`** (layer *kind* / taxonomy). **`hydra_logger.config.LogLayer`** is a **Pydantic model** for config layers. Use fully qualified imports in docs and app code when both appear.
 
-## Public Surface (module-level)
+## Public Surface (`hydra_logger.types` / `types/__init__.py`)
 
-- Record APIs: `LogRecord`, `LogRecordBatch`
-- Level APIs: `LogLevel`, `LogLevelManager`, level utility helpers
-- Context APIs: `LogContext`, context support classes
-- Enum families from `enums.py`
+- **Records:** `LogRecord`, `LogRecordBatch`
+- **Levels:** `LogLevel`, `LogLevelManager`, `get_level_name`, `get_level`, `is_valid_level`, `all_levels`, `all_level_names`
+- **Context:** `LogContext`, `ContextType`, `CallerInfo`, `SystemInfo`, `ContextManager`, `ContextDetector`
+- **Enums:** `HandlerType`, `FormatterType`, `PluginType`, `LogLayer` (enum), `SecurityLevel`, `QueuePolicy`, `ShutdownPhase`, `RotationStrategy`, `CompressionType`, `EncryptionType`, `NetworkProtocol`, `DatabaseType`, `CloudProvider`, `LogFormat`, `ColorMode`, `ValidationLevel`, `MonitoringLevel`, `ErrorHandling`, `AsyncMode`, `CacheStrategy`, `BackupStrategy`, `HealthCheckType`, `AlertSeverity`, `MetricType`, `TimeUnit`, `SizeUnit` (see `types/__init__.py` `__all__` for the authoritative list)
 
 ## Maintenance Notes
 

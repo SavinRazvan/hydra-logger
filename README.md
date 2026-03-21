@@ -36,6 +36,7 @@ Quick links:
 - [Release policy & API compatibility](docs/RELEASE_POLICY.md)
 - [Testing and quality gates](docs/TESTING.md)
 - [Performance and benchmarks](docs/PERFORMANCE.md)
+- [Documentation index — docs ↔ code alignment](docs/audit/DOCS_CODEBASE_ALIGNMENT.md)
 
 ## Why Teams Choose Hydra-Logger
 
@@ -71,7 +72,8 @@ Examples and tutorials:
 - Full examples catalog: [`examples/README.md`](examples/README.md)
 - Run examples individually with `.hydra_env/bin/python <script_path>`, or stream all CLI tutorials with
   `.hydra_env/bin/python examples/tutorials/shared/run_all_cli_tutorials.py`.
-- **Notebooks** write under `examples/logs/notebooks/`; **CLI** tutorials under `examples/logs/cli-tutorials/` (gitignored); network tutorials may
+- **Notebooks** write under `examples/logs/notebooks/`; **CLI** tutorials under `examples/logs/cli-tutorials/`
+  (representative outputs are **committed** as samples; other paths under `examples/logs/` stay ignored). Network tutorials may
   emit JSON artifacts there too (T12/T13 use **stub** transports; T14 uses **localhost** only).
 - **Notebooks:** open from repo root or set `HYDRA_LOGGER_REPO`; see
   `examples/tutorials/notebooks/README.md`.
@@ -200,6 +202,63 @@ asyncio.run(main())
 ```
 
 ## Configuration
+
+### File-based config (YAML or JSON)
+
+The same **`LoggingConfig`** schema applies whether you build objects in Python, use **YAML**, or use **JSON** on disk.
+`load_logging_config()` reads the file as text and parses it with **`yaml.safe_load`**, so typical **JSON** files work too.
+Prefer **YAML** when you want **`extends`** and multi-file composition; use **JSON** when your stack already standardizes on JSON config.
+
+**YAML** (`config/logging.yaml`):
+
+```yaml
+hydra_config_schema_version: 1
+default_level: INFO
+layers:
+  app:
+    level: INFO
+    destinations:
+      - type: console
+        format: plain-text
+        use_colors: false
+      - type: file
+        path: app.jsonl
+        format: json-lines
+```
+
+**Equivalent JSON** (`config/logging.json`):
+
+```json
+{
+  "hydra_config_schema_version": 1,
+  "default_level": "INFO",
+  "layers": {
+    "app": {
+      "level": "INFO",
+      "destinations": [
+        { "type": "console", "format": "plain-text", "use_colors": false },
+        { "type": "file", "path": "app.jsonl", "format": "json-lines" }
+      ]
+    }
+  }
+}
+```
+
+**Load from a path** (either extension):
+
+```python
+from hydra_logger import create_sync_logger
+
+with create_sync_logger(
+    config_path="config/logging.yaml",  # or config/logging.json
+    strict_unknown_fields=True,
+    name="my-service",
+) as logger:
+    logger.info("Service ready", layer="app")
+```
+
+You can also call `load_logging_config(path)` and pass the result to `create_logger(...)` / `create_sync_logger(cfg, ...)`.
+More presets and path notes: [`examples/config/README.md`](examples/config/README.md) and [`examples/README.md`](examples/README.md).
 
 Format configuration:
 

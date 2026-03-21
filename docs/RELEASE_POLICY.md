@@ -47,8 +47,9 @@ consumer expectations.
   `reliability_error_policy` / `strict_reliability_mode` (see tests under
   `tests/loggers/`).
 - **Migration**: tightening defaults is a **MAJOR** change; today, adopt enterprise
-  presets explicitly (`ConfigurationTemplates.get_named_config("enterprise")` or
-  equivalent YAML) rather than assuming library defaults match production policy.
+  presets explicitly via **`get_named_config("enterprise")`** from `hydra_logger.config`
+  (module-level helper; not a `ConfigurationTemplates` method), **`get_enterprise_config()`**
+  from `hydra_logger.config.defaults`, or equivalent YAML, rather than assuming library defaults match production policy.
 
 ## Public API
 

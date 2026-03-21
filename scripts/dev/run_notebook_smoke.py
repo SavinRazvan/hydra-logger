@@ -10,7 +10,7 @@ Depends On:
  - nbconvert (optional extra ``notebook_smoke``)
 Notes:
  - Drops code cells tagged ``skip-ci`` (§0 ``%pip``) so runners use the pre-installed editable package.
- - **T17–T19** are intentionally excluded (need ``benchmark/results/`` artifacts). See ``docs/TESTING.md``.
+ - **T17–T19** are intentionally excluded here; full runs may use ``benchmark/results/`` (or minimal stubs). See ``docs/TESTING.md``.
 """
 
 from __future__ import annotations

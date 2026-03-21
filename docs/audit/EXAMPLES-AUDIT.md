@@ -17,10 +17,10 @@ Use this as the **source of truth** for onboarding.
 
 - **CLI tutorial scripts:** `examples/tutorials/cli_tutorials/t01_*.py` … `t20_*.py`
 - **Notebooks:** `examples/tutorials/notebooks/t##_*.ipynb` (committed; edit in Jupyter — clear outputs for VCS)
-- **Notebook workspace:** `examples/tutorials/utility/` — `prepare_notebook_workspace()`, `notebook_bootstrap()`, `resolved_cwd()`, `HYDRA_LOGGER_REPO`, repo-root cwd
+- **Notebook workspace:** `examples/tutorials/jupyter_workspace.py` → **`prime_notebook_workspace()`** → `shared/path_bootstrap.run_notebook_workspace_setup()` → **`utility.do_notebook_setup()`** / `prepare_notebook_workspace()` (also `notebook_bootstrap()`, `resolved_cwd()`, `HYDRA_LOGGER_REPO`, repo-root cwd)
 - **Shared (CLI-focused):** `examples/tutorials/shared/` — `run_all_cli_tutorials.py` (run all `t*.py` with streamed output), `cli_tutorial_footer.py` (Console / Files / Takeaway footer), `path_bootstrap.py`, `artifact_checks.py`, `tutorial_runtime.py`
 - **Configs:** `examples/config/*` — see **Config presets (in tree)** below and `examples/config/README.md` (`base_log_dir` / short `path` stems)
-- **Outputs:** `examples/logs/cli-tutorials/` (CLI) and `examples/logs/notebooks/` (notebooks; gitignored)
+- **Outputs:** `examples/logs/cli-tutorials/` (CLI) and `examples/logs/notebooks/` (notebooks). **Representative `*.jsonl` / `.log` samples under those dirs are committed**; other paths under `examples/logs/` remain ignored (see root `.gitignore`).
 - **Smoke runners:** `examples/run_all_examples.py` (pass/fail summary); `examples/tutorials/shared/run_all_cli_tutorials.py` (streamed log of each script)
 - **Tests:** `tests/examples/` (`pytest tests/examples -q`) — assets, runners, branch coverage, `utility`, footer/discovery tests
 - **Docs:** `examples/README.md`, `examples/tutorials/README.md`, `examples/tutorials/notebooks/README.md`, `docs/TESTING.md`, `docs/tutorials/ENTERPRISE_NOTEBOOKS.md`
@@ -42,8 +42,9 @@ Use this as the **source of truth** for onboarding.
 | `examples/config/README.md` | Preset catalog, path rules for `base_log_dir` / stems |
 | `examples/tutorials/README.md` | Tutorial index, track matrix, validation commands |
 | `examples/tutorials/cli_tutorials/t01_*.py` … `t20_*.py` | Runnable tutorials; `t01` YAML, most others in-code `LoggingConfig` with `base_log_dir` / `log_dir_name` |
-| `examples/tutorials/notebooks/t##_*.ipynb` | Generated notebooks; CI smoke **T01+T02** only; T17–T19 need clone + `benchmark/results/` for full narrative |
-| `examples/tutorials/utility/` | Jupyter workspace API (`prepare_notebook_workspace`, …) |
+| `examples/tutorials/notebooks/t##_*.ipynb` | Generated notebooks; CI smoke **T01+T02** only; T17–T19 read `benchmark/results/` (cells may write **minimal stubs** if files are missing — see `docs/tutorials/ENTERPRISE_NOTEBOOKS.md`) |
+| `examples/tutorials/jupyter_workspace.py` | Notebook §1 entry: `prime_notebook_workspace()` |
+| `examples/tutorials/utility/` | Shared helpers: `do_notebook_setup`, `prepare_notebook_workspace`, `notebook_bootstrap`, … |
 | `examples/tutorials/shared/*.py` | CLI path bootstrap, footers, `run_all_cli_tutorials`, stubs/checks |
 
 ## Cross-File Findings
@@ -73,12 +74,10 @@ Use this as the **source of truth** for onboarding.
 
 ## Suggested Refactor Priorities (Input For Next Instructions)
 
-1. Fix notebook path references in both README files.
-2. Decide canonical path:
-   - keep legacy numbered examples as archive/reference, or
-   - map each legacy file to a tutorial and deprecate duplicates.
+1. **Done (baseline):** notebook paths, `cli_tutorials/` rename, committed log samples, `jupyter_workspace` / `prime_notebook_workspace`, `run_all_cli_tutorials.py`.
+2. Decide canonical path for **legacy numbered** `examples/01_*.py` … (not in tree): keep archival matrix only vs. restore selectively.
 3. Remove/modernize compatibility shims in `t10` and `t11` if no longer required.
-4. Introduce a tutorial runner (or expand `run_all_examples.py`) to validate tutorial scripts as first-class onboarding.
+4. **Done:** `run_all_examples.py` + `tests/examples` + notebook smoke (`scripts/dev/run_notebook_smoke.py`).
 5. Keep `base_default.yaml` / `base_minimal.yaml` roles explicit in preset docs (avoid user confusion).
 
 ## Tutorial Track Mapping (Requested Split)

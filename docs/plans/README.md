@@ -7,3 +7,7 @@ For local-only or Cursor-specific plan artifacts, keep those outside this tree (
 ## Index
 
 See [`INDEX.md`](INDEX.md) for the initiative list and status.
+
+## Related
+
+- Repo-wide documentation index (modules, examples, tests, audits): [`../audit/DOCS_CODEBASE_ALIGNMENT.md`](../audit/DOCS_CODEBASE_ALIGNMENT.md).
