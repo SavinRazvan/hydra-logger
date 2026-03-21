@@ -226,3 +226,15 @@ _Add new rows under a dated subsection when you run the next full audit._
 - **`hydra_logger/config/loader.py`:** YAML+JSON docstrings (already in bundle).
 - Restored committed tutorial **`.log`** samples under `examples/logs/` where they had been removed locally.
 
+### 2026-03-21 — `README.md` benchmark snapshot (`pr_gate`)
+
+- Replaced stale nightly-style bullets with **headline metrics** from latest `benchmark_latest.json` / `pr_gate` run; pointed readers to **`repetition_stats`** in JSON and to **`nightly_truth`** for heavy regression.
+- Operations snippet: `benchmark/performance_benchmark.py --profile pr_gate`.
+
+### 2026-03-21 — `README.md` enterprise surface
+
+- **Public API snapshot** table aligned with `hydra_logger.__init__.__all__` + symmetry-check command.
+- **Enterprise adoption** bullets (governance, security, audits, operations pointers).
+- **Quick links:** `SECURITY.md`, `docs/modules/root-package.md`.
+- **Examples:** `getSyncLogger`, `CompositeLogger(components=[...])`, `ConfigurationTemplates().get_template(...)`, `clear_logging_config_cache`, stderr interception opt-in; corrected template API (no `ConfigurationTemplates.get_named_config`).
+

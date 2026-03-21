@@ -33,10 +33,42 @@ Quick links:
 - [Enterprise tutorials](examples/tutorials/README.md)
 - [Configuration reference](docs/modules/config.md)
 - [Operations diagnostics](docs/OPERATIONS.md)
+- [Security policy](SECURITY.md)
 - [Release policy & API compatibility](docs/RELEASE_POLICY.md)
 - [Testing and quality gates](docs/TESTING.md)
 - [Performance and benchmarks](docs/PERFORMANCE.md)
 - [Documentation index — docs ↔ code alignment](docs/audit/DOCS_CODEBASE_ALIGNMENT.md)
+- [Root package exports (detailed)](docs/modules/root-package.md)
+
+## Public API snapshot
+
+The **authoritative** top-level export list is `__all__` in [`hydra_logger/__init__.py`](hydra_logger/__init__.py). After changing exports, keep docs in sync:
+
+```bash
+python -c "import hydra_logger as h; print(sorted(h.__all__))"
+```
+
+| Group | Symbols |
+| --- | --- |
+| **Logger classes** | `SyncLogger`, `AsyncLogger`, `CompositeLogger`, `CompositeAsyncLogger` |
+| **Factories** | `create_logger`, `create_sync_logger`, `create_async_logger`, `create_composite_logger`, `create_composite_async_logger` |
+| **Logger managers** (stdlib-style) | `getLogger`, `getSyncLogger`, `getAsyncLogger` |
+| **Configuration** | `LoggingConfig`, `LogLayer`, `LogDestination`, `ConfigurationTemplates`, `load_logging_config`, `clear_logging_config_cache` |
+| **Core types** | `LogRecord`, `LogLevel`, `LogContext` |
+| **Exceptions** | `HydraLoggerError`, `ConfigurationError`, `ValidationError`, `HandlerError`, `FormatterError`, `PluginError`, `SecurityError` |
+| **Process controls** | `StderrInterceptor`, `start_stderr_interception`, `stop_stderr_interception` |
+| **Metadata** | `__version__`, `__author__`, `__license__` |
+| **Compatibility** | `HydraLogger` → `SyncLogger`, `AsyncHydraLogger` → `AsyncLogger` |
+
+Submodule-specific surfaces (handlers, extensions, factories module, utils) live under [`docs/modules/README.md`](docs/modules/README.md).
+
+## Enterprise adoption
+
+- **Versioning & API stability**: follow [`docs/RELEASE_POLICY.md`](docs/RELEASE_POLICY.md); public contracts are documented exports and behaviors described in `README` / `docs/modules/`.
+- **Configuration governance**: prefer **YAML** with `extends` for environment overlays; **JSON** is supported via the same loader (`yaml.safe_load`). Presets: [`examples/config/README.md`](examples/config/README.md).
+- **Operational posture**: strict reliability, path confinement, health/diagnostics, and integration-only destinations are covered in [`docs/OPERATIONS.md`](docs/OPERATIONS.md) and the **Production operator baseline** section below.
+- **Security**: report vulnerabilities per [`SECURITY.md`](SECURITY.md); treat regex redaction as **defense-in-depth**, not DLP (see `docs/OPERATIONS.md`).
+- **Evidence & audits**: release checklists and alignment tracking in [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md), [`docs/audit/`](docs/audit/README.md), and [`docs/audit/DOCS_CODEBASE_ALIGNMENT.md`](docs/audit/DOCS_CODEBASE_ALIGNMENT.md).
 
 ## Why Teams Choose Hydra-Logger
 
@@ -46,18 +78,19 @@ reliability controls, and high throughput.
 - Built for real systems: sync, async, and composite logger runtimes
 - Policy-driven routing: layers, per-destination levels, and typed network destinations
 - Safety-first: strict reliability guards, path controls, and extension-based data protection
-- Proven performance: benchmarked profiles with drift and reliability checks (`nightly_truth`)
+- Proven performance: benchmark profiles from quick **`pr_gate`** runs to heavy **`nightly_truth`** regression (see [`benchmark/README.md`](benchmark/README.md))
 
-Latest nightly snapshot (`benchmark/results/benchmark_latest.json`):
-- Reliability status: `passed` (strict mode enabled)
-- Drift status: `passed`
-- Sync throughput: ~`53.7k msg/s`
-- Async throughput: ~`44.5k msg/s`
-- Concurrent throughput: ~`283.4k msg/s`
+Latest snapshot (**`benchmark/results/benchmark_latest.json`**, produced with **`--profile pr_gate`** — ~97s wall on a 12-core Linux/WSL2 host, Python **3.12.3**, **5** repetitions where the profile uses them). **Authoritative** medians/p95/min/max: JSON **`repetition_stats`**; the lines below follow the printed / last-iteration summary for that run.
 
-Benchmark details:
-- [`benchmark/README.md`](benchmark/README.md)
-- [`benchmark/results/benchmark_latest_summary.md`](benchmark/results/benchmark_latest_summary.md)
+- **Individual loggers:** Sync **74,086** · Async **45,393** · Composite **55,809** · Composite async **57,128** msg/s
+- **Batch:** Composite **103,213** (batch 200) · Composite async **515,232** (batch 50) msg/s
+- **Preset configs:** Default **60,211** · Dev **66,666** · Prod **69,251** msg/s
+- **File I/O:** Sync file **~30,068** msg/s (~10.3 MB/s) · Async file **~22,703** (~6.9 MB/s)
+- **Memory (50 loggers):** ~**86.79** MB RSS (start/end), **0** MB reported increase
+- **Concurrent (8 workers):** **408,907** msg/s aggregate (~330k–459k per worker in that run)
+- **High-performance composite async:** **102,231** msg/s (30k msgs; 50k+ target met)
+
+Reproduce: `.hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate` (updates `benchmark_latest.json` and a timestamped JSON under `benchmark/results/`). For drift/reliability-style gates and long runs, use **`--profile nightly_truth`** (~1h+; documented in [`benchmark/README.md`](benchmark/README.md)). Human-readable rollup (when generated): [`benchmark/results/benchmark_latest_summary.md`](benchmark/results/benchmark_latest_summary.md).
 
 Start quickly:
 
@@ -201,6 +234,74 @@ async def main():
 asyncio.run(main())
 ```
 
+Logger manager API (reuse a named logger across modules, similar to `logging.getLogger`):
+
+```python
+from hydra_logger import LoggingConfig, LogLayer, LogDestination, getSyncLogger
+
+cfg = LoggingConfig(
+    layers={
+        "app": LogLayer(
+            destinations=[LogDestination(type="console", format="plain-text", use_colors=False)]
+        )
+    }
+)
+log = getSyncLogger("payments", config=cfg)
+log.info("authorized", layer="app")
+```
+
+Composite logger (fan-out across child loggers you already constructed):
+
+```python
+from hydra_logger import (
+    CompositeLogger,
+    LogDestination,
+    LogLayer,
+    LoggingConfig,
+    create_sync_logger,
+)
+
+app_cfg = LoggingConfig(
+    layers={
+        "app": LogLayer(
+            destinations=[
+                LogDestination(type="console", format="plain-text", use_colors=False)
+            ]
+        )
+    }
+)
+audit_cfg = LoggingConfig(
+    layers={
+        "audit": LogLayer(
+            level="WARNING",
+            destinations=[
+                LogDestination(type="console", format="plain-text", use_colors=False)
+            ],
+        )
+    }
+)
+
+primary = create_sync_logger(app_cfg, name="primary")
+secondary = create_sync_logger(audit_cfg, name="secondary")
+composite = CompositeLogger(components=[primary, secondary], name="composite")
+composite.info("record dispatched to components", layer="app")
+```
+
+For **config-driven** composite/async-composite factories (single `LoggingConfig`), use `create_composite_logger` / `create_composite_async_logger` — see [`docs/modules/factories.md`](docs/modules/factories.md).
+
+Named **code templates** (built-in registry on `ConfigurationTemplates`):
+
+```python
+from hydra_logger import ConfigurationTemplates, create_sync_logger
+
+templates = ConfigurationTemplates()
+cfg = templates.get_template("development")
+with create_sync_logger(cfg, name="svc") as logger:
+    logger.info("ready", layer="app")
+```
+
+Enterprise named presets such as **`enterprise`** also ship from `hydra_logger.config` as `get_named_config("enterprise")` or `get_enterprise_config()` (see **Enterprise hardening profile** below).
+
 ## Configuration
 
 ### File-based config (YAML or JSON)
@@ -258,6 +359,7 @@ with create_sync_logger(
 ```
 
 You can also call `load_logging_config(path)` and pass the result to `create_logger(...)` / `create_sync_logger(cfg, ...)`.
+Use `clear_logging_config_cache()` when tests or hot reload paths must drop cached composed configs.
 More presets and path notes: [`examples/config/README.md`](examples/config/README.md) and [`examples/README.md`](examples/README.md).
 
 Format configuration:
@@ -391,6 +493,20 @@ config = get_enterprise_config()
 # - allow_absolute_log_paths=False
 ```
 
+Process **stderr** capture (explicit opt-in; not enabled on `import hydra_logger`):
+
+```python
+from hydra_logger import start_stderr_interception, stop_stderr_interception
+
+start_stderr_interception()
+try:
+    run_app()  # your application entrypoint
+finally:
+    stop_stderr_interception()
+```
+
+Use for bridging legacy `print` / third-party writes into your logging pipeline; see [`docs/modules/root-package.md`](docs/modules/root-package.md).
+
 Log file location policy:
 
 - `hydra_logger` does not create log directories on import/install.
@@ -450,8 +566,8 @@ Quality and validation commands:
 # Tutorial guardrails (assets, runner, notebook factory contract)
 .hydra_env/bin/python -m pytest tests/examples -q
 
-# Performance benchmark
-.hydra_env/bin/python benchmark/performance_benchmark.py
+# Performance benchmark (PR-style gate; ~1–2 min — see benchmark/README.md for nightly_truth)
+.hydra_env/bin/python benchmark/performance_benchmark.py --profile pr_gate
 
 # Runtime guard (forbid blocking runtime calls in hydra_logger)
 .hydra_env/bin/python -m pytest tests/quality/test_runtime_blocking_calls.py -q
