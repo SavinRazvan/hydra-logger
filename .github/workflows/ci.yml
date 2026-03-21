@@ -72,7 +72,7 @@ jobs:
     
     - name: Upload coverage to Codecov
       if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-      uses: codecov/codecov-action@v5.5.2
+      uses: codecov/codecov-action@v5.5.3
       with:
         token: ${{ env.CODECOV_TOKEN }}
         files: ./coverage.xml
@@ -190,9 +190,10 @@ jobs:
         pip install pip-audit
         pip install -e ".[database,cloud,queues,network]"
     
+    # Match severity filter used by the gate so JSON artifact is written even when low findings exist.
     - name: Bandit JSON report
       continue-on-error: true
-      run: bandit -r hydra_logger/ -f json -o bandit-report.json
+      run: bandit -r hydra_logger/ -f json -o bandit-report.json --severity-level high --confidence-level high
 
     - name: Bandit human-readable report
       continue-on-error: true
@@ -227,6 +228,7 @@ jobs:
       uses: actions/upload-artifact@v7.0.0
       with:
         name: security-reports
+        if-no-files-found: ignore
         path: |
           bandit-report.json
           bandit-high.txt
