@@ -277,20 +277,12 @@ config.local.toml
 .local/
 .agents/
 .cursor/
-scripts/
-!scripts/
-scripts/*
-!scripts/dev/
-scripts/dev/*
-!scripts/dev/check_env_health.py
-!scripts/dev/check_logs_clean.py
-!scripts/dev/check_version_consistency.py
-!scripts/dev/run_notebook_smoke.py
-!scripts/release/
-scripts/release/*
-!scripts/release/preflight.py
-!scripts/release/verify_dist_contents.py
-!scripts/release/check_pypi_parity.py
+# scripts/: ignore local automation only (equivalent to old whitelist for current tree).
+# Add paths here if you add dev-only files that must not ship in the repo.
+scripts/pr/
+scripts/plans/
+scripts/dev/patch_notebook_standalone_configs.py
+scripts/dev/safe_clean.sh
 AGENTS.md
 docs/AGENT_AUTOMATION.md
 docs/private/
