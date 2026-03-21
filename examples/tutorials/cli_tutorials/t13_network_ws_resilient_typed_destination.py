@@ -7,16 +7,25 @@ Depends On:
  - hydra_logger
 Notes:
  - Demonstrates retry-aware WebSocket destination configuration via deterministic stubs.
+ - Adds console + file sinks for visible Hydra output; stub JSON records synthetic WS payloads.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 from typing import Any, Callable
 
 from hydra_logger import LogDestination, LogLayer, LoggingConfig, create_logger
 from hydra_logger.handlers.network_handler import NetworkHandlerFactory
+
+_TUTORIALS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _TUTORIALS_ROOT not in sys.path:
+    sys.path.insert(0, _TUTORIALS_ROOT)
+
+from shared.cli_tutorial_footer import print_cli_tutorial_footer
 
 
 class _StubWsHandler:
@@ -60,17 +69,29 @@ def main() -> None:
     try:
         _StubWsHandler.emitted_events = []
         config = LoggingConfig(
+            base_log_dir="examples/logs",
+            log_dir_name="cli-tutorials",
             layers={
                 "stream": LogLayer(
                     level="INFO",
                     destinations=[
+                        LogDestination(
+                            type="console",
+                            format="plain-text",
+                            use_colors=False,
+                        ),
+                        LogDestination(
+                            type="file",
+                            path="t13_network_ws_layer",
+                            format="json-lines",
+                        ),
                         LogDestination(
                             type="network_ws",
                             url="wss://stream.example.com/events",
                             timeout=10.0,
                             retry_count=5,
                             retry_delay=1.0,
-                        )
+                        ),
                     ],
                 )
             }
@@ -85,7 +106,7 @@ def main() -> None:
         if len(_StubWsHandler.emitted_events) < 2:
             raise RuntimeError("Expected at least 2 WebSocket stub events for T13")
 
-        output_dir = Path("examples/logs/tutorials")
+        output_dir = Path("examples/logs/cli-tutorials")
         output_dir.mkdir(parents=True, exist_ok=True)
         output_file = output_dir / "t13_network_ws_stub_results.json"
         payload = {
@@ -98,9 +119,21 @@ def main() -> None:
             encoding="utf-8",
         )
 
-        print("T13 completed: resilient typed network WebSocket destination")
-        print(f" - captured events: {len(_StubWsHandler.emitted_events)}")
-        print(f" - artifact: {output_file}")
+        print_cli_tutorial_footer(
+            code="T13",
+            title="Resilient WebSocket destination (stub transport)",
+            console=(
+                "Hydra console + JSONL above; WebSocket traffic uses a stub (no real socket). "
+                "Stub capture is also saved as JSON below."
+            ),
+            artifacts=[
+                "examples/logs/cli-tutorials/t13_network_ws_layer.jsonl",
+                output_file,
+            ],
+            extra_lines=[f"captured events: {len(_StubWsHandler.emitted_events)}"],
+            takeaway="Retry knobs live on the destination; this script proves the wiring with a stub.",
+            notebook_rel="examples/tutorials/notebooks/t13_network_ws_resilient_typed_destination.ipynb",
+        )
     finally:
         restore()
 

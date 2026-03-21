@@ -7,11 +7,21 @@ Depends On:
  - hydra_logger
 Notes:
  - Demonstrates `get_enterprise_config` defaults and verifies runtime behavior.
+ - Sets `base_log_dir` / `log_dir_name` so file sinks match `examples/logs/cli-tutorials/` (see `examples/config/README.md`).
 """
+
+import os
+import sys
+from pathlib import Path
 
 from hydra_logger import LogDestination, create_logger
 from hydra_logger.config.defaults import get_enterprise_config
-from pathlib import Path
+
+_TUTORIALS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _TUTORIALS_ROOT not in sys.path:
+    sys.path.insert(0, _TUTORIALS_ROOT)
+
+from shared.cli_tutorial_footer import print_cli_tutorial_footer
 
 
 def main() -> None:
@@ -33,14 +43,14 @@ def main() -> None:
         config.allow_absolute_log_paths = True
         print(" - note: set allow_absolute_log_paths=True for tutorial runtime execution")
 
-    # Keep file outputs under examples/tutorials folders instead of top-level logs files.
+    # Align with YAML tutorials: write under examples/logs/cli-tutorials/ (not cwd/logs/...).
+    config.base_log_dir = "examples/logs"
+    config.log_dir_name = "cli-tutorials"
     for layer_name, layer in config.layers.items():
         for destination in layer.destinations:
             if destination.type in {"file", "async_file"} and destination.path:
-                destination.path = str(
-                    Path("examples/logs/tutorials")
-                    / f"t10_{layer_name}_{Path(destination.path).name}"
-                )
+                stem = Path(Path(destination.path).name).stem
+                destination.path = f"t10_{layer_name}_{stem}"
 
     # Add a visible console destination for onboarding demos.
     if "default" in config.layers:
@@ -63,7 +73,27 @@ def main() -> None:
         logger.warning("[T10] warning path active", layer="warning")
         logger.error("[T10] error path active", layer="error")
 
-    print("T10 completed: enterprise profile configuration")
+    file_paths: list[str] = []
+    for _layer_name, layer in config.layers.items():
+        for destination in layer.destinations:
+            if destination.type in {"file", "async_file"} and destination.path:
+                resolved = config.resolve_log_path(destination.path, destination.format)
+                try:
+                    rel = str(Path(resolved).relative_to(Path.cwd().resolve()))
+                except ValueError:
+                    rel = resolved
+                if rel not in file_paths:
+                    file_paths.append(rel)
+    file_paths.sort()
+
+    print_cli_tutorial_footer(
+        code="T10",
+        title="Enterprise profile (defaults + tutorial path shim)",
+        console="Hydra colored lines above; profile notes printed before the logger runs.",
+        artifacts=file_paths,
+        takeaway="get_enterprise_config() seeds a baseline; tutorials rewrite file paths + relax absolute-path policy.",
+        notebook_rel=None,
+    )
 
 
 if __name__ == "__main__":

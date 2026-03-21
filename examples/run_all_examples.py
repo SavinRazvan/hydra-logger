@@ -84,7 +84,7 @@ def verify_log_files(example_name: str) -> Tuple[List[str], List[str]]:
     Returns:
         Tuple of (found_files, expected_patterns)
     """
-    logs_dir = Path("examples/logs/tutorials")
+    logs_dir = Path("examples/logs/cli-tutorials")
     if not logs_dir.exists():
         return [], []
 
@@ -176,7 +176,8 @@ def print_example_result(
             print(
                 "     "
                 + colorize(
-                    "Hint: run with `.hydra_env/bin/python examples/run_all_examples.py`.",
+                    "Hint: `.hydra_env/bin/python examples/run_all_examples.py` (or any Python where "
+                    "`hydra_logger` is installed).",
                     Colors.YELLOW,
                 )
             )
@@ -237,7 +238,7 @@ def print_summary(
             f"  {colorize('All tutorials executed successfully!', Colors.GREEN + Colors.BOLD)}"
         )
         print(
-            f"  {colorize('Check examples/logs/tutorials/ for generated artifacts.', Colors.CYAN)}"
+            f"  {colorize('Check examples/logs/cli-tutorials/ for generated artifacts.', Colors.CYAN)}"
         )
         print()
 
@@ -246,7 +247,7 @@ def main():
     """Run all examples and report results."""
     start_time = time.time()
 
-    examples_dir = Path(__file__).parent / "tutorials" / "python"
+    examples_dir = Path(__file__).parent / "tutorials" / "cli_tutorials"
     example_files = sorted(examples_dir.glob("t*.py"))
 
     if not example_files:

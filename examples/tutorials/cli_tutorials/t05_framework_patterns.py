@@ -11,8 +11,16 @@ Notes:
 """
 
 import asyncio
+import os
+import sys
 
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_async_logger
+
+_TUTORIALS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _TUTORIALS_ROOT not in sys.path:
+    sys.path.insert(0, _TUTORIALS_ROOT)
+
+from shared.cli_tutorial_footer import print_cli_tutorial_footer
 
 
 async def api_handler(logger, request_id: str) -> None:
@@ -29,12 +37,14 @@ async def worker_handler(logger, request_id: str) -> None:
 
 async def main() -> None:
     config = LoggingConfig(
+        base_log_dir="examples/logs",
+        log_dir_name="cli-tutorials",
         layers={
             "api": LogLayer(
                 destinations=[
                     LogDestination(
                         type="file",
-                        path="examples/logs/tutorials/t05_framework_api.jsonl",
+                        path="t05_framework_api",
                         format="json-lines",
                     )
                 ]
@@ -43,7 +53,7 @@ async def main() -> None:
                 destinations=[
                     LogDestination(
                         type="file",
-                        path="examples/logs/tutorials/t05_framework_worker.jsonl",
+                        path="t05_framework_worker",
                         format="json-lines",
                     )
                 ]
@@ -57,7 +67,17 @@ async def main() -> None:
             worker_handler(logger, "req-501"),
         )
 
-    print("T05 completed: framework patterns")
+    print_cli_tutorial_footer(
+        code="T05",
+        title="Framework patterns (async logger + correlation)",
+        console="No Hydra console output here — both layers use file sinks only.",
+        artifacts=[
+            "examples/logs/cli-tutorials/t05_framework_api.jsonl",
+            "examples/logs/cli-tutorials/t05_framework_worker.jsonl",
+        ],
+        takeaway="Async handlers share correlation_id `req-501`; compare api vs worker JSONL.",
+        notebook_rel=None,
+    )
 
 
 if __name__ == "__main__":

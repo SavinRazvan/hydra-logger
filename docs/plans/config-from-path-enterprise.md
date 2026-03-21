@@ -20,26 +20,27 @@ One obvious way to run Hydra in production: **validated config → logger → lo
 
 ```mermaid
 flowchart TB
-  subgraph configPlane [ConfigPlane_load_once]
-    yamlFile[YAML_files]
-    merge[extends_merge]
-    pydantic[LoggingConfig_validate]
+  subgraph configPlane ["Config plane (load once)"]
+    yamlFile["YAML files"]
+    merge["extends merge"]
+    pydantic["LoggingConfig validate"]
   end
-  subgraph runtimeCore [RuntimeCore_hot_path]
-    router[Logger_pipeline]
+  subgraph runtimeCore ["Runtime core (hot path)"]
+    router["Logger pipeline"]
     formatters[Formatters]
   end
-  subgraph integrationPlane [IntegrationPlane_optional]
+  subgraph integrationPlane ["Integration plane (optional)"]
     http[HTTPHandler]
     batch[BatchedHTTPHandler]
-    encoders[Encoder_registry]
+    encoders["Encoder registry"]
   end
   yamlFile --> merge --> pydantic
   pydantic --> router
-  router --> formatters --> http
-  router --> formatters --> batch
-  encoders -.->|"resolve_by_name"| http
-  encoders -.->|"resolve_by_name"| batch
+  router --> formatters
+  formatters --> http
+  formatters --> batch
+  encoders -.->|"resolve by name"| http
+  encoders -.->|"resolve by name"| batch
 ```
 
 ## File-based configuration

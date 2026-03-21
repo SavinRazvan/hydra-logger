@@ -127,7 +127,7 @@ flowchart TD
 ## Cross-Module Interaction Map
 
 ```mermaid
-graph TD
+flowchart TD
   loggersPkg[loggers] --> handlersPkg[handlers]
   loggersPkg --> formattersPkg[formatters]
   loggersPkg --> configPkg[config]

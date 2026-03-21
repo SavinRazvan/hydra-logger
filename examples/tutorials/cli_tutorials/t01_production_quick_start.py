@@ -15,11 +15,19 @@ Notes:
 
 from __future__ import annotations
 
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+_TUTORIALS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _TUTORIALS_ROOT not in sys.path:
+    sys.path.insert(0, _TUTORIALS_ROOT)
+
 from hydra_logger import create_sync_logger
+from hydra_logger.config.loader import load_logging_config
+from shared.cli_tutorial_footer import print_cli_tutorial_footer
 
 CONFIG_REL = Path("examples/config/tutorial_t01_enterprise_layers.yaml")
 
@@ -69,8 +77,11 @@ class PaymentService:
 
 
 def main() -> None:
+    # Presets under examples/config target notebook output (examples/logs/notebooks/); CLI keeps cli-tutorials.
+    cfg = load_logging_config(CONFIG_REL, strict_unknown_fields=True)
+    cfg = cfg.model_copy(update={"log_dir_name": "cli-tutorials"})
     with create_sync_logger(
-        config_path=CONFIG_REL,
+        cfg,
         strict_unknown_fields=True,
         name="t01-tutorial",
     ) as logger:
@@ -85,6 +96,19 @@ def main() -> None:
             svc.process(PaymentRequest(order_id="ORD-1003", user_id="U-3", amount=15000))
         except RuntimeError:
             pass
+
+    print_cli_tutorial_footer(
+        code="T01",
+        title="Production quick start (YAML + layered logger)",
+        console="Hydra console lines from `app` and `error` layers; audit events are file-only.",
+        artifacts=[
+            "examples/logs/cli-tutorials/t01_app.jsonl",
+            "examples/logs/cli-tutorials/t01_audit.log",
+            "examples/logs/cli-tutorials/t01_error.jsonl",
+        ],
+        takeaway="Same story as the T01 notebook: YAML → create_sync_logger → layer/context/extra.",
+        notebook_rel="examples/tutorials/notebooks/t01_production_quick_start.ipynb",
+    )
 
 
 if __name__ == "__main__":

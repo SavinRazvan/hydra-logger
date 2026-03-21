@@ -77,6 +77,8 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+# Legacy notebook standalone folder (prefer OS temp dir — see generate_notebooks.py)
+examples/tutorials/notebooks/hydra_notebook_workspace/
 
 # IPython
 profile_default/
@@ -285,4 +287,17 @@ docs/private/
 
 # Temporary Tools
 .tmp_tools
+!examples/tutorials/notebooks/temp_nb_factory
 
+# Need this for repo, easy viewing of logs
+!examples/logs
+!examples/logs/cli-tutorials/t01_audit.log
+!examples/logs/cli-tutorials/t02_audit.log
+!examples/logs/cli-tutorials/t08_layer_audit.log
+!examples/logs/cli-tutorials/t08_no_color.log
+!examples/logs/cli-tutorials/t09_api_audit.log
+!examples/logs/cli-tutorials/t11_audit.log
+!examples/logs/notebooks/t01_audit.log
+!examples/logs/notebooks/t02_audit.log
+!examples/logs/notebooks/t08_layer_audit.log
+!examples/logs/notebooks/t09_api_audit.log

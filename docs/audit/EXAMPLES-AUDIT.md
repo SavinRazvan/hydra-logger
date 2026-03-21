@@ -13,62 +13,45 @@ The focus is repository-internal evidence only (file names and in-repo content i
 
 ## Current layout (maintained)
 
-Use this as the **source of truth** for onboarding; the big table below is partly **historical**.
+Use this as the **source of truth** for onboarding.
 
-- **Python tutorials:** `examples/tutorials/python/t01_*.py` … `t20_*.py`
-- **Notebooks:** `examples/tutorials/notebooks/t##_*.ipynb` (regenerate via `temp_nb_factory/generate_notebooks.py`)
-- **Notebook bootstrap:** `examples/tutorials/utility/` (`notebook_bootstrap`, `HYDRA_LOGGER_REPO`, repo-root cwd)
-- **Configs:** `examples/config/*.yaml` (see `examples/config/README.md` for `base_log_dir` / path rules)
-- **Outputs:** `examples/logs/tutorials/` (gitignored)
-- **Smoke runner:** `examples/run_all_examples.py` (all Python tutorials)
-- **Tests:** `tests/examples/` (`pytest tests/examples -q`) — assets, runner, branch coverage, `utility`
-- **Docs:** `examples/README.md`, `examples/tutorials/README.md`, `examples/tutorials/notebooks/README.md`
+- **CLI tutorial scripts:** `examples/tutorials/cli_tutorials/t01_*.py` … `t20_*.py`
+- **Notebooks:** `examples/tutorials/notebooks/t##_*.ipynb` (committed; edit in Jupyter — clear outputs for VCS)
+- **Notebook workspace:** `examples/tutorials/utility/` — `prepare_notebook_workspace()`, `notebook_bootstrap()`, `resolved_cwd()`, `HYDRA_LOGGER_REPO`, repo-root cwd
+- **Shared (CLI-focused):** `examples/tutorials/shared/` — `run_all_cli_tutorials.py` (run all `t*.py` with streamed output), `cli_tutorial_footer.py` (Console / Files / Takeaway footer), `path_bootstrap.py`, `artifact_checks.py`, `tutorial_runtime.py`
+- **Configs:** `examples/config/*` — see **Config presets (in tree)** below and `examples/config/README.md` (`base_log_dir` / short `path` stems)
+- **Outputs:** `examples/logs/cli-tutorials/` (CLI) and `examples/logs/notebooks/` (notebooks; gitignored)
+- **Smoke runners:** `examples/run_all_examples.py` (pass/fail summary); `examples/tutorials/shared/run_all_cli_tutorials.py` (streamed log of each script)
+- **Tests:** `tests/examples/` (`pytest tests/examples -q`) — assets, runners, branch coverage, `utility`, footer/discovery tests
+- **Docs:** `examples/README.md`, `examples/tutorials/README.md`, `examples/tutorials/notebooks/README.md`, `docs/TESTING.md`, `docs/tutorials/ENTERPRISE_NOTEBOOKS.md`
 
-## Full Inventory: File Name -> Goal
+### Config presets (in tree)
 
-| File | Goal / Purpose | Track | Notes |
-|---|---|---|---|
-| `examples/README.md` | Main entrypoint; canonical layout + links to tutorials/tests. | docs/onboarding | Keep in sync with `tutorials/README.md`. |
-| `examples/01_format_control.py` | Show per-destination output format control (`json`, plain, `json-lines`). | legacy/foundations | Keep as legacy baseline. |
-| `examples/02_destination_control.py` | Show per-layer destination routing (`auth`, `api`, `error`). | legacy/foundations | Good behavior-oriented sample. |
-| `examples/03_extension_control.py` | Show config-level extension enable/disable behavior. | legacy/extensions | Overlaps with `13_...` and `tutorials/t04`. |
-| `examples/04_runtime_control.py` | Show runtime extension manager registration and toggling. | legacy/extensions | Demo-style broad fallback handling; simplify later. |
-| `examples/05_custom_configurations.py` | Show custom layered configuration with security extension. | legacy/config | Partially overlaps tutorial config track. |
-| `examples/06_basic_colored_logging.py` | Show basic colored console logging and file output. | legacy/console-format | Uses `.log` file with `json-lines` format; naming mismatch. |
-| `examples/07_multi_layer_colored_logging.py` | Show layer-specific color output across domains. | legacy/layers | Multiple layers share same file path; can confuse separation. |
-| `examples/08_mixed_console_file_output.py` | Show mixed console (colored) and file (plain) routing. | legacy/console-format | Solid practical example. |
-| `examples/09_all_logger_types_colors.py` | Show sync, async, and composite logger usage side-by-side. | legacy/quick-start | Useful comparison sample. |
-| `examples/10_disable_colors.py` | Show disabling console colors while keeping structured output. | legacy/console-format | `.log` name with `json-lines` format mismatch. |
-| `examples/11_quick_start_basic.py` | Basic sync quick start with context and extra fields. | legacy/quick-start | Contains `sys.path` bootstrap hack; normalize later. |
-| `examples/12_quick_start_async.py` | Basic async quick start using `create_async_logger`. | legacy/quick-start | Good concise async starter. |
-| `examples/13_extension_system_example.py` | Show security/data-protection extension workflow. | legacy/extensions | Significant overlap with `tutorials/t04`. |
-| `examples/14_class_based_logging.py` | Show class-based/OOP usage patterns and lifecycle methods. | legacy/framework-patterns | Large and advanced; not beginner-first. |
-| `examples/15_eda_microservices_patterns.py` | Show EDA/microservice logging patterns and graceful shutdown. | legacy/operations | Strong advanced reference. |
-| `examples/16_multi_layer_web_app.py` | Simulate multi-layer web app with concurrent logging flow. | legacy/framework-patterns | Heavy complexity for onboarding tier 1. |
-| `examples/17_network_typed_destinations.py` | Show typed network destination usage with deterministic stubs. | legacy/network | Overlaps `tutorials/t12`-`t15`. |
-| `examples/run_all_examples.py` | Execute all `examples/tutorials/python/*.py` and report pass/fail. | operations/tooling | Covered by `tests/examples/`; notebooks not executed in CI by default. |
-| `examples/config/README.md` | Explain config preset library and loading flow. | docs/config | Clear and reusable. |
-| `examples/config/minimal.yaml` | Minimal valid YAML logger config starter. | config/foundation | Currently duplicates `base.yaml`. |
-| `examples/config/base.yaml` | Base preset intended for extension overlays. | config/foundation | Currently same content as `minimal.yaml`. |
-| `examples/config/overlay.yaml` | Overlay for `extends` composition (e.g., debug level). | config/composition | Good `extends` teaching asset. |
-| `examples/config/development_console_file.yaml` | Dev preset: console + file destinations via YAML. | config/dev | Clear and useful. |
-| `examples/config/development_console_file.json` | JSON variant of development preset. | config/dev | Useful for JSON-driven environments. |
-| `examples/config/production_jsonl_strict.yaml` | Strict production preset with reliability/path controls. | config/prod | High-value production baseline. |
-| `examples/config/multi_layer_api_worker.yaml` | Multi-layer starter for API/worker/database split. | config/architecture | Good service template starter. |
-| `examples/config/with_network_http.yaml` | Basic typed `network_http` preset. | config/network | Good starter. |
-| `examples/config/with_network_http_batched.yaml` | HTTP preset with batch/retry behavior. | config/network | Good advanced network preset. |
-| `examples/config/with_network_ws.yaml` | Basic typed `network_ws` preset. | config/network | Keep notes on simulated-vs-real WS behavior in docs. |
-| `examples/config/with_network_socket_datagram.yaml` | Socket + datagram typed destination preset. | config/network | Good transport cookbook piece. |
-| `examples/config/enterprise_onboarding_starter.yaml` | Enterprise onboarding preset combining strict + ops/network. | config/enterprise | Good enterprise starter artifact. |
-| `examples/tutorials/README.md` | Tutorial index, validation commands, track matrix. | tutorials/docs | Single consolidated doc (no duplicate blocks). |
-| `examples/tutorials/python/t01_production_quick_start.py` | YAML + `create_sync_logger` + layered DI demo. | tutorials/quick-start | Pairs with notebook T01 (multi-cell). |
-| `examples/tutorials/python/t02_*.py` … `t19_*.py` | (same goals as before; paths now under `python/`). | tutorials/* | See tutorial README matrix. |
-| `examples/tutorials/python/t20_notebook_hydra_config_onboarding.py` | Script twin for T20 notebook theme. | tutorials/notebook | Notebook lives under `notebooks/`. |
-| `examples/tutorials/notebooks/t##_*.ipynb` | Generated hands-on tutorials; T01 multi-cell. | tutorials/notebook | Source: `temp_nb_factory/`. |
-| `examples/tutorials/utility/` | Notebook path/bootstrap helpers. | tutorials/tooling | Used by generated notebook first cells. |
-| `examples/tutorials/notebooks/temp_nb_factory/` | `generate_notebooks.py`, `scenarios.py`. | tutorials/tooling | Regenerate ipynb after edits. |
+`base_default.yaml`, `base_minimal.yaml`, `base_overlay_debug.yaml`, `dev_console_file.yaml`, `dev_console_file.json`, `prod_jsonl_strict.yaml`, `network_http_basic.yaml`, `network_http_batched.yaml`, `network_ws_basic.yaml`, `network_socket_datagram.yaml`, `enterprise_multi_layer_api_worker.yaml`, `enterprise_onboarding_starter.yaml`, `tutorial_t01_enterprise_layers.yaml`, `tutorial_t02_configuration_recipes.yaml`.
+
+### Legacy numbered `examples/01_*.py` … `17_*.py`
+
+**Not shipped in this repository.** Canonical onboarding is `t01`–`t20` under `examples/tutorials/cli_tutorials/` plus notebooks. Old filenames and pre-rename config paths are preserved in **Config Rename / Standardization Matrix** and **Tutorial Path Migration Matrix** at the end of this file for historical reference only.
+
+## In-tree inventory (high level)
+
+| Path / artifact | Role |
+|---|---|
+| `examples/README.md` | Examples root: YAML vs Python, layout, quick start |
+| `examples/run_all_examples.py` | Run all CLI tutorials; colored pass/fail |
+| `examples/config/README.md` | Preset catalog, path rules for `base_log_dir` / stems |
+| `examples/tutorials/README.md` | Tutorial index, track matrix, validation commands |
+| `examples/tutorials/cli_tutorials/t01_*.py` … `t20_*.py` | Runnable tutorials; `t01` YAML, most others in-code `LoggingConfig` with `base_log_dir` / `log_dir_name` |
+| `examples/tutorials/notebooks/t##_*.ipynb` | Generated notebooks; CI smoke **T01+T02** only; T17–T19 need clone + `benchmark/results/` for full narrative |
+| `examples/tutorials/utility/` | Jupyter workspace API (`prepare_notebook_workspace`, …) |
+| `examples/tutorials/shared/*.py` | CLI path bootstrap, footers, `run_all_cli_tutorials`, stubs/checks |
 
 ## Cross-File Findings
+
+### 0) CLI vs notebook log filenames
+
+- **CLI `cli_tutorials/t*.py`** sets `log_dir_name: cli-tutorials` and `tNN_…` stems under `examples/logs/cli-tutorials/`.
+- **Notebooks** load the same `examples/config/` presets with `log_dir_name: notebooks` → `examples/logs/notebooks/` (shorter stems like `dev_app.jsonl`).
 
 ### 1) Path And Reference Consistency
 
@@ -76,9 +59,8 @@ Use this as the **source of truth** for onboarding; the big table below is partl
 
 ### 2) Overlap And Redundancy
 
-- Legacy extension examples (`03`, `04`, `13`) overlap with tutorial canonical flow (`t04`).
-- Legacy network example (`17`) overlaps with `t12`-`t15`.
-- `config/minimal.yaml` and `config/base.yaml` are currently semantically duplicated.
+- Archived legacy scripts (`examples/01_*.py`–`17_*.py`, not in tree) overlapped conceptually with `t04`, `t12`–`t15`, etc.; use tutorials instead.
+- `base_minimal.yaml` vs `base_default.yaml` are related baselines; keep differences documented in `examples/config/README.md`.
 
 ### 3) Potentially Stale Compatibility Shims
 
@@ -86,7 +68,7 @@ Use this as the **source of truth** for onboarding; the big table below is partl
 
 ### 4) Onboarding Flow Friction
 
-- **Reduced:** `run_all_examples.py` runs Python tutorials; `tests/examples` adds CI coverage.
+- **Reduced:** `run_all_examples.py` and `shared/run_all_cli_tutorials.py` run CLI tutorials; `tests/examples` adds CI coverage; notebook smoke covers T01+T02.
 - Legacy numbered scripts removed from tree (archival only).
 
 ## Suggested Refactor Priorities (Input For Next Instructions)
@@ -97,7 +79,7 @@ Use this as the **source of truth** for onboarding; the big table below is partl
    - map each legacy file to a tutorial and deprecate duplicates.
 3. Remove/modernize compatibility shims in `t10` and `t11` if no longer required.
 4. Introduce a tutorial runner (or expand `run_all_examples.py`) to validate tutorial scripts as first-class onboarding.
-5. Differentiate `base.yaml` from `minimal.yaml` (or document intentional duplication).
+5. Keep `base_default.yaml` / `base_minimal.yaml` roles explicit in preset docs (avoid user confusion).
 
 ## Tutorial Track Mapping (Requested Split)
 
@@ -147,7 +129,7 @@ Proposed file structure for a clean, scalable onboarding system:
 
 - `examples/config/`
   - canonical reusable presets (already present)
-- `examples/tutorials/python/`
+- `examples/tutorials/cli_tutorials/`
   - runnable `.py` tutorials focused on end-to-end execution
 - `examples/tutorials/notebooks/`
   - notebook tutorials focused on learning and guided experimentation
@@ -303,20 +285,19 @@ Before marking tutorial content complete, verify:
 
 ### Phase 2: Structural Reorganization
 
-- Introduce `examples/tutorials/python/` and `examples/tutorials/notebooks/`.
-- Move or recreate files under the new layout while preserving tutorial IDs in names.
-- Keep compatibility wrappers (or redirect docs) temporarily to avoid breaking user paths.
+- **Done:** `examples/tutorials/cli_tutorials/`, `notebooks/`, `shared/`, `utility/` are the canonical layout.
+- Historical: compatibility wrappers were only needed during migration (see migration matrices below).
 
 ### Phase 3: Content Normalization
 
-- Align all tutorial outputs to deterministic artifact paths under `examples/logs/tutorials/`.
+- Align outputs: CLI under `examples/logs/cli-tutorials/`, notebooks under `examples/logs/notebooks/`.
 - Remove stale compatibility shims in `t10` and `t11` if runtime no longer requires them.
 - Ensure each tutorial references concrete config presets from `examples/config/`.
 
 ### Phase 4: Validation And Guardrails
 
-- Expand tutorial validation beyond legacy `run_all_examples.py`.
-- Add tutorial-track runner/checker for both `.py` and notebook smoke validation.
+- **Largely done:** `tests/examples/` + `run_all_examples.py` + `shared/run_all_cli_tutorials.py`; notebook smoke (`run_notebook_smoke.py`, T01+T02).
+- **Remaining:** optional broader notebook execute in CI (T17–T19 need benchmark fixtures or seeded `benchmark/results/`).
 - Keep deterministic command contract using `.hydra_env/bin/python`.
 
 ### Phase 5: Legacy Consolidation
@@ -327,7 +308,7 @@ Before marking tutorial content complete, verify:
 
 ## Audit Conclusion
 
-The `examples/` tree is rich and valuable, with strong enterprise tutorial coverage (`t01`-`t19`) and reusable config presets. The main cleanup opportunities are consistency and consolidation: fix cross-link path drift, reduce legacy/tutorial duplication, and ensure runtime-shim content reflects current behavior. This makes the next refactor safer and improves onboarding clarity.
+The `examples/` tree is **tutorial-first**: `t01`–`t20` CLI scripts, generated notebooks, shared runners/footers, and a small **renamed** preset library under `examples/config/`. Remaining work is incremental (shim revalidation in `t10`/`t11`, benchmark fixtures for full notebook smoke on T17–T19), not structural.
 
 ## Implementation Status: Canonical Rebuild
 
@@ -336,8 +317,8 @@ Status: **applied**; docs/tests aligned with layout below (see also **Current la
 ### Canonical Structure Applied
 
 - `examples/config/`
-- `examples/tutorials/python/`
-- `examples/tutorials/notebooks/` (+ `temp_nb_factory/` generator)
+- `examples/tutorials/cli_tutorials/`
+- `examples/tutorials/notebooks/`
 - `examples/tutorials/shared/`
 - `examples/tutorials/utility/` (notebook bootstrap)
 - `examples/run_all_examples.py`
@@ -364,7 +345,7 @@ Status: **applied**; docs/tests aligned with layout below (see also **Current la
 
 | Old path | New canonical path |
 |---|---|
-| `examples/tutorials/t##_*.py` | `examples/tutorials/python/t##_*.py` |
+| `examples/tutorials/t##_*.py` | `examples/tutorials/cli_tutorials/t##_*.py` |
 | `examples/notebooks/t20_notebook_hydra_config_onboarding.ipynb` | `examples/tutorials/notebooks/t20_notebook_hydra_config_onboarding.ipynb` |
 | (new notebooks track) | `examples/tutorials/notebooks/t##_*.ipynb` |
 | (new shared helpers) | `examples/tutorials/shared/*.py` |

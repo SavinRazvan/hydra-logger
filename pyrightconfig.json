@@ -3,9 +3,13 @@
   "venv": ".hydra_env",
   "pythonVersion": "3.11",
   "typeCheckingMode": "basic",
+  "extraPaths": [
+    "examples/tutorials/notebooks/temp_nb_factory"
+  ],
   "include": [
     "hydra_logger",
-    "tests"
+    "tests",
+    "examples/tutorials/notebooks/temp_nb_factory"
   ],
   "exclude": [
     ".hydra_env",

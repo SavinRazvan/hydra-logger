@@ -43,8 +43,8 @@ Each module page in this folder should include:
 ## Package Dependency View
 
 ```mermaid
-graph TD
-  A[hydra_logger __init__] --> B[loggers]
+flowchart TD
+  A["hydra_logger top-level exports"] --> B[loggers]
   A --> C[factories]
   A --> D[config]
   A --> E[types]

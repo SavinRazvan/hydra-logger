@@ -1,7 +1,7 @@
 """
 Role: Package marker for shared tutorial helpers.
 Used By:
- - Tutorial scripts under `examples/tutorials/python/` and notebooks.
+ - Tutorial scripts under `examples/tutorials/cli_tutorials/` and notebooks.
 Depends On:
  - (none; namespace only)
 Notes:

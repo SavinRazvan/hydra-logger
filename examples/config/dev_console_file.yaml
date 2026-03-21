@@ -1,7 +1,7 @@
 hydra_config_schema_version: 1
 default_level: DEBUG
 base_log_dir: examples/logs
-log_dir_name: tutorials
+log_dir_name: notebooks
 layers:
   app:
     level: DEBUG

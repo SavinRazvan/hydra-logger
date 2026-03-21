@@ -9,8 +9,17 @@ Notes:
  - Demonstrates built-in extension toggles and custom plugin type registration.
 """
 
+import os
+import sys
+
 from hydra_logger import LogDestination, LoggingConfig, LogLayer, create_logger
 from hydra_logger.extensions import ExtensionManager, SecurityExtension
+
+_TUTORIALS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _TUTORIALS_ROOT not in sys.path:
+    sys.path.insert(0, _TUTORIALS_ROOT)
+
+from shared.cli_tutorial_footer import print_cli_tutorial_footer
 
 
 class CustomSecurityExtension(SecurityExtension):
@@ -19,6 +28,8 @@ class CustomSecurityExtension(SecurityExtension):
 
 def main() -> None:
     config = LoggingConfig(
+        base_log_dir="examples/logs",
+        log_dir_name="cli-tutorials",
         enable_security=True,
         extensions={
             "security_default": {
@@ -32,7 +43,7 @@ def main() -> None:
                 destinations=[
                     LogDestination(
                         type="file",
-                        path="examples/logs/tutorials/t04_extensions.jsonl",
+                        path="t04_extensions",
                         format="json-lines",
                     )
                 ]
@@ -54,7 +65,14 @@ def main() -> None:
     with create_logger(config, logger_type="sync") as logger:
         logger.info("[T04] extension track initialized", layer="app")
 
-    print("T04 completed: extensions/plugins")
+    print_cli_tutorial_footer(
+        code="T04",
+        title="Extensions / plugin registration",
+        console="No Hydra console sink; this script is file-only + extension manager side effects.",
+        artifacts=["examples/logs/cli-tutorials/t04_extensions.jsonl"],
+        takeaway="Register custom extension types, then enable/disable named instances.",
+        notebook_rel="examples/tutorials/notebooks/t04_extensions_plugins.ipynb",
+    )
 
 
 if __name__ == "__main__":

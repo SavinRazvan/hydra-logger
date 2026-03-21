@@ -21,7 +21,7 @@ Defines configuration models and template helpers used to build logger/runtime c
 ## Configuration Hierarchy
 
 ```mermaid
-graph TD
+flowchart TD
   A[LoggingConfig] --> B[Layer map]
   B --> C[LogLayer]
   C --> D[Destinations list]

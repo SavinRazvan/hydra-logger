@@ -54,6 +54,11 @@ setup(
         "requests>=2.32.0",
     ],
     extras_require={
+        "notebook_smoke": [
+            "nbformat>=5.10.0",
+            "nbconvert>=7.16.0",
+            "ipykernel>=6.29.0",
+        ],
         "dev": [
             "pytest>=8.3.0",
             "pytest-cov>=5.0.0",
