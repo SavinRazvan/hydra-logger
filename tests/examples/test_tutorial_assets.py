@@ -158,7 +158,9 @@ def test_tutorial_specs_config_files_exist_under_examples_config() -> None:
     for spec in core.TUTORIAL_SPECS:
         name = spec.get("config")
         assert name, spec["id"]
-        assert (cfg_dir / str(name)).is_file(), f"missing examples/config/{name} for {spec['filename']}"
+        assert (
+            cfg_dir / str(name)
+        ).is_file(), f"missing examples/config/{name} for {spec['filename']}"
 
 
 def test_benchmark_notebooks_have_config_path_and_benchmark_iterate() -> None:

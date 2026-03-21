@@ -112,7 +112,9 @@ def test_do_notebook_setup_matches_prepare_with_repo_candidate(
     assert a.resolve() == b.resolve() == ROOT.resolve()
 
 
-def test_run_notebook_workspace_setup_returns_repo_root(monkeypatch, tmp_path: Path) -> None:
+def test_run_notebook_workspace_setup_returns_repo_root(
+    monkeypatch, tmp_path: Path
+) -> None:
     """path_bootstrap.run_notebook_workspace_setup uses __file__-based project_root."""
     monkeypatch.delenv("HYDRA_LOGGER_REPO", raising=False)
     monkeypatch.chdir(tmp_path)
@@ -125,7 +127,9 @@ def test_run_notebook_workspace_setup_returns_repo_root(monkeypatch, tmp_path: P
     assert root.resolve() == ROOT.resolve()
 
 
-def test_prime_notebook_workspace_returns_repo_root(monkeypatch, tmp_path: Path) -> None:
+def test_prime_notebook_workspace_returns_repo_root(
+    monkeypatch, tmp_path: Path
+) -> None:
     """jupyter_workspace.prime_notebook_workspace matches path_bootstrap when cwd is foreign."""
     monkeypatch.delenv("HYDRA_LOGGER_REPO", raising=False)
     monkeypatch.chdir(tmp_path)

@@ -23,7 +23,9 @@ if str(TUTORIALS) not in sys.path:
 from shared.cli_tutorial_footer import print_cli_tutorial_footer  # noqa: E402
 
 
-def test_print_cli_tutorial_footer_includes_sections(capsys: pytest.CaptureFixture[str]) -> None:
+def test_print_cli_tutorial_footer_includes_sections(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     print_cli_tutorial_footer(
         code="TXX",
         title="Sample",
