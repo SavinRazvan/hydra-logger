@@ -213,12 +213,21 @@ __marimo__
 
 # Log files and directories (generated during testing and demos)
 logs/
-examples/logs/
+# Tutorial sample outputs: ignore examples/logs except cli-tutorials/ + notebooks/ (committed for onboarding).
+examples/logs/**
+!examples/logs/
+!examples/logs/cli-tutorials/
+!examples/logs/cli-tutorials/**
+!examples/logs/notebooks/
+!examples/logs/notebooks/**
 workflow_logs/
 demo_logs/
 _tests_logs/
 benchmark/bench_logs/
 *.log
+# Tutorial sample `.log` files under examples/logs (override global *.log above)
+!examples/logs/cli-tutorials/**/*.log
+!examples/logs/notebooks/**/*.log
 
 # Test artifacts
 test.log

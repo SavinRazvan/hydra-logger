@@ -1,0 +1,16 @@
+{
+  "tutorial": "t13_network_ws_resilient_typed_destination",
+  "stub_sent_count": 2,
+  "events": [
+    {
+      "level": "INFO",
+      "message": "[T13] WebSocket destination initialized",
+      "layer": "stream"
+    },
+    {
+      "level": "ERROR",
+      "message": "[T13] WebSocket resilient retry path simulation",
+      "layer": "stream"
+    }
+  ]
+}

@@ -87,7 +87,7 @@ with create_logger(cfg, logger_type="sync") as logger:
 | `examples/tutorials/utility/` | Notebook workspace helpers (`do_notebook_setup`, `prepare_notebook_workspace`, paths) |
 | `examples/tutorials/shared/` | CLI import path + run footer (`path_bootstrap`, `cli_tutorial_footer`), `run_all_cli_tutorials.py`, `tutorial_runtime`, `artifact_checks` |
 | `examples/run_all_examples.py` | Runs all `tutorials/cli_tutorials/*.py` in sequence |
-| `examples/logs/` | **Gitignored** — CLI output under `cli-tutorials/`; notebook output under `notebooks/` |
+| `examples/logs/` | **Committed samples** under `cli-tutorials/` and `notebooks/` so clones show tutorial-shaped output; other paths under `examples/logs/` stay ignored. |
 
 ## Quick start
 

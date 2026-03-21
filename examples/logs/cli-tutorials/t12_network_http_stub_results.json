@@ -1,0 +1,16 @@
+{
+  "tutorial": "t12_network_http_typed_destination",
+  "stub_sent_count": 2,
+  "events": [
+    {
+      "level": "INFO",
+      "message": "[T12] HTTP destination initialized",
+      "layer": "http"
+    },
+    {
+      "level": "WARNING",
+      "message": "[T12] HTTP destination warning event",
+      "layer": "http"
+    }
+  ]
+}

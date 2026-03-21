@@ -10,6 +10,8 @@ Run tutorials from the **repository root** so relative paths resolve like CI.
 | **Notebooks** (`.ipynb` loading these presets in repo mode) | `examples/logs/notebooks/` | Presets use **`base_log_dir: examples/logs`** and **`log_dir_name: notebooks`**, plus a **short** `path` stem (e.g. `t01_app` → `t01_app.jsonl`). |
 | **CLI scripts** (`cli_tutorials/t*.py`) | `examples/logs/cli-tutorials/` | Each script sets `LoggingConfig(..., base_log_dir="examples/logs", log_dir_name="cli-tutorials", ...)` so CLI output stays separate from notebook runs. |
 
+Representative **`*.jsonl` / `.log` files under those two directories are committed** so a fresh clone can show expected tutorial output shapes (re-run tutorials locally to refresh them).
+
 **T01 CLI** loads `tutorial_t01_enterprise_layers.yaml` from this folder (notebook-oriented `log_dir_name`) and overrides **`log_dir_name` to `cli-tutorials`** in code so the CLI path stays consistent.
 
 If you use `path: examples/logs/notebooks/foo.jsonl` **without** setting `base_log_dir` / `log_dir_name`, the library joins relative paths under the default `./logs` root → you get nested paths like `logs/examples/logs/...` instead of `examples/logs/notebooks/`.
