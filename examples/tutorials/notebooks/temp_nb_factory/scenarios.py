@@ -28,7 +28,8 @@ SCENARIO_INSPECT: Dict[str, List[str]] = {
         "Console + `t12_network_http_layer.jsonl` under `examples/logs/notebooks/`; `network_http` may fail offline."
     ],
     "t13": [
-        "Console + `t13_network_ws_layer.jsonl` under `examples/logs/notebooks/`; `network_ws` may fail offline."
+        "Console + `t13_network_ws_layer.jsonl`; preset uses **simulated** `network_ws` (no live `wss://`). "
+        "Set `use_real_websocket_transport: true` in YAML for a real echo when DNS works."
     ],
     "t14": [
         "Console + `t14_network_http_layer.jsonl` under `examples/logs/notebooks/`; batched `network_http` may fail offline."

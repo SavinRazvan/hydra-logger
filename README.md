@@ -159,7 +159,7 @@ Recommended starting posture for services where **lost or silent-dropped logs** 
 
 Anti-patterns: assuming PyPI version matches a git checkout without running
 `scripts/release/check_pypi_parity.py --require-match` after publish; enabling cloud
-destinations without adapters; ignoring `UserWarning` from simulated WebSocket emits.
+destinations without adapters; ignoring **INFO** logs from simulated `network_ws` when you meant to enable real transport.
 
 ## Quick Start
 
@@ -274,9 +274,10 @@ Network behavior (operational):
 - **HTTP probe**: `HTTPHandler` runs a separate connectivity probe before use. Default probe uses **GET**
   (backward compatible). Set `LogDestination.probe_method` to `HEAD`, `OPTIONS`, or `none`, or
   `connection_probe=False`, if your ingest endpoint must not observe GET side effects.
-- **WebSocket**: `WebSocketHandler` currently uses a **simulated** transport (records are not sent over
-  the wire); a `UserWarning` is emitted once per process on first emit. Treat `network_ws` as
-  simulation until a real client integration ships.
+- **WebSocket**: With **`use_real_websocket_transport: false`** (default for many tutorials), records
+  are not sent over the wire; the handler logs a one-time **INFO** on first emit. Set
+  **`use_real_websocket_transport: true`** (and install **`hydra-logger[network]`**) for real I/O when
+  DNS and connectivity are available.
 - **Unknown / unsupported destinations** resolve to a **no-op** `NullHandler`. With
   `reliability_error_policy="warn"` or strict reliability, the runtime surfaces this instead of failing
   silently.

@@ -31,7 +31,7 @@ If you use `path: examples/logs/notebooks/foo.jsonl` **without** setting `base_l
 - `base_default.yaml`, `base_minimal.yaml`, `base_overlay_debug.yaml`
 - `dev_console_file.yaml`, `dev_console_file.json` — JSON demonstrates the same `LoggingConfig` shape as YAML (see **T03** notebook §3b).
 - `prod_jsonl_strict.yaml`
-- `network_http_basic.yaml`, `network_http_batched.yaml`, `network_ws_basic.yaml`, `network_socket_datagram.yaml` — HTTP/WS basics attach **console + JSONL** sinks (`t12_*` / `t13_*` / `t14_*` stems) for visible artifacts under **`examples/logs/notebooks/`** when notebooks load these YAML files (repo mode). HTTP presets use **`connection_probe: false`** on `httpbin.org/post` (HEAD would return **405**). **`network_ws_basic`** sets **`use_real_websocket_transport: true`** (needs **`hydra-logger[network]`** / `websockets`).
+- `network_http_basic.yaml`, `network_http_batched.yaml`, `network_ws_basic.yaml`, `network_socket_datagram.yaml` — HTTP/WS basics attach **console + JSONL** sinks (`t12_*` / `t13_*` / `t14_*` stems) for visible artifacts under **`examples/logs/notebooks/`** when notebooks load these YAML files (repo mode). HTTP presets use **`connection_probe: false`** on `httpbin.org/post` (HEAD would return **405**). **`network_ws_basic`** keeps **`use_real_websocket_transport: false`** so T13 runs without outbound DNS/TCP (WSL/CI-safe); set **`true`** for a real echo server when the network resolves.
 - `enterprise_multi_layer_api_worker.yaml`, `enterprise_onboarding_starter.yaml`
 - `tutorial_t01_enterprise_layers.yaml` — T01: `app` / `audit` / `error` layers
 - `tutorial_t02_configuration_recipes.yaml` — T02: `extends: base_default.yaml` + DEBUG overlay on `app`

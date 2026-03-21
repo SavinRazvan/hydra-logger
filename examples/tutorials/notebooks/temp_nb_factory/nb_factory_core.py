@@ -165,7 +165,8 @@ TUTORIAL_SPECS: List[Dict[str, Any]] = [
         "title": "T13 Network WS Resilient Typed Destination",
         "config": "network_ws_basic.yaml",
         "description": (
-            "Same idea for **`network_ws`**: validate layer + destination config and logger integration."
+            "Validate **`network_ws`** layer + destination wiring; preset keeps **simulated** transport so "
+            "notebooks run without DNS (WSL/CI). Use **`use_real_websocket_transport: true`** for real echo."
         ),
     },
     {

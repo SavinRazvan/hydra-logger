@@ -25,7 +25,6 @@ import logging
 import socket
 import ssl
 import time
-import warnings
 from dataclasses import dataclass, field
 from enum import Enum
 from importlib.util import find_spec
@@ -644,11 +643,9 @@ class WebSocketHandler(BaseNetworkHandler):
             return
         if WebSocketHandler._simulation_notice_issued:
             return
-        warnings.warn(
-            "WebSocketHandler uses a simulated transport; log records are not sent "
-            "over the network. Install and configure a real client when available.",
-            UserWarning,
-            stacklevel=2,
+        _logger.info(
+            "WebSocketHandler uses simulated transport; log records are not sent over the network. "
+            "Set use_real_websocket_transport=True (and ensure DNS/connectivity) for real I/O."
         )
         WebSocketHandler._simulation_notice_issued = True
 

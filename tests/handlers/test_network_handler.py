@@ -27,11 +27,6 @@ from hydra_logger.handlers.network_handler import (
 )
 from hydra_logger.types.records import LogRecord
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:WebSocketHandler uses a simulated transport:UserWarning",
-)
-
-
 @pytest.fixture(autouse=True)
 def _reset_websocket_simulation_warning() -> None:
     WebSocketHandler._simulation_notice_issued = False
