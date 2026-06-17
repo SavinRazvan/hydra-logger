@@ -15,6 +15,11 @@ import ast
 from pathlib import Path
 
 
+def _require_true(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
 def _classifier_list(setup_path: Path) -> list[str]:
     tree = ast.parse(setup_path.read_text(encoding="utf-8"))
     for node in tree.body:
@@ -39,20 +44,30 @@ def _classifier_list(setup_path: Path) -> list[str]:
 def test_development_status_is_beta() -> None:
     root = Path(__file__).resolve().parents[2]
     classifiers = _classifier_list(root / "setup.py")
-    assert "Development Status :: 4 - Beta" in classifiers
-    assert not any("Development Status :: 3 - Alpha" in c for c in classifiers)
+    _require_true(
+        "Development Status :: 4 - Beta" in classifiers,
+        "expected Development Status :: 4 - Beta classifier in setup.py",
+    )
+    _require_true(
+        not any("Development Status :: 3 - Alpha" in c for c in classifiers),
+        "setup.py must not declare Development Status :: 3 - Alpha",
+    )
 
 
 def test_development_status_singleton() -> None:
     root = Path(__file__).resolve().parents[2]
     classifiers = _classifier_list(root / "setup.py")
     dev_status = [c for c in classifiers if c.startswith("Development Status ::")]
-    assert (
-        len(dev_status) == 1
-    ), f"expected one Development Status classifier, got {dev_status!r}"
+    _require_true(
+        len(dev_status) == 1,
+        f"expected one Development Status classifier, got {dev_status!r}",
+    )
 
 
 def test_mit_license_classifier_present() -> None:
     root = Path(__file__).resolve().parents[2]
     classifiers = _classifier_list(root / "setup.py")
-    assert "License :: OSI Approved :: MIT License" in classifiers
+    _require_true(
+        "License :: OSI Approved :: MIT License" in classifiers,
+        "expected License :: OSI Approved :: MIT License classifier in setup.py",
+    )
