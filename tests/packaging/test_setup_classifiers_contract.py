@@ -50,3 +50,9 @@ def test_development_status_singleton() -> None:
     assert (
         len(dev_status) == 1
     ), f"expected one Development Status classifier, got {dev_status!r}"
+
+
+def test_mit_license_classifier_present() -> None:
+    root = Path(__file__).resolve().parents[2]
+    classifiers = _classifier_list(root / "setup.py")
+    assert "License :: OSI Approved :: MIT License" in classifiers
