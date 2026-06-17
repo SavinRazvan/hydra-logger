@@ -68,3 +68,11 @@
 | 2026-03-21 18:13:16 | ERROR | app | [T08] deterministic plain-text output
 | 2026-03-21 18:13:21 | INFO | app | [T08] non-color console policy
 | 2026-03-21 18:13:21 | ERROR | app | [T08] deterministic plain-text output
+| 2026-06-17 10:44:38 | INFO | app | [T08] non-color console policy
+| 2026-06-17 10:44:38 | ERROR | app | [T08] deterministic plain-text output
+| 2026-06-17 10:44:45 | INFO | app | [T08] non-color console policy
+| 2026-06-17 10:44:45 | ERROR | app | [T08] deterministic plain-text output
+| 2026-06-17 10:45:01 | INFO | app | [T08] non-color console policy
+| 2026-06-17 10:45:01 | ERROR | app | [T08] deterministic plain-text output
+| 2026-06-17 10:45:05 | INFO | app | [T08] non-color console policy
+| 2026-06-17 10:45:05 | ERROR | app | [T08] deterministic plain-text output
